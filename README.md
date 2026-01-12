@@ -16,7 +16,8 @@ frontend/
 .gitignore  
 README.md
 
-- организация проекта на golang: [ссылка](https://github.com/golang-standards/project-layout/blob/master/README_ru.md)
+- Если вы сервис на go, то при создании папки сервиса сделайте: go mod init github.com/Intelligent-Smart-Home-Design-System/monorepo/your-service-name (новый сервис = новый модуль)
+- Организация проекта на golang: [ссылка](https://github.com/golang-standards/project-layout/blob/master/README_ru.md)
 
 ## Ветки
 - main: главная ветка (прод)

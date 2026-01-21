@@ -7,14 +7,14 @@ Golang, ...
 Создание нового сервиса — в папке services/ создаете папку с названием вашего сервиса.
 
 Пример:  
-├services/
+├services/  
 ├────simulation/  
 ├────────cmd/  
 ├────────internal/  
 ├──────── ...  
 ├────frontend/  
 ├──────── ...  
-├docs/
+├docs/  
 .gitignore  
 README.md
 

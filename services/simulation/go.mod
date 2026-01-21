@@ -1,4 +1,4 @@
-module github.com/Intelligent-Smart-Home-Design-System/monorepo/simulation
+module github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation
 
 go 1.22.2
 

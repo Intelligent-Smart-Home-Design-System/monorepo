@@ -3,7 +3,7 @@ package engine
 import (
 	"time"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/simulation/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/fschuetz04/simgo"
 )
 

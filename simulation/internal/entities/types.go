@@ -3,13 +3,12 @@ package entities
 // Entity определяет главный интерфейс устройств
 type Entity interface {
 	// Trigger возвращает время в секундах, с начала симуляции
-	Trigger() float64
+	Trigger(delay int) float64
 
 	// SetEvent создает новый event и обновляет соответствующее поле
 	SetEvent()
 
-	// SetEvent создает новый event и обновляет соответствующее поле
-	SetDelay()
+	Process()
 
 	//GetID() string
 	//GetType() string

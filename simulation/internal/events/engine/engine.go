@@ -51,12 +51,15 @@ func (s *SimEngine) HandleEvent(entityID string) {
 	entityTriggers := s.triggers[entityID]
 	for _, entity := range entityTriggers {
 		_, ok := s.devices[entityID]
+		senderDelay := 0
+		receiverDelay := 0
 		if ok {
 			// если девайс, то должны учесть задержку + бизнес логика
 		}
 		// устанавливаем Event (если нет) и вызываем trigger
 		entity.SetEvent()
-		// учитываем задержку получателя, если устройство
-		entity.Trigger()
+		//lampDelay := lamp.GetReactionDelay().Seconds()
+		//lamp.trigger.TriggerDelayed(senderDelay + receiverDelay)
+		entity.Trigger(senderDelay + receiverDelay)
 	}
 }

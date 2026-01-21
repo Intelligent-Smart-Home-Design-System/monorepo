@@ -1,0 +1,3 @@
+package devices
+
+// Окна / ворота

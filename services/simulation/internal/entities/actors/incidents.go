@@ -44,7 +44,7 @@ func (fire *Fire) Process(process simgo.Process) {
 		process.Wait(fire.trigger)
 
 		fmt.Printf(
-			"Fire started at time %.1f in (%d,%d)",
+			"Fire started at time %.1f in (%d,%d)\n",
 			process.Simulation.Now(),
 			fire.startCell.X,
 			fire.startCell.Y,
@@ -54,6 +54,16 @@ func (fire *Fire) Process(process simgo.Process) {
 	}
 }
 
+//???????????????????????????????????
+func (f *Fire) GetTrigger() *simgo.Event {
+	return f.trigger
+}
+
+func (f *Fire) SetTrigger(event *simgo.Event) {
+	f.trigger = event
+}
+//???????????????????????????????????
+
 //////////////////////////////////
 
 func (fire *Fire) burn(proc simgo.Process, cell *field.Cell) {
@@ -62,7 +72,7 @@ func (fire *Fire) burn(proc simgo.Process, cell *field.Cell) {
 	}
 	cell.Condition = 1
 	fmt.Printf(
-		"Fire at (%d,%d), time %.1f",
+		"Fire at (%d,%d), time %.1f\n",
 		cell.X,
 		cell.Y,
 		proc.Simulation.Now(),

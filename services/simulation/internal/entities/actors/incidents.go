@@ -57,10 +57,10 @@ func (fire *Fire) Process(process simgo.Process) {
 //////////////////////////////////
 
 func (fire *Fire) burn(proc simgo.Process, cell *field.Cell) {
-	if cell.Burnt {
+	if cell.Condition == 1 {
 		return
 	}
-	cell.Burnt = true
+	cell.Condition = 1
 	fmt.Printf(
 		"Fire at (%d,%d), time %.1f",
 		cell.X,
@@ -71,7 +71,7 @@ func (fire *Fire) burn(proc simgo.Process, cell *field.Cell) {
 	proc.Wait(proc.Timeout(fire.spreadTime))
 
 	for _, n := range fire.field.GetNeighbors(cell) {
-		if !n.Burnt {
+		if n.Condition == 0 {
 			neighbor := n
 			proc.Process(func(p simgo.Process) {
 				fire.burn(p, neighbor)

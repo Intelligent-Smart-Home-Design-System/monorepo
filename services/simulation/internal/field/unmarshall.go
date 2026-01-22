@@ -6,8 +6,9 @@ import (
 )
 
 type Cell struct {
-	X, Y  int
-	Burnt bool
+	X         int
+	Y         int
+	Condition int  //пусть 1 - сгорело; 0 - дефолт
 }
 
 // это структура поля (в будущем - квартиры)
@@ -39,7 +40,7 @@ func Load(path string) (*Field, error) {
 			field.Cells[x][y] = &Cell{
 				X:     x,
 				Y:     y,
-				Burnt: false,
+				Condition: 0,
 			}
 		}
 	}

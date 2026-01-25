@@ -1,8 +1,6 @@
 package devices
 
 import (
-	"time"
-
 	"github.com/fschuetz04/simgo"
 )
 
@@ -11,11 +9,11 @@ import (
 type LampSwitcher struct {
 	id       string
 	turnedOn bool
-	delay    time.Duration
+	delay    float64
 	trigger  *simgo.Event
 }
 
-func (l *LampSwitcher) GetReactionDelay() time.Duration {
+func (l *LampSwitcher) GetReactionDelay() float64 {
 	return l.delay
 }
 
@@ -27,6 +25,8 @@ func (l *LampSwitcher) Process(
 			l.trigger = process.Simulation.Event()
 		}
 		process.Wait(l.trigger)
+
+		process.Wait(process.Timeout(l.delay))
 
 		switch l.turnedOn {
 		case false:

@@ -1,26 +1,21 @@
 package entities
 
+// В пакете реализуется бизнес-логика сущностей
+
 import (
 	"time"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/domain"
 	"github.com/fschuetz04/simgo"
 )
 
 // Entity определяет главный интерфейс устройств
 type Entity interface {
 	// GetProcessFunc возвращает функция процесс
-	GetProcessFunc() func(process simgo.Process, in domain.InData, out domain.OutData)
+	GetProcessFunc() func(process simgo.Process)
 
 	// Process реализует функцию процесса устройства. Принимает данные через
 	// inData и возвращает обработанные данные через outData
-	Process(process simgo.Process, inData domain.InData, outData domain.OutData)
-
-	// GetInDataStruct возвращает структуру для приема входных данных
-	GetInDataStruct() domain.InData
-
-	// GetOutDataStruct возвращает структуру для возврата обработанных данных
-	GetOutDataStruct() domain.OutData
+	Process(process simgo.Process)
 
 	// GetID возвращает ID сущности
 	GetID() string

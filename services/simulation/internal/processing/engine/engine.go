@@ -1,11 +1,15 @@
 package engine
 
 import (
+	"errors"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
+
+const maxEventsBuffer = 1000
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
@@ -16,13 +20,17 @@ type SimEngine struct {
 
 	// Поле для симуляции
 	Field *field.Field
+
+	// Канал для новых событий
+	eventsQueue chan config.EventDTO
 }
 
 // NewSimEngine создает SimEngine
 func NewSimEngine(fieldDTO config.FieldDTO) *SimEngine {
 	s := &SimEngine{
-		simulation: simgo.NewSimulation(),
-		IDToEntity: make(map[string]entities.Entity),
+		simulation:  simgo.NewSimulation(),
+		IDToEntity:  make(map[string]entities.Entity),
+		eventsQueue: make(chan config.EventDTO, maxEventsBuffer),
 	}
 
 	simField := &field.Field{
@@ -61,12 +69,29 @@ func (s *SimEngine) InitProcesses() {
 	}
 }
 
-func (s *SimEngine) Run() {
+func (s *SimEngine) GetQueue() chan config.EventDTO {
+	return s.eventsQueue
+}
+
+func (s *SimEngine) Run() error {
 	// получаем новые ивенты и каждый новый ивент закидываем в HandleEvent
+	if s.simulation == nil {
+		return errors.New("need simgo simulation")
+	} else if s.Field == nil {
+		return errors.New("need field")
+	} else if s.eventsQueue == nil {
+		return errors.New("need queue")
+	} else if s.IDToEntity == nil {
+		return errors.New("need map IDToEntity")
+	}
+
+	for event := range s.eventsQueue {
+		s.HandleEvent(event)
+	}
 }
 
 // HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(entityID string) {
+func (s *SimEngine) HandleEvent(event config.EventDTO) {
 	//entityTriggers := s.IDToTriggers[entityID]
 	//for _, entity := range entityTriggers {
 	//	_, ok := s.devices[entityID]

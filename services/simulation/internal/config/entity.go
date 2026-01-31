@@ -12,10 +12,11 @@ type EventDTO struct {
 
 // EntityDTO структура для сущностей (девайсы, люди)
 type EntityDTO struct {
-	ID        string          `json:"id"`
-	Type      string          `json:"type"`
-	Receivers []string        `json:"receivers"` // те, кого данная сущность тригерит
-	Info      json.RawMessage `json:"info"`      // парсится позже в decoder
+	ID         string          `json:"id"`
+	Type       string          `json:"type"`
+	HasProcess bool            `json:"has_process"`
+	Receivers  []string        `json:"receivers"` // те, кого данная сущность тригерит
+	Info       json.RawMessage `json:"info"`      // парсится позже в decoder
 }
 
 // Cell структура для клетки поля

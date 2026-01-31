@@ -26,31 +26,11 @@ func NewSimulation(fetcher fetcher.Fetcher, sender sender.Sender) *Simulation {
 
 // Run запускает сервис симуляции. Принимает контекст для graceful shutdown.
 func (s *Simulation) Run(ctx context.Context) error {
-	fieldData, err := s.fetcher.GetField()
+	simEngine, err := s.InitEngine()
 	if err != nil {
 		return err
 	}
-
-	field, err := decoder.ParseField(fieldData)
-	if err != nil {
-		return err
-	}
-
-	entitiesData, err := s.fetcher.GetEntities()
-	if err != nil {
-		return err
-	}
-
-	entities, err := decoder.ParseEntities(entitiesData)
-	if err != nil {
-		return err
-	}
-
-	simEngine := engine.NewSimEngine(field)
 	engineEventsQueue := simEngine.GetQueue()
-
-	simEngine.InitEntities(entities)
-	simEngine.InitProcesses()
 
 	go func() {
 		err = simEngine.Run()
@@ -72,4 +52,33 @@ func (s *Simulation) Run(ctx context.Context) error {
 			engineEventsQueue <- event
 		}
 	}
+}
+
+func (s *Simulation) InitEngine() (engine.Engine, error) {
+	fieldData, err := s.fetcher.GetField()
+	if err != nil {
+		return nil, err
+	}
+
+	field, err := decoder.ParseField(fieldData)
+	if err != nil {
+		return nil, err
+	}
+
+	entitiesData, err := s.fetcher.GetEntities()
+	if err != nil {
+		return nil, err
+	}
+
+	entities, err := decoder.ParseEntities(entitiesData)
+	if err != nil {
+		return nil, err
+	}
+
+	simEngine := engine.NewSimEngine(field)
+
+	simEngine.InitEntities(entities)
+	simEngine.InitProcesses()
+
+	return simEngine, nil
 }

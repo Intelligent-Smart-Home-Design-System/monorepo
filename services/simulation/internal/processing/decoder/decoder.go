@@ -13,8 +13,10 @@ import (
 //
 //- Возвращает структуру апдейта симуляции (ID, место, ...)
 
-// ParseEntities парсит данные о сущностях и возвращает map[string]*entities.Entity или ошибку, если парсинг не удался.
-func ParseEntities(data []config.EntityDTO) (map[string]entities.Entity, error) {
+// ParseEntities парсит данные о сущностях и возвращает map[string]*entities.BaseEntity
+// для сущностей без процессов и map[string]entities.EntityWithProces для
+// сущностей с процессами. Если парсинг не удался, то возвращает ошибку.
+func ParseEntities(data []config.EntityDTO) (map[string]entities.BaseEntity, map[string]entities.EntityWithProcess, error) {
 	// TODO: switch по типу и создание конкретной структуры девайса
 	panic("todo")
 }

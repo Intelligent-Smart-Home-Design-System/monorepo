@@ -24,6 +24,7 @@ func (l *LampSwitcher) Process(
 		if l.trigger.Triggered() {
 			l.trigger = process.Simulation.Event()
 		}
+
 		process.Wait(l.trigger)
 
 		process.Wait(process.Timeout(l.delay))

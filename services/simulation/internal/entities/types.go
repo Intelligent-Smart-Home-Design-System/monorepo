@@ -3,7 +3,7 @@ package entities
 // В пакете реализуется бизнес-логика сущностей
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -16,7 +16,7 @@ type Entity interface {
 	GetReceiversID() []string
 
 	// GetLocation возвращает координаты местонахождения сущности на поле
-	GetLocation() config.Cell
+	GetLocation() field.Cell
 }
 
 // EntityWithProcess определяет интерфейс сущности с бизнес-логикой
@@ -30,6 +30,11 @@ type EntityWithProcess interface {
 	// inData и возвращает обработанные данные через outData
 	Process(process simgo.Process)
 
-	// SendEvent присылает новый ивент для обработки
-	SendEvent(dto config.EventDTO)
+	HandleInDTO(dto []byte) error
+
+	GetOutCh() chan []byte
 }
+
+const (
+	TypeLamp = "lamp"
+)

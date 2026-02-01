@@ -14,17 +14,17 @@ func NewSimFetcher() *SimFetcher {
 
 func (s *SimFetcher) GetEntities() ([]config.EntityDTO, error) {
 	// TODO: запрос на новые данные
-	panic("todo")
+	return make([]config.EntityDTO, 0), nil
 }
 
 // TODO: функция для приема зависимостей между девайсами (либо сразу учитывать в GetEntities)
 
-func (s *SimFetcher) GetEvents() ([]byte, error) {
+func (s *SimFetcher) GetEvents() ([]config.EventInDTO, error) {
 	// TODO: запрос на новые данные
-	panic("todo")
+	return make([]config.EventInDTO, 0), nil
 }
 
-func (s *SimFetcher) GetField() ([]byte, error) {
+func (s *SimFetcher) GetField() (config.FieldDTO, error) {
 	// TODO: запрос на новые данные
-	panic("todo")
+	return config.FieldDTO{}, nil
 }

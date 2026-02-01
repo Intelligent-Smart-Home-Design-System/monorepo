@@ -4,19 +4,25 @@ import "encoding/json"
 
 // структуры конфига (по которым передаются данные между сервисами)
 
-// EventDTO структура для событий симуляции
-type EventDTO struct {
-	EntityID string `json:"entityID"`
-	Cell     Cell   `json:"cell"`
+// EventInDTO структура для событий симуляции
+type EventInDTO struct {
+	EntityID string          `json:"entityID"`
+	Type     string          `json:"type"`
+	Info     json.RawMessage `json:"info"`
+}
+
+type EventOutDTO struct {
+	EntityID string          `json:"entityID"`
+	Type     string          `json:"type"`
+	Info     json.RawMessage `json:"info"`
 }
 
 // EntityDTO структура для сущностей (девайсы, люди)
 type EntityDTO struct {
-	ID         string          `json:"id"`
-	Type       string          `json:"type"`
-	HasProcess bool            `json:"has_process"`
-	Receivers  []string        `json:"receivers"` // те, кого данная сущность тригерит
-	Info       json.RawMessage `json:"info"`      // парсится позже в decoder
+	ID        string          `json:"id"`
+	Type      string          `json:"type"`
+	Receivers []string        `json:"receivers"` // те, кого данная сущность тригерит
+	Info      json.RawMessage `json:"info"`      // парсится позже в converter
 }
 
 // Cell структура для клетки поля

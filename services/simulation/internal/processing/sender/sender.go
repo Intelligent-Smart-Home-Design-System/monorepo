@@ -8,3 +8,7 @@ type SimSender struct {
 func NewSimSender() *SimSender {
 	return &SimSender{}
 }
+
+func (s SimSender) Send() {
+	panic("")
+}

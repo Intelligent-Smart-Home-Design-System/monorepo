@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"errors"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
@@ -18,99 +19,104 @@ type SimEngine struct {
 	// IDToEntity хранит ключ = ID сущности, значение = структура сущности.
 	IDToEntity map[string]entities.Entity
 
-	// IDToEntityWithProcess хранит ключ = ID сущности с процессом, значение = структура сущности с процессом.
-	IDToEntityWithProcess map[string]entities.EntityWithProcess
-
 	// Поле для симуляции
 	Field *field.Field
 
+	// Канал для взодящих событий
+	eventsInQueue chan config.EventInDTO
+
 	// Канал для новых событий
-	eventsQueue chan config.EventDTO
+	eventsOutQueue chan config.EventOutDTO
 }
 
 // NewSimEngine создает SimEngine
-func NewSimEngine(fieldDTO config.FieldDTO) *SimEngine {
-	s := &SimEngine{
-		simulation:            simgo.NewSimulation(),
-		IDToEntity:            make(map[string]entities.Entity),
-		IDToEntityWithProcess: make(map[string]entities.EntityWithProcess),
-		eventsQueue:           make(chan config.EventDTO, maxEventsBuffer),
+func NewSimEngine() *SimEngine {
+	return &SimEngine{
+		simulation:    simgo.NewSimulation(),
+		IDToEntity:    make(map[string]entities.Entity),
+		eventsInQueue: make(chan config.EventInDTO, maxEventsBuffer),
 	}
+}
 
-	simField := &field.Field{
-		Width:  fieldDTO.Width,
-		Height: fieldDTO.Height,
-	}
+func (s *SimEngine) GetOutChan() chan config.EventOutDTO {
+	return s.eventsOutQueue
+}
 
-	for i, cells := range fieldDTO.Cells {
-		for j, cell := range cells {
-			simField.Cells[i][j] = &field.Cell{
-				X:            cell.X,
-				Y:            cell.Y,
-				Condition:    0,
-				IsHiddenWall: false,
-			}
-		}
-	}
-
+func (s *SimEngine) SetField(simField *field.Field) {
 	s.Field = simField
-
-	return s
 }
 
 // InitEntities создает сущности для симуляции из мапы с конфигом.
 // IDToEntityType хранит ключ = ID сущности, значение = конфиг сущности.
-func (s *SimEngine) InitEntities(IDToBaseEntity map[string]entities.Entity, IDToEntityWithProcess map[string]entities.EntityWithProcess) {
-	s.IDToEntity = IDToBaseEntity
-	s.IDToEntityWithProcess = IDToEntityWithProcess
-
+func (s *SimEngine) InitEntities(IDToEntity map[string]entities.Entity) {
+	s.IDToEntity = IDToEntity
 }
 
 // InitProcesses инициализирует данные для процессов и запускает процессы.
 // Информация берется из map[string]entities.Entity, где ключ = ID сущности, значение = сущность.
 // map[string]entities.Entity создается из конфига устройств (приходит из другого сервиса).
 func (s *SimEngine) InitProcesses() {
-	for _, entity := range s.IDToEntityWithProcess {
-		s.simulation.ProcessReflect(entity.GetProcessFunc())
+	for _, entity := range s.IDToEntity {
+		if entityWithProcess, ok := entity.(entities.EntityWithProcess); ok {
+			s.simulation.ProcessReflect(entityWithProcess.GetProcessFunc())
+		}
 	}
 }
 
-func (s *SimEngine) GetQueue() chan config.EventDTO {
-	return s.eventsQueue
+func (s *SimEngine) GetInChan() chan config.EventInDTO {
+	return s.eventsInQueue
 }
 
-func (s *SimEngine) Run() error {
-	// получаем новые ивенты и каждый новый ивент закидываем в HandleEvent
-	defer close(s.eventsQueue)
-
+func (s *SimEngine) Run(ctx context.Context) error {
 	if s.simulation == nil {
-		return errors.New("need simgo simulation")
+		return errors.New("need simgo simulation for starting engine")
 	} else if s.Field == nil {
-		return errors.New("need field")
-	} else if s.eventsQueue == nil {
-		return errors.New("need queue")
+		return errors.New("need field for starting engine")
+	} else if s.eventsInQueue == nil {
+		return errors.New("need queue for starting engine")
 	}
 
-	for event := range s.eventsQueue {
-		s.HandleEvent(event)
-	}
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event, ok := <-s.eventsInQueue:
+			if !ok {
+				return nil
+			}
 
-	return nil
+			s.HandleEvent(event)
+		}
+	}
 }
 
 // HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event config.EventDTO) {
+func (s *SimEngine) HandleEvent(event config.EventInDTO) {
 	entity := s.IDToEntity[event.EntityID]
 	receiversID := entity.GetReceiversID()
 
 	for _, receiverID := range receiversID {
-		s.eventsQueue <- config.EventDTO{ // может заблокироваться, можно добавить pending
+		s.eventsInQueue <- config.EventInDTO{ // может тормозить, можно сделать pending или semaphore
 			EntityID: receiverID,
-			Cell:     entity.GetLocation(),
 		}
 	}
 
-	if entityWithProcess, ok := s.IDToEntityWithProcess[event.EntityID]; ok {
-		entityWithProcess.SendEvent(event)
+	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
+		err := entityWithProcess.HandleInDTO(event.Info)
+		if err != nil {
+			return
+		}
 	}
+}
+
+func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
+	if x < 0 || x > s.Field.Height {
+		return errors.New("invalid parameter x")
+	} else if y < 0 || y > s.Field.Width {
+		return errors.New("invalid parameter y")
+	}
+
+	s.Field.Cells[x][y].Condition = cell.Condition
+
+	return nil
 }

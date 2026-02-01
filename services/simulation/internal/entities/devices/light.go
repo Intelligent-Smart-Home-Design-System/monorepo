@@ -1,82 +1,120 @@
-//package devices
-//
-//import (
-//	"log"
-//
-//	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/domain"
-//	"github.com/fschuetz04/simgo"
-//)
-//
-//// Освещение
-//
-//// LampIn является структурой для передачи входных данных
-//type LampIn struct {
-//	TurnOn bool
-//}
-//
-//// LampOut является структурой для возврата обработанных данных
-//type LampOut struct {
-//	time float64
-//}
-//
-//// Lamp реализует интерфейс entities.Entity
-//type Lamp struct {
-//	id       string
-//	turnedOn bool
-//	delay    float64
-//	trigger  *simgo.Event
-//}
-//
-//func NewLamp(id string, delay float64) *Lamp {
-//	return &Lamp{
-//		id:       id,
-//		turnedOn: false,
-//		delay:    delay,
-//	}
-//}
-//
-//// GetInDataStruct возвращает *LampIn
-//func (l *Lamp) GetInDataStruct() domain.InData {
-//	return &LampIn{}
-//}
-//
-//// GetOutDataStruct  возвращает *LampOut
-//func (l *Lamp) GetOutDataStruct() domain.OutData {
-//	return &LampOut{}
-//}
-//
-//func (l *Lamp) GetProcessFunc() func(process simgo.Process, in domain.InData, out domain.OutData) {
-//	return l.Process
-//}
-//
-//func (l *Lamp) Process(process simgo.Process, in domain.InData, out domain.OutData) {
-//	for {
-//		if l.trigger == nil || l.trigger.Triggered() {
-//			l.trigger = process.Simulation.Event()
-//		}
-//
-//		process.Wait(l.trigger)
-//
-//		inData, ok := in.(*LampIn)
-//		if !ok {
-//			log.Println("Cannot convert inData to LampIn")
-//		}
-//
-//		outData, ok := out.(*LampOut)
-//		if !ok {
-//			log.Println("Cannot convert outData to LampOut")
-//		}
-//
-//		l.HandleEvent(process, inData, outData)
-//	}
-//}
-//
-//// HandleEvent реализует бизнес логику обработки сущности
-//func (l *Lamp) HandleEvent(process simgo.Process, inData *LampIn, outData *LampOut) {
-//	l.turnedOn = inData.TurnOn
-//	outData.time = process.Simulation.Now()
-//}
-//
-//func (l *Lamp) GetID() string {
-//	return l.id
-//}
+package devices
+
+import (
+	"encoding/json"
+	"log/slog"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/api"
+	"github.com/fschuetz04/simgo"
+)
+
+// Освещение
+
+// Lamp реализует интерфейс entities.Entity
+type Lamp struct {
+	engineAPI api.EngineAPI
+	inStore   simgo.Store[LampInData]
+
+	id        string
+	turnedOn  bool
+	delay     float64
+	receivers []string
+	location  field.Cell
+	trigger   *simgo.Event
+}
+
+type LampInData struct {
+	TurnOn bool `json:"turn_on"`
+}
+
+type LampOutData struct {
+	Time float64 `json:"time"`
+}
+
+func NewLamp(data []byte, engineAPI api.EngineAPI) (*Lamp, error) {
+	var lamp Lamp
+	if err := json.Unmarshal(data, &lamp); err != nil {
+		return nil, err
+	}
+
+	lamp.engineAPI = engineAPI
+
+	return &lamp, nil
+}
+
+func (l *Lamp) HandleInDTO(dto []byte) error {
+	input := LampInData{}
+	if err := json.Unmarshal(dto, &input); err != nil {
+		return err
+	}
+
+	l.inStore.Put(input)
+
+	return nil
+}
+
+func (l *Lamp) HandleOutDTO(out LampOutData) error {
+	dataLamp, err := json.Marshal(out)
+	if err != nil {
+		return err
+	}
+
+	outData := config.EventOutDTO{
+		EntityID: l.id,
+		Type:     entities.TypeLamp,
+		Info:     dataLamp,
+	}
+
+	l.engineAPI.GetOutChan() <- outData
+
+	return nil
+}
+
+func (l *Lamp) GetProcessFunc() func(process simgo.Process) {
+	return l.Process
+}
+
+func (l *Lamp) Process(process simgo.Process) {
+	for {
+		storeElement := l.inStore.Get()
+		inData := storeElement.Item
+		event := storeElement.Event
+
+		process.Wait(event)                    // ждем пока прийдет событие в store с
+		process.Wait(process.Timeout(l.delay)) // учитывая задержку
+
+		outData := l.HandleEvent(process, inData)
+		err := l.HandleOutDTO(outData)
+		slog.Warn("error in event handle", "error", err)
+	}
+}
+
+// HandleEvent реализует бизнес логику обработки сущности
+func (l *Lamp) HandleEvent(process simgo.Process, inData LampInData) LampOutData {
+	l.turnedOn = inData.TurnOn
+
+	out := LampOutData{
+		Time: process.Simulation.Now(),
+	}
+
+	return out
+}
+
+func (l *Lamp) GetID() string {
+	return l.id
+}
+
+func (l *Lamp) GetReceiversID() []string {
+	return l.receivers
+}
+
+func (l *Lamp) GetLocation() field.Cell {
+	return l.location
+}
+
+func (l *Lamp) GetReactionDelay() float64 {
+	return l.delay
+}

@@ -12,3 +12,11 @@ type Field struct {
 	Height int
 	Cells  [][]*Cell
 }
+
+func NewField(width, height int, cells [][]*Cell) *Field {
+	return &Field{
+		Width:  width,
+		Height: height,
+		Cells:  cells,
+	}
+}

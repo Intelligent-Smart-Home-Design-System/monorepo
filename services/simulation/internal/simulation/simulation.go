@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/decoder"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/fetcher"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/sender"
@@ -26,59 +26,78 @@ func NewSimulation(fetcher fetcher.Fetcher, sender sender.Sender) *Simulation {
 
 // Run запускает сервис симуляции. Принимает контекст для graceful shutdown.
 func (s *Simulation) Run(ctx context.Context) error {
-	simEngine, err := s.InitEngine()
+	slog.Debug("Creating simulation data...")
+
+	simEngine := engine.NewSimEngine()
+
+	err := s.InitEngine(simEngine)
 	if err != nil {
 		return err
 	}
-	engineEventsQueue := simEngine.GetQueue()
 
-	go func() {
-		err = simEngine.Run()
-		slog.Error("cannot initialize engine for simulation")
+	engineEventsInChan := simEngine.GetInChan()
+	engineEventsOutChan := simEngine.GetOutChan()
+
+	go func() { // запуск engine
+		err = simEngine.Run(ctx)
+		if err != nil {
+			slog.Error("Error while running engine", "error", err)
+		}
 	}()
 
+	go func() {
+		for out := range engineEventsOutChan {
+			s.sender.Send(out)
+		}
+	}()
+
+	slog.Debug("Simulation started!")
+
 	for {
-		eventsData, err := s.fetcher.GetEvents()
-		if err != nil {
-			return err
+		select {
+		case <-ctx.Done():
+			close(engineEventsInChan)
+			return ctx.Err()
+		default:
 		}
 
-		events, err := decoder.ParseEvents(eventsData)
+		events, err := s.fetcher.GetEvents() // должна быть блокирующая операция
 		if err != nil {
 			return err
 		}
 
 		for _, event := range events {
-			engineEventsQueue <- event
+			select {
+			case <-ctx.Done():
+				close(engineEventsInChan)
+				return ctx.Err()
+			case engineEventsInChan <- event:
+			}
 		}
 	}
 }
 
-func (s *Simulation) InitEngine() (engine.Engine, error) {
+func (s *Simulation) InitEngine(simEngine engine.Engine) error {
 	fieldData, err := s.fetcher.GetField()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	field, err := decoder.ParseField(fieldData)
-	if err != nil {
-		return nil, err
-	}
+	simField := converter.FieldFromDTO(fieldData)
+	simEngine.SetField(simField)
 
 	entitiesData, err := s.fetcher.GetEntities()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	entities, err := decoder.ParseEntities(entitiesData)
+	entities, err := converter.EntitiesFromDTO(entitiesData, simEngine)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	simEngine := engine.NewSimEngine(field)
 
 	simEngine.InitEntities(entities)
 	simEngine.InitProcesses()
 
-	return simEngine, nil
+	return nil
 }

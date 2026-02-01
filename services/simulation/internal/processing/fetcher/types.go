@@ -5,6 +5,6 @@ import "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simula
 // Fetcher опреляет интрфейс для получения данных
 type Fetcher interface {
 	GetEntities() ([]config.EntityDTO, error)
-	GetEvents() ([]byte, error)
-	GetField() ([]byte, error)
+	GetEvents() ([]config.EventInDTO, error)
+	GetField() (config.FieldDTO, error)
 }

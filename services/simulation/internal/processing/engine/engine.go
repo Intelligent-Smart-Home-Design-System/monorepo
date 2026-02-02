@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
@@ -23,10 +23,10 @@ type SimEngine struct {
 	Field *field.Field
 
 	// Канал для взодящих событий
-	eventsInQueue chan config.EventInDTO
+	eventsInQueue chan api.EventInDTO
 
 	// Канал для новых событий
-	eventsOutQueue chan config.EventOutDTO
+	eventsOutQueue chan api.EventOutDTO
 }
 
 // NewSimEngine создает SimEngine
@@ -34,11 +34,11 @@ func NewSimEngine() *SimEngine {
 	return &SimEngine{
 		simulation:    simgo.NewSimulation(),
 		IDToEntity:    make(map[string]entities.Entity),
-		eventsInQueue: make(chan config.EventInDTO, maxEventsBuffer),
+		eventsInQueue: make(chan api.EventInDTO, maxEventsBuffer),
 	}
 }
 
-func (s *SimEngine) GetOutChan() chan config.EventOutDTO {
+func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
 	return s.eventsOutQueue
 }
 
@@ -63,7 +63,7 @@ func (s *SimEngine) InitProcesses() {
 	}
 }
 
-func (s *SimEngine) GetInChan() chan config.EventInDTO {
+func (s *SimEngine) GetInChan() chan api.EventInDTO {
 	return s.eventsInQueue
 }
 
@@ -91,12 +91,12 @@ func (s *SimEngine) Run(ctx context.Context) error {
 }
 
 // HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event config.EventInDTO) {
+func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	entity := s.IDToEntity[event.EntityID]
 	receiversID := entity.GetReceiversID()
 
 	for _, receiverID := range receiversID {
-		s.eventsInQueue <- config.EventInDTO{ // может тормозить, можно сделать pending или semaphore
+		s.eventsInQueue <- api.EventInDTO{ // может тормозить, можно сделать pending или semaphore
 			EntityID: receiverID,
 		}
 	}

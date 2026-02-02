@@ -1,6 +1,6 @@
 package fetcher
 
-import "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
+import "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 
 // TODO: прием данных
 
@@ -12,19 +12,19 @@ func NewSimFetcher() *SimFetcher {
 	return &SimFetcher{}
 }
 
-func (s *SimFetcher) GetEntities() ([]config.EntityDTO, error) {
+func (s *SimFetcher) GetEntities() ([]api.EntityDTO, error) {
 	// TODO: запрос на новые данные
-	return make([]config.EntityDTO, 0), nil
+	return make([]api.EntityDTO, 0), nil
 }
 
 // TODO: функция для приема зависимостей между девайсами (либо сразу учитывать в GetEntities)
 
-func (s *SimFetcher) GetEvents() ([]config.EventInDTO, error) {
+func (s *SimFetcher) GetEvents() ([]api.EventInDTO, error) {
 	// TODO: запрос на новые данные
-	return make([]config.EventInDTO, 0), nil
+	return make([]api.EventInDTO, 0), nil
 }
 
-func (s *SimFetcher) GetField() (config.FieldDTO, error) {
+func (s *SimFetcher) GetField() (api.FieldDTO, error) {
 	// TODO: запрос на новые данные
-	return config.FieldDTO{}, nil
+	return api.FieldDTO{}, nil
 }

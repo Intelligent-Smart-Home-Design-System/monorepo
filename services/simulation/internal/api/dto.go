@@ -1,4 +1,4 @@
-package config
+package api
 
 import "encoding/json"
 
@@ -25,8 +25,8 @@ type EntityDTO struct {
 	Info      json.RawMessage `json:"info"`      // парсится позже в converter
 }
 
-// Cell структура для клетки поля
-type Cell struct {
+// CellDTO структура для клетки поля
+type CellDTO struct {
 	X         int `json:"x"`
 	Y         int `json:"y"`
 	Condition int `json:"condition"` // пусть 1 - сгорело; 0 - дефолт
@@ -34,7 +34,7 @@ type Cell struct {
 
 // FieldDTO структура для плана квартиры
 type FieldDTO struct {
-	Width  int       `json:"width"`
-	Height int       `json:"height"`
-	Cells  [][]*Cell `json:"cells"`
+	Width  int          `json:"width"`
+	Height int          `json:"height"`
+	Cells  [][]*CellDTO `json:"cells"`
 }

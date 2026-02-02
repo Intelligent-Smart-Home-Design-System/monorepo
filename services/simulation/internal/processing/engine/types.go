@@ -12,10 +12,15 @@ import (
 type Engine interface {
 	InitEntities(IDToBaseEntity map[string]entities.Entity)
 	InitProcesses()
-	GetInChan() chan config.EventInDTO
-	GetOutChan() chan config.EventOutDTO
+	GetInChan() chan api.EventInDTO
+	GetOutChan() chan api.EventOutDTO
 	Run(ctx context.Context) error
-	HandleEvent(event config.EventInDTO)
+	HandleEvent(event api.EventInDTO)
 	SetField(simField *field.Field)
 	UpdateField(x, y int, cell field.Cell) error
+}
+
+type EnginePort interface {
+	UpdateField(x, y int, cell field.Cell) error
+	GetOutChan() chan api.EventOutDTO
 }

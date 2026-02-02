@@ -12,7 +12,7 @@ import (
 
 // EntitiesFromDTO парсит данные о сущностях и возвращает map[string]*entities.Entity.
 // Если парсинг не удался, то возвращает ошибку.
-func EntitiesFromDTO(data []config.EntityDTO, engineAPI api.EngineAPI) (map[string]entities.Entity, error) {
+func EntitiesFromDTO(data []api.EntityDTO, engineAPI api.EngineAPI) (map[string]entities.Entity, error) {
 	IDToEntity := make(map[string]entities.Entity)
 
 	for _, entityDTO := range data {
@@ -32,7 +32,7 @@ func EntitiesFromDTO(data []config.EntityDTO, engineAPI api.EngineAPI) (map[stri
 }
 
 // FieldFromDTO парсит данные о плане и возвращает config.FieldDTO, ошибку если данные некорректные.
-func FieldFromDTO(fieldDTO config.FieldDTO) *field.Field {
+func FieldFromDTO(fieldDTO api.FieldDTO) *field.Field {
 	fieldCells := make([][]*field.Cell, fieldDTO.Height)
 
 	for i, cells := range fieldDTO.Cells {

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -15,15 +15,14 @@ import (
 
 // Lamp реализует интерфейс entities.Entity
 type Lamp struct {
-	engineAPI api.EngineAPI
-	inStore   simgo.Store[LampInData]
+	enginePort engine.EnginePort
+	inStore    simgo.Store[LampInData]
 
 	id        string
 	turnedOn  bool
 	delay     float64
 	receivers []string
 	location  field.Cell
-	trigger   *simgo.Event
 }
 
 type LampInData struct {
@@ -34,13 +33,13 @@ type LampOutData struct {
 	Time float64 `json:"time"`
 }
 
-func NewLamp(data []byte, engineAPI api.EngineAPI) (*Lamp, error) {
+func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 	var lamp Lamp
 	if err := json.Unmarshal(data, &lamp); err != nil {
 		return nil, err
 	}
 
-	lamp.engineAPI = engineAPI
+	lamp.enginePort = engineAPI
 
 	return &lamp, nil
 }
@@ -62,13 +61,13 @@ func (l *Lamp) HandleOutDTO(out LampOutData) error {
 		return err
 	}
 
-	outData := config.EventOutDTO{
+	outData := api.EventOutDTO{
 		EntityID: l.id,
 		Type:     entities.TypeLamp,
 		Info:     dataLamp,
 	}
 
-	l.engineAPI.GetOutChan() <- outData
+	l.enginePort.GetOutChan() <- outData
 
 	return nil
 }

@@ -1,0 +1,12 @@
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+.dockerignore
+*.md
+vendor/
+.env
+*.log
+tmp/
+setup.sh
+setup.ps1

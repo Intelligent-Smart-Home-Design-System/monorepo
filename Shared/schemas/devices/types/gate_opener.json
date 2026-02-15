@@ -1,0 +1,30 @@
+{
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "name": {"type": "string"},
+        "price": {"type": "number"},
+        "ecosystem": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "protocol": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "gate_type": {"type": "string"},
+        "power": {"type": "number"},
+        "voltage": {
+            "type": "object",
+            "properties": {
+                "min": {"type": "number", "minimum": 0},
+                "max": {"type": "number", "minimum": 0}
+            },
+            "required": ["min", "max"]
+        },
+        "articul_YANDEX": {"type": "string"}
+    },
+    "required": ["type", "name", "price", "ecosystem", "protocol", "power", "voltage", "articul_YANDEX"]
+}

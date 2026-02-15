@@ -1,0 +1,25 @@
+{
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "name": {"type": "string"},
+        "price": {"type": "number"},
+        "ecosystem": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "protocol": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "curtain_type": {"type": "string"},
+        "material": {"type": "string"},
+        "control_type": {"type": "string"},
+        "power_source": {"type": "string"},
+        "max_width": {"type": "number"},
+        "articul_YANDEX": {"type": "string"}
+    },
+    "required": ["type", "name", "price", "ecosystem", "protocol", "articul_YANDEX"]
+}

@@ -1,0 +1,25 @@
+{
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "name": {"type": "string"},
+        "price": {"type": "number"},
+        "ecosystem": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "protocol": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "resolution": {"type": "string"},
+        "supports_microSD": {"type": "boolean"},
+        "has_hub": {"type": "boolean"},
+        "ip_rating": {"type": "string"},
+        "night_vision": {"type": "boolean"},
+        "articul_YANDEX": {"type": "string"}
+    },
+    "required": ["type", "name", "price", "ecosystem", "protocol", "resolution", "articul_YANDEX"]
+}

@@ -1,0 +1,20 @@
+{
+    "type": "Лампа",
+    "name": "Умная лампочка Яндекс GX53",
+    "price": 960.0,
+    "ecosystem": [
+        "Умный дом Яндекса"
+    ],
+    "protocol": [
+        "Matter over Wi-Fi"
+    ],
+    "power": 9.0,
+    "voltage": {
+        "min": 220.0,
+        "max": 240.0
+    },
+    "articul_YANDEX": "4592672087",
+    "lifetime": 2.0,
+    "color_temperature": 6500.0,
+    "color_rendering_index": 80.0
+}

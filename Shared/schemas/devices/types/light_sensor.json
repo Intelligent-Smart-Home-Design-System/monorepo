@@ -1,0 +1,27 @@
+{
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "name": {"type": "string"},
+        "price": {"type": "number"},
+        "ecosystem": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "protocol": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+        },
+        "illuminance_range": {
+            "type": "object",
+            "properties": {
+                "min": {"type": "number", "minimum": 0},
+                "max": {"type": "number", "minimum": 0}
+            }
+        },
+        "articul_YANDEX": {"type": "string"}
+    },
+    "required": ["type", "name", "price", "ecosystem", "protocol", "articul_YANDEX"]
+}

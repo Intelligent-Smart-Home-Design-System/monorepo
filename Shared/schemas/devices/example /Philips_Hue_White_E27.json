@@ -1,0 +1,22 @@
+{
+    "type": "Лампа",
+    "name": "Philips Hue White E27",
+    "price": 3521.0,
+    "ecosystem": [
+        "Apple HomeKit",
+        "Google Home"
+    ],
+    "protocol": [
+        "Bluetooth",
+        "ZigBee"
+    ],
+    "power": 15.5,
+    "voltage": {
+        "min": 220.0,
+        "max": 240.0
+    },
+    "articul_YANDEX": "103744457061",
+    "lifetime": 3.0,
+    "color_temperature": 2700.0,
+    "color_rendering_index": 80.0
+}

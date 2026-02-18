@@ -24,9 +24,9 @@ func (s *SimFetcher) GetEntities() (map[string][]api.EntityDTO, error) {
 }
 
 // GetDependencies возвращает данные о зависимостях между сущностями на основе ID симуляции.
-func (s *SimFetcher) GetDependencies() (map[string]api.ActionDTO, error) {
+func (s *SimFetcher) GetDependencies() (map[string]map[string][]api.ActionDTO, error) {
 	// TODO: запрос на получение зависимостей
-	return make(map[string]api.ActionDTO), nil
+	return make(map[string]map[string][]api.ActionDTO), nil
 }
 
 // GetEvents возвращает данные о событиях на основе ID симуляции.

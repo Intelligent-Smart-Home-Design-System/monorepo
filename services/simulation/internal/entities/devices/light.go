@@ -6,7 +6,6 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
@@ -18,11 +17,10 @@ type Lamp struct {
 	enginePort engine.EnginePort
 	inStore    simgo.Store[LampInData]
 
-	id        string
-	turnedOn  bool
-	delay     float64
-	receivers []string
-	location  field.Cell
+	ID        string   `json:"id"`
+	TurnedOn  bool     `json:"turned_on"`
+	Delay     float64  `json:"delay"`
+	Receivers []string `json:"receivers"`
 }
 
 type LampInData struct {
@@ -62,7 +60,7 @@ func (l *Lamp) HandleOutDTO(out LampOutData) error {
 	}
 
 	outData := api.EventOutDTO{
-		EntityID: l.id,
+		EntityID: l.ID,
 		Type:     entities.TypeLamp,
 		Info:     dataLamp,
 	}
@@ -83,7 +81,7 @@ func (l *Lamp) Process(process simgo.Process) {
 		event := storeElement.Event
 
 		process.Wait(event)                    // ждем пока прийдет событие в store с
-		process.Wait(process.Timeout(l.delay)) // учитывая задержку
+		process.Wait(process.Timeout(l.Delay)) // учитывая задержку
 
 		outData := l.HandleEvent(process, inData)
 		err := l.HandleOutDTO(outData)
@@ -93,7 +91,7 @@ func (l *Lamp) Process(process simgo.Process) {
 
 // HandleEvent реализует бизнес логику обработки сущности
 func (l *Lamp) HandleEvent(process simgo.Process, inData LampInData) LampOutData {
-	l.turnedOn = inData.TurnOn
+	l.TurnedOn = inData.TurnOn
 
 	out := LampOutData{
 		Time: process.Simulation.Now(),
@@ -103,17 +101,13 @@ func (l *Lamp) HandleEvent(process simgo.Process, inData LampInData) LampOutData
 }
 
 func (l *Lamp) GetID() string {
-	return l.id
+	return l.ID
 }
 
 func (l *Lamp) GetReceiversID() []string {
-	return l.receivers
-}
-
-func (l *Lamp) GetLocation() field.Cell {
-	return l.location
+	return l.Receivers
 }
 
 func (l *Lamp) GetReactionDelay() float64 {
-	return l.delay
+	return l.Delay
 }

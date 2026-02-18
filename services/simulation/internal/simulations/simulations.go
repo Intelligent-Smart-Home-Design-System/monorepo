@@ -11,6 +11,11 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/sender"
 )
 
+// В пакете реализовано управление симуляциями через соответствующие компоненты.
+// Пакет связывает логику компонентов (fetcher, sender, engine, ...) между собой и
+// старается как можно меньше реализовывать логику самостоятельно.
+
+// Simulations - структура, которая усправляет всеми симуляциями.
 type Simulations struct {
 	// TODO: client (websocket / http)
 	fetcher          fetcher.Fetcher
@@ -21,6 +26,7 @@ type Simulations struct {
 	IDToDependencies map[string][]api.ActionDTO      // engineID <-> слайс со структурами, описывающими зависимости между сущностями (кто кого тригерит)
 }
 
+// NewSimulation создает Simulations
 func NewSimulation(fetcher fetcher.Fetcher, sender sender.Sender) *Simulations {
 	return &Simulations{
 		fetcher:          fetcher,
@@ -32,11 +38,12 @@ func NewSimulation(fetcher fetcher.Fetcher, sender sender.Sender) *Simulations {
 	}
 }
 
-// Run запускает сервис симуляции. Принимает контекст для graceful shutdown.
-func (s *Simulations) Run(ctx context.Context) error {
-	slog.Debug("Creating simulations data...")
+func (s *Simulations) Init(ctx context.Context) error {
+	slog.Debug("Creating simulations data and starting components...")
 
-	s.InitSimulations()
+	go func() {
+		s.sender.Run()
+	}()
 
 	err := s.InitEngines()
 	if err != nil {
@@ -45,8 +52,15 @@ func (s *Simulations) Run(ctx context.Context) error {
 
 	s.GetEnginesInChan()
 	s.GetEnginesOutChan()
-	s.StartSending()
 
+	s.StartSending()
+	s.StartEngines(ctx)
+
+	return nil
+}
+
+// Run запускает сервис симуляции. Принимает контекст для graceful shutdown.
+func (s *Simulations) Run(ctx context.Context) error {
 	slog.Debug("Simulations started!")
 
 	for {
@@ -70,17 +84,14 @@ func (s *Simulations) Run(ctx context.Context) error {
 	}
 }
 
-// InitSimulations инициализирует симуляции, создавая движки для каждого ID симуляции.
-func (s *Simulations) InitSimulations() {
+// InitEngines инициализирует движки для всех симуляций, заполняя их данными о поле и сущностях, полученными от fetcher.
+func (s *Simulations) InitEngines() error {
+	// TODO: понять когда приходят данные и как (в какой момент что инициализировать)
 	simulationsID := s.fetcher.GetSimulationsID()
 	for _, simID := range simulationsID {
 		s.IDToEngine[simID] = engine.NewSimEngine()
 	}
-}
 
-// InitEngines инициализирует движки для всех симуляций, заполняя их данными о поле и сущностях, полученными от fetcher.
-func (s *Simulations) InitEngines() error {
-	// TODO: понять когда приходят данные и как
 	IDToFields, err := s.fetcher.GetFields()
 	if err != nil {
 		return err
@@ -109,6 +120,11 @@ func (s *Simulations) InitEngines() error {
 
 		s.IDToEngine[simID].InitEntities(entities)
 		s.IDToEngine[simID].InitDependencies(IDToDependencies[simID])
+
+		if s.IDToEngine[simID].CheckCircleDependencies() {
+			slog.Error("Circle dependencies detected in simulation", "simulationID", simID)
+		}
+
 		s.IDToEngine[simID].InitProcesses()
 	}
 
@@ -131,15 +147,16 @@ func (s *Simulations) GetEnginesOutChan() {
 
 // StartSending запускает горутины для отправки событий из каналов исходящих событий в sender.
 func (s *Simulations) StartSending() {
-	for _, events := range s.IDToEventOutChan {
+	for _, eventsOutCh := range s.IDToEventOutChan {
 		go func(ch <-chan api.EventOutDTO) {
 			for event := range ch {
-				s.sender.Send(event)
+				s.sender.AddEvent(event)
 			}
-		}(events)
+		}(eventsOutCh)
 	}
 }
 
+// StartEngines запускает горутины для каждого движка, чтобы они начали обрабатывать события.
 func (s *Simulations) StartEngines(ctx context.Context) {
 	for _, engineItem := range s.IDToEngine {
 		go func() {

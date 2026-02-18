@@ -35,12 +35,24 @@ func main() {
 	sim := simulations.NewSimulation(simFetcher, simSender) // создание симуляций
 
 	slog.Debug("Simulation created")
+
+	slog.Debug("Initializing simulations...")
+
+	err := sim.Init(gCtx)
+	if err != nil {
+		slog.Error("Error while initializing simulations", "error", err)
+		return
+	}
+
+	slog.Debug("Simulations initialized")
+
 	slog.Debug("Starting simulations...")
 
 	g.Go(func() error { // запуск сервиса симуляций
 		return sim.Run(gCtx)
 	})
 
+	// ===Логика отменты контекста===
 	stopCh := make(chan os.Signal, 1)
 	signal.Notify(stopCh, os.Interrupt, syscall.SIGTERM)
 

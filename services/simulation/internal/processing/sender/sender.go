@@ -26,11 +26,11 @@ func (s *SimSender) Run() {
 }
 
 // AddEvent добавляет событие в канал EventsChan для отправки.
-func (s *SimSender) AddEvent(dto api.EventOutDTO) {
-	s.EventsChan <- dto
+func (s *SimSender) AddEvent(OutDTO api.EventOutDTO) {
+	s.EventsChan <- OutDTO
 }
 
 // Send отправляет событие в другой сервис.
-func (s *SimSender) Send(dto api.EventOutDTO) {
+func (s *SimSender) Send(OutDTO api.EventOutDTO) {
 	panic("todo")
 }

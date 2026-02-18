@@ -13,10 +13,10 @@ import (
 
 // EntitiesFromDTO парсит данные о сущностях и возвращает map[string]*entities.Entity.
 // Если парсинг не удался, то возвращает ошибку.
-func EntitiesFromDTO(data []api.EntityDTO, engineAPI engine.EnginePort) (map[string]entities.Entity, error) {
+func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) (map[string]entities.Entity, error) {
 	IDToEntity := make(map[string]entities.Entity)
 
-	for _, entityDTO := range data {
+	for _, entityDTO := range entitiesData {
 		entityType := strings.Split(entityDTO.ID, "_")[0]
 		switch entityType {
 		case entities.TypeLamp:

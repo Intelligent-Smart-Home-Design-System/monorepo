@@ -28,18 +28,19 @@ type SimEngine struct {
 // NewSimEngine создает SimEngine
 func NewSimEngine() *SimEngine {
 	return &SimEngine{
-		simulation:   simgo.NewSimulation(),
-		IDToEntity:   make(map[string]entities.Entity),
-		eventsInChan: make(chan api.EventInDTO, maxEventsBuffer),
+		simulation:    simgo.NewSimulation(),
+		IDToEntity:    make(map[string]entities.Entity),
+		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
+		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
 	}
 }
 
-// InitEntities создает сущности для симуляции из мапы с конфигом.
-// IDToEntityType хранит ключ = ID сущности, значение = конфиг сущности.
+// InitEntities инициализирует сущности.
 func (s *SimEngine) InitEntities(IDToEntity map[string]entities.Entity) {
 	s.IDToEntity = IDToEntity
 }
 
+// InitDependencies инициализирует зависимости между сущностями на основе IDToDependencies.
 func (s *SimEngine) InitDependencies(IDToDependencies map[string][]api.ActionDTO) {
 	for entityID, actions := range IDToDependencies {
 		s.IDToEntity[entityID].SetReceivers(actions)
@@ -47,14 +48,52 @@ func (s *SimEngine) InitDependencies(IDToDependencies map[string][]api.ActionDTO
 }
 
 // InitProcesses инициализирует данные для процессов и запускает процессы.
-// Информация берется из map[string]entities.Entity, где ключ = ID сущности, значение = сущность.
-// map[string]entities.Entity создается из конфига устройств (приходит из другого сервиса).
 func (s *SimEngine) InitProcesses() {
 	for _, entity := range s.IDToEntity {
 		if entityWithProcess, ok := entity.(entities.EntityWithProcess); ok {
 			s.simulation.ProcessReflect(entityWithProcess.GetProcessFunc())
 		}
 	}
+}
+
+// CheckCircleDependencies проверяет наличие циклических зависимостей среди сущностей.
+// Возвращает true, если цикл найден.
+func (s *SimEngine) CheckCircleDependencies() bool {
+	color := make(map[string]int)
+
+	for entityID := range s.IDToEntity {
+		color[entityID] = 0
+	}
+
+	for entityID := range s.IDToEntity {
+		if color[entityID] == 0 {
+			if s.hasCycleDFS(entityID, color) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// hasCycleDFS выполняет DFS для обнаружения цикла.
+// Возвращает true, если обнаружен цикл.
+func (s *SimEngine) hasCycleDFS(entityID string, color map[string]int) bool {
+	color[entityID] = 1
+
+	receiversID := s.IDToEntity[entityID].GetReceiversID()
+	for _, receiverID := range receiversID {
+		if color[receiverID] == 1 {
+			return true
+		}
+		if color[receiverID] == 0 {
+			if s.hasCycleDFS(receiverID, color) {
+				return true
+			}
+		}
+	}
+	color[entityID] = 2
+	return false
 }
 
 // SetField устанавливает поле для симуляции.
@@ -74,7 +113,7 @@ func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
 
 func (s *SimEngine) Run(ctx context.Context) error {
 	if s.simulation == nil {
-		return errors.New("need simgo simulations for starting engine")
+		return errors.New("need simgo simulation for starting engine")
 	} else if s.Field == nil {
 		return errors.New("need field for starting engine")
 	} else if s.eventsInChan == nil {

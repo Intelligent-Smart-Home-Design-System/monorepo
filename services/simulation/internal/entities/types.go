@@ -3,6 +3,7 @@ package entities
 // В пакете реализуется бизнес-логика сущностей
 
 import (
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
@@ -14,6 +15,9 @@ type Entity interface {
 
 	// GetReceiversID возвращает сущности, который данная сущность тригерит
 	GetReceiversID() []string
+
+	// SetReceivers устанавливает сущности, которые данная сущность тригерит
+	SetReceivers(actions []api.ActionDTO) []string
 
 	// GetLocation возвращает координаты местонахождения сущности на поле
 	GetLocation() field.Cell

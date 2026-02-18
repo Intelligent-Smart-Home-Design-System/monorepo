@@ -11,7 +11,7 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/fetcher"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/sender"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/simulation"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/simulations"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -30,12 +30,12 @@ func main() {
 	simSender := sender.NewSimSender()
 
 	slog.Debug("Components created")
-	slog.Debug("Creating simulation")
+	slog.Debug("Creating simulations")
 
-	sim := simulation.NewSimulation(simFetcher, simSender) // создание симуляций
+	sim := simulations.NewSimulation(simFetcher, simSender) // создание симуляций
 
 	slog.Debug("Simulation created")
-	slog.Debug("Starting simulation...")
+	slog.Debug("Starting simulations...")
 
 	g.Go(func() error { // запуск сервиса симуляций
 		return sim.Run(gCtx)
@@ -52,30 +52,30 @@ func main() {
 
 	select {
 	case sig := <-stopCh:
-		slog.Info("Received signal, stopping simulation service...", "signal", sig.String())
+		slog.Info("Received signal, stopping simulations service...", "signal", sig.String())
 		cancelFunc()
 
 		select {
 		case err := <-done:
 			switch {
 			case errors.Is(err, context.Canceled):
-				slog.Info("Context cancelled, simulation stopped", "error", err)
+				slog.Info("Context cancelled, simulations stopped", "error", err)
 			default:
-				slog.Error("Error while running simulation", "error", err)
+				slog.Error("Error while running simulations", "error", err)
 			}
 		case <-time.After(timeoutGraceful):
-			slog.Warn("Graceful timeout is over, simulation stopped")
+			slog.Warn("Graceful timeout is over, simulations stopped")
 		}
 	case err := <-done:
 		if err != nil {
 			switch {
 			case errors.Is(err, context.Canceled):
-				slog.Info("Context cancelled, simulation stopped", "error", err)
+				slog.Info("Context cancelled, simulations stopped", "error", err)
 			default:
-				slog.Error("Error while running simulation", "error", err)
+				slog.Error("Error while running simulations", "error", err)
 			}
 		} else {
-			slog.Info("simulation stopped")
+			slog.Info("simulations stopped")
 		}
 	}
 }

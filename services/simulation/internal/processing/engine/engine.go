@@ -10,46 +10,40 @@ import (
 	"github.com/fschuetz04/simgo"
 )
 
-const maxEventsBuffer = 1000
+const maxEventsBuffer = 100
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
 	simulation *simgo.Simulation // дискретная симуляция из simgo
 
-	// IDToEntity хранит ключ = ID сущности, значение = структура сущности.
-	IDToEntity map[string]entities.Entity
+	IDToEntity map[string]entities.Entity // ID сущности <-> структура сущности.
 
-	// Поле для симуляции
-	Field *field.Field
+	Field *field.Field // Поле для симуляции
 
-	// Канал для взодящих событий
-	eventsInQueue chan api.EventInDTO
+	eventsInChan chan api.EventInDTO // Канал для взодящих событий
 
-	// Канал для новых событий
-	eventsOutQueue chan api.EventOutDTO
+	eventsOutChan chan api.EventOutDTO // Канал для новых событий
 }
 
 // NewSimEngine создает SimEngine
 func NewSimEngine() *SimEngine {
 	return &SimEngine{
-		simulation:    simgo.NewSimulation(),
-		IDToEntity:    make(map[string]entities.Entity),
-		eventsInQueue: make(chan api.EventInDTO, maxEventsBuffer),
+		simulation:   simgo.NewSimulation(),
+		IDToEntity:   make(map[string]entities.Entity),
+		eventsInChan: make(chan api.EventInDTO, maxEventsBuffer),
 	}
-}
-
-func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
-	return s.eventsOutQueue
-}
-
-func (s *SimEngine) SetField(simField *field.Field) {
-	s.Field = simField
 }
 
 // InitEntities создает сущности для симуляции из мапы с конфигом.
 // IDToEntityType хранит ключ = ID сущности, значение = конфиг сущности.
 func (s *SimEngine) InitEntities(IDToEntity map[string]entities.Entity) {
 	s.IDToEntity = IDToEntity
+}
+
+func (s *SimEngine) InitDependencies(IDToDependencies map[string][]api.ActionDTO) {
+	for entityID, actions := range IDToDependencies {
+		s.IDToEntity[entityID].SetReceivers(actions)
+	}
 }
 
 // InitProcesses инициализирует данные для процессов и запускает процессы.
@@ -63,16 +57,27 @@ func (s *SimEngine) InitProcesses() {
 	}
 }
 
+// SetField устанавливает поле для симуляции.
+func (s *SimEngine) SetField(simField *field.Field) {
+	s.Field = simField
+}
+
+// GetInChan возвращает канал для входящих событий.
 func (s *SimEngine) GetInChan() chan api.EventInDTO {
-	return s.eventsInQueue
+	return s.eventsInChan
+}
+
+// GetOutChan возвращает канал для исходящих событий.
+func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
+	return s.eventsOutChan
 }
 
 func (s *SimEngine) Run(ctx context.Context) error {
 	if s.simulation == nil {
-		return errors.New("need simgo simulation for starting engine")
+		return errors.New("need simgo simulations for starting engine")
 	} else if s.Field == nil {
 		return errors.New("need field for starting engine")
-	} else if s.eventsInQueue == nil {
+	} else if s.eventsInChan == nil {
 		return errors.New("need queue for starting engine")
 	}
 
@@ -80,7 +85,7 @@ func (s *SimEngine) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case event, ok := <-s.eventsInQueue:
+		case event, ok := <-s.eventsInChan:
 			if !ok {
 				return nil
 			}
@@ -96,7 +101,7 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	receiversID := entity.GetReceiversID()
 
 	for _, receiverID := range receiversID {
-		s.eventsInQueue <- api.EventInDTO{ // может тормозить, можно сделать pending или semaphore
+		s.eventsInChan <- api.EventInDTO{
 			EntityID: receiverID,
 		}
 	}

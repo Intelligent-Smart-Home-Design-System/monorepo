@@ -12,19 +12,31 @@ func NewSimFetcher() *SimFetcher {
 	return &SimFetcher{}
 }
 
-func (s *SimFetcher) GetEntities() ([]api.EntityDTO, error) {
-	// TODO: запрос на новые данные
-	return make([]api.EntityDTO, 0), nil
+// GetSimulationsID возвращает список ID симуляций.
+func (s *SimFetcher) GetSimulationsID() []string {
+	return make([]string, 0)
 }
 
-// TODO: функция для приема зависимостей между девайсами (либо сразу учитывать в GetEntities)
-
-func (s *SimFetcher) GetEvents() ([]api.EventInDTO, error) {
+// GetEntities возвращает данные о сущностях на основе ID симуляции.
+func (s *SimFetcher) GetEntities() (map[string][]api.EntityDTO, error) {
 	// TODO: запрос на новые данные
-	return make([]api.EventInDTO, 0), nil
+	return make(map[string][]api.EntityDTO), nil
 }
 
-func (s *SimFetcher) GetField() (api.FieldDTO, error) {
+// GetDependencies возвращает данные о зависимостях между сущностями на основе ID симуляции.
+func (s *SimFetcher) GetDependencies() (map[string]api.ActionDTO, error) {
+	// TODO: запрос на получение зависимостей
+	return make(map[string]api.ActionDTO), nil
+}
+
+// GetEvents возвращает данные о событиях на основе ID симуляции.
+func (s *SimFetcher) GetEvents() (map[string][]api.EventInDTO, error) {
 	// TODO: запрос на новые данные
-	return api.FieldDTO{}, nil
+	return make(map[string][]api.EventInDTO), nil
+}
+
+// GetFields возвращает данные о поле для симуляции на основе ID симуляции.
+func (s *SimFetcher) GetFields() (map[string]api.FieldDTO, error) {
+	// TODO: запрос на новые данные
+	return map[string]api.FieldDTO{}, nil
 }

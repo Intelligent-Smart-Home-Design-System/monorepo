@@ -3,7 +3,7 @@ package engine
 import (
 	"context"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 )
@@ -12,6 +12,7 @@ import (
 type Engine interface {
 	InitEntities(IDToBaseEntity map[string]entities.Entity)
 	InitProcesses()
+	InitDependencies(IDToDependencies map[string][]api.ActionDTO)
 	GetInChan() chan api.EventInDTO
 	GetOutChan() chan api.EventOutDTO
 	Run(ctx context.Context) error

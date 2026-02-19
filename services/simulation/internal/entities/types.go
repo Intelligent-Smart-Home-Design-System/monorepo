@@ -4,7 +4,6 @@ package entities
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -17,10 +16,7 @@ type Entity interface {
 	GetReceiversID() []string
 
 	// SetReceivers устанавливает сущности, которые данная сущность тригерит
-	SetReceivers(actions []api.ActionDTO) []string
-
-	// GetLocation возвращает координаты местонахождения сущности на поле
-	GetLocation() field.Cell
+	SetReceivers(actions []api.ActionDTO)
 }
 
 // EntityWithProcess определяет интерфейс сущности с бизнес-логикой
@@ -30,15 +26,19 @@ type EntityWithProcess interface {
 	// GetProcessFunc возвращает функция процесс
 	GetProcessFunc() func(process simgo.Process)
 
-	// Process реализует функцию процесса устройства. Принимает данные через
-	// inData и возвращает обработанные данные через outData
+	// Process реализует функцию процесса устройства.
 	Process(process simgo.Process)
 
+	// HandleInDTO обрабатывает входящие данные и сохраняет их в хранилище сущности.
 	HandleInDTO(dto []byte) error
+
+	// HandleOutDTO обрабатывает исходящие данные и отправляет их в канал событий.
+	HandleOutDTO(out any) error
 
 	GetOutCh() chan []byte
 }
 
 const (
-	TypeLamp = "lamp"
+	TypeLamp         = "lamp"
+	TypeLampSwitcher = "lamp_switcher"
 )

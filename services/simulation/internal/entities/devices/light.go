@@ -5,14 +5,11 @@ import (
 	"log/slog"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
 
-// Освещение
-
-// Lamp реализует интерфейс entities.Entity
+// Lamp реализует интерфейс entities.EntityWithProcess.
 type Lamp struct {
 	enginePort engine.EnginePort
 	inStore    simgo.Store[LampInData]
@@ -23,12 +20,13 @@ type Lamp struct {
 	Receivers []string `json:"receivers"`
 }
 
+// TODO: решить какие структуры использовать (SH-37, вопрос 1 фев 15:06)
 type LampInData struct {
 	TurnOn bool `json:"turn_on"`
 }
 
 type LampOutData struct {
-	Time float64 `json:"time"`
+	TurnOn bool `json:"turn_on"`
 }
 
 func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
@@ -61,7 +59,6 @@ func (l *Lamp) HandleOutDTO(out LampOutData) error {
 
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Type:     entities.TypeLamp,
 		Info:     dataLamp,
 	}
 
@@ -80,21 +77,20 @@ func (l *Lamp) Process(process simgo.Process) {
 		inData := storeElement.Item
 		event := storeElement.Event
 
-		process.Wait(event)                    // ждем пока прийдет событие в store с
-		process.Wait(process.Timeout(l.Delay)) // учитывая задержку
+		process.Wait(event)
+		process.Wait(process.Timeout(l.Delay))
 
-		outData := l.HandleEvent(process, inData)
+		outData := l.HandleEvent(inData)
 		err := l.HandleOutDTO(outData)
-		slog.Warn("error in event handle", "error", err)
+		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
 	}
 }
 
-// HandleEvent реализует бизнес логику обработки сущности
-func (l *Lamp) HandleEvent(process simgo.Process, inData LampInData) LampOutData {
+func (l *Lamp) HandleEvent(inData LampInData) LampOutData {
 	l.TurnedOn = inData.TurnOn
 
 	out := LampOutData{
-		Time: process.Simulation.Now(),
+		TurnOn: l.TurnedOn,
 	}
 
 	return out
@@ -106,6 +102,14 @@ func (l *Lamp) GetID() string {
 
 func (l *Lamp) GetReceiversID() []string {
 	return l.Receivers
+}
+
+func (l *Lamp) SetReceivers(actions []api.ActionDTO) {
+	receivers := make([]string, len(actions))
+	for i, action := range actions {
+		receivers[i] = action.ID
+	}
+	l.Receivers = receivers
 }
 
 func (l *Lamp) GetReactionDelay() float64 {

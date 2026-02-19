@@ -35,13 +35,13 @@ func NewSimEngine() *SimEngine {
 	}
 }
 
-// InitEntities инициализирует сущности.
-func (s *SimEngine) InitEntities(IDToEntity map[string]entities.Entity) {
+// InitEntities инициализирует сущности и их зависимости.
+func (s *SimEngine) InitEntities(
+	IDToEntity map[string]entities.Entity,
+	IDToDependencies map[string][]api.ActionDTO,
+) {
 	s.IDToEntity = IDToEntity
-}
 
-// InitDependencies инициализирует зависимости между сущностями на основе IDToDependencies.
-func (s *SimEngine) InitDependencies(IDToDependencies map[string][]api.ActionDTO) {
 	for entityID, actions := range IDToDependencies {
 		s.IDToEntity[entityID].SetReceivers(actions)
 	}
@@ -111,15 +111,9 @@ func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
 	return s.eventsOutChan
 }
 
+// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
+// Если контекст отменен или канал закрыт, то симуляция завершается.
 func (s *SimEngine) Run(ctx context.Context) error {
-	if s.simulation == nil {
-		return errors.New("need simgo simulation for starting engine")
-	} else if s.Field == nil {
-		return errors.New("need field for starting engine")
-	} else if s.eventsInChan == nil {
-		return errors.New("need queue for starting engine")
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -153,6 +147,7 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	}
 }
 
+// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
 func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
 	if x < 0 || x > s.Field.Height {
 		return errors.New("invalid parameter x")

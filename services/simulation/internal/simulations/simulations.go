@@ -118,9 +118,7 @@ func (s *Simulations) InitEngines() error {
 			return err
 		}
 
-		s.IDToEngine[simID].InitEntities(entities)
-		s.IDToEngine[simID].InitDependencies(IDToDependencies[simID])
-
+		s.IDToEngine[simID].InitEntities(entities, IDToDependencies[simID])
 		if s.IDToEngine[simID].CheckCircleDependencies() {
 			slog.Error("Circle dependencies detected in simulation", "simulationID", simID)
 		}

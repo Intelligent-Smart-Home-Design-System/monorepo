@@ -25,6 +25,12 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 				return nil, err
 			}
 			IDToEntity[entityDTO.ID] = lamp
+		case entities.TypeLampSwitcher:
+			lampSwitcher, err := devices.NewLampSwitcher(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = lampSwitcher
 		default:
 			return nil, errors.New("cannot parse input data, invalid format")
 		}
@@ -41,9 +47,7 @@ func FieldFromDTO(fieldDTO api.FieldDTO) *field.Field {
 		fieldCells[i] = make([]*field.Cell, fieldDTO.Width)
 		for j, cell := range cells {
 			fieldCells[i][j] = &field.Cell{
-				X:            cell.X,
-				Y:            cell.Y,
-				Condition:    0,
+				Condition:    cell.Condition,
 				IsHiddenWall: false,
 			}
 		}

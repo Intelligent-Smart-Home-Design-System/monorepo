@@ -10,9 +10,11 @@ import (
 
 // Engine определяет главный интерфейс для запуска и обработки симуляции
 type Engine interface {
-	InitEntities(IDToBaseEntity map[string]entities.Entity)
+	InitEntities(
+		IDToEntity map[string]entities.Entity,
+		IDToDependencies map[string][]api.ActionDTO,
+	)
 	InitProcesses()
-	InitDependencies(IDToDependencies map[string][]api.ActionDTO)
 	CheckCircleDependencies() bool
 	GetInChan() chan api.EventInDTO
 	GetOutChan() chan api.EventOutDTO

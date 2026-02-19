@@ -7,14 +7,12 @@ import "encoding/json"
 // EventInDTO структура для событий симуляции
 type EventInDTO struct {
 	EntityID string          `json:"entityID"`
-	Type     string          `json:"type"`
 	Info     json.RawMessage `json:"info"`
 }
 
 // EventOutDTO структура для обработанных событий симуляции
 type EventOutDTO struct {
 	EntityID string          `json:"entityID"`
-	Type     string          `json:"type"`
 	Info     json.RawMessage `json:"info"`
 }
 
@@ -25,6 +23,7 @@ type EntityDTO struct {
 	Info      json.RawMessage `json:"info"`      // парсится позже в converter (метод engine)
 }
 
+// ActionDTO структура для действия сущностей
 type ActionDTO struct {
 	ID         string        `json:"id"`
 	ActionName string        `json:"action_name"`

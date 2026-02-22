@@ -61,7 +61,7 @@ func (s *Simulations) Init(ctx context.Context) error {
 
 // Run запускает сервис симуляции. Принимает контекст для graceful shutdown.
 func (s *Simulations) Run(ctx context.Context) error {
-	slog.Debug("Simulations started!")
+	slog.Info("Simulations started!")
 
 	for {
 		select {
@@ -157,12 +157,12 @@ func (s *Simulations) StartSending() {
 // StartEngines запускает горутины для каждого движка, чтобы они начали обрабатывать события.
 func (s *Simulations) StartEngines(ctx context.Context) {
 	for _, engineItem := range s.IDToEngine {
-		go func() {
+		go func(engineItem engine.Engine) {
 			err := engineItem.Run(ctx)
 			if err != nil {
 				slog.Error("Error while starting engine", "error", err)
 			}
-		}()
+		}(engineItem)
 	}
 }
 

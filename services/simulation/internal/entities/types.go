@@ -23,18 +23,19 @@ type Entity interface {
 type EntityWithProcess interface {
 	Entity
 
-	// GetProcessFunc возвращает функция процесс
-	GetProcessFunc() func(process simgo.Process)
-
-	// Process реализует функцию процесса устройства.
-	Process(process simgo.Process)
-
 	// HandleInDTO обрабатывает входящие данные и сохраняет их в хранилище сущности.
 	HandleInDTO(dto []byte) error
 
 	// HandleOutDTO обрабатывает исходящие данные и отправляет их в канал событий.
 	HandleOutDTO(out any) error
 
+	// GetProcessFunc возвращает функция процесс
+	GetProcessFunc() func(process simgo.Process)
+
+	// Process реализует функцию процесса устройства.
+	Process(process simgo.Process)
+
+	// GetOutCh возвращает канал для отправки данных о событиях.
 	GetOutCh() chan []byte
 }
 

@@ -74,18 +74,20 @@ func (l *Lamp) GetProcessFunc() func(process simgo.Process) {
 func (l *Lamp) Process(process simgo.Process) {
 	for {
 		storeElement := l.inStore.Get()
-		inData := storeElement.Item
 		event := storeElement.Event
 
 		process.Wait(event)
-		process.Wait(process.Timeout(l.Delay))
+		process.Wait(process.Timeout(l.getReactionDelay()))
 
+		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
 		err := l.HandleOutDTO(outData)
 		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
 	}
 }
 
+// HandleEvent реализует бизнес-логику устройства.
+// Возвращает обработанные данные.
 func (l *Lamp) HandleEvent(inData LampInData) LampOutData {
 	l.TurnedOn = inData.TurnOn
 
@@ -100,6 +102,10 @@ func (l *Lamp) GetID() string {
 	return l.ID
 }
 
+func (l *Lamp) getReactionDelay() float64 {
+	return l.Delay
+}
+
 func (l *Lamp) GetReceiversID() []string {
 	return l.Receivers
 }
@@ -110,8 +116,4 @@ func (l *Lamp) SetReceivers(actions []api.ActionDTO) {
 		receivers[i] = action.ID
 	}
 	l.Receivers = receivers
-}
-
-func (l *Lamp) GetReactionDelay() float64 {
-	return l.Delay
 }

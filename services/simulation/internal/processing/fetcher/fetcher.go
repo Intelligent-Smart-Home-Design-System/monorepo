@@ -8,6 +8,7 @@ import "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simula
 type SimFetcher struct {
 }
 
+// NewSimFetcher создает SimFetcher.
 func NewSimFetcher() *SimFetcher {
 	return &SimFetcher{}
 }

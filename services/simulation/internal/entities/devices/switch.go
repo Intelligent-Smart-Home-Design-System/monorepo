@@ -75,12 +75,12 @@ func (l *LampSwitcher) GetProcessFunc() func(process simgo.Process) {
 func (l *LampSwitcher) Process(process simgo.Process) {
 	for {
 		storeElement := l.inStore.Get()
-		inData := storeElement.Item
 		event := storeElement.Event
 
 		process.Wait(event)
-		process.Wait(process.Timeout(l.Delay))
+		process.Wait(process.Timeout(l.getReactionDelay()))
 
+		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
 		err := l.HandleOutDTO(outData)
 		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
@@ -101,6 +101,10 @@ func (l *LampSwitcher) GetID() string {
 	return l.ID
 }
 
+func (l *LampSwitcher) getReactionDelay() float64 {
+	return l.Delay
+}
+
 func (l *LampSwitcher) GetReceiversID() []string {
 	return l.Receivers
 }
@@ -111,8 +115,4 @@ func (l *LampSwitcher) SetReceivers(actions []api.ActionDTO) {
 		receivers[i] = action.ID
 	}
 	l.Receivers = receivers
-}
-
-func (l *LampSwitcher) GetReactionDelay() float64 {
-	return l.Delay
 }

@@ -18,7 +18,6 @@ import (
 const timeoutGraceful = 5 * time.Second
 
 func main() {
-	// TODO: setup logger
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	rootCtx, cancelFunc := context.WithCancel(context.Background()) // graceful shutdown
@@ -46,7 +45,7 @@ func main() {
 
 	slog.Debug("Simulations initialized")
 
-	slog.Debug("Starting simulations...")
+	slog.Info("Starting simulations...")
 
 	g.Go(func() error { // запуск сервиса симуляций
 		return sim.Run(gCtx)

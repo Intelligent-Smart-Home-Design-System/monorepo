@@ -11,6 +11,10 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 )
 
+var (
+	ErrorInvalidFormat = errors.New("cannot parse input data, invalid format")
+)
+
 // EntitiesFromDTO парсит данные о сущностях и возвращает map[string]*entities.Entity.
 // Если парсинг не удался, то возвращает ошибку.
 func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) (map[string]entities.Entity, error) {
@@ -32,7 +36,7 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 			IDToEntity[entityDTO.ID] = lampSwitcher
 		default:
-			return nil, errors.New("cannot parse input data, invalid format")
+			return nil, ErrorInvalidFormat
 		}
 	}
 

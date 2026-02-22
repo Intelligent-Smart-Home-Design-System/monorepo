@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
@@ -150,9 +149,9 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 // UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
 func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
 	if x < 0 || x > s.Field.Height {
-		return errors.New("invalid parameter x")
+		return ErrorFieldInvalidParameterX
 	} else if y < 0 || y > s.Field.Width {
-		return errors.New("invalid parameter y")
+		return ErrorFieldInvalidParameterY
 	}
 
 	s.Field.Cells[x][y].Condition = cell.Condition

@@ -28,12 +28,14 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = lamp
 		case entities.TypeLampSwitcher:
 			lampSwitcher, err := devices.NewLampSwitcher(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = lampSwitcher
 		default:
 			return nil, ErrorInvalidFormat

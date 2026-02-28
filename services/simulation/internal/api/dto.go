@@ -32,9 +32,9 @@ type ActionDTO struct {
 
 // CellDTO структура для клетки поля
 type CellDTO struct {
-	X         int `json:"x"`
-	Y         int `json:"y"`
-	Condition int `json:"condition"` // 1 - сгорело; 0 - дефолт
+	X         int  `json:"x"`
+	Y         int  `json:"y"`
+	Condition bool `json:"condition"` // true - сгорело; false - дефолт
 }
 
 // FieldDTO структура для плана квартиры

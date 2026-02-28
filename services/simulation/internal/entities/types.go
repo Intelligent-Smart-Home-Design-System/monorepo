@@ -12,7 +12,7 @@ type Entity interface {
 	// GetID возвращает ID сущности
 	GetID() string
 
-	// GetReceiversID возвращает сущности, который данная сущность тригерит
+	// GetReceiversID возвращает сущности, которые данная сущность тригерит
 	GetReceiversID() []string
 
 	// SetReceivers устанавливает сущности, которые данная сущность тригерит

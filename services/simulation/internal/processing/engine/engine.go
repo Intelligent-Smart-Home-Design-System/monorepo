@@ -19,7 +19,7 @@ type SimEngine struct {
 
 	Field *field.Field // Поле для симуляции
 
-	eventsInChan chan api.EventInDTO // Канал для взодящих событий
+	eventsInChan chan api.EventInDTO // Канал для входящих событий
 
 	eventsOutChan chan api.EventOutDTO // Канал для новых событий
 }
@@ -85,13 +85,16 @@ func (s *SimEngine) hasCycleDFS(entityID string, color map[string]int) bool {
 		if color[receiverID] == 1 {
 			return true
 		}
+
 		if color[receiverID] == 0 {
 			if s.hasCycleDFS(receiverID, color) {
 				return true
 			}
 		}
 	}
+
 	color[entityID] = 2
+
 	return false
 }
 

@@ -1,7 +1,7 @@
 package field
 
 type Cell struct {
-	Condition    int  // пусть 1 - сгорело; 0 - дефолт
+	Condition    bool // true - сгорело; false - дефолт
 	IsHiddenWall bool // невидимая стенка для пожара/...
 }
 

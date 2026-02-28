@@ -115,5 +115,6 @@ func (l *Lamp) SetReceivers(actions []api.ActionDTO) {
 	for i, action := range actions {
 		receivers[i] = action.ID
 	}
+
 	l.Receivers = receivers
 }

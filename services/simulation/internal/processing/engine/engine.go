@@ -9,7 +9,10 @@ import (
 	"github.com/fschuetz04/simgo"
 )
 
-const maxEventsBuffer = 100
+const (
+	maxEventsBuffer = 100
+	simStep         = 1.0
+)
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
@@ -126,6 +129,8 @@ func (s *SimEngine) Run(ctx context.Context) error {
 			}
 
 			s.HandleEvent(event)
+
+			s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
 		}
 	}
 }

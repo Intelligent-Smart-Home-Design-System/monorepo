@@ -3,20 +3,26 @@ package engine
 import (
 	"fmt"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 )
 
 type Engine struct {
-	rules []rules.Rule
-	RoomIDToRoom map[string]*entities.Room // вспомогательное поле
+	storage *storage.Storage
+	tracksConfig *configs.Tracks
+	devicesConfig *configs.Devices
 }
 
-func NewEngine(rules []rules.Rule) *Engine {
-	return &Engine{rules: rules, RoomIDToRoom: make(map[string]*entities.Room)}
+func NewEngine(storage *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
+	return &Engine{
+		storage: storage,
+		tracksConfig: tracksConfig,
+		devicesConfig: deviceConfig,
+	}
 }
 
-func (e *Engine) PlaceDevices(apartment *entities.Apartment) (*entities.ApartmentResult, error) {
+func (e *Engine) PlaceDevices(apartment *entities.Apartment, selectedLevels map[string]string) (*entities.ApartmentResult, error) {
 	if apartment == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
@@ -25,21 +31,39 @@ func (e *Engine) PlaceDevices(apartment *entities.Apartment) (*entities.Apartmen
 		return nil, fmt.Errorf("nil rooms")
 	}
 
-	for _, room := range apartment.Rooms {
-		if room == nil {
-			return nil, fmt.Errorf("nil room")
-		}
-		e.RoomIDToRoom[room.ID] = room
-	}
-	
 	res := entities.NewApartmentResult()
 
-	for _, rule := range e.rules {
-		if !rule.HasSuitableTrack(apartment) {
-			continue
+	for _, track := range apartment.Tracks {
+		trackConfig := e.tracksConfig.Tracks[track]
+		level, ok := trackConfig.Levels[selectedLevels[track]]
+		if !ok {
+			level = trackConfig.Levels[BaseLevel] // по дефолту первый уровень во всех треках
 		}
 
-		res.Placements = rule.Apply(apartment)
+		for _, device := range level.Devices {
+			rule, err := e.storage.GetRule(device)
+			if err != nil {
+				return nil, err
+			}
+
+			res.Placements = rule.Apply(apartment)
+		}
 	}
+
 	return res, nil
+}
+
+func (e *Engine) CalcLayoutPrice(apartmentResult *entities.ApartmentResult) *PriceInfo {
+	priceInfo := &PriceInfo{}
+
+	for _, roomPlacement := range apartmentResult.Placements {
+		for deviceType := range roomPlacement {
+			device := e.devicesConfig.Devices[deviceType]
+
+			priceInfo.MinPrice += device.Price.Min
+			priceInfo.MaxPrice += device.Price.Max
+		}
+	}
+
+	return priceInfo
 }

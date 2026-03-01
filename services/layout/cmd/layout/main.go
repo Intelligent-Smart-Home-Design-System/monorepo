@@ -1,29 +1,45 @@
-package layout
+package main
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 )
 
-// Пока что абстрактная функция, конечно в будущем она будет не в этом модуле
+// TODO: убрать
 func GetApartment() *entities.Apartment {
 	return &entities.Apartment{}
 }
 
+// TODO: убрать
+func GetSelectedLevels() map[string]string {
+	return make(map[string]string)
+}
+
 func main() {
 	apartment := GetApartment()
+	selectedLevels := GetSelectedLevels()
+	storage := storage.NewStorage()
 
-	device_rules := []rules.Rule{}
-	device_rules = append(device_rules, security.NewWaterLeakRule("1", "security"))
-
-	engine := engine.NewEngine(device_rules)
-	_, err := engine.PlaceDevices(apartment) // вся расстановка в квартире
+	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
-		_ = fmt.Errorf("place algorithm error: %w", err)
+		log.Fatal("failed to load tracks config")
+	}
+
+	devicesConfig, err := configs.LoadDevicesConfig("internal/configs/tracks.json")
+	if err != nil {
+		log.Fatal("failed to load devices config")
+	}
+
+	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	
+	_, err = engine.PlaceDevices(apartment, selectedLevels) // вся расстановка в квартире
+	if err != nil {
+		_ = fmt.Errorf("failed to place devices: %w", err)
 	}
 
 	// TODO: записать результаты на плане квартиры

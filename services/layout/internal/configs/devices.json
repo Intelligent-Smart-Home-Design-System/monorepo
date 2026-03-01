@@ -1,3 +1,13 @@
 {
-    
+  "device_types": {
+    "water_leak_sensor": {
+      "name": "Датчик протечки воды",
+      "id": "1",
+      "price_range": {
+        "min": 1000,
+        "max": 2000
+      },
+      "tracks": ["security"]
+    }
+  }
 }

@@ -5,9 +5,11 @@ import (
 )
 
 type Rule interface {
+	// GetType возвращает тип устройства, относящегося к этому правилу
+	GetType() string
 
-	HasSuitableTrack(apartment *entities.Apartment) bool	// скорее всего, не понадобится
-															// после введения конфига треков
-
+	// Apply возвращает мапу, которая по roomID и deviceID выдает расставленное устройство 
+	// (объект структуры Placement). Через Apply устройство расставляется во всех нужных 
+	// местах в каждой комнате.
 	Apply(apartment *entities.Apartment) map[string]map[string]*entities.Placement
 }

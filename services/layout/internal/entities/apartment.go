@@ -7,9 +7,9 @@ type Apartment struct {
 }
 
 type ApartmentResult struct {
-	Placements map[string]map[string]*Placement // roomID -> deviceID -> devicePlacement
+	Placements map[string]map[string]*Placement // roomID -> deviceType -> devicePlacement
 												// То есть по roomID получаем мапу между
-												// устройством и его расстановкой
+												// типом устройства и его расстановкой
 	
 	// в дальнейшем необходимо будет хранить доп поля в этой структуре (для других модулей)
 }

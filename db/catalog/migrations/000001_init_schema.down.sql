@@ -7,3 +7,4 @@ DROP TABLE IF EXISTS yandex_cloud_integrations;
 DROP TABLE IF EXISTS parsed_listing_snapshots;
 DROP TABLE IF EXISTS page_snapshots;
 DROP TABLE IF EXISTS tracked_pages;
+DROP EXTENSION IF EXISTS pgcrypto;

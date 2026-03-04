@@ -41,5 +41,5 @@ type EntityWithProcess interface {
 
 const (
 	TypeLamp         = "lamp"
-	TypeLampSwitcher = "lamp_switcher"
+	TypeLampSwitcher = "lampSwitcher"
 )

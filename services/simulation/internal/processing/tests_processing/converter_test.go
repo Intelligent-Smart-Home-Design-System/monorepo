@@ -1,4 +1,4 @@
-package tests_converter
+package tests_processing
 
 import (
 	"testing"

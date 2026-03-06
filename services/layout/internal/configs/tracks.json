@@ -19,10 +19,12 @@
           "name": "Второй уровень",
           "description": "Защита входа",
           "price_range": {
-            "min": 28000,
-            "max": 32000
+            "min": 32000,
+            "max": 40000
           },
           "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
             "smart_door_bell",
             "smart_lock"
           ]
@@ -31,10 +33,14 @@
           "name": "Третий уровень",
           "description": "Контроль периметра",
           "price_range": {
-            "min": 12000,
-            "max": 15000
+            "min": 44000,
+            "max": 55000
           },
           "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
             "door_sensor",
             "window_sensor",
             "motion_sensor"
@@ -44,10 +50,14 @@
           "name": "Четвертый уровень",
           "description": "Видеонаблюдение",
           "price_range": {
-            "min": 8000,
-            "max": 13000
+            "min": 52000,
+            "max": 68000
           },
           "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
             "camera"
           ]
         },
@@ -55,10 +65,14 @@
           "name": "Пятый уровень",
           "description": "Охранная сигнализация",
           "price_range": {
-            "min": 3000,
-            "max": 6000
+            "min": 55000,
+            "max": 74000
           },
           "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
             "security_alarm"
           ]
         }

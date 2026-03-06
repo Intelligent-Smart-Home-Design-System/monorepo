@@ -78,6 +78,9 @@ CREATE TABLE llm_extracted_listings (
     -- Category-specific attributes
     device_attributes JSONB NOT NULL,
     
+    -- taxonomy version (git tag), e.g. v1, v2, ...
+    taxonomy_version TEXT NOT NULL,
+
     -- about llm extraction
     llm_model TEXT NOT NULL                  -- 'gpt-4o', 'claude-sonnet'
 );
@@ -115,7 +118,10 @@ CREATE TABLE device (
     category TEXT NOT NULL,        -- 'smart_lamp', 'motion_sensor', 'hub'
 
     -- Category-specific attributes(merged from multiple llm extracted ones)
-    device_attributes JSONB NOT NULL
+    device_attributes JSONB NOT NULL,
+
+    -- taxonomy version (git tag), e.g. v1, v2, ...
+    taxonomy_version TEXT NOT NULL
 );
 
 CREATE TABLE listing_device_links (

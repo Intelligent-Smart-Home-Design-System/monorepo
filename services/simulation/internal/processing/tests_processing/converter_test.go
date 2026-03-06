@@ -9,6 +9,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
 )
 
+//=====Stubs=====
 type stubEnginePort struct {
 	outChan chan api.EventOutDTO
 }
@@ -21,6 +22,7 @@ func (s *stubEnginePort) UpdateField(x, y int, cell field.Cell) error {
 	return nil
 }
 
+//=====Tests=====
 //проверка парсинга лампы
 func TestEntitiesFromDTO_Lamp(t *testing.T) {
 	engineStub := &stubEnginePort{}

@@ -21,10 +21,18 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Build
+    - name: Build_simulation
       run: go build -v ./...
       working-directory: services/simulation
 
-    - name: Test
+    - name: Test_simulation
       run: go test -v ./...
       working-directory: services/simulation
+    
+    - name: Build_layout
+      run: go build -v ./...
+      working-directory: services/layout
+
+    - name: Test_layout
+      run: go test -v ./tests/...
+      working-directory: services/layout

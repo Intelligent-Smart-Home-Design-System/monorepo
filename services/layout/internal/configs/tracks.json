@@ -58,6 +58,9 @@
             "gas_leak_sensor",
             "smart_door_bell",
             "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
             "camera"
           ]
         },
@@ -73,6 +76,10 @@
             "gas_leak_sensor",
             "smart_door_bell",
             "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera",
             "security_alarm"
           ]
         }

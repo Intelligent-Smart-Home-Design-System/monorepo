@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"strings"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
@@ -128,9 +129,12 @@ func (s *SimEngine) Run(ctx context.Context) error {
 				return nil
 			}
 
-			s.HandleEvent(event)
-
-			s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+			eventType := strings.Split(event.EntityID, "_")[0]
+			if eventType == "step" {
+				s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+			} else {
+				s.HandleEvent(event)
+			}
 		}
 	}
 }

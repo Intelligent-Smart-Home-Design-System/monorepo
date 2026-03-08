@@ -125,8 +125,7 @@ CREATE TABLE device (
 );
 
 CREATE TABLE listing_device_links (
-    id SERIAL PRIMARY KEY,
-    llm_extracted_listing_id INTEGER UNIQUE REFERENCES llm_extracted_listings(id),
+    llm_extracted_listing_id INTEGER PRIMARY KEY REFERENCES llm_extracted_listings(id),
     device_id INTEGER REFERENCES device(id),
 
     linked_at TIMESTAMP DEFAULT NOW()

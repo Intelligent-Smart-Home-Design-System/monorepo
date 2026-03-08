@@ -62,6 +62,28 @@ CREATE TABLE parsed_listing_snapshots (
     content_hash VARCHAR(64) -- хэш всех полей extracted_. Если ничего не поменялось, меняем только parsed_at в последнем снепшоте
 );
 
+CREATE TABLE yandex_cloud_integrations (
+    id SERIAL PRIMARY KEY,
+    
+    -- Bridging
+    -- meaning: devices added to ecosystem_source can be exported to yandex home
+    ecosystem_source TEXT NOT NULL,
+    
+    -- text describing the integration - may contain model numbers, or series, or other fuzzy selectors like 'Умные розетки'
+    description TEXT NOT NULL,
+
+    -- Where we learned this (nullable = rule-based or manual)
+    tracked_page_id INTEGER REFERENCES tracked_pages(id),
+    
+    -- Timestamps
+    discovered_at TIMESTAMP DEFAULT NOW(),
+    last_confirmed_at TIMESTAMP,        -- updated when we re-scrape source and it's still there
+    
+    UNIQUE(ecosystem_source)
+);
+
+-- Gold layer
+
 CREATE TABLE llm_extracted_listings (
     id SERIAL PRIMARY KEY,
     parsed_listing_snapshot_id INTEGER REFERENCES parsed_listing_snapshots(id),
@@ -84,28 +106,6 @@ CREATE TABLE llm_extracted_listings (
     -- about llm extraction
     llm_model TEXT NOT NULL                  -- 'gpt-4o', 'claude-sonnet'
 );
-
-CREATE TABLE yandex_cloud_integrations (
-    id SERIAL PRIMARY KEY,
-    
-    -- Bridging
-    -- meaning: devices added to ecosystem_source can be exported to yandex home
-    ecosystem_source TEXT NOT NULL,
-    
-    -- text describing the integration - may contain model numbers, or series, or other fuzzy selectors like 'Умные розетки'
-    description TEXT NOT NULL,
-
-    -- Where we learned this (nullable = rule-based or manual)
-    tracked_page_id INTEGER REFERENCES tracked_pages(id),
-    
-    -- Timestamps
-    discovered_at TIMESTAMP DEFAULT NOW(),
-    last_confirmed_at TIMESTAMP,        -- updated when we re-scrape source and it's still there
-    
-    UNIQUE(ecosystem_source)
-);
-
--- Gold layer
 
 CREATE TABLE device (
     id SERIAL PRIMARY KEY,

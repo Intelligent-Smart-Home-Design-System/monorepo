@@ -2,7 +2,10 @@ module temporal-go-project
 
 go 1.21
 
-require go.temporal.io/sdk v1.25.1
+require (
+	github.com/rs/zerolog v1.33.0
+	go.temporal.io/sdk v1.25.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -15,6 +18,8 @@ require (
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/robfig/cron v1.2.0 // indirect

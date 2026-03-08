@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   temporal:
     container_name: temporal
@@ -52,7 +50,82 @@ services:
     networks:
       - temporal-network
 
+  temporal-worker:
+    container_name: temporal-worker
+    build:
+      context: .
+      target: worker
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - LOG_LEVEL=info
+    depends_on:
+      - temporal
+    restart: unless-stopped
+    networks:
+      - temporal-network
+
+  temporal-client:
+    container_name: temporal-client
+    build:
+      context: .
+      target: client
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - LOG_LEVEL=info
+    depends_on:
+      - temporal
+      - temporal-worker
+    profiles:
+      - tools
+    networks:
+      - temporal-network
+
+  loki:
+    container_name: loki
+    image: grafana/loki:2.9.8
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - temporal-network
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:2.9.8
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - temporal-network
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:10.4.3
+    depends_on:
+      - loki
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - temporal-network
+
 networks:
   temporal-network:
     driver: bridge
 
+volumes:
+  loki-data:
+  grafana-data:

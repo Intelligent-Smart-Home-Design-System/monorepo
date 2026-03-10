@@ -1,2 +1,4 @@
 github.com/fschuetz04/simgo v0.7.0 h1:ulsBzdTpVWcufFV3wWAtyh2RxVo8rHcp32GlqD4FmKc=
 github.com/fschuetz04/simgo v0.7.0/go.mod h1:4MiCC4ddS4Cyk5oIAVYwYTmTAr4hp051EVw+y85h8Wg=
+golang.org/x/sync v0.19.0 h1:vV+1eWNmZ5geRlYjzm2adRgW2/mcpevXNg50YZtPCE4=
+golang.org/x/sync v0.19.0/go.mod h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI=

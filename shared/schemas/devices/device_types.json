@@ -1,12 +1,11 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Типы устройств и их общие части (трейты)",
   "description": "Объединённые описания типов умных устройств и их переиспользуемых характеристик",
   "type": "object",
   "properties": {
     "traits": {
       "type": "object",
-      "description": "Наборы характеристик, которые могут быть общими для разных типов устройств",
+      "description": "Наборы характеристик, общих для разных типов устройств",
       "properties": {
         "base": {
           "type": "object",
@@ -26,7 +25,7 @@
           "properties": {
             "ecosystem": {
               "type": "array",
-              "description": "С какими экосистемами работает (например, 'yandex', 'apple')",
+              "description": "С какими экосистемами работает",
               "items": {
                 "type": "string",
                 "enum": ["yandex", "apple", "google", "aqara", "tuya", "xiaomi", "smartthings", "homekit"]
@@ -36,7 +35,7 @@
             },
             "protocol": {
               "type": "array",
-              "description": "Какие протоколы связи использует (zigbee, wi-fi и т.п.)",
+              "description": "Какие протоколы связи использует",
               "items": {
                 "type": "string",
                 "enum": ["zigbee", "z-wave", "wifi", "bluetooth", "matter", "thread"]
@@ -98,20 +97,20 @@
             "lifetime": { "type": "number", "description": "Срок службы в часах", "minimum": 0 },
             "color_temperature": {
               "type": "number",
-              "description": "Цветовая температура в кельвинах (теплый/холодный свет)",
+              "description": "Цветовая температура в кельвинах",
               "minimum": 1000,
               "maximum": 10000
             },
             "color_rendering_index": {
               "type": "number",
-              "description": "Индекс цветопередачи (CRI), от 0 до 100",
+              "description": "Индекс цветопередачи (CRI)",
               "minimum": 0,
               "maximum": 100
             },
             "color_mode": {
               "type": "string",
               "enum": ["RGB", "RGBW", "CCT", "Dimmable", "On/Off"],
-              "description": "Режимы цвета (RGB, только белый, регулировка яркости и т.п.)"
+              "description": "Режимы цвета"
             }
           },
           "required": ["power", "voltage"]
@@ -146,31 +145,50 @@
           },
           "required": []
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "device_types": {
+    "types": {
       "type": "object",
       "description": "Описания конкретных типов устройств",
       "properties": {
         "water_leak_sensor": {
-          "allOf": [
-            { "$ref": "#/properties/traits/properties/base" },
-            { "$ref": "#/properties/traits/properties/connectivity" },
-            { "$ref": "#/properties/traits/properties/battery_operated" },
-            { "$ref": "#/properties/traits/properties/ip_rated" },
-            {
+          "type": "object",
+          "description": "Датчик протечки воды. Устанавливается под раковиной, возле труб и т.п.",
+          "properties": {
+            "traits": {
+              "type": "array",
+              "description": "Список трейтов, применимых к этому типу",
+              "items": {
+                "type": "string",
+                "enum": ["base", "connectivity", "battery_operated", "ip_rated"]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "extra_schema": {
               "type": "object",
+              "description": "Дополнительные поля, специфичные для датчика протечки",
               "properties": {
                 "type": { "const": "water_leak_sensor" },
-                "has_audio_alert": { "type": "boolean", "description": "Пищит ли, когда обнаруживает протечку" },
+                "has_audio_alert": {
+                  "type": "boolean",
+                  "description": "Пищит ли, когда обнаруживает протечку"
+                },
                 "audio_alert_volume_db": {
                   "type": "number",
                   "minimum": 60,
                   "maximum": 120,
                   "description": "Громкость звукового сигнала в децибелах"
                 },
-                "detects_leaks_above": { "type": "boolean", "description": "Видит ли воду, капающую сверху (например, на контакты)" },
-                "detects_leaks_below": { "type": "boolean", "description": "Видит ли воду снизу (на полу)" },
+                "detects_leaks_above": {
+                  "type": "boolean",
+                  "description": "Видит ли воду, капающую сверху (например, на контакты)"
+                },
+                "detects_leaks_below": {
+                  "type": "boolean",
+                  "description": "Видит ли воду снизу (на полу)"
+                },
                 "min_detected_water_level_mm": {
                   "type": "number",
                   "minimum": 0.1,
@@ -178,18 +196,27 @@
                   "description": "Минимальная толщина слоя воды, которую может заметить (в миллиметрах)"
                 }
               },
-              "required": ["type"]
+              "required": ["type"],
+              "additionalProperties": false
             }
-          ]
+          },
+          "required": ["traits", "extra_schema"],
+          "additionalProperties": false
         },
         "temperature_sensor": {
-          "allOf": [
-            { "$ref": "#/properties/traits/properties/base" },
-            { "$ref": "#/properties/traits/properties/connectivity" },
-            { "$ref": "#/properties/traits/properties/battery_operated" },
-            { "$ref": "#/properties/traits/properties/ip_rated" },
-            { "$ref": "#/properties/traits/properties/sensor" },
-            {
+          "type": "object",
+          "description": "Датчик температуры (и, опционально, влажности)",
+          "properties": {
+            "traits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["base", "connectivity", "battery_operated", "ip_rated", "sensor"]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "extra_schema": {
               "type": "object",
               "properties": {
                 "type": { "const": "temperature_sensor" },
@@ -200,38 +227,68 @@
                     "min": { "type": "number" },
                     "max": { "type": "number" }
                   },
-                  "required": ["min", "max"]
+                  "required": ["min", "max"],
+                  "additionalProperties": false
                 },
-                "humidity_sensor": { "type": "boolean", "description": "Есть ли датчик влажности" },
-                "accuracy_temperature": { "type": "number", "description": "Точность измерения температуры (± сколько)" },
-                "accuracy_humidity": { "type": "number", "description": "Точность измерения влажности (± %)" }
+                "humidity_sensor": {
+                  "type": "boolean",
+                  "description": "Есть ли датчик влажности"
+                },
+                "accuracy_temperature": {
+                  "type": "number",
+                  "description": "Точность измерения температуры (± сколько)"
+                },
+                "accuracy_humidity": {
+                  "type": "number",
+                  "description": "Точность измерения влажности (± %)"
+                }
               },
-              "required": ["type", "temperature_range"]
+              "required": ["type", "temperature_range"],
+              "additionalProperties": false
             }
-          ]
+          },
+          "required": ["traits", "extra_schema"],
+          "additionalProperties": false
         },
         "motion_sensor": {
-          "allOf": [
-            { "$ref": "#/properties/traits/properties/base" },
-            { "$ref": "#/properties/traits/properties/connectivity" },
-            { "$ref": "#/properties/traits/properties/battery_operated" },
-            { "$ref": "#/properties/traits/properties/ip_rated" },
-            { "$ref": "#/properties/traits/properties/motion_detection" },
-            {
+          "type": "object",
+          "description": "Датчик движения",
+          "properties": {
+            "traits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["base", "connectivity", "battery_operated", "ip_rated", "motion_detection"]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "extra_schema": {
               "type": "object",
               "properties": {
                 "type": { "const": "motion_sensor" }
               },
-              "required": ["type"]
+              "required": ["type"],
+              "additionalProperties": false
             }
-          ]
+          },
+          "required": ["traits", "extra_schema"],
+          "additionalProperties": false
         },
         "smart_lamp": {
-          "allOf": [
-            { "$ref": "#/properties/traits/properties/base" },
-            { "$ref": "#/properties/traits/properties/connectivity" },
-            { "$ref": "#/properties/traits/properties/lighting" },
-            {
+          "type": "object",
+          "description": "Умная лампа или светильник",
+          "properties": {
+            "traits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["base", "connectivity", "lighting"]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "extra_schema": {
               "type": "object",
               "properties": {
                 "type": { "const": "smart_lamp" },
@@ -241,19 +298,35 @@
                   "description": "Как обычно крепится: на потолок, на стену, настольная, напольная"
                 }
               },
-              "required": ["type"]
+              "required": ["type"],
+              "additionalProperties": false
             }
-          ]
+          },
+          "required": ["traits", "extra_schema"],
+          "additionalProperties": false
         },
         "smart_plug": {
-          "allOf": [
-            { "$ref": "#/properties/traits/properties/base" },
-            { "$ref": "#/properties/traits/properties/connectivity" },
-            {
+          "type": "object",
+          "description": "Умная розетка",
+          "properties": {
+            "traits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["base", "connectivity"]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "extra_schema": {
               "type": "object",
               "properties": {
                 "type": { "const": "smart_plug" },
-                "max_power": { "type": "number", "description": "Максимальная мощность нагрузки в ваттах", "minimum": 0 },
+                "max_power": {
+                  "type": "number",
+                  "description": "Максимальная мощность нагрузки в ваттах",
+                  "minimum": 0
+                },
                 "voltage": {
                   "type": "object",
                   "description": "Диапазон рабочего напряжения",
@@ -261,17 +334,35 @@
                     "min": { "type": "number", "minimum": 0 },
                     "max": { "type": "number", "minimum": 0 }
                   },
-                  "required": ["min", "max"]
+                  "required": ["min", "max"],
+                  "additionalProperties": false
                 },
-                "usb_ports": { "type": "integer", "minimum": 0, "description": "Сколько USB-портов есть на розетке" },
-                "child_lock": { "type": "boolean", "description": "Есть ли защита от детей" },
-                "power_consumption": { "type": "number", "description": "Сколько ватт потребляет сама розетка в режиме ожидания" }
+                "usb_ports": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Сколько USB-портов есть на розетке"
+                },
+                "child_lock": {
+                  "type": "boolean",
+                  "description": "Есть ли защита от детей"
+                },
+                "power_consumption": {
+                  "type": "number",
+                  "description": "Сколько ватт потребляет сама розетка в режиме ожидания"
+                }
               },
-              "required": ["type", "max_power", "voltage"]
+              "required": ["type", "max_power", "voltage"],
+              "additionalProperties": false
             }
-          ]
+          },
+          "required": ["traits", "extra_schema"],
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false,
+      "required": ["water_leak_sensor", "temperature_sensor", "motion_sensor", "smart_lamp", "smart_plug"]
     }
-  }
+  },
+  "required": ["traits", "types"],
+  "additionalProperties": false
 }

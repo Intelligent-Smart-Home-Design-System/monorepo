@@ -34,9 +34,6 @@ type EntityWithProcess interface {
 
 	// Process реализует функцию процесса устройства.
 	Process(process simgo.Process)
-
-	// GetOutCh возвращает канал для отправки данных о событиях.
-	GetOutCh() chan []byte
 }
 
 const (

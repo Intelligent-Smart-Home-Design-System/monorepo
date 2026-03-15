@@ -37,6 +37,8 @@ func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 
 	lamp.enginePort = engineAPI
 
+	lamp.inStore = *simgo.NewStore[LampInData](engineAPI.GetSimulation())
+
 	return &lamp, nil
 }
 
@@ -82,7 +84,9 @@ func (l *Lamp) Process(process simgo.Process) {
 		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
 		err := l.HandleOutDTO(outData)
-		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+		if err != nil {
+			slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+		}
 	}
 }
 

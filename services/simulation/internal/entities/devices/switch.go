@@ -38,6 +38,8 @@ func NewLampSwitcher(data []byte, engineAPI engine.EnginePort) (*LampSwitcher, e
 
 	lampSwitcher.enginePort = engineAPI
 
+	lampSwitcher.inStore = *simgo.NewStore[LampSwitcherInData](engineAPI.GetSimulation())
+
 	return &lampSwitcher, nil
 }
 
@@ -83,7 +85,9 @@ func (l *LampSwitcher) Process(process simgo.Process) {
 		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
 		err := l.HandleOutDTO(outData)
-		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+		if err != nil {
+			slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+		}
 	}
 }
 

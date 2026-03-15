@@ -113,7 +113,7 @@ func (s *Simulations) InitEngines() error {
 	}
 
 	for simID, entitiesData := range IDToEntitiesData {
-		entities, err := converter.EntitiesFromDTO(entitiesData, s.IDToEngine[simID])
+		entities, err := converter.EntitiesFromDTO(entitiesData, s.IDToEngine[simID].(engine.EnginePort))
 		if err != nil {
 			return err
 		}

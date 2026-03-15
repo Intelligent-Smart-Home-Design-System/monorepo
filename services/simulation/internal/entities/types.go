@@ -27,7 +27,7 @@ type EntityWithProcess interface {
 	HandleInDTO(dto []byte) error
 
 	// HandleOutDTO обрабатывает исходящие данные и отправляет их в канал событий.
-	HandleOutDTO(out any) error
+	//HandleOutDTO(out any) error
 
 	// GetProcessFunc возвращает функция процесс
 	GetProcessFunc() func(process simgo.Process)

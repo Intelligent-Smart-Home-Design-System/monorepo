@@ -134,6 +134,8 @@ func (s *SimEngine) Run(ctx context.Context) error {
 				s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
 			} else {
 				s.HandleEvent(event)
+
+				s.simulation.RunUntil(s.simulation.Now() + simStep)
 			}
 		}
 	}
@@ -147,6 +149,7 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	for _, receiverID := range receiversID {
 		s.eventsInChan <- api.EventInDTO{
 			EntityID: receiverID,
+			Info:     event.Info,
 		}
 	}
 
@@ -169,4 +172,8 @@ func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
 	s.Field.Cells[x][y].Condition = cell.Condition
 
 	return nil
+}
+
+func (s *SimEngine) GetSimulation() *simgo.Simulation {
+	return s.simulation
 }

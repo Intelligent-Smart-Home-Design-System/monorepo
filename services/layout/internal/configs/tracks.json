@@ -96,8 +96,11 @@
             "max": 6000
           },
           "devices": [
-            "main_light"
-          ]
+            "smart_bulb"
+          ],
+          "device_rooms": {
+            "smart_bulb": ["living", "kitchen"]
+          }
         },
         "2": {
           "name": "Второй уровень",
@@ -107,8 +110,11 @@
             "max": 10000
           },
           "devices": [
-            "main_light"
-          ]
+            "smart_bulb"
+          ],
+          "device_rooms": {
+            "smart_bulb": ["passage", "bathroom"]
+          }
         },
         "3": {
           "name": "Третий уровень",
@@ -118,10 +124,15 @@
             "max": 20000
           },
           "devices": [
-            "main_light",
+            "smart_bulb",
             "motion_sensor",
             "illumination_sensor"
-          ]
+          ],
+          "device_rooms": {
+            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom"],
+            "illumination_sensor": ["living", "kitchen"]
+          }
         },
         "4": {
           "name": "Четвертый уровень",
@@ -131,11 +142,17 @@
             "max": 55000
           },
           "devices": [
-            "main_light",
+            "smart_bulb",
             "motion_sensor",
             "illumination_sensor",
-            "curtain_motor"
-          ]
+            "curtains"
+          ],
+          "device_rooms": {
+            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom"],
+            "illumination_sensor": ["living", "kitchen"],
+            "curtains": ["windows"]
+          }
         },
         "5": {
           "name": "Пятый уровень",
@@ -145,13 +162,21 @@
             "max": 70000
           },
           "devices": [
-            "main_light",
+            "smart_bulb",
             "motion_sensor",
             "illumination_sensor",
-            "curtain_motor",
-            "wireless_switch",
-            "dimmer"
-          ]
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer"
+          ],
+          "device_rooms": {
+            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom"],
+            "illumination_sensor": ["living", "kitchen"],
+            "curtains": ["windows"],
+            "wireless_button_switch": ["living", "bedroom", "kitchen"],
+            "smart_dimmer": ["living", "bedroom"]
+          }
         },
         "6": {
           "name": "Шестой уровень",
@@ -161,14 +186,23 @@
             "max": 85000
           },
           "devices": [
-            "main_light",
+            "smart_bulb",
             "presence_sensor",
             "illumination_sensor",
-            "curtain_motor",
-            "wireless_switch",
-            "dimmer",
-            "navigation_light"
-          ]
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer",
+            "built_in_backlight"
+          ],
+          "device_rooms": {
+            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
+            "presence_sensor": ["passage", "bathroom", "cabinet"],
+            "illumination_sensor": ["living", "kitchen"],
+            "curtains": ["windows"],
+            "wireless_button_switch": ["living", "bedroom", "kitchen"],
+            "smart_dimmer": ["living", "bedroom"],
+            "built_in_backlight": ["passage", "bathroom"]
+          }
         },
         "7": {
           "name": "Седьмой уровень",
@@ -178,15 +212,25 @@
             "max": 100000
           },
           "devices": [
-            "main_light",
+            "smart_bulb",
             "presence_sensor",
             "illumination_sensor",
-            "curtain_motor",
-            "wireless_switch",
-            "dimmer",
-            "navigation_light",
-            "accent_light"
-          ]
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer",
+            "built_in_backlight",
+            "decorative_luminaire"
+          ],
+          "device_rooms": {
+            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
+            "presence_sensor": ["passage", "bathroom", "cabinet"],
+            "illumination_sensor": ["living", "kitchen"],
+            "curtains": ["windows"],
+            "wireless_button_switch": ["living", "bedroom", "kitchen"],
+            "smart_dimmer": ["living", "bedroom"],
+            "built_in_backlight": ["living", "kitchen", "cabinet"],
+            "decorative_luminaire": ["living", "bedroom"]
+          }
         }
       }
     }

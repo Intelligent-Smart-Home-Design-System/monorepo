@@ -11,6 +11,7 @@ type Tracks struct {
 
 type Track struct {
 	Name string `json:"name"`
+	Zones map[string]string `json:"zones,omitempty"`
 	Levels map[string]Level `json:"levels"`
 }
 
@@ -19,6 +20,7 @@ type Level struct {
 	Description string `json:"description"`
 	PriceRange PriceRange `json:"price_range"`
 	Devices []string `json:"devices"`
+	DeviceRooms map[string][]string `json:"device_rooms,omitempty"`
 }
 
 type PriceRange struct {

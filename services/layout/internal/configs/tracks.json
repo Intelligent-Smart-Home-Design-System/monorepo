@@ -99,7 +99,10 @@
             "smart_bulb"
           ],
           "device_rooms": {
-            "smart_bulb": ["living", "kitchen"]
+            "smart_bulb": [
+              "living",
+              "kitchen"
+            ]
           }
         },
         "2": {
@@ -113,7 +116,12 @@
             "smart_bulb"
           ],
           "device_rooms": {
-            "smart_bulb": ["passage", "bathroom"]
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ]
           }
         },
         "3": {
@@ -129,9 +137,20 @@
             "illumination_sensor"
           ],
           "device_rooms": {
-            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
-            "motion_sensor": ["passage", "bathroom"],
-            "illumination_sensor": ["living", "kitchen"]
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ]
           }
         },
         "4": {
@@ -148,10 +167,23 @@
             "curtains"
           ],
           "device_rooms": {
-            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
-            "motion_sensor": ["passage", "bathroom"],
-            "illumination_sensor": ["living", "kitchen"],
-            "curtains": ["windows"]
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ]
           }
         },
         "5": {
@@ -170,12 +202,32 @@
             "smart_dimmer"
           ],
           "device_rooms": {
-            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
-            "motion_sensor": ["passage", "bathroom"],
-            "illumination_sensor": ["living", "kitchen"],
-            "curtains": ["windows"],
-            "wireless_button_switch": ["living", "bedroom", "kitchen"],
-            "smart_dimmer": ["living", "bedroom"]
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ]
           }
         },
         "6": {
@@ -195,13 +247,37 @@
             "built_in_backlight"
           ],
           "device_rooms": {
-            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
-            "presence_sensor": ["passage", "bathroom", "cabinet"],
-            "illumination_sensor": ["living", "kitchen"],
-            "curtains": ["windows"],
-            "wireless_button_switch": ["living", "bedroom", "kitchen"],
-            "smart_dimmer": ["living", "bedroom"],
-            "built_in_backlight": ["passage", "bathroom"]
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "presence_sensor": [
+              "passage",
+              "bathroom",
+              "cabinet"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ],
+            "built_in_backlight": [
+              "passage",
+              "bathroom"
+            ]
           }
         },
         "7": {
@@ -222,14 +298,42 @@
             "decorative_luminaire"
           ],
           "device_rooms": {
-            "smart_bulb": ["living", "kitchen", "passage", "bathroom"],
-            "presence_sensor": ["passage", "bathroom", "cabinet"],
-            "illumination_sensor": ["living", "kitchen"],
-            "curtains": ["windows"],
-            "wireless_button_switch": ["living", "bedroom", "kitchen"],
-            "smart_dimmer": ["living", "bedroom"],
-            "built_in_backlight": ["living", "kitchen", "cabinet"],
-            "decorative_luminaire": ["living", "bedroom"]
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "presence_sensor": [
+              "passage",
+              "bathroom",
+              "cabinet"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ],
+            "built_in_backlight": [
+              "living",
+              "kitchen",
+              "cabinet"
+            ],
+            "decorative_luminaire": [
+              "living",
+              "bedroom"
+            ]
           }
         }
       }

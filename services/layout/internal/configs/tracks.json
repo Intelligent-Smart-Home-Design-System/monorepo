@@ -84,6 +84,111 @@
           ]
         }
       }
+    },
+    "lighting": {
+      "name": "Освещение",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Основной свет в жилых комнатах и кухне",
+          "price_range": {
+            "min": 2000,
+            "max": 6000
+          },
+          "devices": [
+            "main_light"
+          ]
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Основной свет в проходных и санузлах",
+          "price_range": {
+            "min": 3500,
+            "max": 10000
+          },
+          "devices": [
+            "main_light"
+          ]
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Автоматизация по движению и освещённости",
+          "price_range": {
+            "min": 6000,
+            "max": 20000
+          },
+          "devices": [
+            "main_light",
+            "motion_sensor",
+            "illumination_sensor"
+          ]
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Управление естественным светом",
+          "price_range": {
+            "min": 16000,
+            "max": 55000
+          },
+          "devices": [
+            "main_light",
+            "motion_sensor",
+            "illumination_sensor",
+            "curtain_motor"
+          ]
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Интерфейсы управления освещением",
+          "price_range": {
+            "min": 21000,
+            "max": 70000
+          },
+          "devices": [
+            "main_light",
+            "motion_sensor",
+            "illumination_sensor",
+            "curtain_motor",
+            "wireless_switch",
+            "dimmer"
+          ]
+        },
+        "6": {
+          "name": "Шестой уровень",
+          "description": "Навигационный свет и датчики присутствия",
+          "price_range": {
+            "min": 25000,
+            "max": 85000
+          },
+          "devices": [
+            "main_light",
+            "presence_sensor",
+            "illumination_sensor",
+            "curtain_motor",
+            "wireless_switch",
+            "dimmer",
+            "navigation_light"
+          ]
+        },
+        "7": {
+          "name": "Седьмой уровень",
+          "description": "Акцентный и декоративный свет",
+          "price_range": {
+            "min": 30000,
+            "max": 100000
+          },
+          "devices": [
+            "main_light",
+            "presence_sensor",
+            "illumination_sensor",
+            "curtain_motor",
+            "wireless_switch",
+            "dimmer",
+            "navigation_light",
+            "accent_light"
+          ]
+        }
+      }
     }
   }
 }

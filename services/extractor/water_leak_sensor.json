@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WaterLeakSensor",
+  "description": "A smart home water leak detection sensor",
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "water_leak_sensor"
+    },
+    "name": {
+      "type": "string",
+      "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["yandex", "apple", "google", "aqara", "tuya", "xiaomi"]
+      },
+      "minItems": 1,
+      "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge). 'yandex' includes devices mentioned as compatible with Alice (Алиса) or Yandex Smart Home (Умный дом). If the ecosystem belongs to the brand, obviously it can connect to that ecosystem."
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["zigbee", "z-wave", "wifi", "bluetooth", "matter-over-wifi", "matter-over-thread"]
+      },
+      "minItems": 1,
+      "description": "Wireless protocols supported by this device."
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": ["CR2032", "CR2450", "CR123A", "AA", "AAA", "18650"],
+      "description": "Battery type required."
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Expected battery life in months as stated by manufacturer."
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built-in rechargeable battery."
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
+    },
+    "has_audio_alert": {
+      "type": "boolean",
+      "description": "Whether the sensor emits an audible alarm when a leak is detected."
+    },
+    "audio_alert_volume_db": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 120,
+      "description": "Volume of the audible alert in decibels, e.g. 85."
+    },
+    "detects_leaks_above": {
+      "type": "boolean",
+      "description": "Whether the sensor can detect water dripping from above via contacts on top."
+    },
+    "detects_leaks_below": {
+      "type": "boolean",
+      "description": "Whether the sensor detects water on the floor via bottom contacts."
+    },
+    "min_detected_water_level_mm": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
+    }
+  },
+  "required": ["type", "name", "model", "ecosystem", "protocol"]
+}

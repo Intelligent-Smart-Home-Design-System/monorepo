@@ -1,0 +1,13 @@
+[taxonomy]
+path = "taxonomy_schema.json"
+
+[database]
+host = "localhost"
+port = 5432
+name = "smart_home"
+user = "extractor"
+password = "secret"  # or use env var
+
+[logging]
+level = "INFO"
+format = "json"  # or "console"

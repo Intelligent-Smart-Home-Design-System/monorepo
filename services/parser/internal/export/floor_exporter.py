@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from services.parser.internal.entities.floor import FloorPlan
-from services.parser.internal.entities.warnings import ParseWarning
 
 
 class FloorExporter:
@@ -31,5 +30,5 @@ class FloorExporter:
                 [wall.start.x, wall.start.y],
                 [wall.end.x, wall.end.y],
             ],
-            "width": 0.0,
+            "width": 0.0
         }

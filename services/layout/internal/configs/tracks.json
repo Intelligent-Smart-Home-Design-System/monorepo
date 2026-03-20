@@ -90,7 +90,7 @@
       "levels": {
         "1": {
           "name": "Первый уровень",
-          "description": "Основной свет в жилых комнатах и кухне",
+          "description": "Основной свет в жилых комнатах и кухне (smart_bulb или inwall_relay_module)",
           "price_range": {
             "min": 2000,
             "max": 6000
@@ -107,7 +107,7 @@
         },
         "2": {
           "name": "Второй уровень",
-          "description": "Основной свет в проходных и санузлах",
+          "description": "Основной свет в проходных и санузлах (smart_bulb или inwall_relay_module)",
           "price_range": {
             "min": 3500,
             "max": 10000
@@ -155,7 +155,7 @@
         },
         "4": {
           "name": "Четвертый уровень",
-          "description": "Управление естественным светом",
+          "description": "Управление естественным светом (curtains или blinds)",
           "price_range": {
             "min": 16000,
             "max": 55000
@@ -232,7 +232,7 @@
         },
         "6": {
           "name": "Шестой уровень",
-          "description": "Навигационный свет и датчики присутствия",
+          "description": "Навигационный свет и датчики присутствия (built_in_backlight или decorative_luminaire)",
           "price_range": {
             "min": 25000,
             "max": 85000

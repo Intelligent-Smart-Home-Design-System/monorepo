@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend Workspace
 
-## Getting Started
+Это стартовая точка для всех frontend-приложений в проекте. Репозиторий приведен к виду workspace-монорепы, чтобы новые приложения и общий код добавлялись предсказуемо и без споров о структуре.
 
-First, run the development server:
+## Структура
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```text
+.
+├── apps/
+│   ├── sim-ui/          # текущий симулятор
+│   ├── web/             # основной продуктовый интерфейс
+│   └── apartment-ui/    # интерфейс квартиры
+├── packages/
+│   ├── ui/              # общий UI-kit и primitive-компоненты
+│   └── simulation/      # доменные типы, модели, websocket-клиент, render/model logic
+└── docs/                # общая документация workspace
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Правила workspace
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Все FE-приложения живут в `apps/*`.
+- Общий код живет в `packages/*`.
+- App-specific документация лежит в `apps/<name>/docs`.
+- Общая документация лежит в корневом `docs/`.
+- `.gitignore` должен быть один, в корне workspace.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Единый стек
 
-## Learn More
+- Package manager: `npm`.
+- Framework для приложений: `Next.js`.
+- Язык: `TypeScript` в `strict`-режиме.
+- Линтинг и форматирование: `ESLint` + `Prettier`.
+- Импорт-алиасы и базовые настройки TypeScript должны быть согласованы между приложениями и пакетами.
 
-To learn more about Next.js, take a look at the following resources:
+## Текущее состояние
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Текущее приложение перенесено в `apps/sim-ui`.
+- `packages/ui` и `packages/simulation` созданы как точки расширения под общий код.
+- `apps/web` и `apps/apartment-ui` добавлены как заготовки под будущие приложения.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Команды
 
-## Deploy on Vercel
+Из корня workspace:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+npm run dev:sim-ui
+npm run lint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Дальше по структуре
+
+- Вынести переиспользуемые UI-компоненты из `apps/sim-ui` в `packages/ui`.
+- Вынести типы, модели и websocket-слой в `packages/simulation`.
+- Добавить общий `tsconfig.base.json`, `prettier` и при необходимости shared ESLint config в `packages/config-*` или в корень workspace.

@@ -8,7 +8,6 @@ import { Card } from "@/app/components/ui";
 
 import {
   scenarios as MOCK_SCENARIOS,
-  initialDevices,
   deviceMarkers,
   rooms as MOCK_ROOMS,
   type Scenario,
@@ -265,7 +264,7 @@ export default function SimulationPage() {
                 chains={chainGroups}
                 activeNodes={activeNodes}
                 activeEdges={activeEdges}
-                lastEvent={events.length ? events[events.length - 1] : null}
+                lastEvent={lastEvent}
                 onMoveDevice={onMoveDevice}
               />
 

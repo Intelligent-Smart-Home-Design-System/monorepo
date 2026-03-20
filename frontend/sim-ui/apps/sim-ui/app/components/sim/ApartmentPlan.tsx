@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Device, DeviceMarker, LogEvent, Room } from "@/app/simulation/Mockdata";
 
 type Props = {
@@ -66,10 +66,8 @@ export function ApartmentPlan({
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
   const lastValidRef = useRef<Record<string, { x: number; y: number }>>({});
-  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingType, setDraggingType] = useState<DeviceType | null>(null);
-
-  const layoutMap = useMemo(() => {
+  const layoutMap = (() => {
     const byRoom = new Map<string, string[]>();
     devices.forEach((d) => {
       const roomId = roomForDevice(d.id);
@@ -105,7 +103,7 @@ export function ApartmentPlan({
     }
 
     return pos;
-  }, [devices, rooms]);
+  })();
 
   function hashId(id: string) {
     let h = 0;
@@ -178,7 +176,7 @@ export function ApartmentPlan({
     };
   }
 
-  const forbiddenZones = useMemo<ForbiddenZone[]>(() => {
+  const forbiddenZones: ForbiddenZone[] = (() => {
     const zones: ForbiddenZone[] = [];
 
     function addRoomBand(
@@ -217,15 +215,7 @@ export function ApartmentPlan({
     addRoomBand("bath", { rx: 0.02, ry: 0.02, rw: 0.96, rh: 0.96 }, bathroomForbid, "privacy");
 
     return zones;
-  }, [roomMap, rooms]);
-
-  function isInZone(zone: ForbiddenZone, x: number, y: number) {
-    return x >= zone.x && x <= zone.x + zone.w && y >= zone.y && y <= zone.y + zone.h;
-  }
-
-  function isForbidden(type: DeviceType, x: number, y: number) {
-    return forbiddenZones.some((z) => z.forbiddenFor.includes(type) && isInZone(z, x, y));
-  }
+  })();
 
   function dotClass(id: string) {
     const st = deviceMap.get(id) ?? "idle";
@@ -252,33 +242,43 @@ export function ApartmentPlan({
 
   useEffect(() => {
     if (!onMoveDevice) return;
+    const moveDevice = onMoveDevice;
+
+    function isForbidden(type: DeviceType, x: number, y: number) {
+      return forbiddenZones.some(
+        (zone) =>
+          zone.forbiddenFor.includes(type) &&
+          x >= zone.x &&
+          x <= zone.x + zone.w &&
+          y >= zone.y &&
+          y <= zone.y + zone.h
+      );
+    }
 
     function onMove(e: PointerEvent) {
-      if (!dragRef.current || !surfaceRef.current) return;
+      const dragState = dragRef.current;
+      if (!dragState || !surfaceRef.current) return;
       const rect = surfaceRef.current.getBoundingClientRect();
       const nx = (e.clientX - rect.left) / rect.width;
       const ny = (e.clientY - rect.top) / rect.height;
       const clampedX = Math.min(0.98, Math.max(0.02, nx));
       const clampedY = Math.min(0.98, Math.max(0.02, ny));
-      onMoveDevice(dragRef.current.id, clampedX, clampedY);
+      moveDevice(dragState.id, clampedX, clampedY);
 
-      const type = deviceTypeForId(dragRef.current.id);
-      if (!isForbidden(type, clampedX, clampedY)) {
-        lastValidRef.current[dragRef.current.id] = { x: clampedX, y: clampedY };
+      if (!isForbidden(deviceTypeForId(dragState.id), clampedX, clampedY)) {
+        lastValidRef.current[dragState.id] = { x: clampedX, y: clampedY };
       }
     }
 
     function onUp() {
       if (dragRef.current) {
         const id = dragRef.current.id;
-        const type = deviceTypeForId(id);
         const last = lastValidRef.current[id];
         if (last) {
-          onMoveDevice?.(id, last.x, last.y);
+          moveDevice(id, last.x, last.y);
         }
       }
       dragRef.current = null;
-      setDraggingId(null);
       setDraggingType(null);
     }
 
@@ -288,7 +288,7 @@ export function ApartmentPlan({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [onMoveDevice]);
+  }, [forbiddenZones, onMoveDevice]);
 
   return (
     <section className="p-3">
@@ -424,7 +424,6 @@ export function ApartmentPlan({
                 />
               ))}
 
-
           {devices.map((d) => {
             const pos = positionForDevice(d.id);
             return (
@@ -439,7 +438,6 @@ export function ApartmentPlan({
                   dragRef.current = { id: d.id };
                   const p = positionForDevice(d.id);
                   lastValidRef.current[d.id] = { x: p.x, y: p.y };
-                  setDraggingId(d.id);
                   setDraggingType(deviceTypeForId(d.id));
                 }}
               >

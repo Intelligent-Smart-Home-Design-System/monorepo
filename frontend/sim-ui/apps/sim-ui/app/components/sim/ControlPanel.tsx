@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import type { LogLevel, Scenario } from "@/app/simulation/Mockdata";
 
 type Filter = "ALL" | LogLevel;
@@ -73,41 +73,12 @@ export function ControlPanel(props: Props) {
     onSetSpeed,
     onSetFilter,
     onSetSearch,
+    onToggleAutoscroll,
   } = props;
 
   const [scenarioQuery, setScenarioQuery] = useState("");
-  const [modeOpen, setModeOpen] = useState(false);
   const [selectedDeviceTypes, setSelectedDeviceTypes] = useState<DeviceType[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const modeRef = useRef<HTMLDivElement | null>(null);
-
-  const selectedTitles = useMemo(() => {
-    return scenarios.filter((s) => selectedScenarioIds.includes(s.id)).map((s) => s.title);
-  }, [scenarios, selectedScenarioIds]);
-
-  const filteredScenarios = useMemo(() => {
-    const q = scenarioQuery.trim().toLowerCase();
-    const byTypes =
-      selectedDeviceTypes.length === 0
-        ? scenarios
-        : scenarios.filter((s) => s.chain.some((id) => selectedDeviceTypes.includes(deviceTypeForId(id))));
-    const byDevices =
-      selectedDevices.length === 0
-        ? byTypes
-        : byTypes.filter((s) => s.chain.some((id) => selectedDevices.includes(id)));
-    if (!q) return byDevices.slice(0, 50);
-    return byDevices.filter((s) => s.title.toLowerCase().includes(q)).slice(0, 50);
-  }, [scenarios, scenarioQuery, selectedDeviceTypes, selectedDevices]);
-
-  useEffect(() => {
-    const onDocMouseDown = (e: MouseEvent) => {
-      if (!modeRef.current) return;
-      if (!modeRef.current.contains(e.target as Node)) setModeOpen(false);
-    };
-
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
-  }, []);
 
   const canStart = selectedScenarioIds.length > 0 && (status === "empty" || status === "paused" || status === "error");
   const canPause = status === "running";
@@ -121,12 +92,6 @@ export function ControlPanel(props: Props) {
   function pillClass(active?: boolean) {
     return ["bubble px-3 py-2 text-lg text-neutral-100 pill", active ? "pill-active" : ""].join(" ");
   }
-
-
-  const modeLabels: Record<RunMode, string> = {
-    parallel: "Одновременно",
-    sequence: "По очереди",
-  };
 
   const deviceTypeLabels: Record<DeviceType, string> = {
     pir: "Движение",
@@ -179,13 +144,27 @@ export function ControlPanel(props: Props) {
     return "other";
   }
 
-  const availableDeviceTypes = useMemo(() => {
+  const filteredScenarios = (() => {
+    const q = scenarioQuery.trim().toLowerCase();
+    const byTypes =
+      selectedDeviceTypes.length === 0
+        ? scenarios
+        : scenarios.filter((s) => s.chain.some((id) => selectedDeviceTypes.includes(deviceTypeForId(id))));
+    const byDevices =
+      selectedDevices.length === 0
+        ? byTypes
+        : byTypes.filter((s) => s.chain.some((id) => selectedDevices.includes(id)));
+    if (!q) return byDevices.slice(0, 50);
+    return byDevices.filter((s) => s.title.toLowerCase().includes(q)).slice(0, 50);
+  })();
+
+  const availableDeviceTypes = (() => {
     const set = new Set<DeviceType>();
     scenarios.forEach((s) => s.chain.forEach((id) => set.add(deviceTypeForId(id))));
     return Array.from(set);
-  }, [scenarios]);
+  })();
 
-  const availableDevices = useMemo(() => {
+  const availableDevices = (() => {
     const byTypes =
       selectedDeviceTypes.length === 0
         ? scenarios
@@ -193,7 +172,7 @@ export function ControlPanel(props: Props) {
     const set = new Set<string>();
     byTypes.forEach((s) => s.chain.forEach((id) => set.add(id)));
     return Array.from(set);
-  }, [scenarios, selectedDeviceTypes]);
+  })();
 
   return (
     <section className="p-4 relative z-50">
@@ -304,6 +283,13 @@ export function ControlPanel(props: Props) {
               </div>
 
               <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+                <input
+                  type="text"
+                  value={scenarioQuery}
+                  onChange={(e) => setScenarioQuery(e.target.value)}
+                  placeholder="Поиск сценария"
+                  className="bubble min-w-[220px] px-4 py-2 text-base text-neutral-100 placeholder:text-white/40"
+                />
                 <button
                   type="button"
                   className={pillClass(false) + " shrink-0 text-base"}
@@ -340,6 +326,23 @@ export function ControlPanel(props: Props) {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={pillClass(runMode === "parallel")}
+              onClick={() => onSetRunMode("parallel")}
+            >
+              Параллельно
+            </button>
+            <button
+              type="button"
+              className={pillClass(runMode === "sequence")}
+              onClick={() => onSetRunMode("sequence")}
+            >
+              По очереди
+            </button>
+          </div>
+
           <button
             type="button"
             className={btnClass(canStart)}
@@ -382,6 +385,30 @@ export function ControlPanel(props: Props) {
           <button type="button" className={btnClass(false)} onClick={onClear}>
             Очистить
           </button>
+
+          <select
+            value={filter}
+            onChange={(e) => onSetFilter(e.target.value as Filter)}
+            className="bubble px-4 py-3 text-lg text-neutral-100 bg-transparent"
+          >
+            <option value="ALL">Все логи</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+          </select>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSetSearch(e.target.value)}
+            placeholder="Поиск по событиям"
+            className="bubble min-w-[220px] px-4 py-3 text-base text-neutral-100 placeholder:text-white/40"
+          />
+
+          <label className="flex items-center gap-2 text-base text-white/80">
+            <input type="checkbox" checked={autoscroll} onChange={onToggleAutoscroll} />
+            Автоскролл
+          </label>
         </div>
       </div>
 

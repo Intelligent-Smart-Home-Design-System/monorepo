@@ -3,6 +3,7 @@ package simulations
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 )
 
-//=====Stubs=====
+// =====Stubs=====
 type StubFetcher struct {
 	simIDs       []string
 	entities     map[string][]api.EntityDTO
@@ -67,7 +68,7 @@ func (s *StubSender) AddEvent(dto api.EventOutDTO) {
 func (s *StubSender) Send(dto api.EventOutDTO) {
 }
 
-//=====Helper=====
+// =====Helper=====
 func (s *StubSender) Count() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -81,7 +82,7 @@ func mustJSON(v any) []byte {
 }
 
 func event(id string, state bool) api.EventInDTO {
-	data, _ := json.Marshal(map[string]bool{"turn_on": state,})
+	data, _ := json.Marshal(map[string]bool{"turn_on": state})
 
 	return api.EventInDTO{
 		EntityID: id,
@@ -89,9 +90,9 @@ func event(id string, state bool) api.EventInDTO {
 	}
 }
 
-//=====Tests=====
-//Тест проверки корректности работы программы в стандартном случае
-//  - очередь событий задана и не меняется со временем
+// =====Tests=====
+// Тест проверки корректности работы программы в стандартном случае
+//   - очередь событий задана и не меняется со временем
 func TestSimulation_Default(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -99,26 +100,26 @@ func TestSimulation_Default(t *testing.T) {
 	simID := "sim1"
 
 	switch1 := api.EntityDTO{
-		ID: "lampSwitcher_1",
+		ID:   "lampSwitcher_1",
 		Info: mustJSON(map[string]any{"id": "lampSwitcher_1", "delay": 1.0}),
 	}
 	switch2 := api.EntityDTO{
-		ID: "lampSwitcher_2",
+		ID:   "lampSwitcher_2",
 		Info: mustJSON(map[string]any{"id": "lampSwitcher_2", "delay": 0.3}),
 	}
 	lamp1 := api.EntityDTO{
-		ID: "lamp_1",
+		ID:   "lamp_1",
 		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.5}),
 	}
 	lamp2 := api.EntityDTO{
-		ID: "lamp_2",
+		ID:   "lamp_2",
 		Info: mustJSON(map[string]any{"id": "lamp_2", "delay": 1.0}),
 	}
 
 	deps := map[string]map[string][]api.ActionDTO{
 		simID: {
-			"lampSwitcher_1": {	{ID: "lamp_1"} },
-			"lampSwitcher_2": {	{ID: "lamp_1"},	{ID: "lamp_2"} },
+			"lampSwitcher_1": {{ID: "lamp_1"}},
+			"lampSwitcher_2": {{ID: "lamp_1"}, {ID: "lamp_2"}},
 		},
 	}
 
@@ -153,11 +154,11 @@ func TestSimulation_Default(t *testing.T) {
 	}
 
 	go func() {
-		if err := sim.Run(ctx); err != nil && err != context.Canceled {
+		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			t.Logf("Simulations.Run error: %v", err)
 		}
 	}()
-	
+
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		if sender.Count() >= 7 {
@@ -171,8 +172,8 @@ func TestSimulation_Default(t *testing.T) {
 	}
 }
 
-//Тест проверки корректности работы программы в стандартном случае
-//  - очередь событий меняется со временем
+// Тест проверки корректности работы программы в стандартном случае
+//   - очередь событий меняется со временем
 func TestSimulation_UserIntervention(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -227,7 +228,7 @@ func TestSimulation_UserIntervention(t *testing.T) {
 	}
 
 	go func() {
-		if err := sim.Run(ctx); err != nil && err != context.Canceled {
+		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			t.Logf("Simulations.Run error: %v", err)
 		}
 	}()

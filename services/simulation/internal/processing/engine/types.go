@@ -49,6 +49,7 @@ type Engine interface {
 type EnginePort interface {
 	UpdateField(x, y int, cell field.Cell) error
 	GetOutChan() chan api.EventOutDTO
+	GetInChan() chan api.EventInDTO
 	GetSimulation() *simgo.Simulation
 }
 

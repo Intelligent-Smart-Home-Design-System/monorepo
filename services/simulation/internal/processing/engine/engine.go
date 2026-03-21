@@ -143,16 +143,6 @@ func (s *SimEngine) Run(ctx context.Context) error {
 
 // HandleEvent обрабатывает event по его entityID
 func (s *SimEngine) HandleEvent(event api.EventInDTO) {
-	entity := s.IDToEntity[event.EntityID]
-	receiversID := entity.GetReceiversID()
-
-	for _, receiverID := range receiversID {
-		s.eventsInChan <- api.EventInDTO{
-			EntityID: receiverID,
-			Info:     event.Info,
-		}
-	}
-
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
 		err := entityWithProcess.HandleInDTO(event.Info)
 		if err != nil {
@@ -174,6 +164,7 @@ func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
 	return nil
 }
 
+// GetSimulation возвращает симуляцию для взаимодействия сущностей с движком
 func (s *SimEngine) GetSimulation() *simgo.Simulation {
 	return s.simulation
 }

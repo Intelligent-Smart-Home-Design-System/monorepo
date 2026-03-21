@@ -165,7 +165,7 @@ func TestSimulation_Default(t *testing.T) {
 	}
 
 	if sender.Count() != 3 {
-		t.Fatal("expected 7 events, got not 7")
+		t.Fatal("expected 3 events, got not 3")
 	}
 }
 

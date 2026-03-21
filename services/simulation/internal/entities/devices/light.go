@@ -49,7 +49,6 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 	}
 
 	l.inStore.Put(input)
-
 	return nil
 }
 

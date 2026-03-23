@@ -22,8 +22,9 @@ func NewEngine(storage *storage.Storage, tracksConfig *configs.Tracks, deviceCon
 	}
 }
 
-func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string]string) (*apartment.ApartmentResult, error) {
-	if ap == nil {
+// PlaceDevices расставляет устройства по выбранному уровню в каждом треке
+func (e *Engine) PlaceDevices(apartment *entities.Apartment, selectedLevels map[string]string) (*entities.ApartmentLayout, error) {
+	if apartment == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
 
@@ -33,30 +34,30 @@ func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string
 
 	res := apartment.NewApartmentResult()
 
-	for _, track := range ap.Tracks {
+	for track, level := range selectedLevels {
 		trackConfig := e.tracksConfig.Tracks[track]
-		level, ok := trackConfig.Levels[selectedLevels[track]]
-		if !ok {
-			level = trackConfig.Levels[BaseLevel] // по дефолту первый уровень во всех треках
-		}
+		levelInfo, _ := trackConfig.Levels[level]
 
-		for _, device := range level.Devices {
+		for _, device := range levelInfo.Devices {
 			rule, err := e.storage.GetRule(device)
 			if err != nil {
 				return nil, err
 			}
 
-			res.Placements = rule.Apply(ap)
+			err = rule.Apply(apartment, res)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return res, nil
 }
 
-func (e *Engine) CalcLayoutPrice(apartmentResult *apartment.ApartmentResult) *PriceInfo {
+func (e *Engine) CalculateLayoutPrice(apartmentLayout *entities.ApartmentLayout) *PriceInfo {
 	priceInfo := &PriceInfo{}
 
-	for _, roomPlacement := range apartmentResult.Placements {
+	for _, roomPlacement := range apartmentLayout.Placements {
 		for deviceType := range roomPlacement {
 			device := e.devicesConfig.Devices[deviceType]
 

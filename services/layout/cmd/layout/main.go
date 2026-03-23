@@ -20,6 +20,11 @@ func GetSelectedLevels() map[string]string {
 	return make(map[string]string)
 }
 
+// TODO: убрать
+func GetSelectedTracks() []string {
+	return make([]string, 0)
+}
+
 func main() {
 	apartment := GetApartment()
 	selectedLevels := GetSelectedLevels()

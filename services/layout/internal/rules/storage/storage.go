@@ -14,16 +14,7 @@ type Storage struct {
 }
 
 func NewStorage() *Storage {
-	storage := &Storage{
-		rules: make(map[string]rules.Rule),
-	}
-	storage.LoadRule(security.NewWaterLeakRule())
-	storage.LoadRule(lighting.NewSmartBulbRule())
-	storage.LoadRule(lighting.NewMotionSensorRule())
-	storage.LoadRule(lighting.NewIlluminationSensorRule())
-	// TODO: загрузить все остальные правила для расстановки устройств
-
-	return storage
+	return &Storage{rules: make(map[string]rules.Rule)}
 }
 
 func (s *Storage) LoadRule(rule rules.Rule) {
@@ -37,4 +28,22 @@ func (s *Storage) GetRule(deviceType string) (rules.Rule, error) {
 	}
 
 	return rule, nil
+}
+
+func (s *Storage) LoadAllSecurityRules() {
+	storageRules := []rules.Rule{
+		security.NewWaterLeakRule(),
+		security.NewGasLeakRule(),
+		security.NewSmartLockRule(),
+		security.NewSmartDoorBellRule(),
+		security.NewDoorSensorRule(),
+		security.NewWindowSensorRule(),
+		security.NewMotionSensorRule(),
+		security.NewCameraRule(),
+		security.NewSecurityAlarmRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
 }

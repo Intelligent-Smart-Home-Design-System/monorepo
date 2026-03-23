@@ -1,11 +1,5 @@
 package device
 
-type Point struct {
-	X float64
-	Y float64
-	Z float64 // возможно не понадобится
-}
-
 type Device struct {
 	ID          string `json:"id"`
 	Type        string `json:"type"` // Типы должны совпадать с классификацией
@@ -23,6 +17,6 @@ func NewDevice(ID, deviceType, trackType string) *Device {
 	return &Device{ID: ID, Type: deviceType, DeviceTrack: trackType}
 }
 
-func NewPlacement(device *Device, roomID string, place *Point) *Placement {
+func NewPlacement(device *Device, roomID string, place Point) *Placement {
 	return &Placement{Device: device, RoomID: roomID, Place: place}
 }

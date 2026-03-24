@@ -234,42 +234,32 @@ func (s *Segment) HasSegmentIntersection(A, B Point) bool {
 	vecCB := NewVector(C, B)
 	pr4 := vecCD.VecProduct(vecCB)
 
-	if pr1 != 0 || pr2 != 0 || pr3 != 0 || pr4 != 0 {
-		if ((pr1 > 0 && pr2 < 0) || (pr1 < 0 && pr2 > 0)) && ((pr3 > 0 && pr4 < 0) || (pr3 < 0 && pr4 > 0)) {
-			return true
+	if pr1 == 0 || pr2 == 0 || pr3 == 0 || pr4 == 0 {
+		if (max(A.X, B.X) < min(C.X, D.X)) || (max(C.X, D.X) < min(A.X, B.X)) {
+			return false
+		}
+
+		if (max(A.Y, B.Y) < min(C.Y, D.Y)) || (max(C.Y, D.Y) < min(A.Y, B.Y)) {
+			return false
 		}
 	}
 
-	segmentAB := Segment{A, B}
-	if pr1 == 0 && segmentAB.IsPointOnSegment(C) {
-		return true
-	}
-
-	if pr2 == 0 && segmentAB.IsPointOnSegment(D) {
-		return true
-	}
-
-	segmentCD := Segment{C, D}
-	if pr3 == 0 && segmentCD.IsPointOnSegment(A) {
-		return true
-	}
-
-	if pr4 == 0 && segmentCD.IsPointOnSegment(B) {
-		return true
-	}
-
-	return false
-}
-
-// IsPointOnSegment проверяет, лежит ли точка на отрезке.
-// Подразумевается, что точка находится на прямой, на которой лежит отрезок
-func (s *Segment) IsPointOnSegment(point Point) bool {
-	if point.X < min(s.LeftPoint.X, s.RightPoint.X) || point.X > max(s.LeftPoint.X, s.RightPoint.X) {
+	if (pr1 > 0 && pr2 > 0) || (pr1 < 0 && pr2 < 0) {
 		return false
 	}
 
-	if point.Y < min(s.LeftPoint.Y, s.RightPoint.Y) || point.Y > max(s.LeftPoint.Y, s.RightPoint.Y) {
+	if (pr3 > 0 && pr4 > 0) || (pr3 < 0 && pr4 < 0) {
 		return false
+	}
+
+	if max(A.Y, B.Y) == A.Y {
+		if pr3 == 0 {
+			return false
+		}
+	} else {
+		if pr4 == 0 {
+			return false
+		}
 	}
 
 	return true

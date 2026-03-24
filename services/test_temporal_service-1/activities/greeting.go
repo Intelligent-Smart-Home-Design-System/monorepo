@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"temporal-go-project/internal/logging"
+	"temporal-go-project/internal/tracing"
 )
 
 type GreetingActivity struct{}
@@ -22,7 +23,8 @@ type GreetResponse struct {
 var activityLogger = logging.New("worker-activity")
 
 func (a *GreetingActivity) SayHello(ctx context.Context, req GreetRequest) (*GreetResponse, error) {
-	_ = ctx
+	ctx, span := tracing.StartSpan(ctx, "activity.SayHello")
+	defer span.End()
 
 	message := fmt.Sprintf("Hello, %s! Welcome to Temporal!", req.Name)
 	resp := &GreetResponse{
@@ -30,7 +32,8 @@ func (a *GreetingActivity) SayHello(ctx context.Context, req GreetRequest) (*Gre
 		Timestamp: time.Now(),
 	}
 
-	activityLogger.Info().
+	logger := tracing.ContextLogger(ctx, activityLogger)
+	logger.Info().
 		Str("activity", "SayHello").
 		Str("name", req.Name).
 		Str("message", resp.Message).
@@ -40,14 +43,16 @@ func (a *GreetingActivity) SayHello(ctx context.Context, req GreetRequest) (*Gre
 }
 
 func (a *GreetingActivity) ProcessData(ctx context.Context, data string) (string, error) {
-	_ = ctx
+	ctx, span := tracing.StartSpan(ctx, "activity.ProcessData")
+	defer span.End()
 
 	start := time.Now()
 	time.Sleep(2 * time.Second)
 
 	result := fmt.Sprintf("Processed: %s (length: %d chars)", data, len(data))
 
-	activityLogger.Info().
+	logger := tracing.ContextLogger(ctx, activityLogger)
+	logger.Info().
 		Str("activity", "ProcessData").
 		Int("input_length", len(data)).
 		Dur("duration", time.Since(start)).
@@ -57,16 +62,18 @@ func (a *GreetingActivity) ProcessData(ctx context.Context, data string) (string
 }
 
 func (a *GreetingActivity) SendNotification(ctx context.Context, message string) error {
-	_ = ctx
+	ctx, span := tracing.StartSpan(ctx, "activity.SendNotification")
+	defer span.End()
 
-	activityLogger.Info().
+	logger := tracing.ContextLogger(ctx, activityLogger)
+	logger.Info().
 		Str("activity", "SendNotification").
 		Str("notification_message", message).
 		Msg("Sending notification")
 
 	time.Sleep(1 * time.Second)
 
-	activityLogger.Info().
+	logger.Info().
 		Str("activity", "SendNotification").
 		Msg("Notification sent")
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog"
+	tlog "go.temporal.io/sdk/log"
 )
 
 type TemporalLogger struct {
@@ -28,6 +29,10 @@ func (l *TemporalLogger) Warn(msg string, keyvals ...interface{}) {
 
 func (l *TemporalLogger) Error(msg string, keyvals ...interface{}) {
 	l.withFields(keyvals...).Error().Msg(msg)
+}
+
+func (l *TemporalLogger) With(keyvals ...interface{}) tlog.Logger {
+	return &TemporalLogger{logger: *l.withFields(keyvals...)}
 }
 
 func (l *TemporalLogger) withFields(keyvals ...interface{}) *zerolog.Logger {

@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 
 	"temporal-go-project/activities"
 	"temporal-go-project/internal/logging"
+	"temporal-go-project/internal/tracing"
 	"temporal-go-project/workflows"
 )
 
@@ -20,6 +23,13 @@ const (
 
 func main() {
 	log.Logger = logging.New("worker")
+	ctx := context.Background()
+
+	tracingRuntime, err := tracing.Init(ctx, "temporal-worker", log.Logger)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize tracing")
+	}
+	defer shutdownTracing(tracingRuntime)
 
 	temporalHost := os.Getenv("TEMPORAL_HOST")
 	if temporalHost == "" {
@@ -30,7 +40,7 @@ func main() {
 		Str("temporal_host", temporalHost).
 		Msg("Connecting to Temporal server")
 
-	c, err := connectTemporalClient(temporalHost)
+	c, err := connectTemporalClient(temporalHost, tracingRuntime.ClientInterceptors())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create Temporal client")
 	}
@@ -58,7 +68,7 @@ func main() {
 	log.Info().Msg("Worker stopped")
 }
 
-func connectTemporalClient(temporalHost string) (client.Client, error) {
+func connectTemporalClient(temporalHost string, clientInterceptors []interceptor.ClientInterceptor) (client.Client, error) {
 	attempts := 30
 	if configured := os.Getenv("TEMPORAL_CONNECT_ATTEMPTS"); configured != "" {
 		if parsed, err := strconv.Atoi(configured); err == nil && parsed > 0 {
@@ -69,8 +79,9 @@ func connectTemporalClient(temporalHost string) (client.Client, error) {
 	var lastErr error
 	for attempt := 1; attempt <= attempts; attempt++ {
 		c, err := client.Dial(client.Options{
-			HostPort: temporalHost,
-			Logger:   logging.NewTemporalLogger(log.Logger),
+			HostPort:     temporalHost,
+			Logger:       logging.NewTemporalLogger(log.Logger),
+			Interceptors: clientInterceptors,
 		})
 		if err == nil {
 			return c, nil
@@ -86,4 +97,13 @@ func connectTemporalClient(temporalHost string) (client.Client, error) {
 	}
 
 	return nil, lastErr
+}
+
+func shutdownTracing(runtime *tracing.Runtime) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := runtime.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to flush tracing provider")
+	}
 }

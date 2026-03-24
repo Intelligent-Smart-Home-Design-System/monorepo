@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/interceptor"
 	"temporal-go-project/internal/logging"
+	"temporal-go-project/internal/tracing"
 	"temporal-go-project/workflows"
 )
 
@@ -18,13 +22,20 @@ const (
 
 func main() {
 	log.Logger = logging.New("client")
+	ctx := context.Background()
+
+	tracingRuntime, err := tracing.Init(ctx, "temporal-client", log.Logger)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize tracing")
+	}
+	defer shutdownTracing(tracingRuntime)
 
 	temporalHost := os.Getenv("TEMPORAL_HOST")
 	if temporalHost == "" {
 		temporalHost = "localhost:7233"
 	}
 
-	c, err := connectTemporalClient(temporalHost)
+	c, err := connectTemporalClient(temporalHost, tracingRuntime.ClientInterceptors())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create Temporal client")
 	}
@@ -35,13 +46,14 @@ func main() {
 		Data: "Test data payload for Temporal Workflow processing",
 	}
 
+	workflowIDSuffix := workflowIDSuffix()
 	workflowOptions := client.StartWorkflowOptions{
-		ID:        "greeting-workflow-1",
+		ID:        fmt.Sprintf("greeting-workflow-%s", workflowIDSuffix),
 		TaskQueue: TaskQueueName,
 	}
 
 	log.Info().Msg("Starting GreetingWorkflow")
-	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, workflows.GreetingWorkflow, workflowInput)
+	we, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows.GreetingWorkflow, workflowInput)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to execute GreetingWorkflow")
 	}
@@ -52,7 +64,7 @@ func main() {
 		Msg("GreetingWorkflow started")
 
 	var result workflows.GreetingWorkflowResult
-	err = we.Get(context.Background(), &result)
+	err = we.Get(ctx, &result)
 	if err != nil {
 		log.Fatal().Err(err).Msg("GreetingWorkflow failed")
 	}
@@ -65,17 +77,17 @@ func main() {
 
 	log.Info().Msg("Starting SimpleWorkflow")
 	simpleOptions := client.StartWorkflowOptions{
-		ID:        "simple-workflow-1",
+		ID:        fmt.Sprintf("simple-workflow-%s", workflowIDSuffix),
 		TaskQueue: TaskQueueName,
 	}
 
-	we2, err := c.ExecuteWorkflow(context.Background(), simpleOptions, workflows.SimpleWorkflow, "Simple User")
+	we2, err := c.ExecuteWorkflow(ctx, simpleOptions, workflows.SimpleWorkflow, "Simple User")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to execute SimpleWorkflow")
 	}
 
 	var simpleResult string
-	err = we2.Get(context.Background(), &simpleResult)
+	err = we2.Get(ctx, &simpleResult)
 	if err != nil {
 		log.Fatal().Err(err).Msg("SimpleWorkflow failed")
 	}
@@ -83,7 +95,7 @@ func main() {
 	log.Info().Str("result", simpleResult).Msg("SimpleWorkflow completed")
 }
 
-func connectTemporalClient(temporalHost string) (client.Client, error) {
+func connectTemporalClient(temporalHost string, clientInterceptors []interceptor.ClientInterceptor) (client.Client, error) {
 	attempts := 30
 	if configured := os.Getenv("TEMPORAL_CONNECT_ATTEMPTS"); configured != "" {
 		if parsed, err := strconv.Atoi(configured); err == nil && parsed > 0 {
@@ -94,8 +106,9 @@ func connectTemporalClient(temporalHost string) (client.Client, error) {
 	var lastErr error
 	for attempt := 1; attempt <= attempts; attempt++ {
 		c, err := client.Dial(client.Options{
-			HostPort: temporalHost,
-			Logger:   logging.NewTemporalLogger(log.Logger),
+			HostPort:     temporalHost,
+			Logger:       logging.NewTemporalLogger(log.Logger),
+			Interceptors: clientInterceptors,
 		})
 		if err == nil {
 			return c, nil
@@ -111,4 +124,20 @@ func connectTemporalClient(temporalHost string) (client.Client, error) {
 	}
 
 	return nil, lastErr
+}
+
+func workflowIDSuffix() string {
+	if configured := strings.TrimSpace(os.Getenv("WORKFLOW_ID_SUFFIX")); configured != "" {
+		return configured
+	}
+	return time.Now().UTC().Format("20060102-150405")
+}
+
+func shutdownTracing(runtime *tracing.Runtime) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := runtime.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to flush tracing provider")
+	}
 }

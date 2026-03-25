@@ -42,5 +42,5 @@ jobs:
       working-directory: services/scraper
 
     - name: Test_scraper
-      run: go test -v ./tests/...
+      run: go test -v ./...
       working-directory: services/scraper

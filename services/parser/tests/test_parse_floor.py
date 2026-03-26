@@ -14,9 +14,15 @@ from services.parser.internal.topology.topology_builder import TopologyBuilder
 
 class ParseFloorIntegrationTest(unittest.TestCase):
     def test_square_room(self):
+        self._assert_floor_json_matches_expected("square_room.dxf", "square_room.json")
+
+    def test_door_and_window(self):
+        self._assert_floor_json_matches_expected("door_and_window.dxf", "door_and_window.json")
+
+    def _assert_floor_json_matches_expected(self, dxf_filename: str, json_filename: str) -> None:
         tests_dir = Path(__file__).resolve().parent
-        dxf_path = tests_dir / "square_room.dxf"
-        expected_json_path = tests_dir / "square_room.json"
+        dxf_path = tests_dir / dxf_filename
+        expected_json_path = tests_dir / json_filename
 
         result = self._parse_dxf(dxf_path)
 
@@ -40,13 +46,14 @@ class ParseFloorIntegrationTest(unittest.TestCase):
         floor_plan = topology_builder.build_floor(
             source_file=dxf_path.name,
             classified_entities=classified_entities,
-            parsed_entity_count=len(raw_plan.entities),
+            parsed_entity_count=len(raw_plan.entities)
         )
 
         return exporter.export(
             floor_plan,
             source=raw_plan.metadata.source_format.value,
             units=raw_plan.metadata.units,
+            warnings=[]
         )
 
 

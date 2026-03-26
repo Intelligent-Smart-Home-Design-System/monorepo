@@ -16,6 +16,7 @@ from services.parser.internal.topology.topology_builder import TopologyBuilder
 
 async def parse_floor(file: UploadFile) -> dict[str, object]:
     contents = await file.read()
+    warnings: list[ParseWarning] = []
 
     with NamedTemporaryFile(suffix=".dxf", delete=False) as temp_file:
         temp_file.write(contents)
@@ -40,7 +41,8 @@ async def parse_floor(file: UploadFile) -> dict[str, object]:
         return exporter.export(
             floor_plan,
             source=raw_plan.metadata.source_format.value,
-            units=raw_plan.metadata.units
+            units=raw_plan.metadata.units,
+            warnings=warnings,
         )
     finally:
         temp_path.unlink(missing_ok=True)

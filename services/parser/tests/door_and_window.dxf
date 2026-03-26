@@ -553,7 +553,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-92
+96
   9
 $SURFTAB1
  70
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{2B01323E-F835-4DAF-B6CF-4DBB020DC1C8}
+{ABCF740B-A1AE-4D77-B65D-042C51B14023}
   9
 $VERSIONGUID
   2
-{7D68CD8A-E13A-4913-94CD-01223693C3E8}
+{2C81700C-AE5D-410D-8BEC-2BD140B3249F}
   9
 $EXTNAMES
 290
@@ -2237,7 +2237,7 @@ LAYER
 100
 AcDbSymbolTable
  70
-3
+5
   0
 LAYER
   5
@@ -2300,6 +2300,54 @@ AcDbSymbolTableRecord
 AcDbLayerTableRecord
   2
 WALL
+ 70
+0
+ 62
+7
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+8B
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+WINDOW
+ 70
+0
+ 62
+7
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+8C
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+DOOR
  70
 0
  62
@@ -3113,7 +3161,7 @@ ACAD
   0
 APPID
   5
-8F
+93
 330
 3
 100
@@ -3127,7 +3175,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-90
+94
 330
 3
 100
@@ -5239,54 +5287,6 @@ ENTITIES
   0
 LINE
   5
-8B
-330
-17
-100
-AcDbEntity
-  8
-WALL
-100
-AcDbLine
- 10
-0.0
- 20
-0.0
- 30
-0.0
- 11
-6000.0
- 21
-0.0
- 31
-0.0
-  0
-LINE
-  5
-8C
-330
-17
-100
-AcDbEntity
-  8
-WALL
-100
-AcDbLine
- 10
-6000.0
- 20
-0.0
- 30
-0.0
- 11
-6000.0
- 21
-5000.0
- 31
-0.0
-  0
-LINE
-  5
 8D
 330
 17
@@ -5297,15 +5297,15 @@ WALL
 100
 AcDbLine
  10
-6000.0
+0.0
  20
-5000.0
+0.0
  30
 0.0
  11
-0.0
+6000.0
  21
-5000.0
+0.0
  31
 0.0
   0
@@ -5321,15 +5321,111 @@ WALL
 100
 AcDbLine
  10
+6000.0
+ 20
+0.0
+ 30
+0.0
+ 11
+6000.0
+ 21
+4000.0
+ 31
+0.0
+  0
+LINE
+  5
+8F
+330
+17
+100
+AcDbEntity
+  8
+WALL
+100
+AcDbLine
+ 10
+6000.0
+ 20
+4000.0
+ 30
+0.0
+ 11
+0.0
+ 21
+4000.0
+ 31
+0.0
+  0
+LINE
+  5
+90
+330
+17
+100
+AcDbEntity
+  8
+WALL
+100
+AcDbLine
+ 10
 0.0
  20
-5000.0
+4000.0
  30
 0.0
  11
 0.0
  21
 0.0
+ 31
+0.0
+  0
+LINE
+  5
+91
+330
+17
+100
+AcDbEntity
+  8
+WINDOW
+100
+AcDbLine
+ 10
+2000.0
+ 20
+0.0
+ 30
+0.0
+ 11
+3200.0
+ 21
+0.0
+ 31
+0.0
+  0
+LINE
+  5
+92
+330
+17
+100
+AcDbEntity
+  8
+DOOR
+100
+AcDbLine
+ 10
+0.0
+ 20
+1500.0
+ 30
+0.0
+ 11
+0.0
+ 21
+2400.0
  31
 0.0
   0
@@ -6423,7 +6519,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-91
+95
   0
 DICTIONARYVAR
   5
@@ -6435,7 +6531,7 @@ DictionaryVariables
 280
 0
   1
-1.4.3 @ 2026-03-26T09:07:07.454494+00:00
+1.4.3 @ 2026-03-26T09:07:07.468277+00:00
   0
 VISUALSTYLE
   5
@@ -12989,7 +13085,7 @@ strokes_ogs.tif
   0
 DICTIONARYVAR
   5
-91
+95
 330
 2D
 100
@@ -12997,7 +13093,7 @@ DictionaryVariables
 280
 0
   1
-1.4.3 @ 2026-03-26T09:07:07.456771+00:00
+1.4.3 @ 2026-03-26T09:07:07.469553+00:00
   0
 ENDSEC
   0

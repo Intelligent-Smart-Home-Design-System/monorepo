@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as displayed in the store"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Manufacturer model or SKU"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price in RUB or local currency"
+    },
+    "articul_YANDEX": {
+      "type": "string",
+      "description": "Yandex article number, if available"
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "smartthings",
+          "homekit"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems the device works with"
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "matter",
+          "thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Communication protocols supported by the device"
+    },
+    "type": {
+      "const": "smart_plug"
+    },
+    "max_power": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Maximum load power in watts"
+    },
+    "voltage": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "additionalProperties": false,
+      "description": "Operating voltage range in volts"
+    },
+    "usb_ports": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of built‑in USB ports"
+    },
+    "child_lock": {
+      "type": "boolean",
+      "description": "Whether the plug has a child safety lock"
+    },
+    "power_consumption": {
+      "type": "number",
+      "description": "Standby power consumption of the plug itself (watts)"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type",
+    "max_power",
+    "voltage"
+  ],
+  "additionalProperties": false
+}

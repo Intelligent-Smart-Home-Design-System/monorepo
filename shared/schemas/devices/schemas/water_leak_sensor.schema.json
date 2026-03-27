@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as displayed in the store"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Manufacturer model or SKU"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price in RUB or local currency"
+    },
+    "articul_YANDEX": {
+      "type": "string",
+      "description": "Yandex article number, if available"
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "smartthings",
+          "homekit"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems the device works with"
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "matter",
+          "thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Communication protocols supported by the device"
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "CR2032",
+        "CR2450",
+        "CR123A",
+        "AA",
+        "AAA",
+        "18650",
+        "built-in"
+      ],
+      "description": "Type of battery or built‑in rechargeable cell"
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Estimated battery life in months"
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built‑in rechargeable battery"
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress Protection code, e.g. IP67, IP44"
+    },
+    "type": {
+      "const": "water_leak_sensor"
+    },
+    "has_audio_alert": {
+      "type": "boolean",
+      "description": "Whether the device emits an audible alert when water is detected"
+    },
+    "audio_alert_volume_db": {
+      "type": "number",
+      "minimum": 60,
+      "maximum": 120,
+      "description": "Sound volume of the alert in decibels"
+    },
+    "detects_leaks_above": {
+      "type": "boolean",
+      "description": "Can detect water dripping from above (e.g. on contacts)"
+    },
+    "detects_leaks_below": {
+      "type": "boolean",
+      "description": "Can detect water on the floor"
+    },
+    "min_detected_water_level_mm": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "Minimum water layer thickness that triggers detection (mm)"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type"
+  ],
+  "additionalProperties": false
+}

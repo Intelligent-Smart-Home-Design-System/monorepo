@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as displayed in the store"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Manufacturer model or SKU"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price in RUB or local currency"
+    },
+    "articul_YANDEX": {
+      "type": "string",
+      "description": "Yandex article number, if available"
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "smartthings",
+          "homekit"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems the device works with"
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "matter",
+          "thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Communication protocols supported by the device"
+    },
+    "power": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Power consumption in watts"
+    },
+    "voltage": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "description": "Operating voltage range in volts"
+    },
+    "lifetime": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Rated lifetime in hours"
+    },
+    "color_temperature": {
+      "type": "number",
+      "minimum": 1000,
+      "maximum": 10000,
+      "description": "Correlated color temperature in Kelvin"
+    },
+    "color_rendering_index": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Color Rendering Index (CRI)"
+    },
+    "color_mode": {
+      "type": "string",
+      "enum": [
+        "RGB",
+        "RGBW",
+        "CCT",
+        "Dimmable",
+        "On/Off"
+      ],
+      "description": "Supported color modes"
+    },
+    "type": {
+      "const": "smart_lamp"
+    },
+    "mount_type": {
+      "type": "string",
+      "enum": [
+        "ceiling",
+        "wall",
+        "table",
+        "floor"
+      ],
+      "description": "Typical mounting style: ceiling, wall, table, floor"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "power",
+    "voltage",
+    "type"
+  ],
+  "additionalProperties": false
+}

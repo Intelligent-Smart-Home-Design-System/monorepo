@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "name": "Default Apartment",
+  "size": { "width": 1, "height": 1, "unit": "ratio" },
+  "rooms": [
+    { "id": "bedroom_1", "title": "спальня", "x": 0.06, "y": 0.08, "w": 0.30, "h": 0.30, "labelX": 0.21, "labelY": 0.22 },
+    { "id": "bedroom_2", "title": "спальня", "x": 0.06, "y": 0.44, "w": 0.30, "h": 0.30, "labelX": 0.21, "labelY": 0.58 },
+    { "id": "living", "title": "гостиная", "x": 0.39, "y": 0.10, "w": 0.30, "h": 0.46, "labelX": 0.54, "labelY": 0.33 },
+    { "id": "kitchen", "title": "кухня", "x": 0.73, "y": 0.10, "w": 0.22, "h": 0.30, "labelX": 0.83, "labelY": 0.24 },
+    { "id": "bath", "title": "ванная", "x": 0.73, "y": 0.46, "w": 0.22, "h": 0.28, "labelX": 0.86, "labelY": 0.58 },
+    { "id": "hall", "title": "коридор", "x": 0.28, "y": 0.70, "w": 0.50, "h": 0.20, "labelX": 0.53, "labelY": 0.80 }
+  ],
+  "walls": {
+    "viewBox": { "width": 1000, "height": 700 },
+    "paths": [
+      "M 40 40 L 960 40 L 960 660 L 40 660 Z",
+      "M 350 40 L 350 470",
+      "M 40 300 L 350 300",
+      "M 350 300 L 700 300",
+      "M 700 40 L 700 620",
+      "M 700 420 L 960 420",
+      "M 350 470 L 700 470",
+      "M 260 470 L 350 470"
+    ],
+    "stroke": "#2f343a",
+    "strokeWidth": 8
+  },
+  "doors": {
+    "paths": [
+      "M 350 360 L 350 400",
+      "M 700 340 L 700 370",
+      "M 700 450 L 700 480",
+      "M 350 470 L 390 470"
+    ],
+    "stroke": "#b0b5bc",
+    "strokeWidth": 14
+  },
+  "devices": [
+    { "id": "motion_sensor_hall", "roomId": "hall", "x": 0.50, "y": 0.78 },
+    { "id": "hub", "roomId": "hall", "x": 0.56, "y": 0.78 },
+    { "id": "gateway", "roomId": "hall", "x": 0.62, "y": 0.78 },
+    { "id": "lamp_hall", "roomId": "hall", "x": 0.46, "y": 0.78 },
+    { "id": "heater", "roomId": "living", "x": 0.54, "y": 0.33 }
+  ]
+}

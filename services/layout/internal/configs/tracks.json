@@ -1,0 +1,89 @@
+{
+  "tracks": {
+    "security": {
+      "name": "Безопасность",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Защита от протечек и утечек газа",
+          "price_range": {
+            "min": 5000,
+            "max": 8000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor"
+          ]
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Защита входа",
+          "price_range": {
+            "min": 32000,
+            "max": 40000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock"
+          ]
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Контроль периметра",
+          "price_range": {
+            "min": 44000,
+            "max": 55000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor"
+          ]
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Видеонаблюдение",
+          "price_range": {
+            "min": 52000,
+            "max": 68000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera"
+          ]
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Охранная сигнализация",
+          "price_range": {
+            "min": 55000,
+            "max": 74000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera",
+            "security_alarm"
+          ]
+        }
+      }
+    }
+  }
+}

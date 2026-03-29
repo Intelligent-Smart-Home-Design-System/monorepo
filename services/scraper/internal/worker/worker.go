@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/rs/zerolog"
@@ -65,5 +66,14 @@ func (w *Worker) processTask(ctx context.Context, task domain.ScrapeTask) (*doma
 		return nil, fmt.Errorf("scraper for source %s not found", task.Source)
 	}
 
-	return scraper.Scrape(ctx, task)
+	start := time.Now()
+	result, err := scraper.Scrape(ctx, task)
+	durationMs := int(time.Since(start).Milliseconds())
+	if err != nil {
+		return nil, err
+	}
+
+	result.TrackedPageID = task.ID
+	result.DurationMs = durationMs
+	return result, nil
 }

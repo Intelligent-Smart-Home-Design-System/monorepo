@@ -6,6 +6,7 @@ import (
 )
 
 type ScrapeTask struct {
+	ID       int
 	Source   string
 	PageType string
 	URL      string
@@ -13,6 +14,8 @@ type ScrapeTask struct {
 
 type ScrapeResult struct {
 	Err       error
+	TrackedPageID int
+    DurationMs    int
 	Resources []Resource
 }
 

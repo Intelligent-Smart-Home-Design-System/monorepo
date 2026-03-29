@@ -2,19 +2,25 @@ package cli
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 )
 
 func NewRunCmd() *cobra.Command {
@@ -45,28 +51,70 @@ func run(ctx context.Context, cfgFile string) error {
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
 	// TODO: get tasks from db
-	tasksCh := getTasks()
+	//tasksCh := getTasks()
+
+	db, err := connectDB(cfg.Database)
+    if err != nil {
+        return fmt.Errorf("connect to db: %w", err)
+    }
+    defer db.Close()
+
+	taskRepo := repository.NewTrackedPageRepo(db)
+    snapshotRepo := repository.NewSnapshotRepo(db)
 
 	printer := printer.NewPrinterScraper()
+	sprutScraper := sprutScraper.NewScraper(cfg.Scraping.Timeout)
 
 	sourceToScraper := map[string]worker.Scraper{
 		"printer": printer,
-		// TODO: "sprut_ai": sprutScraper,
-		// "wildberries": wildberriesScraper
+		"sprut":   sprutScraper
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
 
 	worker := worker.NewWorker(logger, sourceToScraper, resultsCh)
 
+	tasksCh := make(chan domain.ScrapeTask)
+    go func() {
+        defer close(tasksCh)
+        for {
+            select {
+            case <-ctx.Done():
+                return
+            default:
+                tasks, err := taskRepo.GetTasks()
+                if err != nil {
+                    logger.Sugar().Errorf("get tasks: %v", err)
+                    time.Sleep(5 * time.Second)
+                    continue
+                }
+                if len(tasks) == 0 {
+                    time.Sleep(5 * time.Second)
+                    continue
+                }
+                for _, task := range tasks {
+                    tasksCh <- task
+                }
+            }
+        }
+    }()
+
 	go worker.Run(ctx, tasksCh)
 
-	// TODO: save results to db
 	for result := range resultsCh {
+<<<<<<< HEAD
 		for _, resource := range result.Resources {
 			logger.Info().Msgf("scraped %s: %s", resource.Name, string(resource.ResponseBody))
+=======
+		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
+			logger.Sugar().Errorf("save snapshot: %v", err)
+		} else {
+			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
+				logger.Sugar().Errorf("update status: %v", err)
+			}
+>>>>>>> 1a79677 (Updates for db)
 		}
-	}
+    }
 
 	return nil
 }
@@ -79,10 +127,10 @@ func getTasks() <-chan domain.ScrapeTask {
 			URL:      "http://www.example.com",
 		},
 		{
-			Source:   "printer",
-			PageType: "none",
-			URL:      "http://www.example.com",
-		},
+        Source:   "sprut",
+        PageType: "article",
+        URL:      "https://sprut.ai/catalog",
+    },
 	}
 
 	tasksCh := make(chan domain.ScrapeTask)
@@ -120,4 +168,17 @@ func readConfig(cfgFile string, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func connectDB(cfg config.DatabaseConfig) (*sql.DB, error) {
+    connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+        cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+    db, err := sql.Open("postgres", connStr)
+    if err != nil {
+        return nil, err
+    }
+    if err := db.Ping(); err != nil {
+        return nil, err
+    }
+    return db, nil
 }

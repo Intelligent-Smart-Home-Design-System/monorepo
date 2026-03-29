@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 )
 
@@ -17,8 +18,11 @@ func NewStorage() *Storage {
 		rules: make(map[string]rules.Rule),
 	}
 	storage.LoadRule(security.NewWaterLeakRule())
+	storage.LoadRule(lighting.NewSmartBulbRule())
+	storage.LoadRule(lighting.NewMotionSensorRule())
+	storage.LoadRule(lighting.NewIlluminationSensorRule())
 	// TODO: загрузить все остальные правила для расстановки устройств
-	
+
 	return storage
 }
 
@@ -31,6 +35,6 @@ func (s *Storage) GetRule(deviceType string) (rules.Rule, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed to get rule for device %s", deviceType)
 	}
-	
+
 	return rule, nil
 }

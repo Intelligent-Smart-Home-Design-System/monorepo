@@ -1,0 +1,89 @@
+syntax = "proto3";
+package device_selection.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/Intelligent-Smart-Home-Design-System/monorepo/gen/go/device_selection/v1;selection";
+
+message Filter {
+  // device attributes field name
+  string field = 1;
+  Op op = 2;
+  // value to compare against
+  google.protobuf.Value value = 3;
+}
+
+enum Op {
+  OP_UNSPECIFIED = 0;
+  OP_EQ = 1;
+  OP_NEQ = 2;
+  OP_GT = 3;
+  OP_GTE = 4;
+  OP_LT = 5;
+  OP_LTE = 6;
+  OP_IN = 7;
+  OP_EXISTS = 8;
+}
+
+message DeviceRequirement {
+  int32 requirement_id = 1;
+  string type = 2;
+  int32 count = 3;
+  repeated Filter filters = 4;
+}
+
+message DeviceSelectionRequest {
+  int32 main_ecosystem_id = 1;
+  double budget = 2;
+  // The device requirements must form non-intersecting sets of matching devices.
+  // e.g. you can have 2 requirements like
+  // 1. 10 smart lamps with socket_type = e27
+  // 2. 5 smart lamps with socket_type = e14
+  // but not like this
+  // 1. 2 smart lamps with socket_type = e27
+  // 2. 3 smart lamps with socket_type = e27 and brightness > 1000 lm
+  // - here some devices may match both requirement 1 and 2 (disallowed)
+  repeated DeviceRequirement device_requirements = 3;
+  repeated int32 include_ecosystem_ids = 4;
+  repeated int32 exclude_ecosystem_ids = 5;
+  optional int32 max_solutions = 6;
+  optional int64 random_seed = 7;
+  optional double time_budget_seconds = 8;
+}
+
+message ConnectionInfo {
+  enum Method {
+    METHOD_UNSPECIFIED = 0;
+    METHOD_DIRECT = 1;
+    METHOD_VIA_ECOSYSTEM = 2;
+  }
+  Method method = 1;
+  optional int32 ecosystem_id = 2;
+  optional int32 integration_id = 3;
+  optional int32 hub_selected_listing_id = 4;
+}
+
+message SelectedListing {
+  int32 selected_listing_id = 1;
+  optional int32 requirement_id = 2;
+  int32 device_id = 3;
+  double device_quality = 4;
+  ConnectionInfo connection = 5;
+  int32 extracted_listing_id = 6;
+  int32 devices_per_listing = 7;
+  int32 units_to_buy = 8;
+  double unit_price = 9;
+}
+
+message ParetoPoint {
+  repeated SelectedListing listings = 1;
+  double total_cost = 2;
+  double avg_quality = 3;
+  int32 num_ecosystems = 4;
+  int32 num_hubs = 5;
+  bool is_recommended = 6;
+}
+
+message DeviceSelectionResponse {
+  repeated ParetoPoint pareto_front = 1;
+}

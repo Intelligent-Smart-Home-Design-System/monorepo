@@ -14,12 +14,10 @@ type Scraper struct {
 	client *http.Client
 }
 
-func NewScraper() *Scraper {
-	return &Scraper{
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-	}
+func NewScraper(timeout time.Duration) *Scraper {
+    return &Scraper{
+        client: &http.Client{Timeout: timeout},
+    }
 }
 
 func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (domain.ScrapeResult, error) {

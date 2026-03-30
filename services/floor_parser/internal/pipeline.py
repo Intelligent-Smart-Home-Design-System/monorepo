@@ -5,17 +5,18 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import UploadFile
 
-from services.parser.internal.classification.classifier import SemanticClassifier
-from services.parser.internal.entities.warnings import ParseWarning
-from services.parser.internal.export.floor_exporter import FloorExporter
-from services.parser.internal.normalization.geometry_normalizer import GeometryNormalizer
-from services.parser.internal.readers.dxf.extractor import DxfExtractor
-from services.parser.internal.readers.dxf.reader import DxfReader
-from services.parser.internal.topology.topology_builder import TopologyBuilder
+from services.floor_parser.internal.classification.classifier import SemanticClassifier
+from services.floor_parser.internal.entities.warnings import ParseWarning
+from services.floor_parser.internal.export.floor_exporter import FloorExporter
+from services.floor_parser.internal.normalization.geometry_normalizer import GeometryNormalizer
+from services.floor_parser.internal.readers.dxf.extractor import DxfExtractor
+from services.floor_parser.internal.readers.dxf.reader import DxfReader
+from services.floor_parser.internal.topology.topology_builder import TopologyBuilder
 
 
 async def parse_floor(file: UploadFile) -> dict[str, object]:
     contents = await file.read()
+    warnings: list[ParseWarning] = []
 
     with NamedTemporaryFile(suffix=".dxf", delete=False) as temp_file:
         temp_file.write(contents)
@@ -40,7 +41,8 @@ async def parse_floor(file: UploadFile) -> dict[str, object]:
         return exporter.export(
             floor_plan,
             source=raw_plan.metadata.source_format.value,
-            units=raw_plan.metadata.units
+            units=raw_plan.metadata.units,
+            warnings=warnings
         )
     finally:
         temp_path.unlink(missing_ok=True)

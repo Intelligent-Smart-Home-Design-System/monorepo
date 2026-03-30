@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from services.parser.internal.entities.geometry import NormalizedEntity
+from services.floor_parser.internal.entities.geometry import NormalizedEntity
 
 
 WALL_LAYER_MARKERS = (

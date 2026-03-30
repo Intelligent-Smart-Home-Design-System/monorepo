@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from services.parser.internal.entities.geometry import Point
-from services.parser.internal.entities.raw_plan import RawLine, RawPlan, RawPolyline
-from services.parser.internal.readers.dxf.reader import DxfReadResult
+from services.floor_parser.internal.entities.geometry import Point
+from services.floor_parser.internal.entities.raw_plan import RawLine, RawPlan, RawPolyline
+from services.floor_parser.internal.readers.dxf.reader import DxfReadResult
 
 
 class DxfExtractor:

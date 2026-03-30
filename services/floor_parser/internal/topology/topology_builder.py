@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from math import sqrt
 
-from services.parser.internal.classification.classifier import ClassifiedEntities
-from services.parser.internal.entities.floor import FloorMetadata, FloorPlan, Wall
-from services.parser.internal.entities.geometry import LineEntity, Point, PolylineEntity
+from services.floor_parser.internal.classification.classifier import ClassifiedEntities
+from services.floor_parser.internal.entities.floor import FloorMetadata, FloorPlan, Wall
+from services.floor_parser.internal.entities.geometry import LineEntity, Point, PolylineEntity
 
 
 class TopologyBuilder:

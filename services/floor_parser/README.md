@@ -1,12 +1,12 @@
-# Parser Service
+# floor-parser
 
-Это сервис для парсинга планов квартир в формат `floor.json`.
+Это микросервис `floor-parser` для парсинга планов квартир в формат `floor.json`.
 
 На вход приходит файл плана, дальше он проходит через несколько этапов обработки, и на выходе получается нормальный JSON, с которым уже можно работать в других сервисах.
 
 ## Что делает сервис
 
-Сервис имеет следующий сценарий работы:
+`floor-parser` имеет следующий сценарий работы:
 
 1. принять файл
 2. прочитать его как чертеж
@@ -21,7 +21,7 @@
 Архитектура сейчас такая:
 
 ```text
-cmd/parser/main.py        <- точка входа
+cmd/floor_parser/main.py        <- точка входа
 internal/
 ├── api/                  <- HTTP API
 ├── classification/       <- определение смысла сущностей
@@ -38,8 +38,8 @@ internal/
 
 
 ```bash
-source services/parser/.venv/bin/activate
-PYTHONPATH=. python -m services.parser.cmd.parser.main
+source services/floor_parser/.venv/bin/activate
+PYTHONPATH=. python -m services.floor_parser.cmd.floor_parser.main
 ```
 
 После запуска сервис будет доступен по адресу:
@@ -62,23 +62,27 @@ curl http://127.0.0.1:8080/health
 
 ```bash
 curl -X POST http://127.0.0.1:8080/parse \
-  -F "file=@services/parser/tests/square_room.dxf"
+  -F "file=@services/floor_parser/tests/square_room.dxf"
 ```
 
 Если хочется сразу сохранить ответ в отдельный JSON-файл:
 
 ```bash
 curl -X POST http://127.0.0.1:8080/parse \
-  -F "file=@services/parser/tests/square_room.dxf" \
-  | jq . > services/parser/tests/square_room.json
+  -F "file=@services/floor_parser/tests/square_room.dxf" \
+  | jq . > services/floor_parser/tests/square_room.json
 ```
 
-## Пример тестового файла
+## Тестовые файлы
 
-Для локальной проверки в проекте есть пример DXF:
+Для локальной проверки в проекте есть несколько DXF-примеров:
 
-- [square_room.dxf]
+- `square_room.dxf`
+- `apartment_partition_lines.dxf`
+- `apartment_outline_polyline.dxf`
 
-И пример JSON-ответа:
+И соответствующие ожидаемые JSON-ответы:
 
-- [square_room.json]
+- `square_room.json`
+- `apartment_partition_lines.json`
+- `apartment_outline_polyline.json`

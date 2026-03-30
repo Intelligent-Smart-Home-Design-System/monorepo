@@ -5,11 +5,11 @@ import os
 import uvicorn
 from fastapi import FastAPI
 
-from services.parser.internal.api.routes import router as api_router
+from services.floor_parser.internal.api.routes import router as api_router
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="parser-service", version="0.1.0")
+    app = FastAPI(title="floor-parser", version="0.1.0")
     app.include_router(api_router)
 
     return app

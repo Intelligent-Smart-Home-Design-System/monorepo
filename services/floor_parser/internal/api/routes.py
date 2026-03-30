@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
-from services.parser.internal.pipeline import parse_floor
+from services.floor_parser.internal.pipeline import parse_floor
 
 
 router = APIRouter()

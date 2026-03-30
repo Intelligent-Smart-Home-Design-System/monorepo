@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from services.parser.internal.entities.geometry import LineEntity, NormalizedEntity, Point, PolylineEntity
-from services.parser.internal.entities.raw_plan import RawLine, RawPlan, RawPolyline
+from services.floor_parser.internal.entities.geometry import LineEntity, NormalizedEntity, Point, PolylineEntity
+from services.floor_parser.internal.entities.raw_plan import RawLine, RawPlan, RawPolyline
 
 
 class GeometryNormalizer:

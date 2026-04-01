@@ -9,7 +9,7 @@ import (
 	"github.com/fschuetz04/simgo"
 )
 
-// Lamp реализует интерфейс entities.EntityWithProcess.
+// Lamp реализует интерфейс entities.EntityWithProcess для стандартной лампы.
 type Lamp struct {
 	enginePort engine.EnginePort
 	inStore    simgo.Store[LampInData]

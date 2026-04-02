@@ -275,3 +275,212 @@ func TestSimulation_UserIntervention(t *testing.T) {
 		t.Fatalf("lamp_2 expected ON, got OFF")
 	}
 }
+
+// =====Helpers=====
+func (s *StubSender) Snapshot() []api.EventOutDTO {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]api.EventOutDTO, len(s.events))
+	copy(out, s.events)
+	return out
+}
+
+func waitForSenderEvents(t *testing.T, sender *StubSender, want int, timeout time.Duration) []api.EventOutDTO {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if sender.Count() >= want {
+			return sender.Snapshot()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("timeout: expected at least %d events, got %d", want, sender.Count())
+	return nil
+}
+
+func sensorStatesFrom(events []api.EventOutDTO, sensorID string) []bool {
+	states := make([]bool, 0)
+
+	for _, e := range events {
+		if e.EntityID != sensorID {
+			continue
+		}
+
+		var out struct {TurnOn bool `json:"turn_on"`}
+		_ = json.Unmarshal(e.Info, &out)
+		states = append(states, out.TurnOn)
+	}
+
+	return states
+}
+
+// =====Tests for LightSwitchOffSensor=====
+// Обычный сценарий: сенсор получил сигнал, потом завершил таймаут и выключился.
+func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	simID := "sim_light_switch_off_1"
+
+	sensor := api.EntityDTO{
+		ID:   "lightSwitchOffSensor_1",
+		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.1,	"timeout": 0.3,	"turned_on": false,	"receivers": []string{}}),
+	}
+	lamp := api.EntityDTO{
+		ID: "lamp_1",
+		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.1,	"turned_on": false}),
+	}
+
+	deps := map[string]map[string][]api.ActionDTO{
+		simID: {
+			"lightSwitchOffSensor_1": {{ID: "lamp_1"}},
+		},
+	}
+
+	eventsChan := make(chan api.EventInDTO, 64)
+
+	fetcher := &StubFetcher{
+		simIDs:       []string{simID},
+		entities:     map[string][]api.EntityDTO{simID: {sensor, lamp}},
+		dependencies: deps,
+		fields:       map[string]api.FieldDTO{simID: {}},
+		events:       map[string]chan api.EventInDTO{simID: eventsChan},
+	}
+
+	sender := &StubSender{}
+
+	sim := NewSimulation(fetcher, sender)
+	
+	err := sim.Init(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			t.Logf("Simulations.Run error: %v", err)
+		}
+	}()
+	
+	eventsChan <- api.EventInDTO{EntityID: "step_init"}
+	eventsChan <- event("lightSwitchOffSensor_1", true)
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	eventsChan <- event("lightSwitchOffSensor_1", false)
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+
+	/////////////////////////////////// <--Точно ли так и должно быть?
+	for i := 0; i < 2; i++ {
+		eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+		time.Sleep(5 * time.Millisecond)
+	}
+	///////////////////////////////////
+
+	events := waitForSenderEvents(t, sender, 4, 2*time.Second)
+	got := sensorStatesFrom(events, "lightSwitchOffSensor_1")
+	want := []bool{true, false}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("unexpected sequence at index %d: got=%v want=%v", i, got, want)
+		}
+	}
+}
+
+// Сценарий с 2 прерываниями: каждое новое срабатывание продлевает время работы сенсора.
+func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	simID := "sim_light_switch_off_1"
+
+	sensor := api.EntityDTO{
+		ID:   "lightSwitchOffSensor_1",
+		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.0,	"timeout": 4.0,	"turned_on": false,	"receivers": []string{}}),
+	}
+	lamp := api.EntityDTO{
+		ID: "lamp_1",
+		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.0,	"turned_on": false}),
+	}
+
+	deps := map[string]map[string][]api.ActionDTO{
+		simID: {
+			"lightSwitchOffSensor_1": {{ID: "lamp_1"}},
+		},
+	}
+
+	eventsChan := make(chan api.EventInDTO, 64)
+
+	fetcher := &StubFetcher{
+		simIDs:       []string{simID},
+		entities:     map[string][]api.EntityDTO{simID: {sensor, lamp}},
+		dependencies: deps,
+		fields:       map[string]api.FieldDTO{simID: {}},
+		events:       map[string]chan api.EventInDTO{simID: eventsChan},
+	}
+
+	sender := &StubSender{}
+
+	sim := NewSimulation(fetcher, sender)
+	
+	err := sim.Init(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			t.Logf("Simulations.Run error: %v", err)
+		}
+	}()
+
+	eventsChan <- api.EventInDTO{EntityID: "step_init"}
+	eventsChan <- event("lightSwitchOffSensor_1", true)
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+
+	time.Sleep(200 * time.Millisecond)
+	snap1 := sensorStatesFrom(sender.Snapshot(), "lightSwitchOffSensor_1")
+	if len(snap1) != 1 || snap1[0] != true {
+		t.Fatalf("after turn_on: expected [true], got %v", snap1)
+	}
+
+	eventsChan <- event("lightSwitchOffSensor_1", false)
+	
+	time.Sleep(200 * time.Millisecond)
+	if sender.Count() != 1 {
+		t.Fatalf("after false sent: expected still 1 event, got %d", sender.Count())
+	}
+
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	eventsChan <- event("lightSwitchOffSensor_1", false)
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+
+	time.Sleep(200 * time.Millisecond)
+	if sender.Count() != 2 {
+		t.Fatalf("after 1st interruption: expected sensor still ON (1 event), got %d events", sender.Count())
+	}
+
+	eventsChan <- event("lightSwitchOffSensor_1", false)
+	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+
+	time.Sleep(200 * time.Millisecond)
+	if sender.Count() != 2 {
+		t.Fatalf("after 2nd interruption: expected sensor still ON (1 event), got %d events", sender.Count())
+	}
+	
+	/////////////////////////////////// <--Точно ли так и должно быть?
+	for i := 0; i < 5; i++ {
+		eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+		time.Sleep(5 * time.Millisecond)
+	}
+	///////////////////////////////////
+
+	events := waitForSenderEvents(t, sender, 4, 2*time.Second)
+	got := sensorStatesFrom(events, "lightSwitchOffSensor_1")
+	want := []bool{true, false}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("unexpected sequence at index %d: got=%v want=%v", i, got, want)
+		}
+	}
+}

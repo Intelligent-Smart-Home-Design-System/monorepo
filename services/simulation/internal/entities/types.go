@@ -37,6 +37,7 @@ type EntityWithProcess interface {
 }
 
 const (
-	TypeLamp         = "lamp"
-	TypeLampSwitcher = "lampSwitcher"
+	TypeLamp                 = "lamp"
+	TypeLampSwitcher         = "lampSwitcher"
+	TypeLightSwitchOffSensor = "lightSwitchOffSensor"
 )

@@ -125,6 +125,7 @@ func (l *LampSwitcher) SetReceivers(actions []api.ActionDTO) {
 	l.Receivers = receivers
 }
 
+// LightSwitchOffSensor - сенсор-переключатель
 type LightSwitchOffSensor struct {
 	enginePort  engine.EnginePort
 	simEvent    *simgo.Event

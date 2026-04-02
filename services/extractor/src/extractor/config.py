@@ -1,8 +1,15 @@
-# src/extractor/config.py
 from pydantic_settings import BaseSettings
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 import tomli
 from pathlib import Path
+from typing import Dict
+
+
+class YandexCloudModelsConfig(BaseModel):
+    folder: str
+    api_key: str = ""
+    llm_model: str
+    temperature: float = 0
 
 
 class DatabaseConfig(BaseModel):
@@ -22,9 +29,16 @@ class LoggingConfig(BaseModel):
     format: str = "json"
 
 
+class TaxonomyConfig(BaseModel):
+    path: str = "taxonomy_schema.json"
+
+
 class Settings(BaseSettings):
     database: DatabaseConfig
     logging: LoggingConfig = LoggingConfig()
+    yandex_cloud: YandexCloudModelsConfig
+    taxonomy: TaxonomyConfig
+    extraction_hints: dict[str, str]
 
     @classmethod
     def from_toml(cls, path: Path = Path("config.toml")) -> Settings:

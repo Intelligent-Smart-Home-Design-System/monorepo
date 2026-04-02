@@ -1,7 +1,6 @@
-# tests/integration/test_repository.py
 import pytest
 from datetime import datetime, timezone
-from extractor.domain.models import ExtractionSnapshot, ListingSnapshot
+from extractor.domain.models import ExtractionSnapshot
 
 pytestmark = pytest.mark.asyncio
 
@@ -11,7 +10,7 @@ class TestGetPendingSnapshots:
     async def test_returns_empty_when_no_snapshots(
         self, repository, clean_db
     ):
-        result = await repository.get_pending_snapshots(limit=10, offset=0)
+        result = await repository.get_pending_snapshots(limit=10)
         assert result == []
 
     async def test_returns_unprocessed_snapshots(
@@ -35,7 +34,7 @@ class TestGetPendingSnapshots:
             """)
 
         # Act
-        result = await repository.get_pending_snapshots(limit=10, offset=0)
+        result = await repository.get_pending_snapshots(limit=10)
 
         # Assert
         assert len(result) == 1
@@ -64,7 +63,7 @@ class TestGetPendingSnapshots:
             """)
 
         # Act
-        result = await repository.get_pending_snapshots(limit=10, offset=0)
+        result = await repository.get_pending_snapshots(limit=10)
 
         # Assert
         assert result == []
@@ -94,7 +93,7 @@ class TestGetPendingSnapshots:
             """)
 
         # Act
-        result = await repository.get_pending_snapshots(limit=10, offset=0)
+        result = await repository.get_pending_snapshots(limit=10)
 
         # Assert
         assert len(result) == 1

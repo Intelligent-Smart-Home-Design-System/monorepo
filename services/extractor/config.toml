@@ -1,3 +1,18 @@
+[taxonomy]
+path = "taxonomy_schema.json"
+
+[extraction_hints]
+ecosystem = """\
+Apple HomeKit means apple. Any mention of connectivity to an ecosystem means \
+it should be included. If the brand matches a known ecosystem (e.g. brand is \
+aqara), it can connect to that ecosystem. Only output each ecosystem once."""
+
+protocol = "Only include protocols explicitly mentioned. If Matter over Wi-Fi is mentioned, include matter-over-wifi, but not wi-fi."
+
+[yandex_cloud]
+folder = "b1ghdbj0nn88kkalmtlj"
+llm_model = "gpt-oss-120b/latest"
+
 [database]
 host = "localhost"
 port = 5432

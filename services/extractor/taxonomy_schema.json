@@ -1,0 +1,259 @@
+{
+    "water_leak_sensor": {
+        "description": "Detects water leaks, placed under sinks, appliances, near pipes, in the bathroom",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "WaterLeakSensor",
+            "description": "A smart home water leak detection sensor",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge) - may be multiple."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 300,
+                    "description": "Expected battery life in months as stated by manufacturer."
+                },
+                "rechargeable": {
+                    "type": "boolean",
+                    "description": "Whether the device has a built-in rechargeable battery."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
+                },
+                "has_audio_alert": {
+                    "type": "boolean",
+                    "description": "Whether the sensor emits an audible alarm when a leak is detected."
+                },
+                "audio_alert_volume_db": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 120,
+                    "description": "Volume of the audible alert in decibels, e.g. 85."
+                },
+                "detects_leaks_above": {
+                    "type": "boolean",
+                    "description": "Whether the sensor can detect water dripping from above via contacts on top."
+                },
+                "detects_leaks_below": {
+                    "type": "boolean",
+                    "description": "Whether the sensor detects water on the floor via bottom contacts."
+                },
+                "min_detected_water_level_mm": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 10,
+                    "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
+                }
+            },
+            "required": [
+                "type",
+                "name",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "smart_lamp": {
+        "description": "A smart light bulb or lamp that can be controlled remotely via app or voice",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartLamp",
+            "description": "A smart home light bulb or lamp",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Yeelight Smart Bulb W3'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'yeelight', 'philips', 'ikea'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer, e.g. 'YLDP010'."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this bulb works with, through any connection path. "
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "socket_type": {
+                    "type": "string",
+                    "enum": [
+                        "E27",
+                        "E14",
+                        "GU10",
+                        "GU5.3",
+                        "E40",
+                        "integrated"
+                    ],
+                    "description": "The socket or base type this bulb fits into. 'integrated' for fixtures where the bulb is not replaceable, e.g. a smart light strip or panel."
+                },
+                "wattage_w": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 100,
+                    "description": "How much power the bulb consumes in watts, e.g. 8.5."
+                },
+                "brightness_lm": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 5000,
+                    "description": "Maximum brightness in lumens, e.g. 800. Higher is brighter."
+                },
+                "color_temp_min_k": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 6500,
+                    "description": "Warmest color temperature in Kelvin, e.g. 2700. Lower values are more yellow/warm."
+                },
+                "color_temp_max_k": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 10000,
+                    "description": "Coolest color temperature in Kelvin, e.g. 6500. Higher values are more white/cool."
+                },
+                "rgb_support": {
+                    "type": "boolean",
+                    "description": "Whether the bulb can display colors, not just white light."
+                },
+                "cri": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 100,
+                    "description": "Color Rendering Index - how accurately the bulb reproduces colors compared to natural light. 80+ is good, 90+ is excellent."
+                },
+                "dimmable": {
+                    "type": "boolean",
+                    "description": "Whether the bulb supports dimming via the app or ecosystem."
+                },
+                "voltage_min_v": {
+                    "type": "integer",
+                    "minimum": 12,
+                    "maximum": 240,
+                    "description": "Minimum operating voltage in volts, e.g. 220."
+                },
+                "voltage_max_v": {
+                    "type": "integer",
+                    "minimum": 12,
+                    "maximum": 240,
+                    "description": "Maximum operating voltage in volts, e.g. 240."
+                },
+                "lifespan_hours": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 100000,
+                    "description": "Rated lifespan in hours as stated by the manufacturer, e.g. 15000."
+                }
+            },
+            "required": [
+                "type",
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol",
+                "socket_type"
+            ]
+        }
+    },
+    "unknown": {
+        "description": "Device that doesn't fit into any other category.",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartLamp",
+            "description": "Unknown device",
+            "type": "object",
+            "properties": {}
+        }
+    }
+}

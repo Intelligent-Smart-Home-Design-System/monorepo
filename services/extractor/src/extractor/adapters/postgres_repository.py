@@ -18,7 +18,7 @@ class PostgresExtractionRepository(ExtractionRepository):
     async def close(self):
         await self.pool.close()
 
-    async def get_pending_snapshots(self, limit: int, offset: int) -> list[ListingSnapshot]:
+    async def get_pending_snapshots(self, limit: int) -> list[ListingSnapshot]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("""
                 WITH latest_per_page AS (
@@ -31,8 +31,7 @@ class PostgresExtractionRepository(ExtractionRepository):
                 )
                 SELECT * FROM latest_per_page
                 LIMIT $1
-                OFFSET $2
-            """, limit, offset)
+            """, limit)
 
             return [
                 ListingSnapshot(

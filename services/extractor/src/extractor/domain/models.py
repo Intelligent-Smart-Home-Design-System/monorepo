@@ -27,3 +27,9 @@ class ExtractionSnapshot(BaseModel):
     extracted_at: datetime
     llm_model: str
     device_attributes: dict[str, Any]
+
+
+class DetectedDeviceType(BaseModel):
+    type: str
+    confidence: float
+

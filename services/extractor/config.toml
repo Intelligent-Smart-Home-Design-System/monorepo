@@ -1,13 +1,25 @@
 [taxonomy]
 path = "taxonomy_schema.json"
 
-[extraction_hints]
+[extraction]
+
+[extraction.hints]
 ecosystem = """\
 Apple HomeKit means apple. Any mention of connectivity to an ecosystem means \
 it should be included. If the brand matches a known ecosystem (e.g. brand is \
-aqara), it can connect to that ecosystem. Only output each ecosystem once."""
+aqara), it can connect to that ecosystem. Only output each ecosystem once. \
+"""
 
-protocol = "Only include protocols explicitly mentioned. If Matter over Wi-Fi is mentioned, include matter-over-wifi, but not wi-fi."
+protocol = """\
+Only include protocols explicitly mentioned. \
+If Matter over Wi-Fi is mentioned, include matter-over-wifi, and DO NOT include wi-fi - matter-over-wifi is considered separately. \
+
+"""
+
+[extraction.hint_templates]
+ecosystem = "Include {value} if and only if the device can connect to the {value} ecosystem."
+protocol = "Include {value} if and only if the device explicitly supports the {value} protocol."
+
 
 [yandex_cloud]
 folder = "b1ghdbj0nn88kkalmtlj"
@@ -18,7 +30,6 @@ host = "localhost"
 port = 5432
 name = "smart_home"
 user = "extractor"
-password = "secret"  # or use env var
 
 [logging]
 level = "INFO"

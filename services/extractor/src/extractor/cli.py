@@ -5,9 +5,11 @@ import asyncio
 from pathlib import Path
 from extractor.config import Settings
 import structlog
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 import os
+import time
 
+from extractor.worker.worker import Worker
 from extractor.domain.models import ListingSnapshot
 from extractor.adapters.outlines_extractor import OutlinesExtractor
 from extractor.evaluation.evaluate import evaluate_listing
@@ -24,7 +26,7 @@ def make_client(settings: Settings) -> AsyncOpenAI:
     if not api_key:
         raise ValueError("YANDEX_CLOUD_API_KEY env var not set")
     return AsyncOpenAI(
-        api_key=api_key,
+        api_key=settings.yandex_cloud.api_key,
         base_url="https://ai.api.cloud.yandex.net/v1",
         project=settings.yandex_cloud.folder,
         default_headers={"Authorization": f"Api-Key {api_key}"},
@@ -39,7 +41,7 @@ def make_extractor(settings: Settings) -> OutlinesExtractor:
     return OutlinesExtractor(
         taxonomy=taxonomy,
         model=outlines_model,
-        hints=settings.extraction_hints,
+        extraction=settings.extraction,
         temperature=settings.yandex_cloud.temperature
     )
 
@@ -74,51 +76,12 @@ async def _run(settings: Settings):
     
     repo = await PostgresExtractionRepository.create(settings.database, log)
     extractor = make_extractor(settings)
-    
-    BATCH_SIZE = 10
-    total_processed = 0
-    total_errors = 0
-
-    log.info("extraction_started", model=settings.yandex_cloud.llm_model)
 
     try:
-        while True:
-            snapshots = await repo.get_pending_snapshots(limit=BATCH_SIZE)
-            if not snapshots:
-                log.info("no_pending_snapshots", total_processed=total_processed)
-                break
-
-            log.info("processing_batch", batch_size=len(snapshots), total_processed=total_processed)
-
-            for listing in snapshots:
-                try:
-                    detected = await extractor.detect_device_type(listing)
-
-                    attributes = await extractor.extract(listing, detected.type)
-
-                    extraction = ExtractionSnapshot(
-                        parsed_listing_snapshot_id=listing.id,
-                        brand=attributes.get("brand") or listing.brand,
-                        model=attributes.get("model") or "unknown",
-                        category=detected.type,
-                        category_confidence=detected.confidence,
-                        extracted_at=datetime.now(datetime.timezone.utc),
-                        llm_model=settings.yandex_cloud.llm_model,
-                        device_attributes=attributes,
-                    )
-
-                    await repo.save_extraction(extraction)
-                    total_processed += 1
-
-                except Exception as e:
-                    total_errors += 1
-                    log.error("extraction_failed", listing_id=listing.id, error=str(e))
-                    continue
-
+        worker = Worker(extractor=extractor, repository=repo, model=settings.yandex_cloud.llm_model)
+        await worker.run()
     finally:
         await repo.close()
-
-    log.info("extraction_finished", total_processed=total_processed, total_errors=total_errors)
 
 
 @app.command()
@@ -188,6 +151,7 @@ async def _run_evaluation(
             listing_raw=case["listing"],
             ground_truth=case["ground_truth"]
         )
+        time.sleep(1.0)
         metrics.listing_results.append(result)
         status = "OK" if result.type_correct else "FAIL"
         perfect = "[PERFECT]" if result.perfect else ""

@@ -5,10 +5,11 @@ import outlines
 from outlines.models.base import AsyncModel
 from outlines.types import JsonSchema
 
+from extractor.config import ExtractionConfig
 from extractor.domain.models import DetectedDeviceType, ListingSnapshot
 
 
-def _preprocess_schema(schema: dict[str, Any], hints: dict[str, str] = {}) -> dict[str, Any]:
+def _preprocess_schema(schema: dict[str, Any], hints: dict[str, str] = {}, hint_templates: dict[str, str] = {}) -> dict[str, Any]:
     schema = copy.deepcopy(schema)
     properties = schema.get("properties", {})
     
@@ -30,6 +31,9 @@ def _preprocess_schema(schema: dict[str, Any], hints: dict[str, str] = {}) -> di
         suffix = "Return empty array if not found." if is_array else "Return null if not found."
         if field_name in hints:
             suffix += " " + hints[field_name]
+        if field_name in hint_templates:
+            for value in field_schema["items"]["enum"]:
+                suffix += " " + hint_templates[field_name].replace("{value}", value)
         
         if "description" in field_schema:
             field_schema["description"] = field_schema["description"].rstrip(".") + ". " + suffix
@@ -68,7 +72,7 @@ class DeviceTypeInfo:
 
 
 class OutlinesExtractor:
-    def __init__(self, taxonomy: dict[str, Any], model: AsyncModel, hints: dict[str, str] = {}, temperature: float = 0):
+    def __init__(self, taxonomy: dict[str, Any], model: AsyncModel, extraction: ExtractionConfig, temperature: float = 0):
         """
             taxonomy: dict of device type name to { description, schema }
             model: model instance to use for outlines
@@ -80,7 +84,7 @@ class OutlinesExtractor:
 
         for type_name, type_data in taxonomy.items():
             canonical_schema = type_data["schema"]
-            preprocessed = _preprocess_schema(canonical_schema, hints)
+            preprocessed = _preprocess_schema(canonical_schema, extraction.hints, extraction.hint_templates)
             field_descriptions = "\n".join(
                 f"- {name}: {property["description"]}" if "description" in property.keys() else ""
                 for name, property in preprocessed["properties"].items()

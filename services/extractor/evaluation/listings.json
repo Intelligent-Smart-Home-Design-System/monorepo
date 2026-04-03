@@ -1,7 +1,171 @@
 [
     {
         "listing": {
+            "id": 0,
+            "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+            "in_stock": true,
+            "text": "Умная лампочка Яндекс YNDX-00553 на 1300 Лм - модель светодиодного типа в форме груши со стандартным цоколем Е27, что делает ее универсальной для большинства светильников и люстр. Управление светом можно осуществлять посредством мобильного приложения, голосовых команд, помощника Алиса или сценариев.\n• Регулировка цвета свечения в диапазоне RGB и температуры света от 2700 до 6500 К\nДает возможность создать максимально комфортное освещение, подходящее для разных нужд - теплый свет для отдыха или холодный для сосредоточенной работы.\n• Показатель мощности 11 Вт и яркость в 1300 лм\nПозволяет освещать пространства с внушительной площадью или использовать в люстрах, рассчитанных на одну лампу.\nЛампа функционирует на протоколе Matter over Wi-Fi, что дает возможность при необходимости работать без интернета. Срок службы модели составляет 15000 часов.\nОбщие характеристики\nАртикул Маркета\n103640559142\nБренд\nЯндекс\nЦвет товара\nбелый\nТип лампы\nсветодиодная\nФорма колбы\nгруша\nТип цоколя\nE27\nМощность\n11 Вт\nМинимальная цветовая температура\n2700 K\nЦветовая температура\n6500 K\nСветовой поток\n1300 лм\nУмная лампа\nда\nБеспроводное управление\nWi-Fi\nВес\n95 г\nДлина\n60 мм\nСрок службы\n15000 ч\nРаботает в системе Умный дом\nда\nПротокол связи Умного дома\nMatter over Wi-Fi\nТип соединения устройств\nбеспроводное\nДополнительно\nДополнительная информация\nРаботает с Алисой; Голосовое управление; Дистанционное управление; Управление со смартфона; Включение и выключение по расписанию; Удаленный доступ; Сменный режим свечения; Питание от сети\nГарантийный срок\n12 мес.",
+            "brand": "yandex",
+            "rating": 4.7,
+            "review_count": 182,
+            "price": 1382,
+            "currency": "RUB",
+            "model_number": null,
+            "category": null,
+            "quantity": 1
+        },
+        "ground_truth": {
+            "device_type": "smart_lamp",
+            "device_attributes": {
+                "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+                "brand": "yandex",
+                "model": "YNDX-00553",
+                "ecosystem": [
+                    "yandex"
+                ],
+                "protocol": [
+                    "matter-over-wifi"
+                ],
+                "socket_type": "E27",
+                "wattage_w": 11,
+                "brightness_lm": 1300,
+                "color_temp_min_k": 2700,
+                "color_temp_max_k": 6500,
+                "rgb_support": true,
+                "cri": null,
+                "dimmable": null,
+                "voltage_min_v": null,
+                "voltage_max_v": null,
+                "lifespan_hours": 15000
+            }
+        }
+    },
+    {
+        "listing": {
             "id": 1,
+            "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+            "in_stock": true,
+            "text": "About this item\n[Notes] An Aqara Hub is required and sold separately. Not compatible with hubs from other brands. Requires a secure 2.4GHz Wi-Fi connection for Hub M2, M1S, E1, M1S Gen2, G2H Pro, and G2H; or 2.4/5GHz Wi-Fi for Camera Hub G3. (Hub M2 also supports wired Ethernet via RJ45.). 2 years battery life: a small battery can power the temperature and humidity sensor for at least two years. Pair the Zigbee Water Leak Sensor with an Aqara Hub before connecting to Apple HomeKit, Google Home, or Alexa. For a stable Zigbee connection, ensure the sensor is placed within 10 meters(33 ft) of the Aqara Hub.\n[Proximity] To ensure a stable connection, keep the Aqara Water Leak Sensor within 400 inches (approximately 10 meters) of the Aqara Zigbee Hub, and place the hub within the same range of your Wi-Fi router. Ensure both are connected to the same local area network (LAN). Zigbee2MQTT and comparable third-party USB dongles are not officially supported by Aqara. Full product functionality may be limited or unavailable.\n[Drip and Leak Detection] Equipped with highly sensitive probes that detect water levels as low as 0.5 mm (approximately 0.02 inch), this water leak detector instantly sends alerts to your phone and triggers the local alarm on the Aqara Hub whenever a leak is detected.\n[Home automation] The water leak detectors for home can control and trigger other Aqara devices when water is detected, allowing you to take prompt action to keep your home safe. ***Requires Aqara Hub, not third-party hub.\n[Wireless & Compact Design] No wiring or screws are required. The small, sleek design allows you to place the Zigbee leak sensor on any flat surface in your kitchen, basement, laundry room, or any area you want to monitor. Recommended placements include near or under toilets, water heaters, washing machines, dishwashers, sinks, fish tanks, sump pumps, or any area prone to leaks.\n[Industry-Leading Quality] Durable IP67 water-proof housing with rust-proof exterior coating. Please remove the battery tab before use. If the device does not work, check the battery level. For any questions, please feel free to contact us. 2. Датчик протечки работает от батареек типа 1xCR2032, что обеспечивает его автономность и возможность установки в любом месте.",
+            "brand": "aqara",
+            "rating": 5,
+            "review_count": 7,
+            "price": 2500,
+            "currency": "RUB",
+            "model_number": "WL-S02D",
+            "category": null,
+            "quantity": 1
+        },
+        "ground_truth": {
+            "device_type": "water_leak_sensor",
+            "device_attributes": {
+                "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+                "brand": "aqara",
+                "model": "WL-S02D",
+                "ecosystem": [
+                    "apple",
+                    "google",
+                    "aqara"
+                ],
+                "protocol": [
+                    "zigbee"
+                ],
+                "battery_type": "CR2032",
+                "battery_life_months": 24,
+                "rechargeable": false,
+                "ip_rating": "IP67",
+                "has_audio_alert": null,
+                "audio_alert_volume_db": null,
+                "detects_leaks_above": null,
+                "detects_leaks_below": true,
+                "min_detected_water_level_mm": 0.5
+            }
+        }
+    },
+        {
+        "listing": {
+            "id": 0,
+            "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+            "in_stock": true,
+            "text": "Умная лампочка Яндекс YNDX-00553 на 1300 Лм - модель светодиодного типа в форме груши со стандартным цоколем Е27, что делает ее универсальной для большинства светильников и люстр. Управление светом можно осуществлять посредством мобильного приложения, голосовых команд, помощника Алиса или сценариев.\n• Регулировка цвета свечения в диапазоне RGB и температуры света от 2700 до 6500 К\nДает возможность создать максимально комфортное освещение, подходящее для разных нужд - теплый свет для отдыха или холодный для сосредоточенной работы.\n• Показатель мощности 11 Вт и яркость в 1300 лм\nПозволяет освещать пространства с внушительной площадью или использовать в люстрах, рассчитанных на одну лампу.\nЛампа функционирует на протоколе Matter over Wi-Fi, что дает возможность при необходимости работать без интернета. Срок службы модели составляет 15000 часов.\nОбщие характеристики\nАртикул Маркета\n103640559142\nБренд\nЯндекс\nЦвет товара\nбелый\nТип лампы\nсветодиодная\nФорма колбы\nгруша\nТип цоколя\nE27\nМощность\n11 Вт\nМинимальная цветовая температура\n2700 K\nЦветовая температура\n6500 K\nСветовой поток\n1300 лм\nУмная лампа\nда\nБеспроводное управление\nWi-Fi\nВес\n95 г\nДлина\n60 мм\nСрок службы\n15000 ч\nРаботает в системе Умный дом\nда\nПротокол связи Умного дома\nMatter over Wi-Fi\nТип соединения устройств\nбеспроводное\nДополнительно\nДополнительная информация\nРаботает с Алисой; Голосовое управление; Дистанционное управление; Управление со смартфона; Включение и выключение по расписанию; Удаленный доступ; Сменный режим свечения; Питание от сети\nГарантийный срок\n12 мес.",
+            "brand": "yandex",
+            "rating": 4.7,
+            "review_count": 182,
+            "price": 1382,
+            "currency": "RUB",
+            "model_number": null,
+            "category": null,
+            "quantity": 1
+        },
+        "ground_truth": {
+            "device_type": "smart_lamp",
+            "device_attributes": {
+                "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+                "brand": "yandex",
+                "model": "YNDX-00553",
+                "ecosystem": [
+                    "yandex"
+                ],
+                "protocol": [
+                    "matter-over-wifi"
+                ],
+                "socket_type": "E27",
+                "wattage_w": 11,
+                "brightness_lm": 1300,
+                "color_temp_min_k": 2700,
+                "color_temp_max_k": 6500,
+                "rgb_support": true,
+                "cri": null,
+                "dimmable": null,
+                "voltage_min_v": null,
+                "voltage_max_v": null,
+                "lifespan_hours": 15000
+            }
+        }
+    },
+    {
+        "listing": {
+            "id": 1,
+            "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+            "in_stock": true,
+            "text": "About this item\n[Notes] An Aqara Hub is required and sold separately. Not compatible with hubs from other brands. Requires a secure 2.4GHz Wi-Fi connection for Hub M2, M1S, E1, M1S Gen2, G2H Pro, and G2H; or 2.4/5GHz Wi-Fi for Camera Hub G3. (Hub M2 also supports wired Ethernet via RJ45.). 2 years battery life: a small battery can power the temperature and humidity sensor for at least two years. Pair the Zigbee Water Leak Sensor with an Aqara Hub before connecting to Apple HomeKit, Google Home, or Alexa. For a stable Zigbee connection, ensure the sensor is placed within 10 meters(33 ft) of the Aqara Hub.\n[Proximity] To ensure a stable connection, keep the Aqara Water Leak Sensor within 400 inches (approximately 10 meters) of the Aqara Zigbee Hub, and place the hub within the same range of your Wi-Fi router. Ensure both are connected to the same local area network (LAN). Zigbee2MQTT and comparable third-party USB dongles are not officially supported by Aqara. Full product functionality may be limited or unavailable.\n[Drip and Leak Detection] Equipped with highly sensitive probes that detect water levels as low as 0.5 mm (approximately 0.02 inch), this water leak detector instantly sends alerts to your phone and triggers the local alarm on the Aqara Hub whenever a leak is detected.\n[Home automation] The water leak detectors for home can control and trigger other Aqara devices when water is detected, allowing you to take prompt action to keep your home safe. ***Requires Aqara Hub, not third-party hub.\n[Wireless & Compact Design] No wiring or screws are required. The small, sleek design allows you to place the Zigbee leak sensor on any flat surface in your kitchen, basement, laundry room, or any area you want to monitor. Recommended placements include near or under toilets, water heaters, washing machines, dishwashers, sinks, fish tanks, sump pumps, or any area prone to leaks.\n[Industry-Leading Quality] Durable IP67 water-proof housing with rust-proof exterior coating. Please remove the battery tab before use. If the device does not work, check the battery level. For any questions, please feel free to contact us. 2. Датчик протечки работает от батареек типа 1xCR2032, что обеспечивает его автономность и возможность установки в любом месте.",
+            "brand": "aqara",
+            "rating": 5,
+            "review_count": 7,
+            "price": 2500,
+            "currency": "RUB",
+            "model_number": "WL-S02D",
+            "category": null,
+            "quantity": 1
+        },
+        "ground_truth": {
+            "device_type": "water_leak_sensor",
+            "device_attributes": {
+                "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+                "brand": "aqara",
+                "model": "WL-S02D",
+                "ecosystem": [
+                    "apple",
+                    "google",
+                    "aqara"
+                ],
+                "protocol": [
+                    "zigbee"
+                ],
+                "battery_type": "CR2032",
+                "battery_life_months": 24,
+                "rechargeable": false,
+                "ip_rating": "IP67",
+                "has_audio_alert": null,
+                "audio_alert_volume_db": null,
+                "detects_leaks_above": null,
+                "detects_leaks_below": true,
+                "min_detected_water_level_mm": 0.5
+            }
+        }
+    },
+        {
+        "listing": {
+            "id": 0,
             "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
             "in_stock": true,
             "text": "Умная лампочка Яндекс YNDX-00553 на 1300 Лм - модель светодиодного типа в форме груши со стандартным цоколем Е27, что делает ее универсальной для большинства светильников и люстр. Управление светом можно осуществлять посредством мобильного приложения, голосовых команд, помощника Алиса или сценариев.\n• Регулировка цвета свечения в диапазоне RGB и температуры света от 2700 до 6500 К\nДает возможность создать максимально комфортное освещение, подходящее для разных нужд - теплый свет для отдыха или холодный для сосредоточенной работы.\n• Показатель мощности 11 Вт и яркость в 1300 лм\nПозволяет освещать пространства с внушительной площадью или использовать в люстрах, рассчитанных на одну лампу.\nЛампа функционирует на протоколе Matter over Wi-Fi, что дает возможность при необходимости работать без интернета. Срок службы модели составляет 15000 часов.\nОбщие характеристики\nАртикул Маркета\n103640559142\nБренд\nЯндекс\nЦвет товара\nбелый\nТип лампы\nсветодиодная\nФорма колбы\nгруша\nТип цоколя\nE27\nМощность\n11 Вт\nМинимальная цветовая температура\n2700 K\nЦветовая температура\n6500 K\nСветовой поток\n1300 лм\nУмная лампа\nда\nБеспроводное управление\nWi-Fi\nВес\n95 г\nДлина\n60 мм\nСрок службы\n15000 ч\nРаботает в системе Умный дом\nда\nПротокол связи Умного дома\nMatter over Wi-Fi\nТип соединения устройств\nбеспроводное\nДополнительно\nДополнительная информация\nРаботает с Алисой; Голосовое управление; Дистанционное управление; Управление со смартфона; Включение и выключение по расписанию; Удаленный доступ; Сменный режим свечения; Питание от сети\nГарантийный срок\n12 мес.",

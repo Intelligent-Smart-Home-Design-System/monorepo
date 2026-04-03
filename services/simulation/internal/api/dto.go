@@ -8,6 +8,7 @@ import "encoding/json"
 type EventInDTO struct {
 	EntityID string          `json:"entityID"`
 	Info     json.RawMessage `json:"info"`
+	Done     chan struct{}   // канал оповещения о том, что обрабатывается tick
 }
 
 // EventOutDTO структура для обработанных событий симуляции

@@ -277,6 +277,21 @@ func TestSimulation_UserIntervention(t *testing.T) {
 }
 
 // =====Helpers=====
+
+////////////////
+func stepTick(ch chan api.EventInDTO) {
+    done := make(chan struct{})
+    ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
+    <-done // блокируемся до завершения шага
+}
+
+func stepInit(ch chan api.EventInDTO) {
+    done := make(chan struct{})
+    ch <- api.EventInDTO{EntityID: "step_init", Done: done}
+    <-done
+}
+/////////////////
+
 func (s *StubSender) Snapshot() []api.EventOutDTO {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -325,7 +340,7 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 
 	sensor := api.EntityDTO{
 		ID:   "lightSwitchOffSensor_1",
-		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.1,	"timeout": 0.3,	"turned_on": false,	"receivers": []string{}}),
+		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.1,	"timeout": 1.0,	"turned_on": false,	"receivers": []string{}}),
 	}
 	lamp := api.EntityDTO{
 		ID: "lamp_1",
@@ -363,19 +378,13 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 		}
 	}()
 	
-	eventsChan <- api.EventInDTO{EntityID: "step_init"}
+	stepInit(eventsChan)
 	eventsChan <- event("lightSwitchOffSensor_1", true)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	stepTick(eventsChan)
 	eventsChan <- event("lightSwitchOffSensor_1", false)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-
-	/////////////////////////////////// <--Точно ли так и должно быть?
-	for i := 0; i < 2; i++ {
-		eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-		time.Sleep(5 * time.Millisecond)
-	}
-	///////////////////////////////////
+	stepTick(eventsChan)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 
 	events := waitForSenderEvents(t, sender, 4, 2*time.Second)
 	got := sensorStatesFrom(events, "lightSwitchOffSensor_1")
@@ -386,6 +395,8 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 		}
 	}
 }
+
+
 
 // Сценарий с 2 прерываниями: каждое новое срабатывание продлевает время работы сенсора.
 func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
@@ -434,9 +445,9 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 		}
 	}()
 
-	eventsChan <- api.EventInDTO{EntityID: "step_init"}
-	eventsChan <- event("lightSwitchOffSensor_1", true)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	stepInit(eventsChan)
+    eventsChan <- event("lightSwitchOffSensor_1", true)
+    stepTick(eventsChan)
 
 	time.Sleep(200 * time.Millisecond)
 	snap1 := sensorStatesFrom(sender.Snapshot(), "lightSwitchOffSensor_1")
@@ -446,34 +457,34 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 
 	eventsChan <- event("lightSwitchOffSensor_1", false)
 	
-	time.Sleep(200 * time.Millisecond)
 	if sender.Count() != 1 {
 		t.Fatalf("after false sent: expected still 1 event, got %d", sender.Count())
 	}
 
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	stepTick(eventsChan)
 	eventsChan <- event("lightSwitchOffSensor_1", false)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	stepTick(eventsChan)
 
-	time.Sleep(200 * time.Millisecond)
+	///////////////////////
+	time.Sleep(200 * time.Millisecond) // <-- костыль
+	///////////////////////
+
 	if sender.Count() != 2 {
-		t.Fatalf("after 1st interruption: expected sensor still ON (1 event), got %d events", sender.Count())
+		t.Fatalf("after 1st interruption: expected sensor still ON (2 event), got %d events", sender.Count())
 	}
 
 	eventsChan <- event("lightSwitchOffSensor_1", false)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
+	stepTick(eventsChan)
 
-	time.Sleep(200 * time.Millisecond)
 	if sender.Count() != 2 {
-		t.Fatalf("after 2nd interruption: expected sensor still ON (1 event), got %d events", sender.Count())
+		t.Fatalf("after 2nd interruption: expected sensor still ON (2 event), got %d events", sender.Count())
 	}
 	
-	/////////////////////////////////// <--Точно ли так и должно быть?
-	for i := 0; i < 5; i++ {
-		eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-		time.Sleep(5 * time.Millisecond)
-	}
-	///////////////////////////////////
+	stepTick(eventsChan)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 
 	events := waitForSenderEvents(t, sender, 4, 2*time.Second)
 	got := sensorStatesFrom(events, "lightSwitchOffSensor_1")

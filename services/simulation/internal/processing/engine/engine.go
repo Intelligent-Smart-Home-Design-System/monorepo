@@ -132,6 +132,9 @@ func (s *SimEngine) Run(ctx context.Context) error {
 			eventType := strings.Split(event.EntityID, "_")[0]
 			if eventType == "step" {
 				s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+				if event.Done != nil {
+					close(event.Done) // сигнализируем: шаг завершён
+				}
 			} else {
 				s.HandleEvent(event)
 			}

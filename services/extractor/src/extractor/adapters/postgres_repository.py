@@ -63,8 +63,9 @@ class PostgresExtractionRepository(ExtractionRepository):
                         category,
                         category_confidence,
                         device_attributes,
-                        llm_model
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                        llm_model,
+                        taxonomy_version
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 """,
                     extraction.parsed_listing_snapshot_id,
                     extraction.extracted_at,
@@ -74,6 +75,7 @@ class PostgresExtractionRepository(ExtractionRepository):
                     extraction.category_confidence,
                     json.dumps(extraction.device_attributes),
                     extraction.llm_model,
+                    "1.0"
                 )
 
                 await conn.execute("""

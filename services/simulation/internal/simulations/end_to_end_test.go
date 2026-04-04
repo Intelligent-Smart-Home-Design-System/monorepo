@@ -19,7 +19,6 @@ type StubFetcher struct {
 	dependencies map[string]map[string][]api.ActionDTO
 	fields       map[string]api.FieldDTO
 	events       map[string]chan api.EventInDTO
-	mu           sync.Mutex
 }
 
 func (s *StubFetcher) GetSimulationsID() []string {
@@ -90,6 +89,56 @@ func event(id string, state bool) api.EventInDTO {
 	}
 }
 
+func stepTick(ch chan api.EventInDTO) {
+    done := make(chan struct{})
+    ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
+    <-done // блокируемся до завершения шага
+}
+
+func stepInit(ch chan api.EventInDTO) {
+    done := make(chan struct{})
+    ch <- api.EventInDTO{EntityID: "step_init", Done: done}
+    <-done
+}
+
+func (s *StubSender) Snapshot() []api.EventOutDTO {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]api.EventOutDTO, len(s.events))
+	copy(out, s.events)
+	return out
+}
+
+func waitForSenderEvents(t *testing.T, sender *StubSender, want int, timeout time.Duration) []api.EventOutDTO {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if sender.Count() >= want {
+			return sender.Snapshot()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("timeout: expected at least %d events, got %d", want, sender.Count())
+	return nil
+}
+
+func sensorStatesFrom(events []api.EventOutDTO, sensorID string) []bool {
+	states := make([]bool, 0)
+
+	for _, e := range events {
+		if e.EntityID != sensorID {
+			continue
+		}
+
+		var out struct {TurnOn bool `json:"turn_on"`}
+		_ = json.Unmarshal(e.Info, &out)
+		states = append(states, out.TurnOn)
+	}
+
+	return states
+}
+
 // =====Tests=====
 // Тест проверки корректности работы программы в стандартном случае
 //   - очередь событий задана и не меняется со временем
@@ -124,14 +173,6 @@ func TestSimulation_Default(t *testing.T) {
 	}
 
 	eventsChan := make(chan api.EventInDTO, 10)
-	eventsChan <- api.EventInDTO{EntityID: "step_init"}
-	eventsChan <- event("lampSwitcher_1", true)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	eventsChan <- event("lampSwitcher_2", true)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	eventsChan <- event("lampSwitcher_1", false)
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
 
 	fetcher := &StubFetcher{
 		simIDs:       []string{simID},
@@ -155,17 +196,20 @@ func TestSimulation_Default(t *testing.T) {
 			t.Logf("Simulations.Run error: %v", err)
 		}
 	}()
+	
+	stepInit(eventsChan)
+	eventsChan <- event("lampSwitcher_1", true)
+	stepTick(eventsChan)
+	eventsChan <- event("lampSwitcher_2", true)
+	stepTick(eventsChan)
+	eventsChan <- event("lampSwitcher_1", false)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if sender.Count() >= 3 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	if sender.Count() != 3 {
-		t.Fatal("expected 3 events, got not 3")
+	waitForSenderEvents(t, sender, 7, 5*time.Second)
+	if sender.Count() != 7 {
+		t.Fatalf("expected 7 events, got %d", sender.Count())
 	}
 }
 
@@ -229,33 +273,20 @@ func TestSimulation_UserIntervention(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(1 * time.Second)
-	fetcher.mu.Lock()
-	eventsChan <- api.EventInDTO{EntityID: "lampSwitcher_1", Info: mustJSON(map[string]bool{"turn_on": true})}
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	fetcher.mu.Unlock()
+	stepInit(eventsChan)
+	eventsChan <- event("lampSwitcher_1", true)
+	stepTick(eventsChan)
+	eventsChan <- event("lampSwitcher_1", false)
+	stepTick(eventsChan)
+	eventsChan <- event("lampSwitcher_2", true)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 
-	time.Sleep(1 * time.Second)
-	fetcher.mu.Lock()
-	eventsChan <- api.EventInDTO{EntityID: "lampSwitcher_1", Info: mustJSON(map[string]bool{"turn_on": false})}
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	fetcher.mu.Unlock()
-
-	time.Sleep(1 * time.Second)
-	fetcher.mu.Lock()
-	eventsChan <- api.EventInDTO{EntityID: "lampSwitcher_2", Info: mustJSON(map[string]bool{"turn_on": true})}
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	fetcher.mu.Unlock()
-
-	time.Sleep(1 * time.Second)
-	fetcher.mu.Lock()
-	eventsChan <- api.EventInDTO{EntityID: "step_tick"}
-	fetcher.mu.Unlock()
-
-	time.Sleep(3 * time.Second)
+	events := waitForSenderEvents(t, sender, 6, 2*time.Second)
 
 	var lamp1State, lamp2State bool
-	for _, e := range sender.events {
+	for _, e := range events {
 		if e.EntityID == "lamp_1" {
 			var out map[string]bool
 			_ = json.Unmarshal(e.Info, &out)
@@ -274,60 +305,6 @@ func TestSimulation_UserIntervention(t *testing.T) {
 	if lamp2State != true {
 		t.Fatalf("lamp_2 expected ON, got OFF")
 	}
-}
-
-// =====Helpers=====
-
-////////////////
-func stepTick(ch chan api.EventInDTO) {
-    done := make(chan struct{})
-    ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
-    <-done // блокируемся до завершения шага
-}
-
-func stepInit(ch chan api.EventInDTO) {
-    done := make(chan struct{})
-    ch <- api.EventInDTO{EntityID: "step_init", Done: done}
-    <-done
-}
-/////////////////
-
-func (s *StubSender) Snapshot() []api.EventOutDTO {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	out := make([]api.EventOutDTO, len(s.events))
-	copy(out, s.events)
-	return out
-}
-
-func waitForSenderEvents(t *testing.T, sender *StubSender, want int, timeout time.Duration) []api.EventOutDTO {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		if sender.Count() >= want {
-			return sender.Snapshot()
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	t.Fatalf("timeout: expected at least %d events, got %d", want, sender.Count())
-	return nil
-}
-
-func sensorStatesFrom(events []api.EventOutDTO, sensorID string) []bool {
-	states := make([]bool, 0)
-
-	for _, e := range events {
-		if e.EntityID != sensorID {
-			continue
-		}
-
-		var out struct {TurnOn bool `json:"turn_on"`}
-		_ = json.Unmarshal(e.Info, &out)
-		states = append(states, out.TurnOn)
-	}
-
-	return states
 }
 
 // =====Tests for LightSwitchOffSensor=====
@@ -395,8 +372,6 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 		}
 	}
 }
-
-
 
 // Сценарий с 2 прерываниями: каждое новое срабатывание продлевает время работы сенсора.
 func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {

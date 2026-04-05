@@ -21,15 +21,9 @@ class PostgresExtractionRepository(ExtractionRepository):
     async def get_pending_snapshots(self, limit: int) -> list[ListingSnapshot]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("""
-                WITH latest_per_page AS (
-                    SELECT DISTINCT ON (ps.tracked_page)
-                        pls.*
-                    FROM parsed_listing_snapshots pls
-                    JOIN page_snapshots ps ON ps.id = pls.page_snapshot_id
-                    WHERE pls.processed = FALSE
-                    ORDER BY ps.tracked_page, pls.parsed_at DESC
-                )
-                SELECT * FROM latest_per_page
+                SELECT * FROM parsed_listing_snapshots
+                WHERE processed = FALSE
+                ORDER BY parsed_at DESC
                 LIMIT $1
             """, limit)
 

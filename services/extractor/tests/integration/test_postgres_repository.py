@@ -68,7 +68,7 @@ class TestGetPendingSnapshots:
         # Assert
         assert result == []
 
-    async def test_returns_only_latest_per_tracked_page(
+    async def test_returns_multiple_snapshots(
         self, repository, clean_db, db_pool
     ):
         # Arrange: two snapshots for same page, different dates
@@ -96,8 +96,9 @@ class TestGetPendingSnapshots:
         result = await repository.get_pending_snapshots(limit=10)
 
         # Assert
-        assert len(result) == 1
+        assert len(result) == 2
         assert result[0].name == "New Snapshot"
+        assert result[1].name == "Old Snapshot"
 
 
 class TestSaveExtraction:

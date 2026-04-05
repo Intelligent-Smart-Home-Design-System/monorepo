@@ -29,7 +29,10 @@
                             "google",
                             "aqara",
                             "tuya",
-                            "xiaomi"
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
                         ]
                     },
                     "minItems": 1,
@@ -45,6 +48,7 @@
                             "z-wave",
                             "wifi",
                             "bluetooth",
+                            "ble",
                             "matter-over-wifi",
                             "matter-over-thread"
                         ]
@@ -59,6 +63,7 @@
                         "CR2032",
                         "CR2450",
                         "CR123A",
+                        "CR1632",
                         "AA",
                         "AAA",
                         "18650"
@@ -144,7 +149,10 @@
                             "google",
                             "aqara",
                             "tuya",
-                            "xiaomi"
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
                         ]
                     },
                     "uniqueItems": true,
@@ -159,10 +167,12 @@
                             "z-wave",
                             "wifi",
                             "bluetooth",
+                            "ble",
                             "matter-over-wifi",
                             "matter-over-thread"
                         ]
                     },
+                    "minItems": 1,
                     "uniqueItems": true,
                     "description": "Wireless protocols supported by this device."
                 },
@@ -243,6 +253,1064 @@
                 "ecosystem",
                 "protocol",
                 "socket_type"
+            ]
+        }
+    },
+    "gas_leak_sensor": {
+        "description": "Detects gas leaks (natural gas, LPG, carbon monoxide), typically installed near gas appliances or on the ceiling",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "GasLeakSensor",
+            "description": "A smart home gas leak detection sensor",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Gas Sensor'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer, e.g. 'JTQJ-BF-01LM'."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk",
+                            "ekf"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "detected_gas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "natural_gas",
+                            "lpg",
+                            "carbon_monoxide",
+                            "smoke"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Types of gas or hazard this sensor can detect. natural_gas = methane/CH4, lpg = propane/butane."
+                },
+                "has_audio_alert": {
+                    "type": "boolean",
+                    "description": "Whether the sensor emits an audible alarm when gas is detected."
+                },
+                "audio_alert_volume_db": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 120,
+                    "description": "Volume of the audible alert in decibels, e.g. 85."
+                },
+                "power_source": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "mains",
+                            "battery",
+                            "rechargeable_battery",
+                            "usb",
+                            "poe",
+                            "ac_dc_adapter"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "CR1632",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating, e.g. 'IP20'."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "smart_doorbell": {
+        "description": "A smart doorbell with a button and notification capability, optionally with a camera and two-way audio",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartDoorbell",
+            "description": "A smart home doorbell",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Video Doorbell G4'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'ring', 'tuya'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "has_camera": {
+                    "type": "boolean",
+                    "description": "Whether the doorbell includes a built-in camera for video."
+                },
+                "resolution": {
+                    "type": "string",
+                    "enum": [
+                        "720p",
+                        "1080p",
+                        "2K",
+                        "4K"
+                    ],
+                    "description": "Video resolution if a camera is present."
+                },
+                "has_two_way_audio": {
+                    "type": "boolean",
+                    "description": "Whether the doorbell supports two-way audio communication with the visitor."
+                },
+                "has_night_vision": {
+                    "type": "boolean",
+                    "description": "Whether the camera supports night vision or infrared recording in low light."
+                },
+                "has_motion_detection": {
+                    "type": "boolean",
+                    "description": "Whether the doorbell can detect motion and trigger alerts without the button being pressed."
+                },
+                "power_source": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "mains",
+                            "battery",
+                            "rechargeable_battery",
+                            "usb",
+                            "poe",
+                            "ac_dc_adapter"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "CR1632",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "battery_quantity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 36,
+                    "description": "Expected battery life in months as stated by manufacturer."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating for outdoor use, e.g. 'IP65'."
+                },
+                "local_storage": {
+                    "type": "boolean",
+                    "description": "Whether the device supports local video storage, e.g. via microSD card."
+                },
+                "cloud_storage": {
+                    "type": "boolean",
+                    "description": "Whether the device supports cloud video storage."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "smart_lock": {
+        "description": "A smart door lock that can be controlled remotely, supports keypad, fingerprint, card, or app-based access",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartLock",
+            "description": "A smart home door lock",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Smart Lock U100'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'yale'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "access_methods": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "keypad",
+                            "fingerprint",
+                            "rfid_card",
+                            "app",
+                            "key",
+                            "face_recognition"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Methods supported for unlocking. keypad = PIN code entry, rfid_card = NFC or RFID card."
+                },
+                "auto_lock": {
+                    "type": "boolean",
+                    "description": "Whether the lock automatically re-locks after a set time."
+                },
+                "tamper_alert": {
+                    "type": "boolean",
+                    "description": "Whether the lock sends an alert if someone tries to tamper with or force it."
+                },
+                "power_source": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "mains",
+                            "battery",
+                            "rechargeable_battery",
+                            "usb",
+                            "poe",
+                            "ac_dc_adapter"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "CR1632",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 36,
+                    "description": "Expected battery life in months as stated by manufacturer."
+                },
+                "battery_quantity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+                },
+                "door_thickness_min_mm": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 120,
+                    "description": "Minimum supported door thickness in millimeters."
+                },
+                "door_thickness_max_mm": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 200,
+                    "description": "Maximum supported door thickness in millimeters."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating for outdoor use, e.g. 'IP65'."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "door_window_sensor": {
+        "description": "A magnetic contact sensor that detects whether a door or window is open or closed",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "DoorWindowSensor",
+            "description": "A smart home door and window open/close sensor",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Door and Window Sensor P2'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'sonoff'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "CR1632",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "battery_quantity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 120,
+                    "description": "Expected battery life in months as stated by manufacturer."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating, relevant for outdoor installation."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "motion_sensor": {
+        "description": "Detects motion or presence in a room, typically using PIR or radar technology",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "MotionSensor",
+            "description": "A smart home motion or presence sensor",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Motion Sensor P1'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'sonoff'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "sensor_type": {
+                    "type": "string",
+                    "enum": [
+                        "pir",
+                        "radar",
+                        "microwave"
+                    ],
+                    "description": "Detection technology. pir = passive infrared, detects movement only. radar/microwave = can detect stationary presence."
+                },
+                "detection_range_m": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 30,
+                    "description": "Maximum detection range in meters, e.g. 7."
+                },
+                "detection_angle_deg": {
+                    "type": "number",
+                    "minimum": 10,
+                    "maximum": 360,
+                    "description": "Horizontal detection angle in degrees, e.g. 100. Indicates the value at the maximum detection range."
+                },
+                "has_light_sensor": {
+                    "type": "boolean",
+                    "description": "Whether the device also includes an ambient light sensor reporting lux values."
+                },
+                "retrigger_interval_s": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3600,
+                    "description": "Minimum interval in seconds between consecutive motion detection events (blind time)."
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "CR1632",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "battery_quantity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 120,
+                    "description": "Expected battery life in months as stated by manufacturer."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating, relevant for outdoor installation."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "smart_camera": {
+        "description": "An indoor or outdoor smart surveillance camera with remote viewing capability",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartCamera",
+            "description": "A smart home surveillance camera",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Camera Hub G3'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'hikvision'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "resolution": {
+                    "type": "string",
+                    "enum": [
+                        "720p",
+                        "1080p",
+                        "2K",
+                        "4K"
+                    ],
+                    "description": "Video resolution, e.g. '1080p'."
+                },
+                "has_night_vision": {
+                    "type": "boolean",
+                    "description": "Whether the camera supports night vision or infrared recording in low light."
+                },
+                "has_two_way_audio": {
+                    "type": "boolean",
+                    "description": "Whether the camera has a microphone and speaker for two-way communication."
+                },
+                "has_motion_detection": {
+                    "type": "boolean",
+                    "description": "Whether the camera can detect motion and send alerts."
+                },
+                "has_person_detection": {
+                    "type": "boolean",
+                    "description": "Whether the camera uses AI to distinguish people from general motion."
+                },
+                "indoor_outdoor": {
+                    "type": "string",
+                    "enum": [
+                        "indoor",
+                        "outdoor",
+                        "both"
+                    ],
+                    "description": "Whether the camera is designed for indoor use, outdoor use, or both."
+                },
+                "ptz": {
+                    "type": "boolean",
+                    "description": "Whether the camera supports pan, tilt, and zoom (motorized rotation)."
+                },
+                "local_storage": {
+                    "type": "boolean",
+                    "description": "Whether the camera supports local video storage, e.g. via microSD card."
+                },
+                "cloud_storage": {
+                    "type": "boolean",
+                    "description": "Whether the camera supports cloud video storage."
+                },
+                "power_source": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "mains",
+                            "battery",
+                            "rechargeable_battery",
+                            "usb",
+                            "poe",
+                            "ac_dc_adapter"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 24,
+                    "description": "Expected battery life in months if battery-powered."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating, relevant for outdoor cameras, e.g. 'IP66'."
+                },
+                "field_of_view_deg": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 360,
+                    "description": "Horizontal field of view in degrees, e.g. 130."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "smart_siren": {
+        "description": "A smart siren or alarm device that emits a loud sound and optionally flashing light as a security deterrent or alert",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartSiren",
+            "description": "A smart home siren or security alarm",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Presence Sensor FP2'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'tuya', 'sonoff'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this device can connect to through any connection path."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "ble",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols supported by this device."
+                },
+                "max_volume_db": {
+                    "type": "integer",
+                    "minimum": 80,
+                    "maximum": 130,
+                    "description": "Maximum siren volume in decibels, e.g. 110."
+                },
+                "has_strobe_light": {
+                    "type": "boolean",
+                    "description": "Whether the alarm includes a flashing strobe light."
+                },
+                "has_tamper_detection": {
+                    "type": "boolean",
+                    "description": "Whether the alarm triggers if someone tries to remove it from the wall."
+                },
+                "power_source": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "mains",
+                            "battery",
+                            "rechargeable_battery",
+                            "usb",
+                            "poe",
+                            "ac_dc_adapter"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+                },
+                "battery_type": {
+                    "type": "string",
+                    "enum": [
+                        "CR2032",
+                        "CR2450",
+                        "CR123A",
+                        "CR1632",
+                        "AA",
+                        "AAA",
+                        "18650"
+                    ],
+                    "description": "Battery type required."
+                },
+                "battery_life_months": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 36,
+                    "description": "Expected battery life in months."
+                },
+                "battery_quantity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+                },
+                "ip_rating": {
+                    "type": "string",
+                    "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+                    "description": "Ingress protection rating, relevant for outdoor installation."
+                },
+                "indoor_outdoor": {
+                    "type": "string",
+                    "enum": [
+                        "indoor",
+                        "outdoor",
+                        "both"
+                    ],
+                    "description": "Whether the alarm is designed for indoor or outdoor use."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
+            ]
+        }
+    },
+    "smart_hub": {
+        "description": "A smart home hub or gateway that connects and controls other smart home devices, bridging protocols like Zigbee or Z-Wave to Wi-Fi",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SmartHub",
+            "description": "A smart home hub, gateway, or bridge device",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Product name as it appears in the listing, e.g. 'Aqara Hub M2'"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'sonoff'"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model identifier as stated by the manufacturer, e.g. 'HM2-G01'."
+                },
+                "ecosystem": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "yandex",
+                            "apple",
+                            "google",
+                            "aqara",
+                            "tuya",
+                            "xiaomi",
+                            "digma",
+                            "sber",
+                            "vk"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Smart home ecosystems this hub connects to or bridges into."
+                },
+                "protocol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "zigbee",
+                            "z-wave",
+                            "wifi",
+                            "bluetooth",
+                            "matter-over-wifi",
+                            "matter-over-thread"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Wireless protocols this hub supports for connecting child devices, e.g. ['zigbee', 'wifi'] for a hub that bridges Zigbee devices to Wi-Fi."
+                },
+                "max_connected_devices": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "description": "Maximum number of child devices this hub can connect simultaneously, as stated by manufacturer."
+                },
+                "has_local_processing": {
+                    "type": "boolean",
+                    "description": "Whether automations and device control work locally without internet connection."
+                },
+                "has_ir_blaster": {
+                    "type": "boolean",
+                    "description": "Whether the hub includes an infrared blaster for controlling IR-based devices like TVs and air conditioners."
+                },
+                "wired_connection": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "ethernet",
+                            "usb_host"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Wired connectivity options. ethernet = RJ45 port for wired network connection. usb_host = USB port for connecting USB dongles or devices."
+                },
+                "power_source": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "mains",
+                            "battery",
+                            "rechargeable_battery",
+                            "usb",
+                            "poe",
+                            "ac_dc_adapter"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Power sources supported. Most hubs are mains or usb powered. ac_dc_adapter = powered via an included AC/DC adapter plugged into a wall socket."
+                },
+                "matter_bridge": {
+                    "type": "boolean",
+                    "description": "Whether this hub acts as a Matter bridge, exposing connected non-Matter devices to Matter-compatible ecosystems like Apple Home or Google Home."
+                },
+                "zigbee_version": {
+                    "type": "string",
+                    "enum": [
+                        "zigbee_1.2",
+                        "zigbee_3.0"
+                    ],
+                    "description": "Zigbee protocol version supported, if applicable. zigbee_3.0 is backward compatible with 1.2 devices."
+                }
+            },
+            "required": [
+                "name",
+                "brand",
+                "model",
+                "ecosystem",
+                "protocol"
             ]
         }
     },

@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     yandex_cloud: YandexCloudModelsConfig
     taxonomy: TaxonomyConfig
     extraction: ExtractionConfig
+    batch_size: int = 10
 
     @classmethod
     def from_toml(cls, path: Path = Path("config.toml")) -> Settings:

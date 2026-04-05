@@ -139,29 +139,35 @@ async def _run_evaluation(
     extractor = make_extractor(settings)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    print(timestamp)
     all_summaries = []
 
     typer.echo(f"\nModel: {model_name} ({len(test_cases)} listings)")
     metrics = ModelMetrics(model_name=model_name)
     
-    for i, case in enumerate(test_cases):
-        result = await evaluate_listing(
-            extractor=extractor,
-            listing_id=i,
-            listing_raw=case["listing"],
-            ground_truth=case["ground_truth"]
-        )
-        time.sleep(1.0)
-        metrics.listing_results.append(result)
-        status = "OK" if result.type_correct else "FAIL"
-        perfect = "[PERFECT]" if result.perfect else ""
-        typer.echo(
-            f"{status}{perfect} ({i+1}/{len(test_cases)}) "
-            f"[{result.actual_type}] {result.listing_name[:55]}",
-            err=False,
-        )
-        if result.error:
-            typer.echo(f"  error: {result.error}", err=True)
+    for batch_start in range(0, len(test_cases), settings.batch_size):
+        batch = test_cases[batch_start:batch_start+settings.batch_size]
+
+        results = await asyncio.gather(*[evaluate_listing(
+                extractor=extractor,
+                listing_id=i,
+                listing_raw=case["listing"],
+                ground_truth=case["ground_truth"]
+            )
+            for i, case in enumerate(batch)
+        ])
+        
+        for i, result in enumerate(results):
+            metrics.listing_results.append(result)
+            status = "OK" if result.type_correct else "FAIL"
+            perfect = "[PERFECT]" if result.perfect else ""
+            typer.echo(
+                f"{status}{perfect} ({batch_start+i}/{len(test_cases)}) "
+                f"[{result.actual_type}] {result.listing_name[:55]}",
+                err=False,
+            )
+            if result.error:
+                typer.echo(f"  error: {result.error}", err=True)
 
     summary = metrics.compute_summary(taxonomy)
     all_summaries.append((model_name, summary))
@@ -176,6 +182,7 @@ async def _run_evaluation(
                 "expected_type": r.expected_type,
                 "actual_type": r.actual_type,
                 "type_correct": r.type_correct,
+                "type_confidence": r.type_confidence,
                 "perfect": r.perfect,
                 "error": r.error,
                 "expected_output": r.expected_output,
@@ -191,6 +198,8 @@ async def _run_evaluation(
     typer.echo(f"Results: {out_path}")
     typer.echo(f"Type accuracy: {summary['type_accuracy']:.0%}")
     typer.echo(f"Perfect extraction: {summary['perfect_extraction_rate']:.0%}")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    print(timestamp)
 
 
 if __name__ == "__main__":

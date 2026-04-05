@@ -8,6 +8,7 @@ class ListingResult:
     listing_name: str
     expected_type: str
     actual_type: str
+    type_confidence: float
     type_correct: bool
     perfect: bool
     error: str | None

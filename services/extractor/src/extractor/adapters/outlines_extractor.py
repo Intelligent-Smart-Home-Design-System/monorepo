@@ -136,7 +136,9 @@ Listing name: {listing.name}
 Listing brand: {listing.brand}
 Listing text: {listing.text}
 
-Classify this listing into one of the device types and provide a confidence score from 0.0 to 1.0."""
+Classify this listing into one of the device types and provide a confidence score from 0.0 to 1.0.
+Use the 'unknown' type for when the device type is some type not included in the above list of types.
+"""
 
 
     def _build_extraction_prompt(self, listing: ListingSnapshot, type_info: DeviceTypeInfo) -> str:

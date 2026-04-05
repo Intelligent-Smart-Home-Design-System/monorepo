@@ -78,7 +78,12 @@ async def _run(settings: Settings):
     extractor = make_extractor(settings)
 
     try:
-        worker = Worker(extractor=extractor, repository=repo, model=settings.yandex_cloud.llm_model)
+        worker = Worker(
+            extractor=extractor,
+            repository=repo,
+            model=settings.yandex_cloud.llm_model,
+            batch_size=settings.batch_size
+        )
         await worker.run()
     finally:
         await repo.close()

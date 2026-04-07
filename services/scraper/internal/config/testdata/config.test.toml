@@ -1,0 +1,12 @@
+[database]
+host = "localhost"
+port = 5432
+user = "scraper"
+password = "scraper_pass"
+dbname = "scraper_db"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 2.0
+timeout = "30s"

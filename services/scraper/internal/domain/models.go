@@ -12,6 +12,7 @@ type ScrapeTask struct {
 }
 
 type ScrapeResult struct {
+	Err       error
 	Resources []Resource
 }
 

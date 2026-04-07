@@ -10,8 +10,8 @@ import (
 type printerScraper struct {
 }
 
-func (p *printerScraper) Scrape(ctx context.Context, task domain.ScrapeTask) (domain.ScrapeResult, error) {
-	return domain.ScrapeResult{
+func (p *printerScraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
+	return &domain.ScrapeResult{
 		Resources: []domain.Resource{
 			{
 				Name:         "url",

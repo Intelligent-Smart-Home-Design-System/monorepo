@@ -39,22 +39,24 @@ func (_m *MockScraper) EXPECT() *MockScraper_Expecter {
 }
 
 // Scrape provides a mock function for the type MockScraper
-func (_mock *MockScraper) Scrape(ctx context.Context, task domain.ScrapeTask) (domain.ScrapeResult, error) {
+func (_mock *MockScraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
 	ret := _mock.Called(ctx, task)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Scrape")
 	}
 
-	var r0 domain.ScrapeResult
+	var r0 *domain.ScrapeResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.ScrapeTask) (domain.ScrapeResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.ScrapeTask) (*domain.ScrapeResult, error)); ok {
 		return returnFunc(ctx, task)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.ScrapeTask) domain.ScrapeResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.ScrapeTask) *domain.ScrapeResult); ok {
 		r0 = returnFunc(ctx, task)
 	} else {
-		r0 = ret.Get(0).(domain.ScrapeResult)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.ScrapeResult)
+		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.ScrapeTask) error); ok {
 		r1 = returnFunc(ctx, task)
@@ -94,12 +96,12 @@ func (_c *MockScraper_Scrape_Call) Run(run func(ctx context.Context, task domain
 	return _c
 }
 
-func (_c *MockScraper_Scrape_Call) Return(scrapeResult domain.ScrapeResult, err error) *MockScraper_Scrape_Call {
+func (_c *MockScraper_Scrape_Call) Return(scrapeResult *domain.ScrapeResult, err error) *MockScraper_Scrape_Call {
 	_c.Call.Return(scrapeResult, err)
 	return _c
 }
 
-func (_c *MockScraper_Scrape_Call) RunAndReturn(run func(ctx context.Context, task domain.ScrapeTask) (domain.ScrapeResult, error)) *MockScraper_Scrape_Call {
+func (_c *MockScraper_Scrape_Call) RunAndReturn(run func(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error)) *MockScraper_Scrape_Call {
 	_c.Call.Return(run)
 	return _c
 }

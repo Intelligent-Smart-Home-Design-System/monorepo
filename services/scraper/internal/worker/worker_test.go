@@ -3,13 +3,15 @@ package worker
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func TestScrapeTaskDispatch(t *testing.T) {
@@ -50,7 +52,7 @@ func TestScrapeTaskDispatch(t *testing.T) {
 		},
 	}
 
-	expectedResults := []domain.ScrapeResult{makeResult("0"), makeResult("1"), makeResult("2"), makeResult("3")}
+	expectedResults := []*domain.ScrapeResult{makeResult("0"), makeResult("1"), makeResult("2"), makeResult("3")}
 
 	firstScraper.EXPECT().Scrape(mock.Anything, tasks[1]).Return(expectedResults[0], nil)
 	firstScraper.EXPECT().Scrape(mock.Anything, tasks[3]).Return(expectedResults[1], nil)
@@ -63,16 +65,23 @@ func TestScrapeTaskDispatch(t *testing.T) {
 	}
 	close(tasksCh)
 
-	worker := NewWorker(zap.NewNop(), sourceToScraper, resultsCh)
+	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh)
 
 	go worker.Run(t.Context(), tasksCh)
 
-	var results []domain.ScrapeResult
+	var okResults []*domain.ScrapeResult
+	var badResults []*domain.ScrapeResult
 	for result := range resultsCh {
-		results = append(results, result)
+		if result.Err != nil {
+			badResults = append(badResults, &result)
+		} else {
+			okResults = append(okResults, &result)
+		}
 	}
 
-	require.ElementsMatch(t, expectedResults, results)
+	require.Equal(t, 1, len(badResults))
+	assert.Contains(t, badResults[0].Err.Error(), "source")
+	assert.ElementsMatch(t, expectedResults, okResults)
 }
 
 func TestScrapeFailure(t *testing.T) {
@@ -101,10 +110,11 @@ func TestScrapeFailure(t *testing.T) {
 		},
 	}
 
-	expectedResults := []domain.ScrapeResult{makeResult("0"), makeResult("1")}
+	err := errors.New("Scrape failure")
+	expectedResults := []*domain.ScrapeResult{makeResult("0"), makeResult("1"), {Err: err}}
 
 	scraper.EXPECT().Scrape(mock.Anything, tasks[0]).Return(expectedResults[0], nil)
-	scraper.EXPECT().Scrape(mock.Anything, tasks[1]).Return(domain.ScrapeResult{}, errors.New("Scrape failure"))
+	scraper.EXPECT().Scrape(mock.Anything, tasks[1]).Return(nil, errors.New("Scrape failure"))
 	scraper.EXPECT().Scrape(mock.Anything, tasks[2]).Return(expectedResults[1], nil)
 
 	tasksCh := make(chan domain.ScrapeTask, len(tasks))
@@ -113,13 +123,13 @@ func TestScrapeFailure(t *testing.T) {
 	}
 	close(tasksCh)
 
-	worker := NewWorker(zap.NewNop(), sourceToScraper, resultsCh)
+	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh)
 
 	go worker.Run(t.Context(), tasksCh)
 
-	var results []domain.ScrapeResult
+	var results []*domain.ScrapeResult
 	for result := range resultsCh {
-		results = append(results, result)
+		results = append(results, &result)
 	}
 
 	require.ElementsMatch(t, expectedResults, results)
@@ -133,7 +143,7 @@ func TestContextCancelled(t *testing.T) {
 	resultsCh := make(chan domain.ScrapeResult)
 	tasksCh := make(chan domain.ScrapeTask)
 
-	worker := NewWorker(zap.NewNop(), sourceToScraper, resultsCh)
+	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -151,8 +161,8 @@ func TestContextCancelled(t *testing.T) {
 	require.False(t, ok) // channel closed
 }
 
-func makeResult(name string) domain.ScrapeResult {
-	return domain.ScrapeResult{
+func makeResult(name string) *domain.ScrapeResult {
+	return &domain.ScrapeResult{
 		Resources: []domain.Resource{
 			{
 				Name: name,

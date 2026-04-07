@@ -12,9 +12,9 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 func NewRunCmd() *cobra.Command {
@@ -37,12 +37,12 @@ func NewRunCmd() *cobra.Command {
 }
 
 func run(ctx context.Context, cfgFile string) error {
-	logger, _ := zap.NewDevelopment()
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	var cfg config.Config
 	readConfig(cfgFile, &cfg)
 
-	logger.Sugar().Infof("rate limit from config: %f", cfg.Scraping.RateLimitRps)
+	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
 	// TODO: get tasks from db
 	tasksCh := getTasks()
@@ -64,7 +64,7 @@ func run(ctx context.Context, cfgFile string) error {
 	// TODO: save results to db
 	for result := range resultsCh {
 		for _, resource := range result.Resources {
-			logger.Sugar().Infof("scraped %s: %s", resource.Name, string(resource.ResponseBody))
+			logger.Info().Msgf("scraped %s: %s", resource.Name, string(resource.ResponseBody))
 		}
 	}
 

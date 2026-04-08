@@ -1,6 +1,9 @@
 package repository
 
 import (
+    "archive/tar"
+    "bytes"
+    "compress/gzip"
     "database/sql"
     "time"
 
@@ -16,20 +19,34 @@ func NewSnapshotRepo(db *sql.DB) *SnapshotRepo {
 }
 
 func (r *SnapshotRepo) SaveResult(trackedPageID int, result domain.ScrapeResult, durationMs int) error {
-    var body []byte
+    buf := new(bytes.Buffer)
+
+    gzipWriter := gzip.NewWriter(buf)
+    defer gzipWriter.Close()
+
+    tarWriter := tar.NewWriter(gzipWriter)
+    defer tarWriter.Close()
+
     for _, res := range result.Resources {
-        if res.Name == "html" {
-            body = res.ResponseBody
-            break
+        header := &tar.Header{
+            Name:       res.Name,
+            Size:       int64(len(res.ResponseBody)),
+            Mode:       0600,
+            ModTime:    time.Now(),
         }
-    }
-    if len(body) == 0 && len(result.Resources) > 0 {
-        body = result.Resources[0].ResponseBody
+
+        if err := tarWriter.WriteHeader(header); err != nil {
+            return err
+        }
+
+        if _, err := tarWriter.Write(res.ResponseBody); err != nil {
+            return err
+        }
     }
 
     _, err := r.db.Exec(`
         INSERT INTO page_snapshots (tracked_page, scraped_at, warc_bundle_archive, scrape_duration_ms)
         VALUES ($1, $2, $3, $4)
-    `, trackedPageID, time.Now(), body, durationMs)
+    `, trackedPageID, time.Now(), buf.Bytes(), durationMs)
     return err
 }

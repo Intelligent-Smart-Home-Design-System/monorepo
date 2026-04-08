@@ -11,12 +11,14 @@ import (
 )
 
 type Scraper struct {
-	client *http.Client
+    client    *http.Client
+    userAgent string
 }
 
-func NewScraper(timeout time.Duration) *Scraper {
+func NewScraper(timeout time.Duration, userAgent string) *Scraper {
     return &Scraper{
         client: &http.Client{Timeout: timeout},
+        userAgent: userAgent,
     }
 }
 
@@ -26,7 +28,7 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (domain.Sc
 		return domain.ScrapeResult{}, fmt.Errorf("create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("User-Agent", s.userAgent)
 
 	resp, err := s.client.Do(req)
 	if err != nil {

@@ -3,37 +3,37 @@ package engine
 import (
 	"fmt"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 )
 
 type Engine struct {
-	storage *storage.Storage
-	tracksConfig *configs.Tracks
+	storage       *storage.Storage
+	tracksConfig  *configs.Tracks
 	devicesConfig *configs.Devices
 }
 
 func NewEngine(storage *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
 	return &Engine{
-		storage: storage,
-		tracksConfig: tracksConfig,
+		storage:       storage,
+		tracksConfig:  tracksConfig,
 		devicesConfig: deviceConfig,
 	}
 }
 
-func (e *Engine) PlaceDevices(apartment *entities.Apartment, selectedLevels map[string]string) (*entities.ApartmentResult, error) {
-	if apartment == nil {
+func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string]string) (*apartment.ApartmentResult, error) {
+	if ap == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
 
-	if apartment.Rooms == nil {
+	if ap.Rooms == nil {
 		return nil, fmt.Errorf("nil rooms")
 	}
 
-	res := entities.NewApartmentResult()
+	res := apartment.NewApartmentResult()
 
-	for _, track := range apartment.Tracks {
+	for _, track := range ap.Tracks {
 		trackConfig := e.tracksConfig.Tracks[track]
 		level, ok := trackConfig.Levels[selectedLevels[track]]
 		if !ok {
@@ -46,14 +46,14 @@ func (e *Engine) PlaceDevices(apartment *entities.Apartment, selectedLevels map[
 				return nil, err
 			}
 
-			res.Placements = rule.Apply(apartment)
+			res.Placements = rule.Apply(ap)
 		}
 	}
 
 	return res, nil
 }
 
-func (e *Engine) CalcLayoutPrice(apartmentResult *entities.ApartmentResult) *PriceInfo {
+func (e *Engine) CalcLayoutPrice(apartmentResult *apartment.ApartmentResult) *PriceInfo {
 	priceInfo := &PriceInfo{}
 
 	for _, roomPlacement := range apartmentResult.Placements {

@@ -3,18 +3,18 @@ package lighting
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLightingLevel2(t *testing.T) {
-	apartment := &entities.Apartment{
+	apartment := &apartment.Apartment{
 		ID:     "a1",
 		Tracks: []string{"lighting"},
-		Rooms: []*entities.Room{
+		Rooms: []*apartment.Room{
 			{ID: "r1", Name: "living"},
 			{ID: "r2", Name: "kitchen"},
 			{ID: "r3", Name: "passage"},

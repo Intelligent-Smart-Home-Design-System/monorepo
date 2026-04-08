@@ -3,8 +3,9 @@ package rules
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/stretchr/testify/assert"
@@ -35,15 +36,15 @@ func TestLoadDevicesConfig(t *testing.T) {
 }
 
 func TestLaunch(t *testing.T) {
-	room := &entities.Room{
-		ID: "1", 
-		Name: "kitchen", 
-		WetPoints: make([]*entities.Point, 0),
+	room := &apartment.Room{
+		ID:        "1",
+		Name:      "kitchen",
+		WetPoints: make([]*device.Point, 0),
 	}
-	apartment := &entities.Apartment{
-		ID: "1",
+	apartment := &apartment.Apartment{
+		ID:     "1",
 		Tracks: []string{"security"},
-		Rooms: []*entities.Room{room},
+		Rooms:  []*apartment.Room{room},
 	}
 	selectedLevels := map[string]string{
 		"security": "1",
@@ -55,7 +56,7 @@ func TestLaunch(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	_, err := engine.PlaceDevices(apartment, selectedLevels)
 
@@ -73,7 +74,7 @@ func TestNilApartment(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	_, err := engine.PlaceDevices(nil, selectedLevels)
 
@@ -81,10 +82,10 @@ func TestNilApartment(t *testing.T) {
 }
 
 func TestNilRoomsStruct(t *testing.T) {
-	apartment := &entities.Apartment{
-		ID: "1",
+	apartment := &apartment.Apartment{
+		ID:     "1",
 		Tracks: []string{"security"},
-		Rooms: nil,
+		Rooms:  nil,
 	}
 
 	selectedLevels := map[string]string{
@@ -97,7 +98,7 @@ func TestNilRoomsStruct(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	_, err := engine.PlaceDevices(apartment, selectedLevels)
 
@@ -105,15 +106,15 @@ func TestNilRoomsStruct(t *testing.T) {
 }
 
 func TestSimpleScript(t *testing.T) {
-	room := &entities.Room{
-		ID: "1", 
-		Name: "bathroom", 
-		WetPoints: []*entities.Point{{X: 1, Y: 2, Z: 0}},
+	room := &apartment.Room{
+		ID:        "1",
+		Name:      "bathroom",
+		WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 	}
-	apartment := &entities.Apartment{
-		ID: "1",
+	apartment := &apartment.Apartment{
+		ID:     "1",
 		Tracks: []string{"security"},
-		Rooms: []*entities.Room{room},
+		Rooms:  []*apartment.Room{room},
 	}
 
 	selectedLevels := map[string]string{
@@ -126,7 +127,7 @@ func TestSimpleScript(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
 
@@ -134,27 +135,27 @@ func TestSimpleScript(t *testing.T) {
 
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		assert.Equal(t, "water_leak_sensor", devicePlacement.Device.Type)
-		assert.Equal(t, entities.Point{X: 1, Y: 2, Z: 0}, *devicePlacement.Place)
+		assert.Equal(t, device.Point{X: 1, Y: 2, Z: 0}, *devicePlacement.Place)
 	}
 }
 
 func TestMultipleRoomsOneWetPoint(t *testing.T) {
-	rooms := []*entities.Room{
+	rooms := []*apartment.Room{
 		{
-			ID: "1", 
-			Name: "bathroom", 
-			WetPoints: []*entities.Point{{X: 1, Y: 2, Z: 0}},
+			ID:        "1",
+			Name:      "bathroom",
+			WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 		},
 		{
-			ID: "2", 
-			Name: "kitchen", 
-			WetPoints: make([]*entities.Point, 0),
+			ID:        "2",
+			Name:      "kitchen",
+			WetPoints: make([]*device.Point, 0),
 		},
 	}
-	apartment := &entities.Apartment{
-		ID: "1",
+	apartment := &apartment.Apartment{
+		ID:     "1",
 		Tracks: []string{"security"},
-		Rooms: rooms,
+		Rooms:  rooms,
 	}
 
 	selectedLevels := map[string]string{
@@ -167,7 +168,7 @@ func TestMultipleRoomsOneWetPoint(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
 
@@ -175,29 +176,29 @@ func TestMultipleRoomsOneWetPoint(t *testing.T) {
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[0].ID] {
 		assert.Equal(t, "water_leak_sensor", devicePlacement.Device.Type)
-		assert.Equal(t, entities.Point{X: 1, Y: 2, Z: 0}, *devicePlacement.Place)
+		assert.Equal(t, device.Point{X: 1, Y: 2, Z: 0}, *devicePlacement.Place)
 	}
-	
+
 	assert.Equal(t, 0, len(globalPlacement.Placements[rooms[1].ID]))
 }
 
 func TestMultipleRoomsMultipleWetPoints(t *testing.T) {
-	rooms := []*entities.Room{
+	rooms := []*apartment.Room{
 		{
-			ID: "1", 
-			Name: "bathroom", 
-			WetPoints: []*entities.Point{{X: 1, Y: 2, Z: 0}},
+			ID:        "1",
+			Name:      "bathroom",
+			WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 		},
 		{
-			ID: "2", 
-			Name: "kitchen", 
-			WetPoints: []*entities.Point{{X: 5, Y: 10, Z: 0}},
+			ID:        "2",
+			Name:      "kitchen",
+			WetPoints: []*device.Point{{X: 5, Y: 10, Z: 0}},
 		},
 	}
-	apartment := &entities.Apartment{
-		ID: "1",
+	apartment := &apartment.Apartment{
+		ID:     "1",
 		Tracks: []string{"security"},
-		Rooms: rooms,
+		Rooms:  rooms,
 	}
 
 	selectedLevels := map[string]string{
@@ -210,7 +211,7 @@ func TestMultipleRoomsMultipleWetPoints(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
 
@@ -218,36 +219,36 @@ func TestMultipleRoomsMultipleWetPoints(t *testing.T) {
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[0].ID] {
 		assert.Equal(t, "water_leak_sensor", devicePlacement.Device.Type)
-		assert.Equal(t, entities.Point{X: 1, Y: 2, Z: 0}, *devicePlacement.Place)
+		assert.Equal(t, device.Point{X: 1, Y: 2, Z: 0}, *devicePlacement.Place)
 	}
 
 	assert.Equal(t, 1, len(globalPlacement.Placements[rooms[0].ID]))
-	
+
 	for _, devicePlacement := range globalPlacement.Placements[rooms[1].ID] {
 		assert.Equal(t, "water_leak_sensor", devicePlacement.Device.Type)
-		assert.Equal(t, entities.Point{X: 5, Y: 10, Z: 0}, *devicePlacement.Place)
+		assert.Equal(t, device.Point{X: 5, Y: 10, Z: 0}, *devicePlacement.Place)
 	}
 
 	assert.Equal(t, 1, len(globalPlacement.Placements[rooms[1].ID]))
 }
 
 func TestPriceCalculation(t *testing.T) {
-	rooms := []*entities.Room{
+	rooms := []*apartment.Room{
 		{
-			ID: "1", 
-			Name: "bathroom", 
-			WetPoints: []*entities.Point{{X: 1, Y: 2, Z: 0}},
+			ID:        "1",
+			Name:      "bathroom",
+			WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 		},
 		{
-			ID: "2", 
-			Name: "kitchen", 
-			WetPoints: []*entities.Point{{X: 5, Y: 10, Z: 0}},
+			ID:        "2",
+			Name:      "kitchen",
+			WetPoints: []*device.Point{{X: 5, Y: 10, Z: 0}},
 		},
 	}
-	apartment := &entities.Apartment{
-		ID: "1",
+	apartment := &apartment.Apartment{
+		ID:     "1",
 		Tracks: []string{"security"},
-		Rooms: rooms,
+		Rooms:  rooms,
 	}
 
 	selectedLevels := map[string]string{
@@ -260,7 +261,7 @@ func TestPriceCalculation(t *testing.T) {
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
 

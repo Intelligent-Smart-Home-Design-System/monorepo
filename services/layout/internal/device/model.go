@@ -1,14 +1,14 @@
-package entities
+package device
 
 type Point struct {
 	X float64
 	Y float64
-	Z float64	// возможно не понадобится
+	Z float64 // возможно не понадобится
 }
 
 type Device struct {
-	ID string `json:"id"`
-	Type string `json:"type"`	// Типы должны совпадать с классификацией
+	ID          string `json:"id"`
+	Type        string `json:"type"` // Типы должны совпадать с классификацией
 	DeviceTrack string `json:"device_tracks"`
 }
 
@@ -16,7 +16,7 @@ type Device struct {
 type Placement struct {
 	Device *Device
 	RoomID string
-	Place *Point
+	Place  *Point
 }
 
 func NewDevice(ID, deviceType, trackType string) *Device {

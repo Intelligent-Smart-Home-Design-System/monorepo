@@ -100,6 +100,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 		Doors:   []entities.Door{door},
 		Rooms:   rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "4",
@@ -235,6 +236,7 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 		Doors:   []entities.Door{door},
 		Rooms:   rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "4",

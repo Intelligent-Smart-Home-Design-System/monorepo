@@ -21,7 +21,7 @@ func (gl *DoorSensorRule) GetType() string {
 	return "door_sensor"
 }
 
-func (gl *DoorSensorRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
+func (gl *DoorSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
 	frontDoor := apartment.GetFrontDoor()
 	if frontDoor == nil {
 		return fmt.Errorf("no front door")

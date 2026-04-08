@@ -19,31 +19,30 @@ func (gl *CameraRule) GetType() string {
 	return "camera"
 }
 
-func (gl *CameraRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
-	cameraRooms := []string{"living", "hall"}
+func (gl *CameraRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
+	cameraRooms, err := apartment.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
 
-	for _, roomType := range cameraRooms {
-		rooms := apartment.GetRoomsByType(roomType)
+	for _, room := range cameraRooms {
+		roomID := room.ID
 
-		for _, room := range rooms {
-			roomID := room.ID
-
-			_, ok := apartmentLayout.Placements[roomID]
-			if !ok {
-				apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
-			}
-
-			cameraPoint, err := room.GetBestCameraPoint(apartment)
-			if err != nil {
-				return err
-			}
-
-			deviceID := uuid.NewString()
-			device := entities.NewDevice(deviceID, "camera", "security")
-			placement := entities.NewPlacement(device, roomID, *cameraPoint)
-
-			apartmentLayout.Placements[roomID][device.Type] = placement
+		_, ok := apartmentLayout.Placements[roomID]
+		if !ok {
+			apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
 		}
+
+		cameraPoint, err := room.GetBestCameraPoint(apartment)
+		if err != nil {
+			return err
+		}
+
+		deviceID := uuid.NewString()
+		device := entities.NewDevice(deviceID, "camera", "security")
+		placement := entities.NewPlacement(device, roomID, *cameraPoint)
+
+		apartmentLayout.Placements[roomID][device.Type] = placement
 	}
 
 	return nil

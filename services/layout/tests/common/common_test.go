@@ -6,7 +6,6 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,14 +36,16 @@ func TestLaunch(t *testing.T) {
 	apartment := &entities.Apartment{
 		Rooms: []entities.Room{room},
 	}
+	apartment.MakeDependency()
+
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
 	storage := storage.NewStorage()
-	storage.LoadRule(security.NewWaterLeakRule())
+	storage.LoadAllSecurityRules()
 
-	tracksConfig, err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
+	tracksConfig, err1 := configs.LoadTracksConfig(GetTracksPath())
 	devicesConfig, err2 := configs.LoadDevicesConfig(GetDevicesPath())
 
 	assert.NoError(t, err1)
@@ -78,6 +79,7 @@ func TestNilRoomsStruct(t *testing.T) {
 	apartment := &entities.Apartment{
 		Rooms: nil,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",

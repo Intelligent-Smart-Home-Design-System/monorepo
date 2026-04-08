@@ -37,6 +37,7 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 		Doors: []entities.Door{door},
 		Rooms: []entities.Room{room},
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "2",
@@ -125,6 +126,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		Doors: []entities.Door{door},
 		Rooms: rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "2",

@@ -40,7 +40,7 @@ func (s *Storage) LoadAllSecurityRules() {
 		security.NewWindowSensorRule(),
 		security.NewMotionSensorRule(),
 		security.NewCameraRule(),
-		security.NewSecurityAlarmRule(),
+		security.NewSmartSirenRule(),
 	}
 
 	for _, rule := range storageRules {

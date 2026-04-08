@@ -10,5 +10,5 @@ type Rule interface {
 	GetType() string
 
 	// Apply расставляет устройство в квартире
-	Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error
+	Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error
 }

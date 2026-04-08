@@ -44,7 +44,12 @@ func (e *Engine) PlaceDevices(apartment *entities.Apartment, selectedLevels map[
 				return nil, err
 			}
 
-			err = rule.Apply(apartment, res)
+			deviceRooms, ok := levelInfo.DeviceRooms[device]
+			if !ok {
+				return nil, fmt.Errorf("no info about rooms for device %s", device)
+			}
+
+			err = rule.Apply(apartment, deviceRooms, res)
 			if err != nil {
 				return nil, err
 			}

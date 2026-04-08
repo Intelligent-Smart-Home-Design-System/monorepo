@@ -19,31 +19,30 @@ func (gl *MotionSensorRule) GetType() string {
 	return "motion_sensor"
 }
 
-func (gl *MotionSensorRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
-	motionRooms := []string{"living", "hall"}
+func (gl *MotionSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
+	motionRooms, err := apartment.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
 
-	for _, roomType := range motionRooms {
-		rooms := apartment.GetRoomsByType(roomType)
+	for _, room := range motionRooms {
+		roomID := room.ID
 
-		for _, room := range rooms {
-			roomID := room.ID
-
-			_, ok := apartmentLayout.Placements[roomID]
-			if !ok {
-				apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
-			}
-
-			roomCenter, err := room.GetCenter()
-			if err != nil {
-				return err
-			}
-
-			deviceID := uuid.NewString()
-			device := entities.NewDevice(deviceID, "motion_sensor", "security")
-			placement := entities.NewPlacement(device, roomID, *roomCenter)
-
-			apartmentLayout.Placements[roomID][device.Type] = placement
+		_, ok := apartmentLayout.Placements[roomID]
+		if !ok {
+			apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
 		}
+
+		roomCenter, err := room.GetCenter()
+		if err != nil {
+			return err
+		}
+
+		deviceID := uuid.NewString()
+		device := entities.NewDevice(deviceID, "motion_sensor", "security")
+		placement := entities.NewPlacement(device, roomID, *roomCenter)
+
+		apartmentLayout.Placements[roomID][device.Type] = placement
 	}
 
 	return nil

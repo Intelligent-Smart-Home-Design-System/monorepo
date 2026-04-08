@@ -5,6 +5,9 @@ type Apartment struct {
 	Doors   []Door   `json:"door"`
 	Windows []Window `json:"windows"`
 	Rooms   []Room   `json:"rooms"`
+
+	roomsByName map[string][]Room
+	wallsByID   map[string]Wall
 }
 
 type Point struct {

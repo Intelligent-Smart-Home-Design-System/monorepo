@@ -20,15 +20,14 @@ func GetSelectedLevels() map[string]string {
 	return make(map[string]string)
 }
 
-// TODO: убрать
-func GetSelectedTracks() []string {
-	return make([]string, 0)
-}
-
 func main() {
 	apartment := GetApartment()
+	apartment.MakeRoomDependency()
+
 	selectedLevels := GetSelectedLevels()
+
 	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
 
 	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
@@ -46,6 +45,10 @@ func main() {
 	if err != nil {
 		_ = fmt.Errorf("failed to place devices: %w", err)
 	}
+
+	go func() {
+		// TODO: несколько пользователей (параллельно)
+	}()
 
 	// TODO: записать результаты на плане квартиры
 }

@@ -1,44 +1,40 @@
 package entities
 
-import (
-	"slices"
-)
-
-// GetRoomsByType возвращает все комнаты, подходящие под паттерн.
-// Паттерном может быть название комнаты или ее характеристика
-func (a *Apartment) GetRoomsByType(roomType string) []Room {
-	roomsRes := make([]Room, 0)
-
-	for _, room := range a.Rooms {
-		switch roomType {
-		case "wet":
-			if room.IsWet() {
-				roomsRes = append(roomsRes, room)
-			}
-		case "kitchen":
-			if room.Name == "kitchen" {
-				roomsRes = append(roomsRes, room)
-			}
-		case "hall":
-			if room.Name == "hall" {
-				roomsRes = append(roomsRes, room)
-			}
-		case "living":
-			if room.Name == "living" {
-				roomsRes = append(roomsRes, room)
-			}
-		}
-	}
-
-	return roomsRes
+// MakeDependency создает вспомогающую зависимость в квартире
+func (a *Apartment) MakeDependency() {
+	a.MakeRoomDependency()
+	a.MakeWallDependency()
 }
 
-// IsWet проверяет, может ли в комнате быть протечка.
-// То есть (грубо говоря) является ли комната мокрой
-func (r *Room) IsWet() bool {
-	wetRooms := []string{"kitchen", "bathroom", "toilet"}
+// MakeRoomDependency создает словарь зависимости названия комнаты
+// со слайсом структур комнат с таким же названием
+func (a *Apartment) MakeRoomDependency() {
+	a.roomsByName = make(map[string][]Room)
 
-	return slices.Contains(wetRooms, r.Name)
+	for _, room := range a.Rooms {
+		a.roomsByName[room.Name] = append(a.roomsByName[room.Name], room)
+	}
+}
+
+// MakeWallDependency создает словарь зависимости индекса стены с его структурой
+func (a *Apartment) MakeWallDependency() {
+	a.wallsByID = make(map[string]Wall)
+
+	for _, wall := range a.Walls {
+		a.wallsByID[wall.ID] = wall
+	}
+}
+
+// GetRoomsByNames возвращает все комнаты, имеющие названия из входного слайса.
+func (a *Apartment) GetRoomsByNames(roomNames []string) ([]Room, error) {
+	roomsRes := make([]Room, 0)
+
+	for _, roomName := range roomNames {
+		rooms, _ := a.roomsByName[roomName]
+		roomsRes = append(roomsRes, rooms...)
+	}
+
+	return roomsRes, nil
 }
 
 // GetFrontDoor возвращает входную дверь в квартиру

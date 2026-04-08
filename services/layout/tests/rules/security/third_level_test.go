@@ -59,6 +59,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		Doors:   []entities.Door{door},
 		Rooms:   rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "3",
@@ -194,6 +195,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		Doors:   []entities.Door{door},
 		Rooms:   rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "3",

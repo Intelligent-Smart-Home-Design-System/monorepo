@@ -21,7 +21,7 @@ func (sl *SmartDoorBellRule) GetType() string {
 	return "smart_doorbell"
 }
 
-func (sl *SmartDoorBellRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
+func (sl *SmartDoorBellRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
 	frontDoor := apartment.GetFrontDoor()
 	if frontDoor == nil {
 		return fmt.Errorf("no front door in apartment")

@@ -19,7 +19,7 @@ func (gl *WindowSensorRule) GetType() string {
 	return "window_sensor"
 }
 
-func (gl *WindowSensorRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
+func (gl *WindowSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
 	for _, window := range apartment.Windows {
 		if len(window.Rooms) > 1 {
 			continue

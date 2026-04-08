@@ -26,6 +26,7 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 	apartment := &entities.Apartment{
 		Rooms: []entities.Room{room},
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
@@ -103,6 +104,7 @@ func TestMultipleRooms(t *testing.T) {
 	apartment := &entities.Apartment{
 		Rooms: rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
@@ -177,6 +179,7 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 	apartment := &entities.Apartment{
 		Rooms: rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",

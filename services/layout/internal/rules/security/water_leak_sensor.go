@@ -19,8 +19,13 @@ func (wl *WaterLeakSensorRule) GetType() string {
 	return "water_leak_sensor"
 }
 
-func (wl *WaterLeakSensorRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
-	wetRooms := apartment.GetRoomsByType("wet")
+func (wl *WaterLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
+	wetRooms, err := apartment.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
+
+	// TODO: улучшить, когда появятся мокрые точки на плане
 
 	for _, room := range wetRooms {
 		roomID := room.ID

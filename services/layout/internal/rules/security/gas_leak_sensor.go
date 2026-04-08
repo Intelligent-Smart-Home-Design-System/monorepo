@@ -19,8 +19,11 @@ func (gl *GasLeakSensorRule) GetType() string {
 	return "gas_leak_sensor"
 }
 
-func (gl *GasLeakSensorRule) Apply(apartment *entities.Apartment, apartmentLayout *entities.ApartmentLayout) error {
-	kitchens := apartment.GetRoomsByType("kitchen")
+func (gl *GasLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
+	kitchens, err := apartment.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
 
 	for _, kitchen := range kitchens {
 		kitchenID := kitchen.ID

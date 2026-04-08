@@ -39,6 +39,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 		Doors: []entities.Door{door},
 		Rooms: rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "5",
@@ -60,7 +61,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 
 	for _, devicePlacement := range globalPlacement.Placements["1"] {
 		switch devicePlacement.Device.Type {
-		case "security_alarm":
+		case "smart_siren":
 			assert.Equal(t, entities.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
 		}
 	}
@@ -71,7 +72,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 	}
 
 	correctHallRoomKeys := []string{
-		"security_alarm",
+		"smart_siren",
 		"motion_sensor",
 		"door_sensor",
 		"camera",
@@ -159,6 +160,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		Doors:   []entities.Door{door},
 		Rooms:   rooms,
 	}
+	apartment.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "5",

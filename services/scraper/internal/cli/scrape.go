@@ -50,9 +50,6 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
-	// TODO: get tasks from db
-	//tasksCh := getTasks()
-
 	db, err := connectDB(cfg.Database)
     if err != nil {
         return fmt.Errorf("connect to db: %w", err)
@@ -63,59 +60,58 @@ func scrape(ctx context.Context, cfgFile string) error {
     snapshotRepo := repository.NewSnapshotRepo(db)
 
 	printer := printer.NewPrinterScraper()
-	sprutScraper := sprutScraper.NewScraper(cfg.Scraping.Timeout)
+	sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 
 	sourceToScraper := map[string]worker.Scraper{
 		"printer": printer,
-		"sprut":   sprutScraper
+		"sprut":   sprutScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
 
 	worker := worker.NewWorker(logger, sourceToScraper, resultsCh)
 
+		tasks, err := taskRepo.GetTasks()
+	if err != nil {
+		return fmt.Errorf("get tasks: %w", err)
+	}
+	if len(tasks) == 0 {
+		logger.Info().Msg("no active tasks, exiting")
+		return nil
+	}
+
 	tasksCh := make(chan domain.ScrapeTask)
-    go func() {
-        defer close(tasksCh)
-        for {
-            select {
-            case <-ctx.Done():
-                return
-            default:
-                tasks, err := taskRepo.GetTasks()
-                if err != nil {
-                    logger.Sugar().Errorf("get tasks: %v", err)
-                    time.Sleep(5 * time.Second)
-                    continue
-                }
-                if len(tasks) == 0 {
-                    time.Sleep(5 * time.Second)
-                    continue
-                }
-                for _, task := range tasks {
-                    tasksCh <- task
-                }
-            }
-        }
-    }()
+	go func() {
+		defer close(tasksCh)
+		for _, task := range tasks {
+			select {
+			case <-ctx.Done():
+				return
+			case tasksCh <- task:
+			}
+		}
+	}()
 
 	go worker.Run(ctx, tasksCh)
 
 	for result := range resultsCh {
-<<<<<<< HEAD
-		for _, resource := range result.Resources {
-			logger.Info().Msgf("scraped %s: %s", resource.Name, string(resource.ResponseBody))
-=======
+		if result.Err != nil {
+			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
+			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
+				logger.Error().Err(err).Msg("update status error")
+			}
+			continue
+		}
 		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
-			logger.Sugar().Errorf("save snapshot: %v", err)
+			logger.Error().Err(err).Msg("save snapshot")
 		} else {
 			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
-				logger.Sugar().Errorf("update status: %v", err)
+				logger.Error().Err(err).Msg("update status")
 			}
->>>>>>> 1a79677 (Updates for db)
 		}
-    }
+	}
 
+	logger.Info().Msg("all tasks processed, exiting")
 	return nil
 }
 

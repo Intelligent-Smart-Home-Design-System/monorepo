@@ -21,7 +21,6 @@ func (r *TrackedPageRepo) GetTasks() ([]domain.ScrapeTask, error) {
         FROM tracked_pages
         WHERE is_active = true
         ORDER BY last_scraped_at NULLS FIRST
-        LIMIT 100
     `)
     if err != nil {
         return nil, err

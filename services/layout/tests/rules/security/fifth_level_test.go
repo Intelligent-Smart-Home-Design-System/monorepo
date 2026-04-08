@@ -3,9 +3,10 @@ package security
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/tests/rules"
 
@@ -13,11 +14,11 @@ import (
 )
 
 func TestFifthLevelSimpleScript(t *testing.T) {
-	rooms := []entities.Room{
+	rooms := []apartment.Room{
 		{
 			ID:   "1",
 			Name: "hall",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -26,20 +27,20 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 		},
 	}
 
-	door := entities.Door{
+	door := apartment.Door{
 		ID: "1",
-		Points: []entities.Point{
+		Points: []point.Point{
 			{X: 1, Y: 0},
 			{X: 2, Y: 0},
 		},
 		Rooms: []string{"1"},
 	}
 
-	apartment := &entities.Apartment{
-		Doors: []entities.Door{door},
+	apartmentStruct := &apartment.Apartment{
+		Doors: []apartment.Door{door},
 		Rooms: rooms,
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "5",
@@ -55,14 +56,14 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 
 	for _, devicePlacement := range globalPlacement.Placements["1"] {
 		switch devicePlacement.Device.Type {
 		case "smart_siren":
-			assert.Equal(t, entities.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+			assert.Equal(t, point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
 		}
 	}
 
@@ -87,11 +88,11 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 }
 
 func TestFifthLevelPriceCalculation(t *testing.T) {
-	rooms := []entities.Room{
+	rooms := []apartment.Room{
 		{
 			ID:   "1",
 			Name: "bathroom",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 2, Y: 0},
 				{X: 2, Y: 2},
@@ -101,7 +102,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "2",
 			Name: "kitchen",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -111,7 +112,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "3",
 			Name: "hall",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -121,7 +122,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "4",
 			Name: "living",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 2, Y: 0},
 				{X: 2, Y: 2},
@@ -130,10 +131,10 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		},
 	}
 
-	windows := []entities.Window{
+	windows := []apartment.Window{
 		{
 			ID: "1",
-			Points: []entities.Point{
+			Points: []point.Point{
 				{X: 0, Y: 1},
 				{X: 0, Y: 2},
 			},
@@ -141,7 +142,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		},
 		{
 			ID: "2",
-			Points: []entities.Point{
+			Points: []point.Point{
 				{X: 0, Y: 1},
 				{X: 0, Y: 2},
 			},
@@ -149,18 +150,18 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		},
 	}
 
-	door := entities.Door{
+	door := apartment.Door{
 		ID:     "1",
-		Points: []entities.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
+		Points: []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
 		Rooms:  []string{"3"},
 	}
 
-	apartment := &entities.Apartment{
+	apartmentStruct := &apartment.Apartment{
 		Windows: windows,
-		Doors:   []entities.Door{door},
+		Doors:   []apartment.Door{door},
 		Rooms:   rooms,
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "5",
@@ -176,7 +177,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 

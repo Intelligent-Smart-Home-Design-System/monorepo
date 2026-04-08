@@ -1,7 +1,8 @@
 package security
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -19,8 +20,8 @@ func (wl *WaterLeakSensorRule) GetType() string {
 	return "water_leak_sensor"
 }
 
-func (wl *WaterLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
-	wetRooms, err := apartment.GetRoomsByNames(deviceRooms)
+func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+	wetRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -32,7 +33,7 @@ func (wl *WaterLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms 
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
+			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
 		}
 
 		roomCenter, err := room.GetCenter()
@@ -41,10 +42,10 @@ func (wl *WaterLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms 
 		}
 
 		deviceID := uuid.NewString() // в будущем все ID будут прописаны в конфигах и будут браться оттуда
-		device := entities.NewDevice(deviceID, "water_leak_sensor", "security")
-		placement := entities.NewPlacement(device, roomID, *roomCenter)
+		newDevice := device.NewDevice(deviceID, "water_leak_sensor", "security")
+		placement := device.NewPlacement(newDevice, roomID, *roomCenter)
 
-		apartmentLayout.Placements[roomID][device.Type] = placement
+		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}
 
 	return nil

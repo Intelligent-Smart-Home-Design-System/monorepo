@@ -3,9 +3,10 @@ package common
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,20 +24,20 @@ func TestLoadDevicesConfig(t *testing.T) {
 }
 
 func TestLaunch(t *testing.T) {
-	room := entities.Room{
+	room := apartment.Room{
 		ID:   "1",
 		Name: "kitchen",
-		Area: []entities.Point{
+		Area: []point.Point{
 			{X: 0, Y: 0},
 			{X: 2, Y: 0},
 			{X: 2, Y: 2},
 			{X: 0, Y: 2},
 		},
 	}
-	apartment := &entities.Apartment{
-		Rooms: []entities.Room{room},
+	apartmentStruct := &apartment.Apartment{
+		Rooms: []apartment.Room{room},
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
@@ -52,7 +53,7 @@ func TestLaunch(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	_, err := engine.PlaceDevices(apartment, selectedLevels)
+	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 }
@@ -76,10 +77,10 @@ func TestNilApartment(t *testing.T) {
 }
 
 func TestNilRoomsStruct(t *testing.T) {
-	apartment := &entities.Apartment{
+	apartmentStruct := &apartment.Apartment{
 		Rooms: nil,
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
@@ -93,7 +94,7 @@ func TestNilRoomsStruct(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	_, err := engine.PlaceDevices(apartment, selectedLevels)
+	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.Error(t, err)
 }

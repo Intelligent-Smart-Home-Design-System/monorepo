@@ -1,7 +1,8 @@
 package security
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -19,8 +20,8 @@ func (gl *SmartSirenRule) GetType() string {
 	return "smart_siren"
 }
 
-func (gl *SmartSirenRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
-	hallRooms, err := apartment.GetRoomsByNames(deviceRooms)
+func (gl *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+	hallRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -29,7 +30,7 @@ func (gl *SmartSirenRule) Apply(apartment *entities.Apartment, deviceRooms []str
 		roomID := hallRoom.ID
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
+			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
 		}
 
 		hallCenter, err := hallRoom.GetCenter()
@@ -38,10 +39,10 @@ func (gl *SmartSirenRule) Apply(apartment *entities.Apartment, deviceRooms []str
 		}
 
 		deviceID := uuid.NewString()
-		device := entities.NewDevice(deviceID, "smart_siren", "security")
-		placement := entities.NewPlacement(device, roomID, *hallCenter)
+		newDevice := device.NewDevice(deviceID, "smart_siren", "security")
+		placement := device.NewPlacement(newDevice, roomID, *hallCenter)
 
-		apartmentLayout.Placements[roomID][device.Type] = placement
+		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}
 
 	return nil

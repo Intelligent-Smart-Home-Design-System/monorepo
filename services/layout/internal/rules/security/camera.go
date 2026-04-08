@@ -1,7 +1,8 @@
 package security
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -19,8 +20,8 @@ func (gl *CameraRule) GetType() string {
 	return "camera"
 }
 
-func (gl *CameraRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
-	cameraRooms, err := apartment.GetRoomsByNames(deviceRooms)
+func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+	cameraRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -30,19 +31,19 @@ func (gl *CameraRule) Apply(apartment *entities.Apartment, deviceRooms []string,
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
+			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
 		}
 
-		cameraPoint, err := room.GetBestCameraPoint(apartment)
+		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct)
 		if err != nil {
 			return err
 		}
 
 		deviceID := uuid.NewString()
-		device := entities.NewDevice(deviceID, "camera", "security")
-		placement := entities.NewPlacement(device, roomID, *cameraPoint)
+		newDevice := device.NewDevice(deviceID, "camera", "security")
+		placement := device.NewPlacement(newDevice, roomID, *cameraPoint)
 
-		apartmentLayout.Placements[roomID][device.Type] = placement
+		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}
 
 	return nil

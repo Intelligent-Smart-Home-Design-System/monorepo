@@ -21,8 +21,8 @@ func GetSelectedLevels() map[string]string {
 }
 
 func main() {
-	apartment := GetApartment()
-	apartment.MakeRoomDependency()
+	apartmentStruct := GetApartment()
+	apartmentStruct.MakeRoomDependency()
 
 	selectedLevels := GetSelectedLevels()
 
@@ -41,7 +41,7 @@ func main() {
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 
-	_, err = engine.PlaceDevices(apartment, selectedLevels) // вся расстановка в квартире
+	_, err = engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
 	if err != nil {
 		_ = fmt.Errorf("failed to place devices: %w", err)
 	}

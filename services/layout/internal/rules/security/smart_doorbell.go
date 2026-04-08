@@ -3,7 +3,8 @@ package security
 import (
 	"fmt"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -21,8 +22,8 @@ func (sl *SmartDoorBellRule) GetType() string {
 	return "smart_doorbell"
 }
 
-func (sl *SmartDoorBellRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
-	frontDoor := apartment.GetFrontDoor()
+func (sl *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {
 		return fmt.Errorf("no front door in apartment")
 	}
@@ -30,14 +31,14 @@ func (sl *SmartDoorBellRule) Apply(apartment *entities.Apartment, deviceRooms []
 	roomID := frontDoor.Rooms[0]
 	_, ok := apartmentLayout.Placements[roomID]
 	if !ok {
-		apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
+		apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
 	}
 
 	deviceID := uuid.NewString()
-	device := entities.NewDevice(deviceID, "smart_doorbell", "security")
-	placement := entities.NewPlacement(device, roomID, frontDoor.Points[0])
+	newDevice := device.NewDevice(deviceID, "smart_doorbell", "security")
+	placement := device.NewPlacement(newDevice, roomID, frontDoor.Points[0])
 
-	apartmentLayout.Placements[roomID][device.Type] = placement
+	apartmentLayout.Placements[roomID][newDevice.Type] = placement
 
 	return nil
 }

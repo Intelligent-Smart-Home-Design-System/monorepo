@@ -1,15 +1,16 @@
-package entities
+package apartment
 
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCenterMethod(t *testing.T) {
 	room := Room{
 		Name: "bathroom",
-		Area: []Point{
+		Area: []point.Point{
 			{X: 1, Y: 0},
 			{X: 5, Y: 0},
 			{X: 5, Y: 5},
@@ -20,12 +21,12 @@ func TestGetCenterMethod(t *testing.T) {
 	center, err := room.GetCenter()
 	
 	assert.NoError(t, err)
-	assert.Equal(t, Point{X: 3, Y: 2.5}, *center)
+	assert.Equal(t, point.Point{X: 3, Y: 2.5}, *center)
 }
 
 func TestGetObjectCenterMethod(t *testing.T) {
 	door := Door{
-		Points: []Point{
+		Points: []point.Point{
 			{X: 1, Y: 0},
 			{X: 2, Y: 0},
 		},
@@ -33,13 +34,13 @@ func TestGetObjectCenterMethod(t *testing.T) {
 
 	doorCenter := GetObjectCenter(door.Points)
 
-	assert.Equal(t, Point{X: 1.5, Y: 0}, doorCenter)
+	assert.Equal(t, point.Point{X: 1.5, Y: 0}, doorCenter)
 }
 
 func TestGridMethodSize(t *testing.T) {
 	room := Room{
 		Name: "kitchen",
-		Area: []Point{
+		Area: []point.Point{
 			{X: 0, Y: 0},
 			{X: 3, Y: 0},
 			{X: 3, Y: 3},
@@ -57,7 +58,7 @@ func TestGridMethodSize(t *testing.T) {
 func TestIsPointInRoomMethodPositive(t *testing.T) {
 	room := Room{
 		Name: "kitchen",
-		Area: []Point{
+		Area: []point.Point{
 			{X: 0, Y: 0},
 			{X: 3, Y: 0},
 			{X: 3, Y: 3},
@@ -65,13 +66,13 @@ func TestIsPointInRoomMethodPositive(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, true, room.IsPointInRoom(Point{X: 2, Y: 2.9}))
+	assert.Equal(t, true, room.IsPointInRoom(point.Point{X: 2, Y: 2.9}))
 }
 
 func TestIsPointInRoomMethodNegative(t *testing.T) {
 	room := Room{
 		Name: "living",
-		Area: []Point{
+		Area: []point.Point{
 			{X: 0, Y: 0},
 			{X: 4, Y: 0},
 			{X: 4, Y: 4},
@@ -81,13 +82,13 @@ func TestIsPointInRoomMethodNegative(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, false, room.IsPointInRoom(Point{X: 1, Y: 4}))
+	assert.Equal(t, false, room.IsPointInRoom(point.Point{X: 1, Y: 4}))
 }
 
 func TestIsWallBetweenPoints(t *testing.T) {
 	room := Room{
 		Name: "bathroom",
-		Area: []Point{
+		Area: []point.Point{
 			{X: 1, Y: 0},
 			{X: 5, Y: 0},
 			{X: 5, Y: 5},
@@ -98,21 +99,21 @@ func TestIsWallBetweenPoints(t *testing.T) {
 	walls := []Wall{
 		{
 			ID: "1",
-			Points: []Point{
+			Points: []point.Point{
 				{X: 1, Y: 0},
 				{X: 5, Y: 0},
 			},
 		},
 		{
 			ID: "2",
-			Points: []Point{
+			Points: []point.Point{
 				{X: 5, Y: 0},
 				{X: 5, Y: 5},
 			},
 		},
 		{
 			ID: "3",
-			Points: []Point{
+			Points: []point.Point{
 				{X: 5, Y: 5},
 				{X: 1, Y: 5},
 			},
@@ -125,29 +126,29 @@ func TestIsWallBetweenPoints(t *testing.T) {
 	}
 	apartment.MakeDependency()
 
-	assert.Equal(t, false, apartment.IsWallBetweenPoints(Point{X: 2, Y: 3}, Point{X: 3, Y: 2}))
-	assert.Equal(t, true, apartment.IsWallBetweenPoints(Point{X: 2, Y: 3}, Point{X: 6, Y: 2}))
+	assert.Equal(t, false, apartment.IsWallBetweenPoints(point.Point{X: 2, Y: 3}, point.Point{X: 3, Y: 2}))
+	assert.Equal(t, true, apartment.IsWallBetweenPoints(point.Point{X: 2, Y: 3}, point.Point{X: 6, Y: 2}))
 }
 
 func TestGetFrontDoorMethod(t *testing.T) {
 
 	doors := []Door{
 		{
-			Points: []Point{
+			Points: []point.Point{
 				{X: 1, Y: 0},
 				{X: 2, Y: 0},
 			},
 			Rooms: []string{"1", "2"},
 		},
 		{
-			Points: []Point{
+			Points: []point.Point{
 				{X: 5, Y: 6},
 				{X: 7, Y: 8},
 			},
 			Rooms: []string{"2", "3"},
 		},
 		{
-			Points: []Point{
+			Points: []point.Point{
 				{X: 1, Y: 2},
 				{X: 3, Y: 100},
 			},
@@ -157,7 +158,7 @@ func TestGetFrontDoorMethod(t *testing.T) {
 
 	apartment := Apartment{Doors: doors}
 	frontDoor := Door{
-		Points: []Point{
+		Points: []point.Point{
 			{X: 1, Y: 2},
 			{X: 3, Y: 100},
 		},

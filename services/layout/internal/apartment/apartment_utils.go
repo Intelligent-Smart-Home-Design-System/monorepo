@@ -1,4 +1,4 @@
-package entities
+package apartment
 
 // MakeDependency создает вспомогающую зависимость в квартире
 func (a *Apartment) MakeDependency() {

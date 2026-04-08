@@ -3,9 +3,10 @@ package security
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/tests/rules"
 
@@ -13,10 +14,10 @@ import (
 )
 
 func TestSecondLevelSimpleScript(t *testing.T) {
-	room := entities.Room{
+	room := apartment.Room{
 		ID:   "1",
 		Name: "hall",
-		Area: []entities.Point{
+		Area: []point.Point{
 			{X: 0, Y: 0},
 			{X: 3, Y: 0},
 			{X: 3, Y: 3},
@@ -24,20 +25,20 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 		},
 	}
 
-	door := entities.Door{
+	door := apartment.Door{
 		ID: "1",
-		Points: []entities.Point{
+		Points: []point.Point{
 			{X: 1, Y: 0},
 			{X: 2, Y: 0},
 		},
 		Rooms: []string{room.ID},
 	}
 
-	apartment := &entities.Apartment{
-		Doors: []entities.Door{door},
-		Rooms: []entities.Room{room},
+	apartmentStruct := &apartment.Apartment{
+		Doors: []apartment.Door{door},
+		Rooms: []apartment.Room{room},
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "2",
@@ -53,16 +54,16 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "smart_lock":
-			assert.Equal(t, entities.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
 		case "smart_doorbell":
-			assert.Equal(t, entities.Point{X: 1, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, point.Point{X: 1, Y: 0}, devicePlacement.Place)
 		}
 	}
 
@@ -80,11 +81,11 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 }
 
 func TestSecondLevelPriceCalculation(t *testing.T) {
-	rooms := []entities.Room{
+	rooms := []apartment.Room{
 		{
 			ID:   "1",
 			Name: "bathroom",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 2, Y: 0},
 				{X: 2, Y: 2},
@@ -94,7 +95,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "2",
 			Name: "kitchen",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -104,7 +105,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "3",
 			Name: "hall",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -113,20 +114,20 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		},
 	}
 
-	door := entities.Door{
+	door := apartment.Door{
 		ID: "1",
-		Points: []entities.Point{
+		Points: []point.Point{
 			{X: 1, Y: 0},
 			{X: 2, Y: 0},
 		},
 		Rooms: []string{"3"},
 	}
 
-	apartment := &entities.Apartment{
-		Doors: []entities.Door{door},
+	apartmentStruct := &apartment.Apartment{
+		Doors: []apartment.Door{door},
 		Rooms: rooms,
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "2",
@@ -142,7 +143,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 

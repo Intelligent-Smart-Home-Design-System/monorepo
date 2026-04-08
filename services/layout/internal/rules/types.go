@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 )
 
 type Rule interface {
@@ -10,5 +9,5 @@ type Rule interface {
 	GetType() string
 
 	// Apply расставляет устройство в квартире
-	Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error
+	Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error
 }

@@ -3,9 +3,10 @@ package security
 import (
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/tests/rules"
 
@@ -13,11 +14,11 @@ import (
 )
 
 func TestThirdLevelSimpleScript(t *testing.T) {
-	rooms := []entities.Room{
+	rooms := []apartment.Room{
 		{
 			ID:   "1",
 			Name: "living",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 2, Y: 0},
 				{X: 2, Y: 2},
@@ -27,7 +28,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		{
 			ID:   "2",
 			Name: "hall",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -36,30 +37,30 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		},
 	}
 
-	window := entities.Window{
+	window := apartment.Window{
 		ID: "1",
-		Points: []entities.Point{
+		Points: []point.Point{
 			{X: 0, Y: 1.2},
 			{X: 0, Y: 1.6},
 		},
 		Rooms: []string{"1"},
 	}
 
-	door := entities.Door{
+	door := apartment.Door{
 		ID: "1",
-		Points: []entities.Point{
+		Points: []point.Point{
 			{X: 1, Y: 0},
 			{X: 2, Y: 0},
 		},
 		Rooms: []string{"2"},
 	}
 
-	apartment := &entities.Apartment{
-		Windows: []entities.Window{window},
-		Doors:   []entities.Door{door},
+	apartmentStruct := &apartment.Apartment{
+		Windows: []apartment.Window{window},
+		Doors:   []apartment.Door{door},
 		Rooms:   rooms,
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "3",
@@ -75,7 +76,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 
@@ -83,14 +84,14 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		for _, devicePlacement := range roomPlacement {
 			switch devicePlacement.Device.Type {
 			case "door_sensor":
-				assert.Equal(t, entities.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+				assert.Equal(t, point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
 			case "window_sensor":
-				assert.Equal(t, entities.Point{X: 0, Y: 1.4}, devicePlacement.Place)
+				assert.Equal(t, point.Point{X: 0, Y: 1.4}, devicePlacement.Place)
 			case "motion_sensor":
 				if roomID == "1" {
-					assert.Equal(t, entities.Point{X: 1, Y: 1}, devicePlacement.Place)
+					assert.Equal(t, point.Point{X: 1, Y: 1}, devicePlacement.Place)
 				} else {
-					assert.Equal(t, entities.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+					assert.Equal(t, point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
 				}
 			}
 		}
@@ -122,11 +123,11 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 }
 
 func TestThirdLevelPriceCalculation(t *testing.T) {
-	rooms := []entities.Room{
+	rooms := []apartment.Room{
 		{
 			ID:   "1",
 			Name: "bathroom",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 2, Y: 0},
 				{X: 2, Y: 2},
@@ -136,7 +137,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "2",
 			Name: "kitchen",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -146,7 +147,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "3",
 			Name: "hall",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
 				{X: 3, Y: 3},
@@ -156,7 +157,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		{
 			ID:   "4",
 			Name: "living",
-			Area: []entities.Point{
+			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 2, Y: 0},
 				{X: 2, Y: 2},
@@ -165,10 +166,10 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		},
 	}
 
-	windows := []entities.Window{
+	windows := []apartment.Window{
 		{
 			ID: "1",
-			Points: []entities.Point{
+			Points: []point.Point{
 				{X: 0, Y: 1},
 				{X: 0, Y: 2},
 			},
@@ -176,7 +177,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		},
 		{
 			ID: "2",
-			Points: []entities.Point{
+			Points: []point.Point{
 				{X: 0, Y: 1},
 				{X: 0, Y: 2},
 			},
@@ -184,18 +185,18 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		},
 	}
 
-	door := entities.Door{
+	door := apartment.Door{
 		ID:     "1",
-		Points: []entities.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
+		Points: []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
 		Rooms:  []string{"3"},
 	}
 
-	apartment := &entities.Apartment{
+	apartmentStruct := &apartment.Apartment{
 		Windows: windows,
-		Doors:   []entities.Door{door},
+		Doors:   []apartment.Door{door},
 		Rooms:   rooms,
 	}
-	apartment.MakeDependency()
+	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "3",
@@ -211,7 +212,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 

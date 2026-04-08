@@ -1,7 +1,8 @@
 package security
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -19,8 +20,8 @@ func (gl *MotionSensorRule) GetType() string {
 	return "motion_sensor"
 }
 
-func (gl *MotionSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
-	motionRooms, err := apartment.GetRoomsByNames(deviceRooms)
+func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+	motionRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func (gl *MotionSensorRule) Apply(apartment *entities.Apartment, deviceRooms []s
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*entities.Placement)
+			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
 		}
 
 		roomCenter, err := room.GetCenter()
@@ -39,10 +40,10 @@ func (gl *MotionSensorRule) Apply(apartment *entities.Apartment, deviceRooms []s
 		}
 
 		deviceID := uuid.NewString()
-		device := entities.NewDevice(deviceID, "motion_sensor", "security")
-		placement := entities.NewPlacement(device, roomID, *roomCenter)
+		newDevice := device.NewDevice(deviceID, "motion_sensor", "security")
+		placement := device.NewPlacement(newDevice, roomID, *roomCenter)
 
-		apartmentLayout.Placements[roomID][device.Type] = placement
+		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}
 
 	return nil

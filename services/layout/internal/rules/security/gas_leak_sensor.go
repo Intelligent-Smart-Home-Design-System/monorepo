@@ -1,7 +1,8 @@
 package security
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -19,8 +20,8 @@ func (gl *GasLeakSensorRule) GetType() string {
 	return "gas_leak_sensor"
 }
 
-func (gl *GasLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms []string, apartmentLayout *entities.ApartmentLayout) error {
-	kitchens, err := apartment.GetRoomsByNames(deviceRooms)
+func (gl *GasLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+	kitchens, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func (gl *GasLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms []
 
 		_, ok := apartmentLayout.Placements[kitchenID]
 		if !ok {
-			apartmentLayout.Placements[kitchenID] = make(map[string]*entities.Placement)
+			apartmentLayout.Placements[kitchenID] = make(map[string]*device.Placement)
 		}
 
 		kitchenCenter, err := kitchen.GetCenter()
@@ -39,10 +40,10 @@ func (gl *GasLeakSensorRule) Apply(apartment *entities.Apartment, deviceRooms []
 		}
 
 		deviceID := uuid.NewString()
-		device := entities.NewDevice(deviceID, "gas_leak_sensor", "security")
-		placement := entities.NewPlacement(device, kitchenID, *kitchenCenter)
+		newDevice := device.NewDevice(deviceID, "gas_leak_sensor", "security")
+		placement := device.NewPlacement(newDevice, kitchenID, *kitchenCenter)
 
-		apartmentLayout.Placements[kitchenID][device.Type] = placement
+		apartmentLayout.Placements[kitchenID][newDevice.Type] = placement
 	}
 
 	return nil

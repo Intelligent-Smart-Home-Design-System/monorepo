@@ -1,7 +1,8 @@
 package security
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/google/uuid"
 )
 
@@ -19,17 +20,17 @@ func (wl *WaterLeakRule) GetType() string {
 	return "water_leak_sensor"
 }
 
-func (wl *WaterLeakRule) Apply(apartment *entities.Apartment) map[string]map[string]*entities.Placement {
-	res := make(map[string]map[string]*entities.Placement)
+func (wl *WaterLeakRule) Apply(ap *apartment.Apartment) map[string]map[string]*device.Placement {
+	res := make(map[string]map[string]*device.Placement)
 
-	for _, room := range apartment.Rooms {
+	for _, room := range ap.Rooms {
 		for _, wetPoint := range room.WetPoints {
 			ID := uuid.NewString() // в будущем все ID будут прописаны в конфигах
-								   // и будут браться оттуда
-			device := entities.NewDevice(ID, "water_leak_sensor", "security")
-			placement := entities.NewPlacement(device, room.ID, wetPoint)
-			res[room.ID] = make(map[string]*entities.Placement)
-			res[room.ID][device.Type] = placement
+			// и будут браться оттуда
+			dev := device.NewDevice(ID, wl.GetType(), wl.track)
+			placement := device.NewPlacement(dev, room.ID, wetPoint)
+			res[room.ID] = make(map[string]*device.Placement)
+			res[room.ID][dev.Type] = placement
 		}
 	}
 	return res

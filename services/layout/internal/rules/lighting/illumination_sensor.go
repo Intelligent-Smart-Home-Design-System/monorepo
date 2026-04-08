@@ -23,7 +23,7 @@ func (r *IlluminationSensorRule) GetType() string {
 func (r *IlluminationSensorRule) Apply(ap *apartment.Apartment) map[string]map[string]*device.Placement {
 	res := make(map[string]map[string]*device.Placement)
 
-	deviceRooms := []string{"living", "kitchen"}
+	deviceRooms := []string{apartment.RoomLiving, apartment.RoomKitchen}
 	for _, roomType := range deviceRooms {
 		rooms := ap.GetRoomsByType(roomType)
 		for _, room := range rooms {

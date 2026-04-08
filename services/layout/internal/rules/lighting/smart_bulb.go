@@ -23,7 +23,7 @@ func (r *SmartBulbRule) GetType() string {
 func (r *SmartBulbRule) Apply(ap *apartment.Apartment) map[string]map[string]*device.Placement {
 	res := make(map[string]map[string]*device.Placement)
 
-	deviceRooms := []string{"living", "bedroom", "kitchen", "passage", "bathroom"}
+	deviceRooms := []string{apartment.RoomLiving, apartment.RoomBedroom, apartment.RoomKitchen, apartment.RoomPassage, apartment.RoomBathroom}
 	for _, roomType := range deviceRooms {
 		rooms := ap.GetRoomsByType(roomType)
 		for _, room := range rooms {

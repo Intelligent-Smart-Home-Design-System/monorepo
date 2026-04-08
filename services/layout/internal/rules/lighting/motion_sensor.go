@@ -23,7 +23,7 @@ func (r *MotionSensorRule) GetType() string {
 func (r *MotionSensorRule) Apply(ap *apartment.Apartment) map[string]map[string]*device.Placement {
 	res := make(map[string]map[string]*device.Placement)
 
-	deviceRooms := []string{"passage", "bathroom"}
+	deviceRooms := []string{apartment.RoomPassage, apartment.RoomBathroom}
 	for _, roomType := range deviceRooms {
 		rooms := ap.GetRoomsByType(roomType)
 		for _, room := range rooms {

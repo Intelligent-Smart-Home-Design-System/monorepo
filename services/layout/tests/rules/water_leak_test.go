@@ -38,7 +38,7 @@ func TestLoadDevicesConfig(t *testing.T) {
 func TestLaunch(t *testing.T) {
 	room := &apartment.Room{
 		ID:        "1",
-		Name:      "kitchen",
+		Name:      apartment.RoomKitchen,
 		WetPoints: make([]*device.Point, 0),
 	}
 	apartment := &apartment.Apartment{
@@ -108,7 +108,7 @@ func TestNilRoomsStruct(t *testing.T) {
 func TestSimpleScript(t *testing.T) {
 	room := &apartment.Room{
 		ID:        "1",
-		Name:      "bathroom",
+		Name:      apartment.RoomBathroom,
 		WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 	}
 	apartment := &apartment.Apartment{
@@ -143,12 +143,12 @@ func TestMultipleRoomsOneWetPoint(t *testing.T) {
 	rooms := []*apartment.Room{
 		{
 			ID:        "1",
-			Name:      "bathroom",
+			Name:      apartment.RoomBathroom,
 			WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 		},
 		{
 			ID:        "2",
-			Name:      "kitchen",
+			Name:      apartment.RoomKitchen,
 			WetPoints: make([]*device.Point, 0),
 		},
 	}
@@ -186,12 +186,12 @@ func TestMultipleRoomsMultipleWetPoints(t *testing.T) {
 	rooms := []*apartment.Room{
 		{
 			ID:        "1",
-			Name:      "bathroom",
+			Name:      apartment.RoomBathroom,
 			WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 		},
 		{
 			ID:        "2",
-			Name:      "kitchen",
+			Name:      apartment.RoomKitchen,
 			WetPoints: []*device.Point{{X: 5, Y: 10, Z: 0}},
 		},
 	}
@@ -236,12 +236,12 @@ func TestPriceCalculation(t *testing.T) {
 	rooms := []*apartment.Room{
 		{
 			ID:        "1",
-			Name:      "bathroom",
+			Name:      apartment.RoomBathroom,
 			WetPoints: []*device.Point{{X: 1, Y: 2, Z: 0}},
 		},
 		{
 			ID:        "2",
-			Name:      "kitchen",
+			Name:      apartment.RoomKitchen,
 			WetPoints: []*device.Point{{X: 5, Y: 10, Z: 0}},
 		},
 	}

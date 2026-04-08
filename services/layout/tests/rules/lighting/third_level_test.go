@@ -15,11 +15,11 @@ func TestLightingLevel3(t *testing.T) {
 		ID:     "a1",
 		Tracks: []string{"lighting"},
 		Rooms: []*apartment.Room{
-			{ID: "r1", Name: "living"},
-			{ID: "r2", Name: "kitchen"},
-			{ID: "r3", Name: "passage"},
-			{ID: "r4", Name: "bathroom"},
-			{ID: "r5", Name: "cabinet"},
+			{ID: "r1", Name: apartment.RoomLiving},
+			{ID: "r2", Name: apartment.RoomKitchen},
+			{ID: "r3", Name: apartment.RoomPassage},
+			{ID: "r4", Name: apartment.RoomBathroom},
+			{ID: "r5", Name: apartment.RoomCabinet},
 		},
 	}
 	selectedLevels := map[string]string{

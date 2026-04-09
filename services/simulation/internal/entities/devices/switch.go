@@ -161,22 +161,22 @@ func NewLightSwitchOffSensor(data []byte, engineAPI engine.EnginePort) (*LightSw
 }
 
 func (l *LightSwitchOffSensor) HandleInDTO(dto []byte) error {
-	input := LightSwitchOffSensorInData{}
-	if err := json.Unmarshal(dto, &input); err != nil {
-		return err
-	}
+    input := LightSwitchOffSensorInData{}
+    if err := json.Unmarshal(dto, &input); err != nil {
+        return err
+    }
 
-	oldSimEvent := l.simEvent
-	oldCancelEv := l.simCancelEv
+    l.data = input
 
-	l.simCancelEv = l.enginePort.GetSimulation().Event()
-	l.simEvent = l.enginePort.GetSimulation().Event()
-	l.data = input
+    if input.TurnOn {
+        l.simEvent.Trigger()
+        l.simEvent = l.enginePort.GetSimulation().Event()
+    } else {
+        l.simCancelEv.Trigger()
+        l.simCancelEv = l.enginePort.GetSimulation().Event()
+    }
 
-	oldCancelEv.Trigger()
-	oldSimEvent.Trigger()
-
-	return nil
+    return nil
 }
 
 func (l *LightSwitchOffSensor) HandleOutDTO(dto []byte) {
@@ -200,33 +200,33 @@ func (l *LightSwitchOffSensor) GetProcessFunc() func(process simgo.Process) {
 }
 
 func (l *LightSwitchOffSensor) Process(process simgo.Process) {
-	for {
-		event := l.simEvent
-		process.Wait(event)
+    for {
+        if !l.TurnedOn {
+            process.Wait(l.simEvent)
+            process.Wait(process.Timeout(l.getReactionDelay()))
+            l.TurnedOn = true
+            outData := l.HandleEvent(l.data)
+            dataLamp, _ := json.Marshal(outData)
+            l.HandleOutDTO(dataLamp)
+        }
 
-		for {
-			process.Wait(process.Timeout(l.getReactionDelay()))
-			inData := l.data
-			cancelEv := l.simCancelEv
+        for l.TurnedOn {
+            timeoutEv := process.Timeout(l.Timeout)
+            process.Wait(process.AnyOf(timeoutEv, l.simCancelEv))
 
-			if inData.TurnOn == false {
-				timeoutEv := process.Timeout(l.Timeout)
-				process.Wait(process.AnyOf(timeoutEv, cancelEv))
+            if l.simCancelEv.Processed() {
+                continue
+            }
 
-				if cancelEv.Processed() {
-					continue
-				}
-			}
-
-			outData := l.HandleEvent(inData)
-			dataLamp, err := json.Marshal(outData)
-			if err != nil {
-				slog.Warn("cannot marshal out data", "error", err, "entity_id", l.ID)
-			}
-			l.HandleOutDTO(dataLamp)
-			break
-		}
-	}
+            if timeoutEv.Processed() {
+                l.TurnedOn = false
+                outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: false})
+                dataLamp, _ := json.Marshal(outData)
+                l.HandleOutDTO(dataLamp)
+                break
+            }
+        }
+    }
 }
 
 func (l *LightSwitchOffSensor) HandleEvent(inData LightSwitchOffSensorInData) LightSwitchOffSensorOutData {

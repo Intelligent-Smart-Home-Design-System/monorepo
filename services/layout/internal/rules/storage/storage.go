@@ -47,3 +47,15 @@ func (s *Storage) LoadAllSecurityRules() {
 		s.LoadRule(rule)
 	}
 }
+
+func (s *Storage) LoadAllLightingRules() {
+	storageRules := []rules.Rule{
+		lighting.NewSmartBulbRule(),
+		lighting.NewMotionSensorRule(),
+		lighting.NewIlluminationSensorRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+} 

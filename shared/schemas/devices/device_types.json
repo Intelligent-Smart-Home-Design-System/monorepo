@@ -13,15 +13,6 @@
         "model": {
           "type": "string",
           "description": "Manufacturer model or SKU"
-        },
-        "price": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Price in RUB or local currency"
-        },
-        "articul_YANDEX": {
-          "type": "string",
-          "description": "Yandex article number, if available"
         }
       },
       "required": ["name", "brand", "model"]
@@ -83,26 +74,27 @@
     },
     "lighting": {
       "properties": {
-        "power": {
+        "power_watts": {
           "type": "number",
           "minimum": 0,
           "description": "Power consumption in watts"
         },
-        "voltage": {
-          "type": "object",
-          "properties": {
-            "min": { "type": "number", "minimum": 0 },
-            "max": { "type": "number", "minimum": 0 }
-          },
-          "required": ["min", "max"],
-          "description": "Operating voltage range in volts"
+        "voltage_min_watt": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum operating voltage in volts"
         },
-        "lifetime": {
+        "voltage_max_watt": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum operating voltage in volts"
+        },
+        "lifetime_hours": {
           "type": "number",
           "minimum": 0,
           "description": "Rated lifetime in hours"
         },
-        "color_temperature": {
+        "color_temperature_kelvin": {
           "type": "number",
           "minimum": 1000,
           "maximum": 10000,
@@ -120,7 +112,7 @@
           "description": "Supported color modes"
         }
       },
-      "required": ["power", "voltage"]
+      "required": ["power_watts", "voltage_min_watt", "voltage_max_watt"]
     },
     "sensor": {
       "properties": {
@@ -134,12 +126,12 @@
     },
     "motion_detection": {
       "properties": {
-        "detection_range": {
+        "detection_range_meters": {
           "type": "number",
           "minimum": 0,
           "description": "Maximum detection range in meters"
         },
-        "detection_angle": {
+        "detection_angle_degrees": {
           "type": "number",
           "minimum": 0,
           "maximum": 360,
@@ -190,30 +182,28 @@
       "extra_schema": {
         "properties": {
           "type": { "const": "temperature_sensor" },
-          "temperature_range": {
-            "type": "object",
-            "properties": {
-              "min": { "type": "number" },
-              "max": { "type": "number" }
-            },
-            "required": ["min", "max"],
-            "additionalProperties": false,
-            "description": "Measurable temperature range in degrees Celsius"
+          "temperature_min_celsius": {
+            "type": "number",
+            "description": "Minimum measurable temperature in degrees Celsius"
+          },
+          "temperature_max_celsius": {
+            "type": "number",
+            "description": "Maximum measurable temperature in degrees Celsius"
           },
           "humidity_sensor": {
             "type": "boolean",
             "description": "Whether the device also measures relative humidity"
           },
-          "accuracy_temperature": {
+          "accuracy_temperature_celsius": {
             "type": "number",
             "description": "Temperature measurement accuracy (± °C)"
           },
-          "accuracy_humidity": {
+          "accuracy_humidity_percent": {
             "type": "number",
             "description": "Humidity measurement accuracy (± %)"
           }
         },
-        "required": ["type", "temperature_range"]
+        "required": ["type", "temperature_min_celsius", "temperature_max_celsius"]
       }
     },
     "motion_sensor": {
@@ -247,20 +237,20 @@
       "extra_schema": {
         "properties": {
           "type": { "const": "smart_plug" },
-          "max_power": {
+          "max_power_watts": {
             "type": "number",
             "minimum": 0,
             "description": "Maximum load power in watts"
           },
-          "voltage": {
-            "type": "object",
-            "properties": {
-              "min": { "type": "number", "minimum": 0 },
-              "max": { "type": "number", "minimum": 0 }
-            },
-            "required": ["min", "max"],
-            "additionalProperties": false,
-            "description": "Operating voltage range in volts"
+          "voltage_min_watt": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Minimum operating voltage in volts"
+          },
+          "voltage_max_watt": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Maximum operating voltage in volts"
           },
           "usb_ports": {
             "type": "integer",
@@ -271,12 +261,12 @@
             "type": "boolean",
             "description": "Whether the plug has a child safety lock"
           },
-          "power_consumption": {
+          "power_consumption_watts": {
             "type": "number",
             "description": "Standby power consumption of the plug itself (watts)"
           }
         },
-        "required": ["type", "max_power", "voltage"]
+        "required": ["type", "max_power_watts", "voltage_min_watt", "voltage_max_watt"]
       }
     }
   }

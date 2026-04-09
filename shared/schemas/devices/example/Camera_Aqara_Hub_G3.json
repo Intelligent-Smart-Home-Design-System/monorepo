@@ -1,0 +1,16 @@
+{
+  "type": "IP-камера",
+  "name": "Aqara Camera Hub G3",
+  "price": 9810.0,
+  "ecosystem": [
+    "Apple HomeKit"
+  ],
+  "protocol": [
+    "Wi-Fi",
+    "ZigBee"
+  ],
+  "resolution": "2304х1296",
+  "supports_microSD": true,
+  "has_hub": true,
+  "articul_YANDEX": "102182843671"
+}

@@ -49,6 +49,7 @@ func TestScraper_Scrape_Success(t *testing.T) {
 				}
 			}),
 		},
+		userAgent: "Mozilla",
 	}
 
 	task := domain.ScrapeTask{

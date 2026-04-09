@@ -11,38 +11,38 @@ import (
 )
 
 type Scraper struct {
-    client    *http.Client
-    userAgent string
+	client    *http.Client
+	userAgent string
 }
 
 func NewScraper(timeout time.Duration, userAgent string) *Scraper {
-    return &Scraper{
-        client: &http.Client{Timeout: timeout},
-        userAgent: userAgent,
-    }
+	return &Scraper{
+		client:    &http.Client{Timeout: timeout},
+		userAgent: userAgent,
+	}
 }
 
-func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (domain.ScrapeResult, error) {
+func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, task.URL, nil)
 	if err != nil {
-		return domain.ScrapeResult{}, fmt.Errorf("create request: %w", err)
+		return nil, fmt.Errorf("create request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", s.userAgent)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return domain.ScrapeResult{}, fmt.Errorf("do request: %w", err)
+		return nil, fmt.Errorf("do request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return domain.ScrapeResult{}, fmt.Errorf("unexpected status: %s", resp.Status)
+		return nil, fmt.Errorf("unexpected status: %s", resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return domain.ScrapeResult{}, fmt.Errorf("read body: %w", err)
+		return nil, fmt.Errorf("read body: %w", err)
 	}
 
 	resource := domain.Resource{
@@ -56,7 +56,7 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (domain.Sc
 		Timestamp:       time.Now(),
 	}
 
-	return domain.ScrapeResult{
+	return &domain.ScrapeResult{
 		Resources: []domain.Resource{resource},
 	}, nil
 }

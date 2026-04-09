@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +21,7 @@ func TestTrackedPageRepo_GetTasks(t *testing.T) {
 	_, err := db.Exec(`
         INSERT INTO tracked_pages (source_name, page_type, url, is_active)
         VALUES ($1, $2, $3, $4)
-    `, "sprut", "article", "https://test.com", true)
+    `, "sprut", "listing", "https://test.com", true)
 	require.NoError(t, err)
 
 	tasks, err := repo.GetTasks()
@@ -27,7 +29,7 @@ func TestTrackedPageRepo_GetTasks(t *testing.T) {
 	require.Len(t, tasks, 1)
 
 	assert.Equal(t, "sprut", tasks[0].Source)
-	assert.Equal(t, "article", tasks[0].PageType)
+	assert.Equal(t, domain.PageTypeListing, tasks[0].PageType)
 	assert.Equal(t, "https://test.com", tasks[0].URL)
 }
 
@@ -42,7 +44,7 @@ func TestTrackedPageRepo_SetStatus(t *testing.T) {
         INSERT INTO tracked_pages (source_name, page_type, url, is_active)
         VALUES ($1, $2, $3, $4)
         RETURNING id
-    `, "sprut", "article", "https://test.com", true).Scan(&taskID)
+    `, "sprut", "listing", "https://test.com", true).Scan(&taskID)
 	require.NoError(t, err)
 
 	err = repo.SetStatus(taskID, true, 100)

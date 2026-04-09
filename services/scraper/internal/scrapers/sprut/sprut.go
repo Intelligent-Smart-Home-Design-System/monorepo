@@ -10,6 +10,8 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 )
 
+const Source = "sprut"
+
 type Scraper struct {
 	client    *http.Client
 	userAgent string

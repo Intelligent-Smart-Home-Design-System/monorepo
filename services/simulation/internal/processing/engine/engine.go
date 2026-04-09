@@ -134,7 +134,7 @@ func (s *SimEngine) Run(ctx context.Context) error {
 				s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
 			} else {
 				s.HandleEvent(event)
-				s.simulation.RunUntil(s.simulation.Now())
+				s.simulation.RunUntil(s.simulation.Now() + 0.001)
 			}
 			if event.Done != nil {
 				close(event.Done) // сигнализируем: шаг завершён

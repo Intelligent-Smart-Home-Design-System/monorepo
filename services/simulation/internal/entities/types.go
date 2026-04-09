@@ -1,16 +1,45 @@
 package entities
 
-// Entity определяет главный интерфейс устройств
+// В пакете реализуется бизнес-логика сущностей
+
+import (
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/fschuetz04/simgo"
+)
+
+// Entity определяет интерфейс сущности без бизнес-логики
 type Entity interface {
-	// Trigger возвращает время в секундах, с начала симуляции
-	Trigger(delay int) float64
+	// GetID возвращает ID сущности
+	GetID() string
 
-	// SetEvent создает новый event и обновляет соответствующее поле
-	SetEvent()
+	// GetReceiversID возвращает сущности, которые данная сущность тригерит
+	GetReceiversID() []string
 
-	Process()
-
-	//GetID() string
-	//GetType() string
-	//GetReactionDelay() time.Duration
+	// SetReceivers устанавливает сущности, которые данная сущность тригерит
+	SetReceivers(actions []api.ActionDTO)
 }
+
+// EntityWithProcess определяет интерфейс сущности с бизнес-логикой
+type EntityWithProcess interface {
+	Entity
+
+	// HandleInDTO обрабатывает входящие данные и сохраняет их в хранилище сущности.
+	HandleInDTO(dto []byte) error
+
+	// HandleOutDTO обрабатывает исходящие данные и отправляет их в канал событий.
+	HandleOutDTO(out any) error
+
+	// GetProcessFunc возвращает функция процесс
+	GetProcessFunc() func(process simgo.Process)
+
+	// Process реализует функцию процесса устройства.
+	Process(process simgo.Process)
+
+	// GetOutCh возвращает канал для отправки данных о событиях.
+	GetOutCh() chan []byte
+}
+
+const (
+	TypeLamp         = "lamp"
+	TypeLampSwitcher = "lampSwitcher"
+)

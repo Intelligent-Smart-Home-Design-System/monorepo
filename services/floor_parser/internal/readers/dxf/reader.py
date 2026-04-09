@@ -6,7 +6,7 @@ from typing import Any
 
 import ezdxf
 
-from services.parser.internal.entities.raw_plan import SourceFormat, SourceMetadata
+from services.floor_parser.internal.entities.raw_plan import SourceFormat, SourceMetadata
 
 
 INSUNITS_TO_NAME: dict[int, str] = {

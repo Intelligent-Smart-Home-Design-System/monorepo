@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from math import sqrt
 
-from services.parser.internal.classification.classifier import ClassifiedEntities
-from services.parser.internal.entities.floor import Door, FloorMetadata, FloorPlan, Wall, Window
-from services.parser.internal.entities.geometry import LineEntity, Point, PolylineEntity
+from services.floor_parser.internal.classification.classifier import ClassifiedEntities
+from services.floor_parser.internal.entities.floor import Door, FloorMetadata, FloorPlan, Wall, Window
+from services.floor_parser.internal.entities.geometry import LineEntity, Point, PolylineEntity
 
 
 class TopologyBuilder:
@@ -21,8 +21,8 @@ class TopologyBuilder:
             windows=windows,
             metadata=FloorMetadata(
                 parsed_entity_count=parsed_entity_count,
-                supported_attributes=self._collect_supported_attributes(walls, doors, windows)
-            )
+                supported_attributes=self._collect_supported_attributes(walls, doors, windows),
+            ),
         )
 
     def build_walls(self, classified_entities: ClassifiedEntities) -> list[Wall]:
@@ -154,7 +154,7 @@ class TopologyBuilder:
             start=start,
             end=end,
             length=length,
-            source_entity_ids=[source_entity_id]
+            source_entity_ids=[source_entity_id],
         )
 
     def _build_segment_door(self, entity_id: str, layer: str, start: Point, end: Point, source_entity_id: str):
@@ -180,4 +180,4 @@ class TopologyBuilder:
         )
 
     def _get_length(self, start: Point, end: Point) -> float:
-        return round(sqrt((end.x - start.x)**2 + (end.y - start.y)**2), 6)
+        return round(sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2), 6)

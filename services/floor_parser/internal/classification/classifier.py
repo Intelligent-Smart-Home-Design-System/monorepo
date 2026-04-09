@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from services.parser.internal.entities.geometry import NormalizedEntity
+from services.floor_parser.internal.entities.geometry import NormalizedEntity
+from services.floor_parser.internal.classification.opening_detector import OpeningDetector
 
 
 WALL_LAYER_MARKERS = (
@@ -26,6 +27,12 @@ DOOR_LAYER_MARKERS = (
     "двери",
 )
 
+GARAGE_DOOR_LAYER_MARKERS = (
+    "garage-door",
+    "garage_door",
+    "гараж",
+)
+
 
 @dataclass(frozen=True)
 class ClassifiedEntities:
@@ -37,6 +44,9 @@ class ClassifiedEntities:
 
 
 class SemanticClassifier:
+    def __init__(self) -> None:
+        self._opening_detector = OpeningDetector()
+
     def classify(self, entities: list[NormalizedEntity]) -> ClassifiedEntities:
         walls: list[NormalizedEntity] = []
         windows: list[NormalizedEntity] = []
@@ -58,6 +68,9 @@ class SemanticClassifier:
 
             unknown.append(entity)
 
+        doors.extend(self._opening_detector.detect_doors(entities))
+        windows.extend(self._opening_detector.detect_windows(entities))
+
         return ClassifiedEntities(
             walls=walls,
             windows=windows,
@@ -75,4 +88,6 @@ class SemanticClassifier:
 
     def _is_door_layer(self, layer: str) -> bool:
         normalized_layer = layer.strip().lower()
+        if any(marker in normalized_layer for marker in GARAGE_DOOR_LAYER_MARKERS):
+            return False
         return any(marker in normalized_layer for marker in DOOR_LAYER_MARKERS)

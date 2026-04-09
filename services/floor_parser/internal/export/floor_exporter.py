@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from services.parser.internal.entities.floor import FloorPlan
-from services.parser.internal.entities.warnings import ParseWarning
+from services.floor_parser.internal.entities.floor import FloorPlan
+from services.floor_parser.internal.entities.warnings import ParseWarning
 
 
 class FloorExporter:

@@ -4,12 +4,12 @@ import json
 import unittest
 from pathlib import Path
 
-from services.parser.internal.classification.classifier import SemanticClassifier
-from services.parser.internal.export.floor_exporter import FloorExporter
-from services.parser.internal.normalization.geometry_normalizer import GeometryNormalizer
-from services.parser.internal.readers.dxf.extractor import DxfExtractor
-from services.parser.internal.readers.dxf.reader import DxfReader
-from services.parser.internal.topology.topology_builder import TopologyBuilder
+from services.floor_parser.internal.classification.classifier import SemanticClassifier
+from services.floor_parser.internal.export.floor_exporter import FloorExporter
+from services.floor_parser.internal.normalization.geometry_normalizer import GeometryNormalizer
+from services.floor_parser.internal.readers.dxf.extractor import DxfExtractor
+from services.floor_parser.internal.readers.dxf.reader import DxfReader
+from services.floor_parser.internal.topology.topology_builder import TopologyBuilder
 
 
 class ParseFloorIntegrationTest(unittest.TestCase):
@@ -18,6 +18,15 @@ class ParseFloorIntegrationTest(unittest.TestCase):
 
     def test_door_and_window(self):
         self._assert_floor_json_matches_expected("door_and_window.dxf", "door_and_window.json")
+
+    def test_apartment_partition_lines(self):
+        self._assert_floor_json_matches_expected("apartment_partition_lines.dxf", "apartment_partition_lines.json")
+
+    def test_apartment_outline_polyline(self):
+        self._assert_floor_json_matches_expected("apartment_outline_polyline.dxf", "apartment_outline_polyline.json")
+
+    def test_floorplan(self):
+        self._assert_floor_json_matches_expected("floorplan.dxf", "floorplan.json")
 
     def _assert_floor_json_matches_expected(self, dxf_filename: str, json_filename: str) -> None:
         tests_dir = Path(__file__).resolve().parent
@@ -46,14 +55,14 @@ class ParseFloorIntegrationTest(unittest.TestCase):
         floor_plan = topology_builder.build_floor(
             source_file=dxf_path.name,
             classified_entities=classified_entities,
-            parsed_entity_count=len(raw_plan.entities)
+            parsed_entity_count=len(raw_plan.entities),
         )
 
         return exporter.export(
             floor_plan,
             source=raw_plan.metadata.source_format.value,
             units=raw_plan.metadata.units,
-            warnings=[]
+            warnings=[],
         )
 
 

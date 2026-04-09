@@ -1,0 +1,21 @@
+{
+  "type": "Лампа",
+  "name": "IKEA YTBERG Cabinet lighting (005.168.19, белый, диммируемый)",
+  "price": 4385.0,
+  "ecosystem": [
+    "IKEA Home smart"
+  ],
+  "protocol": [
+    "ZigBee",
+    "ANSLUTA"
+  ],
+  "power": 1.5,
+  "voltage": {
+    "min": 220.0,
+    "max": 240.0
+  },
+  "articul_YANDEX": "102274559484",
+  "lifetime": 20.0,
+  "color_temperature": 4000.0,
+  "color_rendering_index": 80.0
+}

@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -51,13 +50,13 @@ func run(ctx context.Context, cfgFile string) error {
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
 	db, err := connectDB(cfg.Database)
-    if err != nil {
-        return fmt.Errorf("connect to db: %w", err)
-    }
-    defer db.Close()
+	if err != nil {
+		return fmt.Errorf("connect to db: %w", err)
+	}
+	defer db.Close()
 
 	taskRepo := repository.NewTrackedPageRepo(db)
-    snapshotRepo := repository.NewSnapshotRepo(db)
+	snapshotRepo := repository.NewSnapshotRepo(db)
 
 	printer := printer.NewPrinterScraper()
 	sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
@@ -71,7 +70,7 @@ func run(ctx context.Context, cfgFile string) error {
 
 	worker := worker.NewWorker(logger, sourceToScraper, resultsCh)
 
-		tasks, err := taskRepo.GetTasks()
+	tasks, err := taskRepo.GetTasks()
 	if err != nil {
 		return fmt.Errorf("get tasks: %w", err)
 	}
@@ -123,10 +122,10 @@ func getTasks() <-chan domain.ScrapeTask {
 			URL:      "http://www.example.com",
 		},
 		{
-        Source:   "sprut",
-        PageType: "article",
-        URL:      "https://sprut.ai/catalog",
-    },
+			Source:   "sprut",
+			PageType: "article",
+			URL:      "https://sprut.ai/catalog",
+		},
 	}
 
 	tasksCh := make(chan domain.ScrapeTask)
@@ -167,14 +166,14 @@ func readConfig(cfgFile string, cfg *config.Config) error {
 }
 
 func connectDB(cfg config.DatabaseConfig) (*sql.DB, error) {
-    connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-        cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
-    db, err := sql.Open("postgres", connStr)
-    if err != nil {
-        return nil, err
-    }
-    if err := db.Ping(); err != nil {
-        return nil, err
-    }
-    return db, nil
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }

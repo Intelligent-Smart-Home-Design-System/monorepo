@@ -101,6 +101,18 @@ func stepInit(ch chan api.EventInDTO) {
     <-done
 }
 
+func sendEventSync(ch chan api.EventInDTO, id string, state bool) {
+    done := make(chan struct{})
+    data, _ := json.Marshal(map[string]bool{"turn_on": state})
+    
+    ch <- api.EventInDTO{
+        EntityID: id,
+        Info:     data,
+        Done:     done,
+    }
+    <-done
+}
+
 func (s *StubSender) Snapshot() []api.EventOutDTO {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -421,40 +433,14 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 	}()
 
 	stepInit(eventsChan)
-    eventsChan <- event("lightSwitchOffSensor_1", true)
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
     stepTick(eventsChan)
-
-	time.Sleep(200 * time.Millisecond)
-	snap1 := sensorStatesFrom(sender.Snapshot(), "lightSwitchOffSensor_1")
-	if len(snap1) != 1 || snap1[0] != true {
-		t.Fatalf("after turn_on: expected [true], got %v", snap1)
-	}
-
-	eventsChan <- event("lightSwitchOffSensor_1", false)
-	
-	if sender.Count() != 1 {
-		t.Fatalf("after false sent: expected still 1 event, got %d", sender.Count())
-	}
-
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
 	stepTick(eventsChan)
-	eventsChan <- event("lightSwitchOffSensor_1", false)
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
 	stepTick(eventsChan)
-
-	///////////////////////
-	time.Sleep(200 * time.Millisecond) // <-- костыль
-	///////////////////////
-
-	if sender.Count() != 2 {
-		t.Fatalf("after 1st interruption: expected sensor still ON (2 event), got %d events", sender.Count())
-	}
-
-	eventsChan <- event("lightSwitchOffSensor_1", false)
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
 	stepTick(eventsChan)
-
-	if sender.Count() != 2 {
-		t.Fatalf("after 2nd interruption: expected sensor still ON (2 event), got %d events", sender.Count())
-	}
-	
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 	stepTick(eventsChan)

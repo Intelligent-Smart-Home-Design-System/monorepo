@@ -14,15 +14,6 @@
       "type": "string",
       "description": "Manufacturer model or SKU"
     },
-    "price": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price in RUB or local currency"
-    },
-    "articul_YANDEX": {
-      "type": "string",
-      "description": "Yandex article number, if available"
-    },
     "ecosystem": {
       "type": "array",
       "items": {

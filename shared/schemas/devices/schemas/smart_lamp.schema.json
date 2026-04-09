@@ -14,15 +14,6 @@
       "type": "string",
       "description": "Manufacturer model or SKU"
     },
-    "price": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price in RUB or local currency"
-    },
-    "articul_YANDEX": {
-      "type": "string",
-      "description": "Yandex article number, if available"
-    },
     "ecosystem": {
       "type": "array",
       "items": {
@@ -59,35 +50,27 @@
       "uniqueItems": true,
       "description": "Communication protocols supported by the device"
     },
-    "power": {
+    "power_watts": {
       "type": "number",
       "minimum": 0,
       "description": "Power consumption in watts"
     },
-    "voltage": {
-      "type": "object",
-      "properties": {
-        "min": {
-          "type": "number",
-          "minimum": 0
-        },
-        "max": {
-          "type": "number",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "min",
-        "max"
-      ],
-      "description": "Operating voltage range in volts"
+    "voltage_min_watt": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Minimum operating voltage in volts"
     },
-    "lifetime": {
+    "voltage_max_watt": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Maximum operating voltage in volts"
+    },
+    "lifetime_hours": {
       "type": "number",
       "minimum": 0,
       "description": "Rated lifetime in hours"
     },
-    "color_temperature": {
+    "color_temperature_kelvin": {
       "type": "number",
       "minimum": 1000,
       "maximum": 10000,
@@ -130,8 +113,9 @@
     "model",
     "ecosystem",
     "protocol",
-    "power",
-    "voltage",
+    "power_watts",
+    "voltage_min_watt",
+    "voltage_max_watt",
     "type"
   ],
   "additionalProperties": false

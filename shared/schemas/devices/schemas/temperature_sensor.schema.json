@@ -14,15 +14,6 @@
       "type": "string",
       "description": "Manufacturer model or SKU"
     },
-    "price": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price in RUB or local currency"
-    },
-    "articul_YANDEX": {
-      "type": "string",
-      "description": "Yandex article number, if available"
-    },
     "ecosystem": {
       "type": "array",
       "items": {
@@ -95,32 +86,23 @@
     "type": {
       "const": "temperature_sensor"
     },
-    "temperature_range": {
-      "type": "object",
-      "properties": {
-        "min": {
-          "type": "number"
-        },
-        "max": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "min",
-        "max"
-      ],
-      "additionalProperties": false,
-      "description": "Measurable temperature range in degrees Celsius"
+    "temperature_min_celsius": {
+      "type": "number",
+      "description": "Minimum measurable temperature in degrees Celsius"
+    },
+    "temperature_max_celsius": {
+      "type": "number",
+      "description": "Maximum measurable temperature in degrees Celsius"
     },
     "humidity_sensor": {
       "type": "boolean",
       "description": "Whether the device also measures relative humidity"
     },
-    "accuracy_temperature": {
+    "accuracy_temperature_celsius": {
       "type": "number",
       "description": "Temperature measurement accuracy (± °C)"
     },
-    "accuracy_humidity": {
+    "accuracy_humidity_percent": {
       "type": "number",
       "description": "Humidity measurement accuracy (± %)"
     }
@@ -132,7 +114,8 @@
     "ecosystem",
     "protocol",
     "type",
-    "temperature_range"
+    "temperature_min_celsius",
+    "temperature_max_celsius"
   ],
   "additionalProperties": false
 }

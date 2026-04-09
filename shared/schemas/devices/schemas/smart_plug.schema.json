@@ -14,15 +14,6 @@
       "type": "string",
       "description": "Manufacturer model or SKU"
     },
-    "price": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price in RUB or local currency"
-    },
-    "articul_YANDEX": {
-      "type": "string",
-      "description": "Yandex article number, if available"
-    },
     "ecosystem": {
       "type": "array",
       "items": {
@@ -62,29 +53,20 @@
     "type": {
       "const": "smart_plug"
     },
-    "max_power": {
+    "max_power_watts": {
       "type": "number",
       "minimum": 0,
       "description": "Maximum load power in watts"
     },
-    "voltage": {
-      "type": "object",
-      "properties": {
-        "min": {
-          "type": "number",
-          "minimum": 0
-        },
-        "max": {
-          "type": "number",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "min",
-        "max"
-      ],
-      "additionalProperties": false,
-      "description": "Operating voltage range in volts"
+    "voltage_min_watt": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Minimum operating voltage in volts"
+    },
+    "voltage_max_watt": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Maximum operating voltage in volts"
     },
     "usb_ports": {
       "type": "integer",
@@ -95,7 +77,7 @@
       "type": "boolean",
       "description": "Whether the plug has a child safety lock"
     },
-    "power_consumption": {
+    "power_consumption_watts": {
       "type": "number",
       "description": "Standby power consumption of the plug itself (watts)"
     }
@@ -107,8 +89,9 @@
     "ecosystem",
     "protocol",
     "type",
-    "max_power",
-    "voltage"
+    "max_power_watts",
+    "voltage_min_watt",
+    "voltage_max_watt"
   ],
   "additionalProperties": false
 }

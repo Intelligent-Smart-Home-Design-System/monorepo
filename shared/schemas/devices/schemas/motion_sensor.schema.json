@@ -14,15 +14,6 @@
       "type": "string",
       "description": "Manufacturer model or SKU"
     },
-    "price": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price in RUB or local currency"
-    },
-    "articul_YANDEX": {
-      "type": "string",
-      "description": "Yandex article number, if available"
-    },
     "ecosystem": {
       "type": "array",
       "items": {
@@ -87,12 +78,12 @@
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
       "description": "Ingress Protection code, e.g. IP67, IP44"
     },
-    "detection_range": {
+    "detection_range_meters": {
       "type": "number",
       "minimum": 0,
       "description": "Maximum detection range in meters"
     },
-    "detection_angle": {
+    "detection_angle_degrees": {
       "type": "number",
       "minimum": 0,
       "maximum": 360,

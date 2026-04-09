@@ -36,7 +36,7 @@ func (sl *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 
 	deviceID := uuid.NewString()
 	newDevice := device.NewDevice(deviceID, "smart_doorbell", "security")
-	placement := device.NewPlacement(newDevice, roomID, frontDoor.Points[0])
+	placement := device.NewPlacement(newDevice, roomID, &frontDoor.Points[0])
 
 	apartmentLayout.Placements[roomID][newDevice.Type] = placement
 

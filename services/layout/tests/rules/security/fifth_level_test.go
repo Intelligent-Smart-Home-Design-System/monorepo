@@ -63,7 +63,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements["1"] {
 		switch devicePlacement.Device.Type {
 		case "smart_siren":
-			assert.Equal(t, point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
 		}
 	}
 

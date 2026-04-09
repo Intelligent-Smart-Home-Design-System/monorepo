@@ -36,7 +36,7 @@ func (gl *WindowSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 
 		deviceID := uuid.NewString()
 		newDevice := device.NewDevice(deviceID, "window_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, windowCenter)
+		placement := device.NewPlacement(newDevice, roomID, &windowCenter)
 
 		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}

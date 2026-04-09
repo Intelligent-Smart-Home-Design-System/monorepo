@@ -126,13 +126,13 @@ func TestForthLevelSimpleScript(t *testing.T) {
 			switch devicePlacement.Device.Type {
 			case "camera":
 				if roomID == "1" {
-					assert.Equal(t, point.Point{X: 4, Y: 0}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 4, Y: 0}, devicePlacement.Place)
 				} else {
 					variants := []point.Point{
 						{X: 0, Y: 3},
 						{X: 3, Y: 3},
 					}
-					assert.Contains(t, variants, devicePlacement.Place)
+					assert.Contains(t, variants, *devicePlacement.Place)
 				}
 			}
 		}

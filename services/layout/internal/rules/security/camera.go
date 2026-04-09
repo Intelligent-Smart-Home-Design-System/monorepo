@@ -41,7 +41,7 @@ func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []
 
 		deviceID := uuid.NewString()
 		newDevice := device.NewDevice(deviceID, "camera", "security")
-		placement := device.NewPlacement(newDevice, roomID, *cameraPoint)
+		placement := device.NewPlacement(newDevice, roomID, cameraPoint)
 
 		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}

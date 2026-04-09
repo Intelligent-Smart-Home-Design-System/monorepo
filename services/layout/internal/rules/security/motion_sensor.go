@@ -41,7 +41,7 @@ func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 
 		deviceID := uuid.NewString()
 		newDevice := device.NewDevice(deviceID, "motion_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, *roomCenter)
+		placement := device.NewPlacement(newDevice, roomID, roomCenter)
 
 		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}

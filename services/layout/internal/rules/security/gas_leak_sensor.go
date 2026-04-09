@@ -41,7 +41,7 @@ func (gl *GasLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 
 		deviceID := uuid.NewString()
 		newDevice := device.NewDevice(deviceID, "gas_leak_sensor", "security")
-		placement := device.NewPlacement(newDevice, kitchenID, *kitchenCenter)
+		placement := device.NewPlacement(newDevice, kitchenID, kitchenCenter)
 
 		apartmentLayout.Placements[kitchenID][newDevice.Type] = placement
 	}

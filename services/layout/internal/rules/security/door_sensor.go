@@ -38,7 +38,7 @@ func (gl *DoorSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 
 	deviceID := uuid.NewString()
 	newDevice := device.NewDevice(deviceID, "door_sensor", "security")
-	placement := device.NewPlacement(newDevice, roomID, doorCenter)
+	placement := device.NewPlacement(newDevice, roomID, &doorCenter)
 
 	apartmentLayout.Placements[roomID][newDevice.Type] = placement
 

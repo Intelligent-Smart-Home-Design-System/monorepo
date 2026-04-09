@@ -40,7 +40,7 @@ func (gl *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 
 		deviceID := uuid.NewString()
 		newDevice := device.NewDevice(deviceID, "smart_siren", "security")
-		placement := device.NewPlacement(newDevice, roomID, *hallCenter)
+		placement := device.NewPlacement(newDevice, roomID, hallCenter)
 
 		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}

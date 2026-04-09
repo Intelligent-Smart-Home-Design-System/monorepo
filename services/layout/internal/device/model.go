@@ -12,13 +12,13 @@ type Device struct {
 type Placement struct {
 	Device *Device
 	RoomID string
-	Place  point.Point
+	Place  *point.Point
 }
 
 func NewDevice(ID, deviceType, trackType string) *Device {
 	return &Device{ID: ID, Type: deviceType, DeviceTrack: trackType}
 }
 
-func NewPlacement(device *Device, roomID string, place point.Point) *Placement {
+func NewPlacement(device *Device, roomID string, place *point.Point) *Placement {
 	return &Placement{Device: device, RoomID: roomID, Place: place}
 }

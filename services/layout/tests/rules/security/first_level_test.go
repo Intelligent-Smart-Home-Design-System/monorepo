@@ -50,9 +50,9 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
 		case "gas_leak_sensor":
-			assert.Equal(t, point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
 		}
 	}
 
@@ -128,16 +128,16 @@ func TestMultipleRooms(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[rooms[0].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
 		case "gas_leak_sensor":
-			assert.Equal(t, point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
 		}
 	}
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[1].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
 		}
 	}
 

@@ -38,7 +38,7 @@ func (sl *SmartLockRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms
 
 	deviceID := uuid.NewString()
 	newDevice := device.NewDevice(deviceID, "smart_lock", "security")
-	placement := device.NewPlacement(newDevice, roomID, doorCenter)
+	placement := device.NewPlacement(newDevice, roomID, &doorCenter)
 
 	apartmentLayout.Placements[roomID][newDevice.Type] = placement
 

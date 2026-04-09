@@ -84,14 +84,14 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		for _, devicePlacement := range roomPlacement {
 			switch devicePlacement.Device.Type {
 			case "door_sensor":
-				assert.Equal(t, point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+				assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
 			case "window_sensor":
-				assert.Equal(t, point.Point{X: 0, Y: 1.4}, devicePlacement.Place)
+				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Place)
 			case "motion_sensor":
 				if roomID == "1" {
-					assert.Equal(t, point.Point{X: 1, Y: 1}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
 				} else {
-					assert.Equal(t, point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
 				}
 			}
 		}

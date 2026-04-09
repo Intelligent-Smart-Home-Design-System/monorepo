@@ -61,9 +61,9 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "smart_lock":
-			assert.Equal(t, point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
 		case "smart_doorbell":
-			assert.Equal(t, point.Point{X: 1, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 0}, devicePlacement.Place)
 		}
 	}
 

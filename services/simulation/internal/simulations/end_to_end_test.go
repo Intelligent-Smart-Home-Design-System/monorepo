@@ -80,15 +80,6 @@ func mustJSON(v any) []byte {
 	return b
 }
 
-func event(id string, state bool) api.EventInDTO {
-	data, _ := json.Marshal(map[string]bool{"turn_on": state})
-
-	return api.EventInDTO{
-		EntityID: id,
-		Info:     data,
-	}
-}
-
 func stepTick(ch chan api.EventInDTO) {
     done := make(chan struct{})
     ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
@@ -210,12 +201,11 @@ func TestSimulation_Default(t *testing.T) {
 	}()
 	
 	stepInit(eventsChan)
-	eventsChan <- event("lampSwitcher_1", true)
+	sendEventSync(eventsChan, "lampSwitcher_1", true)
 	stepTick(eventsChan)
-	eventsChan <- event("lampSwitcher_2", true)
+	sendEventSync(eventsChan, "lampSwitcher_2", true)
 	stepTick(eventsChan)
-	eventsChan <- event("lampSwitcher_1", false)
-	stepTick(eventsChan)
+	sendEventSync(eventsChan, "lampSwitcher_1", false)
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 
@@ -237,19 +227,19 @@ func TestSimulation_UserIntervention(t *testing.T) {
 
 	switch1 := api.EntityDTO{
 		ID:   "lampSwitcher_1",
-		Info: mustJSON(map[string]any{"id": "lampSwitcher_1", "delay": 0.15}),
+		Info: mustJSON(map[string]any{"id": "lampSwitcher_1", "delay": 0.0}),
 	}
 	switch2 := api.EntityDTO{
 		ID:   "lampSwitcher_2",
-		Info: mustJSON(map[string]any{"id": "lampSwitcher_2", "delay": 0.15}),
+		Info: mustJSON(map[string]any{"id": "lampSwitcher_2", "delay": 0.0}),
 	}
 	lamp1 := api.EntityDTO{
 		ID:   "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.1}),
+		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.0}),
 	}
 	lamp2 := api.EntityDTO{
 		ID:   "lamp_2",
-		Info: mustJSON(map[string]any{"id": "lamp_2", "delay": 0.1}),
+		Info: mustJSON(map[string]any{"id": "lamp_2", "delay": 0.0}),
 	}
 
 	deps := map[string]map[string][]api.ActionDTO{
@@ -260,7 +250,6 @@ func TestSimulation_UserIntervention(t *testing.T) {
 	}
 
 	eventsChan := make(chan api.EventInDTO, 10)
-	eventsChan <- api.EventInDTO{EntityID: "step_init"}
 
 	fetcher := &StubFetcher{
 		simIDs:       []string{simID},
@@ -286,14 +275,10 @@ func TestSimulation_UserIntervention(t *testing.T) {
 	}()
 
 	stepInit(eventsChan)
-	eventsChan <- event("lampSwitcher_1", true)
+	sendEventSync(eventsChan, "lampSwitcher_1", true)
+	sendEventSync(eventsChan, "lampSwitcher_1", false)
 	stepTick(eventsChan)
-	eventsChan <- event("lampSwitcher_1", false)
-	stepTick(eventsChan)
-	eventsChan <- event("lampSwitcher_2", true)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
+	sendEventSync(eventsChan, "lampSwitcher_2", true)
 
 	events := waitForSenderEvents(t, sender, 6, 2*time.Second)
 
@@ -329,11 +314,11 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 
 	sensor := api.EntityDTO{
 		ID:   "lightSwitchOffSensor_1",
-		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.1,	"timeout": 1.0,	"turned_on": false,	"receivers": []string{}}),
+		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.5,	"timeout": 1.0,	"turned_on": false,	"receivers": []string{}}),
 	}
 	lamp := api.EntityDTO{
 		ID: "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.1,	"turned_on": false}),
+		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.5,	"turned_on": false}),
 	}
 
 	deps := map[string]map[string][]api.ActionDTO{
@@ -368,10 +353,9 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 	}()
 	
 	stepInit(eventsChan)
-	eventsChan <- event("lightSwitchOffSensor_1", true)
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
 	stepTick(eventsChan)
-	eventsChan <- event("lightSwitchOffSensor_1", false)
-	stepTick(eventsChan)
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 
@@ -434,14 +418,19 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 
 	stepInit(eventsChan)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
-    stepTick(eventsChan)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
+
 	stepTick(eventsChan)
+
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
+
 	stepTick(eventsChan)
+	stepTick(eventsChan)
+
+	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
+
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 	stepTick(eventsChan)

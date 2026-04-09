@@ -7,6 +7,8 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 )
 
+const Source = "printer"
+
 type printerScraper struct {
 }
 
@@ -21,7 +23,7 @@ func (p *printerScraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*d
 			{
 				Name:         "page_type",
 				StatusCode:   http.StatusOK,
-				ResponseBody: []byte(task.PageType),
+				ResponseBody: []byte(task.PageType.String()),
 			},
 		},
 	}, nil

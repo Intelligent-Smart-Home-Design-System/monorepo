@@ -21,7 +21,7 @@ func TestSnapshotRepo_SaveResult(t *testing.T) {
         INSERT INTO tracked_pages (source_name, page_type, url, is_active)
         VALUES ($1, $2, $3, $4)
         RETURNING id
-    `, "sprut", "article", "https://test.com", true).Scan(&taskID)
+    `, "sprut", "listing", "https://test.com", true).Scan(&taskID)
 	require.NoError(t, err)
 
 	resources := []domain.Resource{

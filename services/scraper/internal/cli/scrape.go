@@ -18,6 +18,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 )
@@ -58,12 +59,12 @@ func scrape(ctx context.Context, cfgFile string) error {
 	taskRepo := repository.NewTrackedPageRepo(db)
 	snapshotRepo := repository.NewSnapshotRepo(db)
 
-	printer := printer.NewPrinterScraper()
+	printerScraper := printer.NewPrinterScraper()
 	sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 
 	sourceToScraper := map[string]worker.Scraper{
-		"printer": printer,
-		"sprut":   sprutScraper,
+		printer.Source: printerScraper,
+		sprut.Source:   sprutScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
@@ -112,32 +113,6 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	logger.Info().Msg("all tasks processed, exiting")
 	return nil
-}
-
-func getTasks() <-chan domain.ScrapeTask {
-	tasks := []domain.ScrapeTask{
-		{
-			Source:   "printer",
-			PageType: "none",
-			URL:      "http://www.example.com",
-		},
-		{
-			Source:   "sprut",
-			PageType: "article",
-			URL:      "https://sprut.ai/catalog",
-		},
-	}
-
-	tasksCh := make(chan domain.ScrapeTask)
-
-	go func() {
-		for _, task := range tasks {
-			tasksCh <- task
-		}
-		close(tasksCh)
-	}()
-
-	return tasksCh
 }
 
 func readConfig(cfgFile string, cfg *config.Config) error {

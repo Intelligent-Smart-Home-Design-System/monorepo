@@ -53,8 +53,8 @@ func TestScraper_Scrape_Success(t *testing.T) {
 	}
 
 	task := domain.ScrapeTask{
-		Source:   "sprut",
-		PageType: "article",
+		Source:   Source,
+		PageType: domain.PageTypeListing,
 		URL:      "https://sprut.ai/test-page",
 	}
 

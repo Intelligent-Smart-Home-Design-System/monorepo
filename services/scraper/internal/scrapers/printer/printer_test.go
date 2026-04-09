@@ -12,7 +12,7 @@ func TestScrape(t *testing.T) {
 	printer := NewPrinterScraper()
 	task := domain.ScrapeTask{
 		Source:   "test",
-		PageType: "testing_page_type",
+		PageType: domain.PageTypeListing,
 		URL:      "testing://test.url",
 	}
 
@@ -32,7 +32,7 @@ func TestScrape(t *testing.T) {
 		"page_type": {
 			Name:         "page_type",
 			StatusCode:   http.StatusOK,
-			ResponseBody: []byte("testing_page_type"),
+			ResponseBody: []byte(domain.PageTypeListing.String()),
 		},
 	})
 }

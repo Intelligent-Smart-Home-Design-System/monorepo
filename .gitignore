@@ -30,6 +30,15 @@ go.work.sum
 # Editor/IDE
 .idea/
 .vscode/
+
+# Python virtual environments
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# macOS
 .DS_Store
 
 # Workspace dependencies
@@ -57,10 +66,9 @@ yarn-error.log*
 
 # Environment and local files
 .env*
-.DS_Store
 *.pem
 .vercel
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts 
+next-env.d.ts

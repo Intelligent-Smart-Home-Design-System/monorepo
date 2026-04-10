@@ -16,7 +16,7 @@ func NewCameraRule() *CameraRule {
 	}
 }
 
-func (gl *CameraRule) GetType() string {
+func (gl *CameraRule) Type() string {
 	return "camera"
 }
 

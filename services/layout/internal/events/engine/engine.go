@@ -14,9 +14,9 @@ type Engine struct {
 	devicesConfig *configs.Devices
 }
 
-func NewEngine(storage *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
+func NewEngine(st *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
 	return &Engine{
-		storage:       storage,
+		storage:       st,
 		tracksConfig:  tracksConfig,
 		devicesConfig: deviceConfig,
 	}
@@ -39,9 +39,9 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 		levelInfo, _ := trackConfig.Levels[level]
 
 		for _, device := range levelInfo.Devices {
-			rule, err := e.storage.GetRule(device)
-			if err != nil {
-				return nil, err
+			rule, ok := e.storage.Rules[device]
+			if !ok {
+				return nil, fmt.Errorf("failed to get rule for device %s", device)
 			}
 
 			deviceRooms, ok := levelInfo.DeviceRooms[device]
@@ -49,7 +49,7 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 				return nil, fmt.Errorf("no info about rooms for device %s", device)
 			}
 
-			err = rule.Apply(apartmentStruct, deviceRooms, res)
+			err := rule.Apply(apartmentStruct, deviceRooms, res)
 			if err != nil {
 				return nil, err
 			}

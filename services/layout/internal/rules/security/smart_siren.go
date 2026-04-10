@@ -16,7 +16,7 @@ func NewSmartSirenRule() *SmartSirenRule {
 	}
 }
 
-func (gl *SmartSirenRule) GetType() string {
+func (gl *SmartSirenRule) Type() string {
 	return "smart_siren"
 }
 

@@ -17,7 +17,7 @@ func NewIlluminationSensorRule() *IlluminationSensorRule {
 	}
 }
 
-func (r *IlluminationSensorRule) GetType() string {
+func (r *IlluminationSensorRule) Type() string {
 	return "illumination_sensor"
 }
 
@@ -36,7 +36,7 @@ func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, dev
 		}
 
 		deviceID := uuid.NewString()
-		dev := device.NewDevice(deviceID, r.GetType(), r.track)
+		dev := device.NewDevice(deviceID, r.Type(), r.track)
 		placement := device.NewPlacement(dev, roomID, &point.Point{X: 0, Y: 0})
 		apartmentLayout.Placements[roomID][dev.Type] = placement
 	}

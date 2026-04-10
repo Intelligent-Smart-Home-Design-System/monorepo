@@ -16,7 +16,7 @@ func NewGasLeakRule() *GasLeakSensorRule {
 	}
 }
 
-func (gl *GasLeakSensorRule) GetType() string {
+func (gl *GasLeakSensorRule) Type() string {
 	return "gas_leak_sensor"
 }
 

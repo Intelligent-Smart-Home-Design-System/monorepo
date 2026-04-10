@@ -16,7 +16,7 @@ func NewMotionSensorRule() *MotionSensorRule {
 	}
 }
 
-func (gl *MotionSensorRule) GetType() string {
+func (gl *MotionSensorRule) Type() string {
 	return "motion_sensor"
 }
 

@@ -16,7 +16,7 @@ func NewWindowSensorRule() *WindowSensorRule {
 	}
 }
 
-func (gl *WindowSensorRule) GetType() string {
+func (gl *WindowSensorRule) Type() string {
 	return "window_sensor"
 }
 

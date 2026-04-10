@@ -5,8 +5,8 @@ import (
 )
 
 type Rule interface {
-	// GetType возвращает тип устройства, относящегося к этому правилу
-	GetType() string
+	// Type возвращает тип устройства, относящегося к этому правилу
+	Type() string
 
 	// Apply расставляет устройство в квартире
 	Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error

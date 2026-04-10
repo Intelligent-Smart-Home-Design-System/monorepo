@@ -18,7 +18,7 @@ func NewSmartLockRule() *SmartLockRule {
 	}
 }
 
-func (sl *SmartLockRule) GetType() string {
+func (sl *SmartLockRule) Type() string {
 	return "smart_lock"
 }
 

@@ -17,7 +17,7 @@ func NewSmartBulbRule() *SmartBulbRule {
 	}
 }
 
-func (r *SmartBulbRule) GetType() string {
+func (r *SmartBulbRule) Type() string {
 	return "smart_bulb"
 }
 
@@ -36,7 +36,7 @@ func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms 
 		}
 
 		deviceID := uuid.NewString()
-		dev := device.NewDevice(deviceID, r.GetType(), r.track)
+		dev := device.NewDevice(deviceID, r.Type(), r.track)
 		placement := device.NewPlacement(dev, roomID, &point.Point{X: 0, Y: 0})
 		apartmentLayout.Placements[roomID][dev.Type] = placement
 	}

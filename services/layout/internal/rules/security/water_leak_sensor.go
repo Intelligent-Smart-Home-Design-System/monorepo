@@ -16,7 +16,7 @@ func NewWaterLeakRule() *WaterLeakSensorRule {
 	}
 }
 
-func (wl *WaterLeakSensorRule) GetType() string {
+func (wl *WaterLeakSensorRule) Type() string {
 	return "water_leak_sensor"
 }
 

@@ -18,7 +18,7 @@ func NewSmartDoorBellRule() *SmartDoorBellRule {
 	}
 }
 
-func (sl *SmartDoorBellRule) GetType() string {
+func (sl *SmartDoorBellRule) Type() string {
 	return "smart_doorbell"
 }
 

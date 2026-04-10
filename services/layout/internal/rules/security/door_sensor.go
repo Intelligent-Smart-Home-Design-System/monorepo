@@ -18,7 +18,7 @@ func NewDoorSensorRule() *DoorSensorRule {
 	}
 }
 
-func (gl *DoorSensorRule) GetType() string {
+func (gl *DoorSensorRule) Type() string {
 	return "door_sensor"
 }
 

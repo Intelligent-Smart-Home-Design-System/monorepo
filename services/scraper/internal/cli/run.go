@@ -2,19 +2,25 @@ package cli
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
+	sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 )
 
 func NewRunCmd() *cobra.Command {
@@ -44,57 +50,69 @@ func run(ctx context.Context, cfgFile string) error {
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
-	// TODO: get tasks from db
-	tasksCh := getTasks()
+	db, err := connectDB(cfg.Database)
+	if err != nil {
+		return fmt.Errorf("connect to db: %w", err)
+	}
+	defer db.Close()
 
-	printer := printer.NewPrinterScraper()
+	taskRepo := repository.NewTrackedPageRepo(db)
+	snapshotRepo := repository.NewSnapshotRepo(db)
+
+	printerScraper := printer.NewPrinterScraper()
+	sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 
 	sourceToScraper := map[string]worker.Scraper{
-		"printer": printer,
-		// TODO: "sprut_ai": sprutScraper,
-		// "wildberries": wildberriesScraper
+		printer.Source: printerScraper,
+		sprut.Source:   sprutScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
 
 	worker := worker.NewWorker(logger, sourceToScraper, resultsCh)
 
-	go worker.Run(ctx, tasksCh)
-
-	// TODO: save results to db
-	for result := range resultsCh {
-		for _, resource := range result.Resources {
-			logger.Info().Msgf("scraped %s: %s", resource.Name, string(resource.ResponseBody))
-		}
+	tasks, err := taskRepo.GetTasks()
+	if err != nil {
+		return fmt.Errorf("get tasks: %w", err)
 	}
-
-	return nil
-}
-
-func getTasks() <-chan domain.ScrapeTask {
-	tasks := []domain.ScrapeTask{
-		{
-			Source:   "printer",
-			PageType: "none",
-			URL:      "http://www.example.com",
-		},
-		{
-			Source:   "printer",
-			PageType: "none",
-			URL:      "http://www.example.com",
-		},
+	if len(tasks) == 0 {
+		logger.Info().Msg("no active tasks, exiting")
+		return nil
 	}
 
 	tasksCh := make(chan domain.ScrapeTask)
-
 	go func() {
+		defer close(tasksCh)
 		for _, task := range tasks {
-			tasksCh <- task
+			select {
+			case <-ctx.Done():
+				return
+			case tasksCh <- task:
+			}
 		}
-		close(tasksCh)
 	}()
 
-	return tasksCh
+	go worker.Run(ctx, tasksCh)
+
+	for result := range resultsCh {
+		if result.Err != nil {
+			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
+			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
+				logger.Error().Err(err).Msg("update status error")
+			}
+			continue
+		}
+		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
+			logger.Error().Err(err).Msg("save snapshot")
+		} else {
+			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
+				logger.Error().Err(err).Msg("update status")
+			}
+		}
+	}
+
+	logger.Info().Msg("all tasks processed, exiting")
+	return nil
 }
 
 func readConfig(cfgFile string, cfg *config.Config) error {
@@ -120,4 +138,17 @@ func readConfig(cfgFile string, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func connectDB(cfg config.DatabaseConfig) (*sql.DB, error) {
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }

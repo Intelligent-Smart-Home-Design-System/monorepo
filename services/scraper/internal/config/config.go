@@ -22,4 +22,5 @@ type ScrapingConfig struct {
 	MaxRetries   int           `mapstructure:"max_retries"`
 	RateLimitRps float64       `mapstructure:"rate_limit_rps"`
 	Timeout      time.Duration `mapstructure:"timeout"`
+	UserAgent    string        `mapstructure:"user_agent"`
 }

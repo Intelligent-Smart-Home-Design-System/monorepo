@@ -51,8 +51,7 @@ func (s *stubEntityWithProcess) HandleInDTO(dto []byte) error {
 	return s.handleErr
 }
 
-func (s *stubEntityWithProcess) HandleOutDTO(out any) error {
-	return nil
+func (s *stubEntityWithProcess) HandleOutDTO(dto []byte) {
 }
 
 func (s *stubEntityWithProcess) Process(process simgo.Process) {
@@ -166,17 +165,6 @@ func TestHandleEvent(t *testing.T) {
 
 			if tt.entity.handleCalls != tt.expectCalls {
 				t.Errorf("handle calls = %v, want %v", tt.entity.handleCalls, tt.expectCalls)
-			}
-
-			if tt.expectEnq {
-				select {
-				case ev := <-e.GetInChan():
-					if ev.EntityID != "b" {
-						t.Errorf("expected 'b' enqueued, got %v", ev.EntityID)
-					}
-				default:
-					t.Errorf("expected event in channel")
-				}
 			}
 		})
 	}

@@ -127,10 +127,10 @@ func (l *LampSwitcher) SetReceivers(actions []api.ActionDTO) {
 
 // LightSwitchOffSensor - сенсор-переключатель
 type LightSwitchOffSensor struct {
-	enginePort  engine.EnginePort
-	simEvent    *simgo.Event
-	simCancelEv *simgo.Event
-	data        LightSwitchOffSensorInData
+	enginePort engine.EnginePort
+	turnOnEv   *simgo.Event
+	turnOffEv  *simgo.Event
+	data       LightSwitchOffSensorInData
 
 	ID        string   `json:"id"`
 	TurnedOn  bool     `json:"turned_on"`
@@ -154,29 +154,29 @@ func NewLightSwitchOffSensor(data []byte, engineAPI engine.EnginePort) (*LightSw
 	}
 
 	switcher.enginePort = engineAPI
-	switcher.simEvent = engineAPI.GetSimulation().Event()
-	switcher.simCancelEv = engineAPI.GetSimulation().Event()
+	switcher.turnOnEv = engineAPI.GetSimulation().Event()
+	switcher.turnOffEv = engineAPI.GetSimulation().Event()
 
 	return &switcher, nil
 }
 
 func (l *LightSwitchOffSensor) HandleInDTO(dto []byte) error {
-    input := LightSwitchOffSensorInData{}
-    if err := json.Unmarshal(dto, &input); err != nil {
-        return err
-    }
+	input := LightSwitchOffSensorInData{}
+	if err := json.Unmarshal(dto, &input); err != nil {
+		return err
+	}
 
-    l.data = input
+	l.data = input
 
-    if input.TurnOn {
-        l.simEvent.Trigger()
-        l.simEvent = l.enginePort.GetSimulation().Event()
-    } else {
-        l.simCancelEv.Trigger()
-        l.simCancelEv = l.enginePort.GetSimulation().Event()
-    }
+	if input.TurnOn {
+		l.turnOnEv.Trigger()
+		l.turnOnEv = l.enginePort.GetSimulation().Event()
+	} else {
+		l.turnOffEv.Trigger()
+		l.turnOffEv = l.enginePort.GetSimulation().Event()
+	}
 
-    return nil
+	return nil
 }
 
 func (l *LightSwitchOffSensor) HandleOutDTO(dto []byte) {
@@ -200,33 +200,65 @@ func (l *LightSwitchOffSensor) GetProcessFunc() func(process simgo.Process) {
 }
 
 func (l *LightSwitchOffSensor) Process(process simgo.Process) {
-    for {
-        if !l.TurnedOn {
-            process.Wait(l.simEvent)
-            process.Wait(process.Timeout(l.getReactionDelay()))
-            l.TurnedOn = true
-            outData := l.HandleEvent(l.data)
-            dataLamp, _ := json.Marshal(outData)
-            l.HandleOutDTO(dataLamp)
-        }
+	for {
+		turnOnEv := l.turnOnEv
+		turnOffEv := l.turnOffEv
+		process.Wait(process.AnyOf(turnOnEv, turnOffEv))
 
-        for l.TurnedOn {
-            timeoutEv := process.Timeout(l.Timeout)
-            process.Wait(process.AnyOf(timeoutEv, l.simCancelEv))
+		if turnOffEv.Processed() {
+			continue
+		}
 
-            if l.simCancelEv.Processed() {
-                continue
-            }
+		turnOffEv = l.turnOffEv
+		turnOnEv = l.turnOnEv
+		process.Wait(process.Timeout(l.getReactionDelay()))
 
-            if timeoutEv.Processed() {
-                l.TurnedOn = false
-                outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: false})
-                dataLamp, _ := json.Marshal(outData)
-                l.HandleOutDTO(dataLamp)
-                break
-            }
-        }
-    }
+		outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: true})
+		dataLamp, _ := json.Marshal(outData)
+		l.HandleOutDTO(dataLamp)
+
+		for l.TurnedOn {
+			turnOnEv = l.turnOnEv
+			process.Wait(process.AnyOf(turnOffEv, turnOnEv))
+
+			if turnOnEv.Processed() {
+				continue
+			}
+
+			turnOffEv = l.turnOffEv
+			turnOnEv = l.turnOnEv
+			process.Wait(process.Timeout(l.getReactionDelay()))
+
+			if turnOnEv.Processed() {
+				continue
+			}
+
+			for {
+				timeoutEv := process.Timeout(l.Timeout)
+				process.Wait(process.AnyOf(timeoutEv, turnOffEv, turnOnEv))
+
+				if turnOnEv.Processed() {
+					turnOnEv = l.turnOnEv
+					break
+				}
+
+				if turnOffEv.Processed() {
+					turnOffEv = l.turnOffEv
+					turnOnEv = l.turnOnEv
+					process.Wait(process.Timeout(l.getReactionDelay()))
+					if turnOnEv.Processed() {
+						break
+					}
+					continue
+				}
+
+				outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: false})
+				dataLamp, _ := json.Marshal(outData)
+				l.HandleOutDTO(dataLamp)
+				break
+			}
+		}
+	}
 }
 
 func (l *LightSwitchOffSensor) HandleEvent(inData LightSwitchOffSensorInData) LightSwitchOffSensorOutData {

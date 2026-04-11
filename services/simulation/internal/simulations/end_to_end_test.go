@@ -81,27 +81,27 @@ func mustJSON(v any) []byte {
 }
 
 func stepTick(ch chan api.EventInDTO) {
-    done := make(chan struct{})
-    ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
-    <-done // блокируемся до завершения шага
+	done := make(chan struct{})
+	ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
+	<-done // блокируемся до завершения шага
 }
 
 func stepInit(ch chan api.EventInDTO) {
-    done := make(chan struct{})
-    ch <- api.EventInDTO{EntityID: "step_init", Done: done}
-    <-done
+	done := make(chan struct{})
+	ch <- api.EventInDTO{EntityID: "step_init", Done: done}
+	<-done
 }
 
 func sendEventSync(ch chan api.EventInDTO, id string, state bool) {
-    done := make(chan struct{})
-    data, _ := json.Marshal(map[string]bool{"turn_on": state})
-    
-    ch <- api.EventInDTO{
-        EntityID: id,
-        Info:     data,
-        Done:     done,
-    }
-    <-done
+	done := make(chan struct{})
+	data, _ := json.Marshal(map[string]bool{"turn_on": state})
+
+	ch <- api.EventInDTO{
+		EntityID: id,
+		Info:     data,
+		Done:     done,
+	}
+	<-done
 }
 
 func (s *StubSender) Snapshot() []api.EventOutDTO {
@@ -134,7 +134,9 @@ func sensorStatesFrom(events []api.EventOutDTO, sensorID string) []bool {
 			continue
 		}
 
-		var out struct {TurnOn bool `json:"turn_on"`}
+		var out struct {
+			TurnOn bool `json:"turn_on"`
+		}
 		_ = json.Unmarshal(e.Info, &out)
 		states = append(states, out.TurnOn)
 	}
@@ -148,6 +150,8 @@ func sensorStatesFrom(events []api.EventOutDTO, sensorID string) []bool {
 func TestSimulation_Default(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	simID := "sim1"
 
@@ -199,13 +203,15 @@ func TestSimulation_Default(t *testing.T) {
 			t.Logf("Simulations.Run error: %v", err)
 		}
 	}()
-	
+
 	stepInit(eventsChan)
 	sendEventSync(eventsChan, "lampSwitcher_1", true)
 	stepTick(eventsChan)
 	sendEventSync(eventsChan, "lampSwitcher_2", true)
 	stepTick(eventsChan)
 	sendEventSync(eventsChan, "lampSwitcher_1", false)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 
@@ -279,6 +285,8 @@ func TestSimulation_UserIntervention(t *testing.T) {
 	sendEventSync(eventsChan, "lampSwitcher_1", false)
 	stepTick(eventsChan)
 	sendEventSync(eventsChan, "lampSwitcher_2", true)
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 
 	events := waitForSenderEvents(t, sender, 6, 2*time.Second)
 
@@ -310,15 +318,17 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	simID := "sim_light_switch_off_1"
 
 	sensor := api.EntityDTO{
 		ID:   "lightSwitchOffSensor_1",
-		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.5,	"timeout": 1.0,	"turned_on": false,	"receivers": []string{}}),
+		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.5, "timeout": 1.0, "turned_on": false, "receivers": []string{}}),
 	}
 	lamp := api.EntityDTO{
-		ID: "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.5,	"turned_on": false}),
+		ID:   "lamp_1",
+		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.5, "turned_on": false}),
 	}
 
 	deps := map[string]map[string][]api.ActionDTO{
@@ -340,7 +350,7 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 	sender := &StubSender{}
 
 	sim := NewSimulation(fetcher, sender)
-	
+
 	err := sim.Init(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -351,11 +361,12 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 			t.Logf("Simulations.Run error: %v", err)
 		}
 	}()
-	
+
 	stepInit(eventsChan)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
 	stepTick(eventsChan)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
+	stepTick(eventsChan)
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 
@@ -374,15 +385,17 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	simID := "sim_light_switch_off_1"
 
 	sensor := api.EntityDTO{
 		ID:   "lightSwitchOffSensor_1",
-		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.0,	"timeout": 4.0,	"turned_on": false,	"receivers": []string{}}),
+		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.0, "timeout": 4.0, "turned_on": false, "receivers": []string{}}),
 	}
 	lamp := api.EntityDTO{
-		ID: "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.0,	"turned_on": false}),
+		ID:   "lamp_1",
+		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.0, "turned_on": false}),
 	}
 
 	deps := map[string]map[string][]api.ActionDTO{
@@ -404,7 +417,7 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 	sender := &StubSender{}
 
 	sim := NewSimulation(fetcher, sender)
-	
+
 	err := sim.Init(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -418,6 +431,7 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 
 	stepInit(eventsChan)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
+	stepTick(eventsChan)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
 
 	stepTick(eventsChan)
@@ -431,6 +445,8 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
 	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
 
+	stepTick(eventsChan)
+	stepTick(eventsChan)
 	stepTick(eventsChan)
 	stepTick(eventsChan)
 	stepTick(eventsChan)

@@ -88,6 +88,7 @@ func (l *Lamp) Process(process simgo.Process) {
 			slog.Warn("cannot marshal lamp out data", "error", err, "entity_id", l.ID)
 		}
 		l.HandleOutDTO(dataLamp)
+
 	}
 }
 

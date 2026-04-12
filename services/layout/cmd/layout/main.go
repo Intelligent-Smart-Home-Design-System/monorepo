@@ -21,9 +21,13 @@ func GetSelectedLevels() map[string]string {
 }
 
 func main() {
-	apartment := GetApartment()
+	apartmentStruct := GetApartment()
+	apartmentStruct.MakeRoomDependency()
+
 	selectedLevels := GetSelectedLevels()
+
 	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
 
 	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
@@ -37,10 +41,14 @@ func main() {
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 
-	_, err = engine.PlaceDevices(apartment, selectedLevels) // вся расстановка в квартире
+	_, err = engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
 	if err != nil {
 		_ = fmt.Errorf("failed to place devices: %w", err)
 	}
+
+	go func() {
+		// TODO: несколько пользователей (параллельно)
+	}()
 
 	// TODO: записать результаты на плане квартиры
 }

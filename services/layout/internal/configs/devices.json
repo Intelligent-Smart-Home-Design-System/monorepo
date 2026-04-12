@@ -7,7 +7,97 @@
         "min": 1000,
         "max": 2000
       },
-      "tracks": ["security"]
+      "tracks": [
+        "security"
+      ]
+    },
+    "gas_leak_sensor": {
+      "name": "Датчик утечки газа",
+      "id": "2",
+      "price_range": {
+        "min": 2000,
+        "max": 5000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "smart_lock": {
+      "name": "Умный замок",
+      "id": "3",
+      "price_range": {
+        "min": 25000,
+        "max": 28000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "smart_doorbell": {
+      "name": "Умный дверной звонок",
+      "id": "4",
+      "price_range": {
+        "min": 2000,
+        "max": 3000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "door_sensor": {
+      "name": "Датчик открытия дверей",
+      "id": "5",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "window_sensor": {
+      "name": "Датчик открытия окон",
+      "id": "6",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "motion_sensor": {
+      "name": "Датчик движения",
+      "id": "7",
+      "price_range": {
+        "min": 2000,
+        "max": 4000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "camera": {
+      "name": "Камера",
+      "id": "8",
+      "price_range": {
+        "min": 8000,
+        "max": 13000
+      },
+      "tracks": [
+        "security"
+      ]
+    },
+    "smart_siren": {
+      "name": "Умная сирена",
+      "id": "9",
+      "price_range": {
+        "min": 3000,
+        "max": 6000
+      },
+      "tracks": [
+        "security"
+      ]
     }
   }
 }

@@ -1,0 +1,14 @@
+{
+  "type": "Датчик присутствия",
+  "name": "SONOFF SNZB-06P (ZigBee)",
+  "price": 1572.0,
+  "ecosystem": [
+    "Amazon Alexa",
+    "Google Home",
+    "eWeLink"
+  ],
+  "protocol": [
+    "ZigBee"
+  ],
+  "articul_YANDEX": "103477361299"
+}

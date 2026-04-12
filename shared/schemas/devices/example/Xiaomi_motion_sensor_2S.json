@@ -1,0 +1,13 @@
+{
+  "type": "Датчик движения",
+  "name": "Xiaomi Mi Motion Sensor 2S (BHR8995GL)",
+  "price": 2090.0,
+  "ecosystem": [
+    "Mi Home",
+    "Xiaomi Home"
+  ],
+  "protocol": [
+    "Bluetooth Mesh"
+  ],
+  "articul_YANDEX": "103698002166"
+}

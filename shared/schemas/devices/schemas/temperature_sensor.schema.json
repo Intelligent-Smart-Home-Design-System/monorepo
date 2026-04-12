@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as displayed in the store"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Manufacturer model or SKU"
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "smartthings",
+          "homekit"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems the device works with"
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "matter",
+          "thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Communication protocols supported by the device"
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "CR2032",
+        "CR2450",
+        "CR123A",
+        "AA",
+        "AAA",
+        "18650",
+        "built-in"
+      ],
+      "description": "Type of battery or built‑in rechargeable cell"
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Estimated battery life in months"
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built‑in rechargeable battery"
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress Protection code, e.g. IP67, IP44"
+    },
+    "accuracy": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Measurement accuracy in percent or absolute value"
+    },
+    "type": {
+      "const": "temperature_sensor"
+    },
+    "temperature_min_celsius": {
+      "type": "number",
+      "description": "Minimum measurable temperature in degrees Celsius"
+    },
+    "temperature_max_celsius": {
+      "type": "number",
+      "description": "Maximum measurable temperature in degrees Celsius"
+    },
+    "humidity_sensor": {
+      "type": "boolean",
+      "description": "Whether the device also measures relative humidity"
+    },
+    "accuracy_temperature_celsius": {
+      "type": "number",
+      "description": "Temperature measurement accuracy (± °C)"
+    },
+    "accuracy_humidity_percent": {
+      "type": "number",
+      "description": "Humidity measurement accuracy (± %)"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type",
+    "temperature_min_celsius",
+    "temperature_max_celsius"
+  ],
+  "additionalProperties": false
+}

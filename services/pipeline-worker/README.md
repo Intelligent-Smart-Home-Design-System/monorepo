@@ -74,8 +74,8 @@ env_mapping = { "SCRAPER_DATABASE_PASSWORD" = "DATABASE_PASSWORD" }
 [extractor_job]
 image = "extractor:latest"
 config_path = "extractor_config.toml"
-commands = ["run", "-c", "config.toml"]
-env_mapping = { "EXTRACTOR__DATABASE__PASSWORD" = "DATABASE__PASSWORD", "YANDEX_CLOUD_API_KEY" = "YANDEX_CLOUD_API_KEY" }
+commands = ["/app/.venv/bin/extractor", "run", "-c", "config.toml"]
+env_mapping = { "EXTRACTOR_DATABASE__PASSWORD" = "DATABASE_PASSWORD", "YANDEX_CLOUD_API_KEY" = "YANDEX_CLOUD_API_KEY" }
 
 [[jobs]]
 image = "catalog-builder:latest"
@@ -86,8 +86,8 @@ env_mapping = { "DATABASE_PASSWORD" = "DATABASE_PASSWORD" }
 [[jobs]]
 image = "quality-calculator:latest"
 config_path = "quality-calculator_config.toml"
-command = ["run", "-c", "config.toml"]
-env_mapping = { "DATABASE_PASSWORD" = "DATABASE_PASSWORD" }
+command = ["/app/.venv/bin/quality-calculator", "run"", "-c", "config.toml"]
+env_mapping = { "QUALITY_CALCULATOR__DATABASE_PASSWORD" = "DATABASE_PASSWORD" }
 ```
 
 `env_mapping` — ключ это имя переменной которая получит джоба, значение это имя переменной из окружения pipeline-worker

@@ -86,7 +86,7 @@ env_mapping = { "DATABASE_PASSWORD" = "DATABASE_PASSWORD" }
 [[jobs]]
 image = "quality-calculator:latest"
 config_path = "quality-calculator_config.toml"
-command = ["/app/.venv/bin/quality-calculator", "run"", "-c", "config.toml"]
+command = ["/app/.venv/bin/quality-calculator", "run", "-c", "config.toml"]
 env_mapping = { "QUALITY_CALCULATOR__DATABASE_PASSWORD" = "DATABASE_PASSWORD" }
 ```
 

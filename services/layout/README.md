@@ -25,7 +25,7 @@ Apply(apartment *entities.Apartment) map[string]map[string]*entities.Placement
 Для запуска тестов необходимо перейти из корневой директории в директорию layout и запустить тесты:
 ```bash
 cd services/layout
-go test -v ./tests/rules/...
+go test -v ./tests/...
 ```
 
 ## Запуск программы

@@ -11,29 +11,47 @@ import (
 )
 
 func TestLightingLevel2(t *testing.T) {
-	apartment := &apartment.Apartment{
-		ID:     "a1",
-		Tracks: []string{"lighting"},
-		Rooms: []*apartment.Room{
-			{ID: "r1", Name: apartment.RoomLiving},
-			{ID: "r2", Name: apartment.RoomKitchen},
-			{ID: "r3", Name: apartment.RoomPassage},
-			{ID: "r4", Name: apartment.RoomBathroom},
-			{ID: "r5", Name: apartment.RoomCabinet},
+	rooms := []apartment.Room{
+		{
+			ID:   "r1",
+			Name: apartment.RoomLiving,
+		},
+		{
+			ID:   "r2",
+			Name: apartment.RoomKitchen,
+		},
+		{
+			ID:   "r3",
+			Name: apartment.RoomPassage,
+		},
+		{
+			ID:   "r4",
+			Name: apartment.RoomBathroom,
+		},
+		{
+			ID:   "r5",
+			Name: apartment.RoomCabinet,
 		},
 	}
+
+	apartmentStruct := &apartment.Apartment{
+		Rooms: rooms,
+	}
+	apartmentStruct.MakeDependency()
+
 	selectedLevels := map[string]string{
 		"lighting": "2",
 	}
 
 	st := storage.NewStorage()
+	st.LoadAllLightingRules()
 	tracksConfig, err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
 	devicesConfig, err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	e := engine.NewEngine(st, tracksConfig, devicesConfig)
-	globalPlacement, err := e.PlaceDevices(apartment, selectedLevels)
+	globalPlacement, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 
 	_, passageHasBulb := globalPlacement.Placements["r3"]["smart_bulb"]

@@ -14,49 +14,55 @@ type Engine struct {
 	devicesConfig *configs.Devices
 }
 
-func NewEngine(storage *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
+func NewEngine(st *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
 	return &Engine{
-		storage:       storage,
+		storage:       st,
 		tracksConfig:  tracksConfig,
 		devicesConfig: deviceConfig,
 	}
 }
 
-func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string]string) (*apartment.ApartmentResult, error) {
-	if ap == nil {
+// PlaceDevices расставляет устройства по выбранному уровню в каждом треке
+func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLevels map[string]string) (*apartment.ApartmentLayout, error) {
+	if apartmentStruct == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
 
-	if ap.Rooms == nil {
+	if apartmentStruct.Rooms == nil {
 		return nil, fmt.Errorf("nil rooms")
 	}
 
 	res := apartment.NewApartmentResult()
 
-	for _, track := range ap.Tracks {
+	for track, level := range selectedLevels {
 		trackConfig := e.tracksConfig.Tracks[track]
-		level, ok := trackConfig.Levels[selectedLevels[track]]
-		if !ok {
-			level = trackConfig.Levels[BaseLevel] // по дефолту первый уровень во всех треках
-		}
+		levelInfo, _ := trackConfig.Levels[level]
 
-		for _, device := range level.Devices {
-			rule, err := e.storage.GetRule(device)
+		for _, device := range levelInfo.Devices {
+			rule, ok := e.storage.Rules[device]
+			if !ok {
+				return nil, fmt.Errorf("failed to get rule for device %s", device)
+			}
+
+			deviceRooms, ok := levelInfo.DeviceRooms[device]
+			if !ok {
+				return nil, fmt.Errorf("no info about rooms for device %s", device)
+			}
+
+			err := rule.Apply(apartmentStruct, deviceRooms, res)
 			if err != nil {
 				return nil, err
 			}
-
-			res.Placements = rule.Apply(ap)
 		}
 	}
 
 	return res, nil
 }
 
-func (e *Engine) CalcLayoutPrice(apartmentResult *apartment.ApartmentResult) *PriceInfo {
+func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.ApartmentLayout) *PriceInfo {
 	priceInfo := &PriceInfo{}
 
-	for _, roomPlacement := range apartmentResult.Placements {
+	for _, roomPlacement := range apartmentLayout.Placements {
 		for deviceType := range roomPlacement {
 			device := e.devicesConfig.Devices[deviceType]
 

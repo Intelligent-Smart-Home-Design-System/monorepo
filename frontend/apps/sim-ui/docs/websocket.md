@@ -1,4 +1,4 @@
-# WebSocket Protocol (Simulation UI)
+## WebSocket Protocol (Simulation UI)
 
 This document defines the bidirectional WebSocket protocol between the UI and the backend
 for running and visualizing apartment simulations.
@@ -8,6 +8,12 @@ for running and visualizing apartment simulations.
 - Endpoint: `/ws/simulation`
 - Transport: WebSocket (JSON messages)
 - Encoding: UTF-8 JSON
+
+## Design notes (important)
+
+- The backend does **not** fetch the apartment plan from other modules for simulation. The UI already has the apartment/floor/devices produced by previous pipeline steps and provides everything required in `simulation:start`.
+- UI drives the simulation in **lockstep**: every UI “tick” is a `simulation:tick` message. This is the simplest way to keep the simulation deterministic.
+- “Pause / resume” is a UI concern. If the UI stops sending ticks, the backend naturally stops advancing the simulation.
 
 ## Message Envelope
 
@@ -45,28 +51,12 @@ Initial handshake. Client capabilities.
 }
 ```
 
-### `floor:get`
-Request current floor plan.
-
-```json
-{
-  "type": "floor:get",
-  "ts": "2026-02-18T12:00:00.000Z"
-}
-```
-
-### `scenario:list`
-Request available scenarios.
-
-```json
-{
-  "type": "scenario:list",
-  "ts": "2026-02-18T12:00:00.000Z"
-}
-```
-
 ### `simulation:start`
-Start simulation.
+Start a simulation session. The UI provides all required data: apartment plan, devices and their IDs/types/positions, and scenario graph (device adjacency).
+
+Notes:
+- `dtSim` is the amount of **simulation time** advanced by every `simulation:tick`. The UI controls real-time speed by how often it sends ticks.
+- `devices[].id` must be stable and unique within the session. Scenarios reference devices by these IDs.
 
 ```json
 {
@@ -74,30 +64,66 @@ Start simulation.
   "ts": "2026-02-18T12:00:00.000Z",
   "reqId": "run-001",
   "payload": {
-    "mode": "parallel",
-    "scenarioIds": ["scn_1", "scn_2"],
-    "speed": 1.0
+    "dtSim": 1.0,
+    "apartment": {
+      "id": "apt_1",
+      "floor": { "...": "ui floor plan payload (existing UI format)" }
+    },
+    "devices": [
+      {
+        "id": "lamp_hall",
+        "type": "lamp",
+        "roomId": "hall",
+        "x": 0.52,
+        "y": 0.78,
+        "state": { "turned_on": false }
+      },
+      {
+        "id": "motion_sensor_hall",
+        "type": "motion_sensor",
+        "roomId": "hall",
+        "x": 0.40,
+        "y": 0.70,
+        "state": {}
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "motion_light_hall",
+        "edges": [
+          {
+            "to": "lamp_hall",
+            "action": "turn_on"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-### `simulation:pause`
+### `simulation:tick`
+Advance the simulation by one lockstep tick.
+
+The UI SHOULD wait for the corresponding `simulation:step` response before sending the next tick (determinism + backpressure).
+
+To avoid losing user inputs for a given tick (e.g. human movement), the UI SHOULD include all inputs collected since the previous tick inside this message. The backend applies these inputs and then advances the simulation by one tick atomically.
 
 ```json
 {
-  "type": "simulation:pause",
+  "type": "simulation:tick",
   "ts": "2026-02-18T12:00:00.000Z",
-  "reqId": "run-001"
-}
-```
-
-### `simulation:resume`
-
-```json
-{
-  "type": "simulation:resume",
-  "ts": "2026-02-18T12:00:00.000Z",
-  "reqId": "run-001"
+  "reqId": "run-001",
+  "payload": {
+    "tick": 1,
+    "inputs": [
+      {
+        "kind": "human:move",
+        "humanId": "player_1",
+        "to": { "x": 0.60, "y": 0.78 }
+      }
+    ]
+  }
 }
 ```
 
@@ -108,21 +134,6 @@ Start simulation.
   "type": "simulation:stop",
   "ts": "2026-02-18T12:00:00.000Z",
   "reqId": "run-001"
-}
-```
-
-### `devices:update`
-Client-side override for device positions (optional future feature).
-
-```json
-{
-  "type": "devices:update",
-  "ts": "2026-02-18T12:00:00.000Z",
-  "payload": {
-    "devices": [
-      { "id": "motion_sensor_hall", "x": 0.52, "y": 0.78, "roomId": "hall" }
-    ]
-  }
 }
 ```
 
@@ -141,27 +152,17 @@ Client-side override for device positions (optional future feature).
 }
 ```
 
-### `floor`
-Returns current floor plan (see `floor.json` format).
+### `simulation:started`
+Acknowledges a successful start and echoes effective parameters.
 
 ```json
 {
-  "type": "floor",
+  "type": "simulation:started",
   "ts": "2026-02-18T12:00:00.000Z",
-  "payload": { "...": "floor.json content" }
-}
-```
-
-### `scenario:list`
-
-```json
-{
-  "type": "scenario:list",
-  "ts": "2026-02-18T12:00:00.000Z",
+  "reqId": "run-001",
   "payload": {
-    "scenarios": [
-      { "id": "scn_1", "title": "Движение → включить свет", "chain": ["motion_sensor_hall", "hub", "lamp_hall"] }
-    ]
+    "dtSim": 1.0,
+    "state": "running"
   }
 }
 ```
@@ -173,41 +174,38 @@ Current state of the simulation.
 {
   "type": "simulation:status",
   "ts": "2026-02-18T12:00:00.000Z",
+  "reqId": "run-001",
   "payload": {
     "state": "running",
-    "mode": "parallel",
-    "speed": 1.0,
-    "scenarioIds": ["scn_1", "scn_2"]
+    "dtSim": 1.0,
+    "tick": 1
   }
 }
 ```
 
 ### `simulation:step`
-One step update for visualization.
+One lockstep update for visualization. Prefer to send all changes for the tick in a single message.
 
 ```json
 {
   "type": "simulation:step",
   "ts": "2026-02-18T12:00:00.000Z",
+  "reqId": "run-001",
   "payload": {
-    "scenarioId": "scn_1",
-    "stepIndex": 2,
-    "activeDevice": "lamp_hall",
-    "activeEdge": ["hub", "lamp_hall"]
-  }
-}
-```
-
-### `device:state`
-Device state update.
-
-```json
-{
-  "type": "device:state",
-  "ts": "2026-02-18T12:00:00.000Z",
-  "payload": {
-    "id": "lamp_hall",
-    "state": "active"
+    "tick": 1,
+    "simTime": 1.0,
+    "stateChanges": [
+      {
+        "id": "lamp_hall",
+        "patch": { "turned_on": true }
+      }
+    ],
+    "triggeredEdges": [
+      { "from": "motion_sensor_hall", "to": "lamp_hall", "action": "turn_on" }
+    ],
+    "humans": [
+      { "id": "player_1", "x": 0.60, "y": 0.78 }
+    ]
   }
 }
 ```
@@ -219,6 +217,7 @@ Console/event feed.
 {
   "type": "log:event",
   "ts": "2026-02-18T12:00:00.000Z",
+  "reqId": "run-001",
   "payload": {
     "level": "INFO",
     "device": "hub",
@@ -240,4 +239,3 @@ Console/event feed.
   }
 }
 ```
-

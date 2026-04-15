@@ -18,9 +18,10 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
-	sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
+	// "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
+	// sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
+	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 )
 
 func NewScrapeCmd() *cobra.Command {
@@ -60,11 +61,13 @@ func scrape(ctx context.Context, cfgFile string) error {
 	snapshotRepo := repository.NewSnapshotRepo(db)
 
 	printerScraper := printer.NewPrinterScraper()
-	sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
+	// sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
+	wildberriesScraper := wbScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 
 	sourceToScraper := map[string]worker.Scraper{
-		printer.Source: printerScraper,
-		sprut.Source:   sprutScraper,
+		"printer":    printerScraper,
+	// 	"sprut":      sprutScraper,
+		"wildberries": wildberriesScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)

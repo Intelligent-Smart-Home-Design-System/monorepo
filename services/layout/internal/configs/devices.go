@@ -10,9 +10,9 @@ type Devices struct {
 }
 
 type Device struct {
-	Name string `json:"name"`
-	Price PriceRange `json:"price_range"`
-	Tracks []string `json:"tracks"`
+	Name   string     `json:"name"`
+	Price  PriceRange `json:"price_range"`
+	Tracks []string   `json:"tracks"`
 }
 
 func LoadDevicesConfig(path string) (*Devices, error) {

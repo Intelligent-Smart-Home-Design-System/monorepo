@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "dev:sim-ui": "npm run dev --workspace @smart-home/sim-ui",
+    "build": "npm run build --workspaces --if-present",
     "build:sim-ui": "npm run build --workspace @smart-home/sim-ui",
     "lint": "npm run lint --workspaces --if-present"
   },

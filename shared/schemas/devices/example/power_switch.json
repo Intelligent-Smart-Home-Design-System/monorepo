@@ -1,0 +1,12 @@
+{
+  "type": "Диммер",
+  "name": "Умный диммер RODRET",
+  "price": 706.0,
+  "ecosystem": [
+    "IKEA Home smart"
+  ],
+  "protocol": [
+    "Zigbee"
+  ],
+  "articul_YANDEX": "103630954516"
+}

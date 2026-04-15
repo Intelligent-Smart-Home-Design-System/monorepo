@@ -26,9 +26,10 @@ class ParseFloorIntegrationTest(unittest.TestCase):
         self._assert_floor_json_matches_expected("floorplan.dxf", "floorplan.json")
 
     def _assert_floor_json_matches_expected(self, dxf_filename: str, json_filename: str) -> None:
-        tests_dir = Path(__file__).resolve().parent
-        dxf_path = tests_dir / dxf_filename
-        expected_json_path = tests_dir / json_filename
+        service_dir = Path(__file__).resolve().parents[1]
+        data_dir = service_dir / "data"
+        dxf_path = data_dir / dxf_filename
+        expected_json_path = data_dir / json_filename
 
         result = self._parse_dxf(dxf_path)
 

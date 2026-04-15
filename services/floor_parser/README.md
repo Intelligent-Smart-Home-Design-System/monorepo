@@ -36,10 +36,19 @@ internal/
 
 ## Как запустить
 
+Сначала нужно создать виртуальное окружение и поставить зависимости. `.venv` в репозиторий не коммитится, поэтому после клонирования его нужно создать локально:
 
 ```bash
-source services/floor_parser/.venv/bin/activate
-PYTHONPATH=. python -m services.floor_parser.cmd.floor_parser.main
+cd services/floor_parser
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+После установки сервис можно запустить так:
+
+```bash
+PYTHONPATH=../.. python -m services.floor_parser.cmd.floor_parser.main
 ```
 
 После запуска сервис будет доступен по адресу:
@@ -62,27 +71,51 @@ curl http://127.0.0.1:8080/health
 
 ```bash
 curl -X POST http://127.0.0.1:8080/parse \
-  -F "file=@services/floor_parser/tests/square_room.dxf"
+  -F "file=@data/square_room.dxf"
 ```
 
 Если хочется сразу сохранить ответ в отдельный JSON-файл:
 
 ```bash
 curl -X POST http://127.0.0.1:8080/parse \
-  -F "file=@services/floor_parser/tests/square_room.dxf" \
-  | jq . > services/floor_parser/tests/square_room.json
+  -F "file=@data/square_room.dxf" \
+  | jq . > data/square_room.json
 ```
+
+Команды выше предполагают, что ты находишься в папке `services/floor_parser`.
+
+## Единицы измерения
+
+Координаты и длины в итоговом `floor.json` остаются в тех единицах, которые указаны в DXF. Эти единицы попадают в поле `meta.units`.
+
+Например, если в DXF указаны миллиметры, то:
+
+- координаты точек стен будут в миллиметрах
+- `width` дверей и окон тоже будет в миллиметрах
+- `meta.units` будет `mm`
+
+Если в DXF единицы не указаны, parser вернет `unknown`.
+
+Важно: parser не гарантирует одинаково хороший результат для любого DXF. Он корректно читает валидные DXF-файлы, но качество распознавания зависит от того, как в файле оформлены слои и геометрия. Сейчас в первом PR проверяем базовую обработку стен.
 
 ## Тестовые файлы
 
-Для локальной проверки в проекте есть несколько DXF-примеров:
+Для локальной проверки входные DXF и ожидаемые JSON лежат отдельно от кода тестов:
 
-- `square_room.dxf`
-- `apartment_partition_lines.dxf`
-- `apartment_outline_polyline.dxf`
+```text
+data/
+├── square_room.dxf
+├── square_room.json
+├── apartment_partition_lines.dxf
+├── apartment_partition_lines.json
+├── apartment_outline_polyline.dxf
+├── apartment_outline_polyline.json
+├── floorplan.dxf
+└── floorplan.json
+```
 
-И соответствующие ожидаемые JSON-ответы:
+Запустить тесты можно так из корня репозитория:
 
-- `square_room.json`
-- `apartment_partition_lines.json`
-- `apartment_outline_polyline.json`
+```bash
+PYTHONPATH=. services/floor_parser/.venv/bin/python -m unittest discover services/floor_parser/tests
+```

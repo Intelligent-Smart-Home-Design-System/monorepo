@@ -10,8 +10,7 @@ func NewRootCmd() *cobra.Command {
 		Short: "Web scraping service for tracking and storing smart home device pages",
 	}
 
-	rootCmd.AddCommand(NewScrapeCmd())
-	rootCmd.AddCommand(NewParseCmd())
+	rootCmd.AddCommand(NewRunCmd())
 
 	return rootCmd
 }

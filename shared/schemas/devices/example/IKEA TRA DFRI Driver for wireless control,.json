@@ -1,0 +1,18 @@
+{
+  "type": "Блок питания для светильника",
+  "name": "IKEA TRÅDFRI Driver for wireless control",
+  "price": 2189.0,
+  "ecosystem": [
+    "IKEA Home smart"
+  ],
+  "protocol": [
+    "ZigBee"
+  ],
+  "power": 10.0,
+  "voltage": {
+    "min": 220.0,
+    "max": 240.0
+  },
+  "articul_YANDEX": "102217717242",
+  "lifetime": 15.0
+}

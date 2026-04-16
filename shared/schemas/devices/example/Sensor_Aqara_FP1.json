@@ -1,0 +1,12 @@
+{
+  "type": "Датчик присутствия",
+  "name": "Датчик присутствия человека Aqara FP1",
+  "price": 3511.0,
+  "ecosystem": [
+        "Aqara Home"
+  ],
+  "protocol": [
+        "ZigBee"
+  ],
+  "articul_YANDEX": "103569747414"
+}

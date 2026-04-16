@@ -251,6 +251,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 services/extractor/evaluation/results
+
+# macOS
 .DS_Store
 
 # Workspace dependencies
@@ -278,10 +280,9 @@ yarn-error.log*
 
 # Environment and local files
 .env*
-.DS_Store
 *.pem
 .vercel
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts 
+next-env.d.ts

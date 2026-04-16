@@ -1,0 +1,7 @@
+[database]
+host = "localhost"
+port = 5432
+user = "scraper"
+# password via env: SCRAPER_DATABASE_PASSWORD
+dbname = "scraper_db"
+sslmode = "disable"

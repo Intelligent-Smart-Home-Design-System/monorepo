@@ -17,17 +17,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewRunCmd() *cobra.Command {
+func NewScrapeCmd() *cobra.Command {
 	var cfgFile string
 
 	cmd := &cobra.Command{
-		Use:   "run",
+		Use:   "scrape",
 		Short: "Run the scraping job",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
 
-			return run(ctx, cfgFile)
+			return scrape(ctx, cfgFile)
 		},
 	}
 
@@ -36,7 +36,7 @@ func NewRunCmd() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, cfgFile string) error {
+func scrape(ctx context.Context, cfgFile string) error {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	var cfg config.Config

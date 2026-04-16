@@ -5,7 +5,7 @@ import os
 import uvicorn
 from fastapi import FastAPI
 
-from services.floor_parser.internal.api.routes import router as api_router
+from internal.api.routes import router as api_router
 
 
 def create_app() -> FastAPI:

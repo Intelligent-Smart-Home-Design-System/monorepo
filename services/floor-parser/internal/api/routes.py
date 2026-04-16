@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
-from services.floor_parser.internal.pipeline import parse_floor
+from internal.pipeline import parse_floor
 
 
 router = APIRouter()
@@ -28,5 +28,3 @@ async def parse_dxf(file: UploadFile = File(...)) -> dict[str, object]:
         )
 
     return await parse_floor(file)
-
-    

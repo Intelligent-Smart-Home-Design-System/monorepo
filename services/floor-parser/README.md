@@ -36,10 +36,12 @@ internal/
 
 ## Как запустить
 
+Версия Python для сервиса указана в `.python-version`: `3.12.3`.
+
 Сначала нужно создать виртуальное окружение и поставить зависимости. `.venv` в репозиторий не коммитится, поэтому после клонирования его нужно создать локально:
 
 ```bash
-cd services/floor_parser
+cd services/floor-parser
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -48,13 +50,19 @@ pip install -r requirements.txt
 После установки сервис можно запустить так:
 
 ```bash
-PYTHONPATH=../.. python -m services.floor_parser.cmd.floor_parser.main
+python -m cmd.floor_parser.main
 ```
 
-После запуска сервис будет доступен по адресу:
+По умолчанию сервис слушает порт `8080`:
 
 ```bash
 http://127.0.0.1:8080
+```
+
+Порт можно изменить через переменную окружения `PARSER_PORT`:
+
+```bash
+PARSER_PORT=8090 python -m cmd.floor_parser.main
 ```
 
 Проверить, что он поднялся, можно так:
@@ -82,7 +90,7 @@ curl -X POST http://127.0.0.1:8080/parse \
   | jq . > data/square_room.json
 ```
 
-Команды выше предполагают, что ты находишься в папке `services/floor_parser`.
+Команды выше предполагают, что ты находишься в папке `services/floor-parser`.
 
 ## Единицы измерения
 
@@ -110,12 +118,14 @@ data/
 ├── apartment_partition_lines.json
 ├── apartment_outline_polyline.dxf
 ├── apartment_outline_polyline.json
+├── door_and_window.dxf
+├── door_and_window.json
 ├── floorplan.dxf
 └── floorplan.json
 ```
 
-Запустить тесты можно так из корня репозитория:
+Запустить тесты можно так из папки `services/floor-parser`:
 
 ```bash
-PYTHONPATH=. services/floor_parser/.venv/bin/python -m unittest discover services/floor_parser/tests
+python -m unittest discover tests
 ```

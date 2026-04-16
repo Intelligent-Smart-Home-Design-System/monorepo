@@ -5,13 +5,13 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import UploadFile
 
-from services.floor_parser.internal.classification.classifier import SemanticClassifier
-from services.floor_parser.internal.entities.warnings import ParseWarning
-from services.floor_parser.internal.export.floor_exporter import FloorExporter
-from services.floor_parser.internal.normalization.geometry_normalizer import GeometryNormalizer
-from services.floor_parser.internal.readers.dxf.extractor import DxfExtractor
-from services.floor_parser.internal.readers.dxf.reader import DxfReader
-from services.floor_parser.internal.topology.topology_builder import TopologyBuilder
+from internal.classification.classifier import SemanticClassifier
+from internal.entities.warnings import ParseWarning
+from internal.export.floor_exporter import FloorExporter
+from internal.normalization.geometry_normalizer import GeometryNormalizer
+from internal.readers.dxf.extractor import DxfExtractor
+from internal.readers.dxf.reader import DxfReader
+from internal.topology.topology_builder import TopologyBuilder
 
 
 async def parse_floor(file: UploadFile) -> dict[str, object]:
@@ -42,7 +42,7 @@ async def parse_floor(file: UploadFile) -> dict[str, object]:
             floor_plan,
             source=raw_plan.metadata.source_format.value,
             units=raw_plan.metadata.units,
-            warnings=warnings
+            warnings=warnings,
         )
     finally:
         temp_path.unlink(missing_ok=True)

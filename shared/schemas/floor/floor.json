@@ -153,7 +153,8 @@
       "required": [
         "id",
         "points",
-        "height"
+        "width",
+        "rooms"
       ],
       "properties": {
         "id": {
@@ -166,7 +167,7 @@
             "$ref": "#/$defs/point"
           }
         },
-        "height": {
+        "width": {
           "type": "number"
         },
         "rooms": {

@@ -307,8 +307,8 @@ components:
         - status
       properties:
         plan_id:
-          type: string
-          example: plan_123
+          type: integer
+          example: 1
         status:
           type: string
           enum: [accepted]
@@ -325,8 +325,8 @@ components:
         - filters
       properties:
         id:
-          type: string
-          example: req_1
+          type: integer
+          example: 1
         device_type:
           type: string
           example: smart_lamp
@@ -366,8 +366,8 @@ components:
         - status
       properties:
         plan_id:
-          type: string
-          example: plan_123
+          type: integer
+          example: 1
         status:
           type: string
           enum: [queued, generating, completed, failed]
@@ -390,8 +390,8 @@ components:
         - status
       properties:
         plan_id:
-          type: string
-          example: plan_123
+          type: integer
+          example: 1
         created_at:
           type: string
           format: date-time
@@ -453,8 +453,8 @@ components:
         - listings
       properties:
         id:
-          type: string
-          example: bundle_1
+          type: integer
+          example: 1
         total_cost:
           type: number
           format: float
@@ -501,8 +501,8 @@ components:
         - connection_info
       properties:
         id:
-          type: string
-          example: listing_1
+          type: integer
+          example: 1
         name:
           type: string
           example: Xiaomi Smart Lamp
@@ -538,8 +538,8 @@ components:
           minimum: 1
           example: 3
         requirement_id:
-          type: string
-          example: req_1
+          type: integer
+          example: 1
         device_attributes:
           type: object
           additionalProperties: true
@@ -562,9 +562,9 @@ components:
           type: string
           example: zigbee
         direct_hub_selected_listing_id:
-          type: string
+          type: integer
           nullable: true
-          example: listing_3
+          example: 1
         direct_description:
           type: string
           nullable: true
@@ -576,7 +576,7 @@ components:
           type: string
           example: cloud
         final_hub_selected_listing_id:
-          type: string
+          type: integer
           nullable: true
           example: null
         final_description:

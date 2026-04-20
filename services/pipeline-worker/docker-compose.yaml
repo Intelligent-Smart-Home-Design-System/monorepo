@@ -1,0 +1,218 @@
+services:
+  temporal-postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - temporal-postgresql-data:/var/lib/postgresql/data
+    networks:
+      - pipeline
+
+  temporal:
+    image: temporalio/auto-setup:1.23.0
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgresql
+    ports:
+      - "7233:7233"
+    networks:
+      - pipeline
+
+  temporal-ui:
+    image: temporalio/ui:2.21.3
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "8080:8080"
+    networks:
+      - pipeline
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.23.0
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    profiles:
+      - tools
+    stdin_open: true
+    tty: true
+    networks:
+      - pipeline
+
+  catalog-postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: smart_home
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog -d smart_home"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - catalog-postgresql-data:/var/lib/postgresql/data
+    networks:
+      - pipeline
+
+  catalog-db-migrate:
+    image: migrate/migrate:v4.18.3
+    depends_on:
+      catalog-postgresql:
+        condition: service_healthy
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://catalog:${CATALOG_DATABASE_PASSWORD:-catalog}@catalog-postgresql:5432/smart_home?sslmode=disable",
+        "up"
+      ]
+    volumes:
+      - ../../db/catalog/migrations:/migrations:ro
+    restart: "no"
+    networks:
+      - pipeline
+
+  pipeline-worker:
+    image: pipeline-worker:latest
+    build:
+      context: .
+      target: worker
+    depends_on:
+      temporal:
+        condition: service_started
+      catalog-db-migrate:
+        condition: service_completed_successfully
+      jaeger:
+        condition: service_started
+      prometheus:
+        condition: service_started
+    environment:
+      PIPELINE_CONFIG: /app/config/pipeline.toml
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRACING_ENABLED: ${TRACING_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      CATALOG_DATABASE_PASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
+      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-dummy-yandex-api-key}
+    volumes:
+      - ./config:/app/config:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "2112:2112"
+    restart: unless-stopped
+    networks:
+      - pipeline
+
+  pipeline-trigger:
+    image: pipeline-trigger:latest
+    build:
+      context: .
+      target: trigger
+    depends_on:
+      - temporal
+      - pipeline-worker
+    environment:
+      PIPELINE_CONFIG: /app/config/pipeline.toml
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRACING_ENABLED: ${TRACING_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      WAIT_FOR_COMPLETION: ${WAIT_FOR_COMPLETION:-true}
+    volumes:
+      - ./config:/app/config:ro
+    profiles:
+      - tools
+    networks:
+      - pipeline
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - pipeline
+
+  loki:
+    image: grafana/loki:2.9.8
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - pipeline
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - pipeline
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - pipeline
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    depends_on:
+      - loki
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - pipeline
+
+networks:
+  pipeline:
+    name: catalog-pipeline-network
+    driver: bridge
+
+volumes:
+  temporal-postgresql-data:
+  catalog-postgresql-data:
+  loki-data:
+  grafana-data:

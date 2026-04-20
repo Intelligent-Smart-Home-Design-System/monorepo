@@ -1,0 +1,6 @@
+[database]
+host = "catalog-postgresql"
+port = 5432
+name = "smart_home"
+user = "catalog"
+password = ""

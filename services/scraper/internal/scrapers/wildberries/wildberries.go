@@ -6,88 +6,185 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/go-rod/rod"
+	"github.com/go-rod/stealth"
+	"golang.org/x/time/rate"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 )
 
+type Session struct {
+	UserAgent string    `json:"userAgent"`
+	Cookies   []Cookie  `json:"cookies"`
+	Token     string    `json:"token"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type Cookie struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Domain string `json:"domain"`
+	Path   string `json:"path"`
+}
+
 type Scraper struct {
 	client      *http.Client
-	userAgent   string
-	basketCache map[int]int
+	limiter     *rate.Limiter
+	cardBasket  string
+	sessionPath string
+	session     *Session
 	mu          sync.RWMutex
 }
 
-func NewScraper(timeout time.Duration, userAgent string) *Scraper {
+func NewScraper(timeout time.Duration, proxyURL, cardBasket string, rps float64, sessionPath string) *Scraper {
+	transport := &http.Transport{}
+	if proxyURL != "" {
+		if proxy, err := url.Parse(proxyURL); err == nil {
+			transport.Proxy = http.ProxyURL(proxy)
+		}
+	}
+	limiter := rate.NewLimiter(rate.Limit(rps), 1)
 	return &Scraper{
-		client: &http.Client{Timeout: timeout},
-		userAgent: userAgent,
-		basketCache: make(map[int]int),
+		client: &http.Client{
+			Timeout:   timeout,
+			Transport: transport,
+		},
+		limiter:     limiter,
+		cardBasket:  cardBasket,
+		sessionPath: sessionPath,
 	}
 }
 
-func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-	nmID, err := extractNmID(task.URL)
+func (s *Scraper) loadSession() (*Session, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	data, err := os.ReadFile(s.sessionPath)
 	if err != nil {
-		return nil, fmt.Errorf("extract nm_id: %w", err)
+		return nil, err
+	}
+	var sess Session
+	if err := json.Unmarshal(data, &sess); err != nil {
+		return nil, err
+	}
+	if time.Since(sess.UpdatedAt) > time.Hour {
+		return nil, fmt.Errorf("session expired")
+	}
+	s.session = &sess
+	return &sess, nil
+}
+
+func (s *Scraper) saveSession(sess *Session) error {
+	sess.UpdatedAt = time.Now()
+	data, err := json.MarshalIndent(sess, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(s.sessionPath, data, 0600)
+}
+
+func (s *Scraper) mineSession() (*Session, error) {
+	fmt.Println("[DEBUG] mineSession: starting browser")
+	browser := rod.New().MustConnect()
+	defer browser.MustClose()
+
+	page := stealth.MustPage(browser)
+	defer page.MustClose()
+
+	page.MustNavigate("https://www.wildberries.ru/")
+	page.MustWaitLoad()
+
+	tokenVal := page.MustEval(`() => window.WBAAS?.x_wbaas_token || ''`)
+	token := tokenVal.Str()
+	if token == "" {
+		tokenVal = page.MustEval(`() => localStorage.getItem('x_wbaas_token') || ''`)
+		token = tokenVal.Str()
+	}
+	if token == "" {
+		return nil, fmt.Errorf("x_wbaas_token not found")
 	}
 
-	detailURL := fmt.Sprintf(
-		"https://www.wildberries.ru/__internal/u-card/cards/v4/detail?appType=1&curr=rub&dest=-1257786&spp=30&hide_vflags=4294967296&ab_testing=false&lang=ru&nm=%d",
-		nmID,
-	)
-	detailBody, err := s.fetchJSON(ctx, detailURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetch detail.json: %w", err)
-	}
-	var detailResp WBDetailResponse
-	if err := json.Unmarshal(detailBody, &detailResp); err != nil {
-		return nil, fmt.Errorf("parse detail.json: %w", err)
+	cookies := page.MustCookies()
+	var cookieList []Cookie
+	for _, c := range cookies {
+		cookieList = append(cookieList, Cookie{
+			Name:   c.Name,
+			Value:  c.Value,
+			Domain: c.Domain,
+			Path:   c.Path,
+		})
 	}
 
-	cardURL, err := s.getCardURL(ctx, nmID)
-	if err != nil {
-		return nil, fmt.Errorf("get card.json URL: %w", err)
-	}
-	cardBody, err := s.fetchJSON(ctx, cardURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetch card.json: %w", err)
-	}
-	var cardResp WBCardResponse
-	if err := json.Unmarshal(cardBody, &cardResp); err != nil {
-		return nil, fmt.Errorf("parse card.json: %w", err)
-	}
+	uaVal := page.MustEval(`() => navigator.userAgent`)
+	userAgent := uaVal.Str()
 
-	resources := []domain.Resource{
-		{
-			Name:         "detail.json",
-			URL:          detailURL,
-			ResponseBody: detailBody,
-			StatusCode:   http.StatusOK,
-			Status:       "200 OK",
-			Timestamp:    time.Now(),
-		},
-		{
-			Name:         "card.json",
-			URL:          cardURL,
-			ResponseBody: cardBody,
-			StatusCode:   http.StatusOK,
-			Status:       "200 OK",
-			Timestamp:    time.Now(),
-		},
-	}
-	return &domain.ScrapeResult{Resources: resources}, nil
+	return &Session{
+		UserAgent: userAgent,
+		Cookies:   cookieList,
+		Token:     token,
+	}, nil
+}
+
+func (s *Scraper) ensureSession() error {
+    fmt.Println("[DEBUG] ensureSession: manual session setup")
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    if s.session != nil {
+        return nil
+    }
+    s.session = &Session{
+        UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Token:     "1.1000.3d4fc54b6c334a838abe2ea713503a7f.MTV8OTMuMTU4LjE5MS4yNDl8TW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0NC4wLjAuMCBZYUJyb3dzZXIvMjYuMy4wLjAgU2FmYXJpLzUzNy4zNnwxNzc3NDU3NDgwfHJldXNhYmxlfDJ8ZXlKb1lYTm9Jam9pSW4wPXwwfDN8MTc3Njg1MjY4MHwx.MEUCIFR/xXwQv93XViIVR2ZfavR0T2k5cogUrXJWT6he83V6AiEAleRstYVAfuOMSnRneqiy2GheQrbWVMCaOsDLUgP79wc=",
+        Cookies:   []Cookie{},
+        UpdatedAt: time.Now(),
+    }
+    if err := s.saveSession(s.session); err != nil {
+        fmt.Printf("[WARN] failed to save session: %v\n", err)
+    }
+    fmt.Println("[DEBUG] ensureSession: manual session set and saved")
+    return nil
 }
 
 func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
+	fmt.Printf("[DEBUG] fetchJSON: start %s\n", url)
+    if err := s.ensureSession(); err != nil {
+        fmt.Printf("[DEBUG] fetchJSON: ensureSession error: %v\n", err)
+        return nil, err
+    }
+    fmt.Printf("[DEBUG] fetchJSON: session ok, token len=%d\n", len(s.session.Token))
+    if err := s.limiter.Wait(ctx); err != nil {
+        return nil, err
+    }
+	if err := s.ensureSession(); err != nil {
+		return nil, err
+	}
+	if err := s.limiter.Wait(ctx); err != nil {
+		return nil, err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", s.userAgent)
+
+	s.mu.RLock()
+	req.Header.Set("User-Agent", s.session.UserAgent)
+	req.Header.Set("x-wbaas-token", s.session.Token)
+	for _, c := range s.session.Cookies {
+		req.AddCookie(&http.Cookie{
+			Name:   c.Name,
+			Value:  c.Value,
+			Domain: c.Domain,
+			Path:   c.Path,
+		})
+	}
+	s.mu.RUnlock()
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -95,16 +192,95 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %s", resp.Status)
+	if resp.StatusCode == 403 || resp.StatusCode == 429 {
+		s.mu.Lock()
+		s.session = nil
+		s.mu.Unlock()
+		return nil, fmt.Errorf("session invalid (HTTP %d)", resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("[DEBUG] fetchJSON: %s, body size = %d\n", url, len(body))
+	return body, nil
 }
 
-func extractNmID(url string) (int, error) {
-	parts := strings.Split(url, "/catalog/")
+func (s *Scraper) fetchWithRetry(ctx context.Context, url string) ([]byte, error) {
+    var lastErr error
+    for i := 0; i < 3; i++ {
+        fmt.Printf("[DEBUG] fetchWithRetry: attempt %d for %s\n", i+1, url)
+        body, err := s.fetchJSON(ctx, url)
+        if err == nil {
+            fmt.Printf("[DEBUG] fetchWithRetry: success\n")
+            return body, nil
+        }
+        fmt.Printf("[DEBUG] fetchWithRetry: error: %v\n", err)
+        lastErr = err
+        if strings.Contains(err.Error(), "session invalid") {
+            s.mu.Lock()
+            s.session = nil
+            s.mu.Unlock()
+            continue
+        }
+        select {
+        case <-ctx.Done():
+            return nil, ctx.Err()
+        case <-time.After(time.Duration(i+1) * 2 * time.Second):
+        }
+    }
+    return nil, fmt.Errorf("max retries: %w", lastErr)
+}
+
+func (s *Scraper) urlExists(ctx context.Context, url string) bool {
+    if s.session == nil {
+        fmt.Println("[DEBUG] urlExists: session is nil")
+        return false
+    }
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        fmt.Printf("[DEBUG] urlExists: request error %v\n", err)
+        return false
+    }
+    req.Header.Set("User-Agent", s.session.UserAgent)
+    req.Header.Set("Range", "bytes=0-0")
+    resp, err := s.client.Do(req)
+    if err != nil {
+        fmt.Printf("[DEBUG] urlExists: do error %v\n", err)
+        return false
+    }
+    defer resp.Body.Close()
+    fmt.Printf("[DEBUG] urlExists: status %d for %s\n", resp.StatusCode, url)
+    return resp.StatusCode == http.StatusOK
+}
+
+func (s *Scraper) getCardURL(ctx context.Context, nmID int) (string, error) {
+    newURL := buildCardURLNew("01", nmID)
+    fmt.Printf("[DEBUG] checking new CDN: %s\n", newURL)
+    if s.urlExists(ctx, newURL) {
+        fmt.Println("[DEBUG] new CDN works")
+        return newURL, nil
+    }
+    vol := nmID / 100000
+    part := nmID / 1000
+    for basket := 1; basket <= 41; basket++ {
+        oldURL := fmt.Sprintf("https://basket-%d.wbbasket.ru/vol%d/part%d/%d/info/ru/card.json", basket, vol, part, nmID)
+        fmt.Printf("[DEBUG] checking basket %d: %s\n", basket, oldURL)
+        if s.urlExists(ctx, oldURL) {
+            fmt.Printf("[DEBUG] found working basket %d\n", basket)
+            return oldURL, nil
+        }
+    }
+    return "", fmt.Errorf("card.json not found for nm_id %d", nmID)
+}
+
+func extractNmID(rawURL string) (int, error) {
+	parts := strings.Split(rawURL, "/catalog/")
 	if len(parts) < 2 {
-		return 0, fmt.Errorf("catalog not found in url")
+		return 0, fmt.Errorf("catalog not found")
 	}
 	rest := parts[1]
 	end := strings.IndexAny(rest, "/?")
@@ -119,42 +295,61 @@ func extractNmID(url string) (int, error) {
 	return id, nil
 }
 
-func (s *Scraper) getCardURL(ctx context.Context, nmID int) (string, error) {
-	s.mu.RLock()
-	basket, ok := s.basketCache[nmID]
-	s.mu.RUnlock()
-	if ok {
-		return buildCardURL(basket, nmID), nil
-	}
-
-	for basket := 1; basket <= 41; basket++ {
-		testURL := buildCardURL(basket, nmID)
-		if s.urlExists(ctx, testURL) {
-			s.mu.Lock()
-			s.basketCache[nmID] = basket
-			s.mu.Unlock()
-			return testURL, nil
-		}
-	}
-	return "", fmt.Errorf("no working basket for nm_id %d", nmID)
+func buildCardURLNew(basket string, nmID int) string {
+    vol := nmID / 100000
+    part := nmID / 1000
+    return fmt.Sprintf("https://mow-basket-cdn-%s.geobasket.ru/vol%d/part%d/%d/info/ru/card.json", basket, vol, part, nmID)
 }
 
-func buildCardURL(basket, nmID int) string {
-	vol := nmID / 1000
-	part := nmID / 100
-	return fmt.Sprintf("https://basket-%d.wbbasket.ru/vol%d/part%d/%d/info/ru/card.json", basket, vol, part, nmID)
-}
+func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
+    if err := s.ensureSession(); err != nil {
+        return nil, fmt.Errorf("ensure session: %w", err)
+    }
 
-func (s *Scraper) urlExists(ctx context.Context, url string) bool {
-	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
-	if err != nil {
-		return false
-	}
-	req.Header.Set("User-Agent", s.userAgent)
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
+    nmID, err := extractNmID(task.URL)
+    if err != nil {
+        return nil, err
+    }
+
+    detailURL := fmt.Sprintf(
+        "https://www.wildberries.ru/__internal/u-card/cards/v4/detail?appType=1&curr=rub&dest=-1257786&spp=30&hide_vflags=4294967296&ab_testing=false&lang=ru&nm=%d",
+        nmID,
+    )
+
+    cardURL, err := s.getCardURL(ctx, nmID)
+    if err != nil {
+        return nil, fmt.Errorf("get card URL: %w", err)
+    }
+
+    fmt.Println("[DEBUG] fetching detail.json...")
+    detailBody, err := s.fetchWithRetry(ctx, detailURL)
+    if err != nil {
+        return nil, fmt.Errorf("detail.json: %w", err)
+    }
+
+    fmt.Println("[DEBUG] fetching card.json...")
+    cardBody, err := s.fetchWithRetry(ctx, cardURL)
+    if err != nil {
+        return nil, fmt.Errorf("card.json: %w", err)
+    }
+
+    resources := []domain.Resource{
+        {
+            Name:         "detail.json",
+            URL:          detailURL,
+            ResponseBody: detailBody,
+            StatusCode:   http.StatusOK,
+            Status:       "200 OK",
+            Timestamp:    time.Now(),
+        },
+        {
+            Name:         "card.json",
+            URL:          cardURL,
+            ResponseBody: cardBody,
+            StatusCode:   http.StatusOK,
+            Status:       "200 OK",
+            Timestamp:    time.Now(),
+        },
+    }
+    return &domain.ScrapeResult{Resources: resources}, nil
 }

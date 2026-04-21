@@ -62,7 +62,13 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	printerScraper := printer.NewPrinterScraper()
 	// sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
-	wildberriesScraper := wbScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
+	wildberriesScraper := wbScraper.NewScraper(
+    cfg.Scraping.Timeout,
+    cfg.Scraping.Proxy,
+    cfg.Scraping.WBCardBasket,
+    cfg.Scraping.WBRPS,
+    cfg.Scraping.WBSessionPath,
+)
 
 	sourceToScraper := map[string]worker.Scraper{
 		"printer":    printerScraper,
@@ -98,6 +104,7 @@ func scrape(ctx context.Context, cfgFile string) error {
 	go worker.Run(ctx, tasksCh)
 
 	for result := range resultsCh {
+		fmt.Printf("[DEBUG] run: received result for task %d, err=%v, resources=%d\n", result.TrackedPageID, result.Err, len(result.Resources))
 		if result.Err != nil {
 			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
 			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
@@ -108,10 +115,12 @@ func scrape(ctx context.Context, cfgFile string) error {
 		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
 			logger.Error().Err(err).Msg("save snapshot")
 		} else {
+			logger.Info().Msg("snapshot saved successfully")
 			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
 				logger.Error().Err(err).Msg("update status")
 			}
 		}
+		fmt.Printf("[DEBUG] run: finished processing task %d\n", result.TrackedPageID)
 	}
 
 	logger.Info().Msg("all tasks processed, exiting")

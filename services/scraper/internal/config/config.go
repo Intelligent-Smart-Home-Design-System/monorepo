@@ -19,8 +19,12 @@ type DatabaseConfig struct {
 }
 
 type ScrapingConfig struct {
-	MaxRetries   int           `mapstructure:"max_retries"`
-	RateLimitRps float64       `mapstructure:"rate_limit_rps"`
-	Timeout      time.Duration `mapstructure:"timeout"`
-	UserAgent    string        `mapstructure:"user_agent"`
+    MaxRetries   int           `mapstructure:"max_retries"`
+    RateLimitRps float64       `mapstructure:"rate_limit_rps"`
+    Timeout      time.Duration `mapstructure:"timeout"`
+    UserAgent    string        `mapstructure:"user_agent"`
+    Proxy        string        `mapstructure:"proxy"`
+    WBCardBasket  string 	   `mapstructure:"wb_card_basket"`
+    WBSessionPath string       `mapstructure:"wb_session_path"`
+    WBRPS         float64      `mapstructure:"wb_rps"`
 }

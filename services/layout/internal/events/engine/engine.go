@@ -32,6 +32,8 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 		return nil, fmt.Errorf("nil rooms")
 	}
 
+	apartmentStruct.MakeDependency()
+
 	res := apartment.NewApartmentResult()
 
 	for track, level := range selectedLevels {
@@ -63,7 +65,8 @@ func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.ApartmentLayout
 	priceInfo := &PriceInfo{}
 
 	for _, roomPlacement := range apartmentLayout.Placements {
-		for deviceType := range roomPlacement {
+		for _, placement := range roomPlacement {
+			deviceType := placement.Device.Type
 			device := e.devicesConfig.Devices[deviceType]
 
 			priceInfo.MinPrice += device.Price.Min

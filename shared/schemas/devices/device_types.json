@@ -2,118 +2,318 @@
   "traits": {
     "base": {
       "properties": {
-        "name": { "type": "string", "description": "Product name as displayed in the store" },
-        "brand": { "type": "string", "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'" },
-        "model": { "type": "string", "description": "Manufacturer model or SKU" },
-        "price": { "type": "number", "description": "Price in local currency", "minimum": 0 },
-        "articul_YANDEX": { "type": "string", "description": "Yandex Market article ID" }
+        "name": {
+          "type": "string",
+          "description": "Product name as displayed in the store"
+        },
+        "brand": {
+          "type": "string",
+          "description": "Normalized lower-case brand name, e.g. 'aqara', 'xiaomi'"
+        },
+        "model": {
+          "type": "string",
+          "description": "Manufacturer model or SKU"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in local currency",
+          "minimum": 0
+        },
+        "articul_YANDEX": {
+          "type": "string",
+          "description": "Yandex Market article ID"
+        }
       },
-      "required": ["name", "brand", "model"]
+      "required": [
+        "name",
+        "brand",
+        "model"
+      ]
     },
     "connectivity": {
       "properties": {
         "ecosystem": {
           "type": "array",
-          "items": { "type": "string", "enum": ["yandex", "apple", "google", "aqara", "tuya", "xiaomi", "smartthings", "homekit"] },
+          "items": {
+            "type": "string",
+            "enum": [
+              "yandex",
+              "apple",
+              "google",
+              "aqara",
+              "tuya",
+              "xiaomi",
+              "smartthings",
+              "homekit"
+            ]
+          },
           "minItems": 1,
           "uniqueItems": true,
           "description": "Smart home ecosystems the device works with"
         },
         "protocol": {
           "type": "array",
-          "items": { "type": "string", "enum": ["zigbee", "z-wave", "wifi", "bluetooth", "matter", "thread"] },
+          "items": {
+            "type": "string",
+            "enum": [
+              "zigbee",
+              "z-wave",
+              "wifi",
+              "bluetooth",
+              "matter",
+              "thread"
+            ]
+          },
           "minItems": 1,
           "uniqueItems": true,
           "description": "Communication protocols supported by the device"
         }
       },
-      "required": ["ecosystem", "protocol"]
+      "required": [
+        "ecosystem",
+        "protocol"
+      ]
     },
     "battery_operated": {
       "properties": {
-        "battery_type": { "type": "string", "enum": ["CR2032", "CR2450", "CR123A", "AA", "AAA", "18650", "built-in"] },
-        "battery_life_months": { "type": "number", "minimum": 1, "description": "Estimated battery life" },
-        "rechargeable": { "type": "boolean" }
+        "battery_type": {
+          "type": "string",
+          "enum": [
+            "CR2032",
+            "CR2450",
+            "CR123A",
+            "AA",
+            "AAA",
+            "18650",
+            "built-in"
+          ]
+        },
+        "battery_life_months": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Estimated battery life"
+        },
+        "rechargeable": {
+          "type": "boolean"
+        }
       },
       "required": []
     },
-    "eval_lighting": {
+    "lighting": {
       "properties": {
-        "luminous_flux": { "type": "number", "description": "Световой поток в люменах. Основа для оценки яркости.", "min": 400, "max": 1500, "weight": 0.6 },
-        "cri": { "type": "number", "description": "Индекс цветопередачи (CRI). Влияет на естественность освещения.", "min": 70, "max": 100, "weight": 0.4 }
+        "luminous_flux": {
+          "type": "number",
+          "description": "Luminous flux in lumens. Core metric for brightness evaluation.",
+          "minimum": 400,
+          "maximum": 1500
+        },
+        "cri": {
+          "type": "number",
+          "description": "Color Rendering Index (CRI). Affects the naturalness of light.",
+          "minimum": 70,
+          "maximum": 100
+        }
       },
-      "required": ["luminous_flux"]
+      "required": [
+        "luminous_flux"
+      ]
     },
-    "eval_switch": {
+    "switch": {
       "properties": {
-        "max_load_watt": { "type": "number", "description": "Максимальная мощность нагрузки. Чем выше, тем универсальнее реле/розетка.", "min": 1000, "max": 3680, "weight": 0.7 },
-        "has_energy_monitoring": { "type": "boolean", "description": "Наличие мониторинга электроэнергии (дает фиксированный бонус).", "bonus": 0.3 }
+        "max_load_watt": {
+          "type": "number",
+          "description": "Maximum load power. Higher values mean more versatile relays/plugs.",
+          "minimum": 1000,
+          "maximum": 3680
+        },
+        "has_energy_monitoring": {
+          "type": "boolean",
+          "description": "Presence of energy monitoring feature."
+        }
       },
-      "required": ["max_load_watt"]
+      "required": [
+        "max_load_watt"
+      ]
     },
-    "eval_sensor": {
+    "sensor": {
       "properties": {
-        "battery_life_months": { "type": "number", "description": "Заявленный срок службы от одной батареи в месяцах.", "min": 6, "max": 36, "weight": 0.6 },
-        "measurement_error_margin": { "type": "number", "description": "Погрешность измерений. Требует обратной нормализации.", "min": 0.1, "max": 2.0, "weight": 0.4, "inverse": true }
+        "battery_life_months": {
+          "type": "number",
+          "description": "Claimed battery life from a single battery in months.",
+          "minimum": 6,
+          "maximum": 36
+        },
+        "measurement_error_margin": {
+          "type": "number",
+          "description": "Measurement error margin percentage.",
+          "minimum": 0.1,
+          "maximum": 2.0
+        }
       },
-      "required": ["battery_life_months"]
+      "required": [
+        "battery_life_months"
+      ]
     },
-    "eval_security": {
+    "security": {
       "properties": {
-        "resolution_mp": { "type": "number", "description": "Разрешение камеры в мегапикселях.", "min": 1.0, "max": 8.0, "weight": 0.6 },
-        "fov_degrees": { "type": "number", "description": "Угол обзора объектива в градусах.", "min": 90, "max": 180, "weight": 0.4 }
+        "resolution_mp": {
+          "type": "number",
+          "description": "Camera resolution in megapixels.",
+          "minimum": 1.0,
+          "maximum": 8.0
+        },
+        "fov_degrees": {
+          "type": "number",
+          "description": "Lens field of view in degrees.",
+          "minimum": 90,
+          "maximum": 180
+        }
       },
-      "required": ["resolution_mp"]
+      "required": [
+        "resolution_mp"
+      ]
     },
-    "eval_climate": {
+    "climate": {
       "properties": {
-        "noise_level_db": { "type": "number", "description": "Уровень шума в децибелах (обратная нормализация).", "min": 20, "max": 65, "weight": 0.5, "inverse": true },
-        "coverage_area_sqm": { "type": "number", "description": "Эффективная площадь обслуживания (м2).", "min": 10, "max": 50, "weight": 0.5 }
+        "noise_level_db": {
+          "type": "number",
+          "description": "Noise level in decibels.",
+          "minimum": 20,
+          "maximum": 65
+        },
+        "coverage_area_sqm": {
+          "type": "number",
+          "description": "Effective coverage area in square meters.",
+          "minimum": 10,
+          "maximum": 50
+        }
       },
-      "required": ["noise_level_db"]
+      "required": [
+        "noise_level_db"
+      ]
     },
-    "eval_infra": {
+    "cover": {
       "properties": {
-        "max_child_devices": { "type": "number", "description": "Максимальное количество подключаемых sub-устройств.", "min": 32, "max": 256, "weight": 0.6 },
-        "has_local_control": { "type": "boolean", "description": "Поддержка локального выполнения сценариев без интернета.", "bonus": 0.4 }
+        "motor_torque_nm": {
+          "type": "number",
+          "description": "Motor torque for curtains/gates in Newton-meters.",
+          "minimum": 0.5,
+          "maximum": 2.0
+        }
       },
-      "required": ["max_child_devices"]
+      "required": []
+    },
+    "media": {
+      "properties": {
+        "hdmi_ports": {
+          "type": "number",
+          "description": "Number of HDMI ports (for TVs/Set-top boxes).",
+          "minimum": 1,
+          "maximum": 4
+        }
+      },
+      "required": []
+    },
+    "infra": {
+      "properties": {
+        "max_child_devices": {
+          "type": "number",
+          "description": "Maximum number of connected sub-devices (for Hubs/Routers).",
+          "minimum": 32,
+          "maximum": 256
+        },
+        "has_local_control": {
+          "type": "boolean",
+          "description": "Support for local scenario execution without internet."
+        }
+      },
+      "required": [
+        "max_child_devices"
+      ]
     }
   },
   "types": {
     "water_leak_sensor": {
       "description": "Detects water leaks. Typically placed under sinks.",
-      "traits": ["base", "connectivity", "battery_operated", "eval_sensor"],
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "sensor"
+      ],
       "extra_schema": {
-        "properties": { "type": { "const": "water_leak_sensor" } },
-        "required": ["type"]
+        "properties": {
+          "type": {
+            "const": "water_leak_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
       }
     },
     "temperature_sensor": {
       "description": "Measures ambient temperature and humidity.",
-      "traits": ["base", "connectivity", "battery_operated", "eval_sensor"],
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "sensor"
+      ],
       "extra_schema": {
-        "properties": { "type": { "const": "temperature_sensor" } },
-        "required": ["type"]
+        "properties": {
+          "type": {
+            "const": "temperature_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
       }
     },
     "smart_lamp": {
       "description": "Smart light bulb or luminaire.",
-      "traits": ["base", "connectivity", "eval_lighting"],
+      "traits": [
+        "base",
+        "connectivity",
+        "lighting"
+      ],
       "extra_schema": {
         "properties": {
-          "type": { "const": "smart_lamp" },
-          "mount_type": { "type": "string", "enum": ["ceiling", "wall", "table", "floor"] }
+          "type": {
+            "const": "smart_lamp"
+          },
+          "mount_type": {
+            "type": "string",
+            "enum": [
+              "ceiling",
+              "wall",
+              "table",
+              "floor"
+            ]
+          }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     "smart_plug": {
       "description": "Smart plug that controls connected appliances",
-      "traits": ["base", "connectivity", "eval_switch"],
+      "traits": [
+        "base",
+        "connectivity",
+        "switch"
+      ],
       "extra_schema": {
-        "properties": { "type": { "const": "smart_plug" } },
-        "required": ["type"]
+        "properties": {
+          "type": {
+            "const": "smart_plug"
+          }
+        },
+        "required": [
+          "type"
+        ]
       }
     }
   }

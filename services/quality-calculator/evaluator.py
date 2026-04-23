@@ -1,13 +1,33 @@
 import json
+import os
 from typing import Dict, Any, List, Union
 
 
 class QualityEvaluator:
-    def __init__(self, traits_schema: Dict[str, Any], weights: tuple = (0.3, 0.4, 0.3)):
-        self.traits = traits_schema.get("traits", {})
+    def __init__(self, tech_schema: Dict[str, Any], eval_strategy: Dict[str, Any], weights: tuple = (0.3, 0.4, 0.3)):
         self.w_r, self.w_s, self.w_e = weights
         self.bayes_m = 50
         self.bayes_C = 4.2
+        self.config = self._build_config(tech_schema, eval_strategy)
+
+    def _build_config(self, tech_schema: Dict[str, Any], eval_strategy: Dict[str, Any]) -> Dict[str, Any]:
+        config = {}
+        tech_traits = tech_schema.get("traits", {})
+
+        for trait_name, props_strategy in eval_strategy.items():
+            if trait_name not in tech_traits:
+                continue
+
+            config[trait_name] = {"properties": {}}
+            tech_props = tech_traits[trait_name].get("properties", {})
+
+            for prop_name, eval_params in props_strategy.items():
+                if prop_name in tech_props:
+                    config[trait_name]["properties"][prop_name] = {
+                        **tech_props[prop_name],
+                        **eval_params
+                    }
+        return config
 
     @staticmethod
     def normalize(value: float, min_val: float, max_val: float, inverse: bool = False) -> float:
@@ -23,7 +43,6 @@ class QualityEvaluator:
         return self.normalize(bayes_rating, 3.5, 5.0)
 
     def eval_protocol(self, protocols: List[str]) -> float:
-        """Оценка на основе сетевой топологии с учетом синергии протоколов."""
         if not protocols: return 0.2
 
         p_lower = set(p.lower() for p in protocols)
@@ -31,22 +50,19 @@ class QualityEvaluator:
 
         score = 0.2
         if p_lower.intersection(mesh_protocols):
-            score = 1.0  # Mesh (Ячеистая сеть)
+            score = 1.0
         elif "wi-fi" in p_lower or "wifi" in p_lower:
-            score = 0.7  # Star (Звезда)
+            score = 0.7
         elif "bluetooth" in p_lower or "ble" in p_lower:
-            score = 0.4  # Point-to-Point
+            score = 0.4
 
-        # Синергетический бонус: если устройство поддерживает несколько разных протоколов,
-        # оно потенциально выступает мостом (например, Wi-Fi роутер + Matter)
         if score < 1.0 and len(p_lower) > 1:
             score = min(1.0, score + 0.1)
 
         return score
 
     def _eval_single_trait(self, trait_key: str, specs: Dict[str, Any]) -> float:
-        """Внутренний метод оценки одного конкретного трейта."""
-        trait_schema = self.traits.get(trait_key)
+        trait_schema = self.config.get(trait_key)
         if not trait_schema: return 0.5
 
         properties = trait_schema.get("properties", {})
@@ -56,33 +72,31 @@ class QualityEvaluator:
             val = specs.get(prop_name)
             weight = rules.get("weight", 0.0)
 
-            if val is not None and "min" in rules and "max" in rules:
+            if val is not None and "minimum" in rules and "maximum" in rules:
                 inverse = rules.get("inverse", False)
-                score += self.normalize(val, rules["min"], rules["max"], inverse) * weight
+                score += self.normalize(val, rules["minimum"], rules["maximum"], inverse) * weight
                 total_weight += weight
             elif rules.get("type") == "boolean" and val is True:
                 bonus = rules.get("bonus", 0.0)
                 score += bonus
-                total_weight += bonus
-
         return score / total_weight if total_weight > 0 else 0.5
 
     def eval_specs(self, trait_keys: Union[str, List[str]], specs: Dict[str, Any]) -> float:
-        """
-        Агрегация спецификаций. Поддерживает комбинированные устройства (например, камера + шлюз).
-        """
         if isinstance(trait_keys, str):
             trait_keys = [trait_keys]
 
         if not trait_keys: return 0.5
 
-        # Считаем оценку для каждой роли устройства и берем среднее
-        scores = [self._eval_single_trait(tk, specs) for tk in trait_keys]
-        return sum(scores) / len(scores)
+        scores = []
+        for tk in trait_keys:
+            # Очищаем префикс eval_, чтобы старые данные парсились корректно
+            clean_key = tk.replace("eval_", "") if tk.startswith("eval_") else tk
+            scores.append(self._eval_single_trait(clean_key, specs))
+
+        return sum(scores) / len(scores) if scores else 0.5
 
     def evaluate_device(self, device_data: Dict[str, Any]) -> Dict[str, Any]:
         price = device_data.get("price", 1.0)
-        # Теперь ожидаем массив трейтов (или строку для обратной совместимости)
         eval_traits = device_data.get("eval_traits", [])
 
         reviews = device_data.get("reviews", {})
@@ -102,36 +116,3 @@ class QualityEvaluator:
             "E": round(e, 3),
             "Value": round(value_score, 2)
         }
-
-
-if __name__ == "__main__":
-    import os
-
-    # Строим правильный путь к общей таксономии в монорепозитории
-    # Предполагаем, что скрипт запускается из корня services/catalog_evaluation/
-    schema_path = os.path.join("..", "..", "shared", "schemas", "devices", "device_types.json")
-
-    try:
-        with open(schema_path, 'r', encoding='utf-8') as f:
-            schema = json.load(f)
-
-        # Создаем эвалюатор
-        evaluator = QualityEvaluator(traits_schema=schema)
-
-        # Имитируем один спарсенный товар
-        mock_device = {
-            "name": "Яндекс Станция Миди (Колонка + Хаб)",
-            "price": 14990,
-            "eval_traits": ["eval_media", "eval_infra"],
-            "protocol": ["wifi", "zigbee"],
-            "reviews": {"rating": 4.9, "count": 1250},
-            "specs": {"max_child_devices": 128}
-        }
-
-        # Проверяем
-        result = evaluator.evaluate_device(mock_device)
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-
-    except FileNotFoundError:
-        print(
-            f"Файл таксономии не найден по пути: {schema_path}. Убедитесь, что запускаете код из правильной директории.")

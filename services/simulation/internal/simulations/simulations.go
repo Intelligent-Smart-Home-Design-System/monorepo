@@ -7,8 +7,6 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/fetcher"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/sender"
 )
 
 // В пакете реализовано управление симуляциями через соответствующие компоненты.
@@ -17,9 +15,6 @@ import (
 
 // Simulations - структура, которая усправляет всеми симуляциями.
 type Simulations struct {
-	// TODO: client (websocket / http)
-	fetcher          fetcher.Fetcher
-	sender           sender.Sender
 	IDToEngine       map[string]engine.Engine        // engineID <-> engine
 	IDToEventInChan  map[string]chan api.EventInDTO  // engineID <-> канал для входящих событий
 	IDToEventOutChan map[string]chan api.EventOutDTO // engineID <-> канал для исходящих событий
@@ -27,10 +22,8 @@ type Simulations struct {
 }
 
 // NewSimulation создает Simulations
-func NewSimulation(fetcher fetcher.Fetcher, sender sender.Sender) *Simulations {
+func NewSimulation() *Simulations {
 	return &Simulations{
-		fetcher:          fetcher,
-		sender:           sender,
 		IDToEngine:       make(map[string]engine.Engine),
 		IDToEventInChan:  make(map[string]chan api.EventInDTO),
 		IDToEventOutChan: make(map[string]chan api.EventOutDTO),
@@ -40,10 +33,6 @@ func NewSimulation(fetcher fetcher.Fetcher, sender sender.Sender) *Simulations {
 
 func (s *Simulations) Init(ctx context.Context) error {
 	slog.Debug("Creating simulations data and starting components...")
-
-	go func() {
-		s.sender.Run()
-	}()
 
 	err := s.InitEngines()
 	if err != nil {

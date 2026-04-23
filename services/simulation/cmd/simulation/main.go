@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/fetcher"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/sender"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/client/ws"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/simulations"
 	"golang.org/x/sync/errgroup"
 )
@@ -21,34 +22,22 @@ func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	rootCtx, cancelFunc := context.WithCancel(context.Background()) // graceful shutdown
-	g, gCtx := errgroup.WithContext(rootCtx)
+	g, _ := errgroup.WithContext(rootCtx)
 
 	slog.Debug("Creating components...")
-
-	simFetcher := fetcher.NewSimFetcher()
-	simSender := sender.NewSimSender()
 
 	slog.Debug("Components created")
 	slog.Debug("Creating simulations")
 
-	sim := simulations.NewSimulation(simFetcher, simSender) // создание симуляций
+	simService := simulations.NewSimulation() // создание симуляций
 
 	slog.Debug("Simulation created")
 
-	slog.Debug("Initializing simulations...")
+	setupWebSocketAPI(simService) // запуск API для получения данных о симуляциях
 
-	err := sim.Init(gCtx)
-	if err != nil {
-		slog.Error("Error while initializing simulations", "error", err)
-		return
-	}
-
-	slog.Debug("Simulations initialized")
-
-	slog.Info("Starting simulations...")
-
-	g.Go(func() error { // запуск сервиса симуляций
-		return sim.Run(gCtx)
+	g.Go(func() error {
+		slog.Info("Starting WebSocket API on :8080")
+		return http.ListenAndServe(":8080", nil)
 	})
 
 	// ===Логика отменты контекста===
@@ -89,4 +78,10 @@ func main() {
 			slog.Info("simulations stopped")
 		}
 	}
+}
+
+func setupWebSocketAPI(sim api.SimulationService) {
+	manager := ws.NewManager(sim)
+
+	http.HandleFunc("/", manager.ServeWS)
 }

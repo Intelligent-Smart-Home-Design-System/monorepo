@@ -22,7 +22,7 @@ func (r *IlluminationSensorRule) Type() string {
 }
 
 func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomKitchen})
+	devicesRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -50,10 +50,20 @@ func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, dev
 }
 
 func illuminationPoint(apartmentStruct *apartment.Apartment, room apartment.Room) (*point.Point, error) {
-	roomCenter, _ := room.GetCenter()
+	if len(room.Area) == 0 {
+		fallback := point.Point{X: 0, Y: 0}
+		return &fallback, nil
+	}
+
+	roomCenter, err := room.GetCenter()
+	if err != nil {
+		fallback := room.Area[0]
+		return &fallback, nil
+	}
+
 	roomWindows := getRoomWindows(apartmentStruct, room.ID)
 	// Если в комнате есть окна, ставим датчик в ближайший угол от окна
-	if len(roomWindows) > 0 {
+	if len(roomWindows) > 0 && len(roomWindows[0].Points) > 0 {
 		windowCenter := apartment.GetObjectCenter(roomWindows[0].Points)
 		return cornerNearWindow(room.Area, windowCenter), nil
 	}

@@ -22,7 +22,7 @@ func (r *SmartBulbRule) Type() string {
 }
 
 func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomBedroom, apartment.RoomKitchen, apartment.RoomPassage, apartment.RoomBathroom})
+	devicesRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -35,9 +35,15 @@ func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms 
 			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
 		}
 
+		place, err := room.GetCenter()
+		if err != nil {
+			fallback := point.Point{X: 0, Y: 0}
+			place = &fallback
+		}
+
 		deviceID := uuid.NewString()
 		dev := device.NewDevice(deviceID, r.Type(), r.track)
-		placement := device.NewPlacement(dev, roomID, &point.Point{X: 0, Y: 0})
+		placement := device.NewPlacement(dev, roomID, place)
 		apartmentLayout.Placements[roomID][dev.Type] = placement
 	}
 

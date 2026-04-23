@@ -43,11 +43,13 @@ func (r *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRoo
 
 			id1 := uuid.NewString()
 			dev1 := device.NewDevice(id1, r.Type(), r.track)
-			apartmentLayout.Placements[roomID][r.Type()] = device.NewPlacement(dev1, roomID, p1)
+			placement1 := device.NewPlacement(dev1, roomID, p1)
+			apartmentLayout.Placements[roomID][r.Type()] = placement1
 
 			id2 := uuid.NewString()
 			dev2 := device.NewDevice(id2, r.Type(), r.track)
-			apartmentLayout.Placements[roomID][r.Type()+"_2"] = device.NewPlacement(dev2, roomID, p2)
+			placement2 := device.NewPlacement(dev2, roomID, p2)
+			apartmentLayout.Placements[roomID][r.Type()+"_2"] = placement2
 
 			continue
 		}
@@ -60,8 +62,8 @@ func (r *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRoo
 
 		id := uuid.NewString()
 		dev := device.NewDevice(id, r.Type(), r.track)
-		apartmentLayout.Placements[roomID][r.Type()] =
-			device.NewPlacement(dev, roomID, sensorPoint)
+		placement := device.NewPlacement(dev, roomID, sensorPoint)
+		apartmentLayout.Placements[roomID][r.Type()] = placement
 	}
 
 	return nil

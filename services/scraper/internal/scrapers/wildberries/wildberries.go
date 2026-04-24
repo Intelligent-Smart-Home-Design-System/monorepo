@@ -63,91 +63,92 @@ func NewScraper(timeout time.Duration, proxyURL, cardBasket string, rps float64,
 }
 
 func (s *Scraper) loadSession() (*Session, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	data, err := os.ReadFile(s.sessionPath)
-	if err != nil {
-		return nil, err
-	}
-	var sess Session
-	if err := json.Unmarshal(data, &sess); err != nil {
-		return nil, err
-	}
-	if time.Since(sess.UpdatedAt) > time.Hour {
-		return nil, fmt.Errorf("session expired")
-	}
-	s.session = &sess
-	return &sess, nil
+    data, err := os.ReadFile(s.sessionPath)
+    if err != nil {
+        return nil, err
+    }
+    var sess Session
+    if err := json.Unmarshal(data, &sess); err != nil {
+        return nil, err
+    }
+    if time.Since(sess.UpdatedAt) > time.Hour {
+        return nil, fmt.Errorf("session expired")
+    }
+    s.session = &sess
+    return &sess, nil
 }
 
 func (s *Scraper) saveSession(sess *Session) error {
-	sess.UpdatedAt = time.Now()
-	data, err := json.MarshalIndent(sess, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(s.sessionPath, data, 0600)
+    sess.UpdatedAt = time.Now()
+    data, err := json.MarshalIndent(sess, "", "  ")
+    if err != nil {
+        return err
+    }
+    return os.WriteFile(s.sessionPath, data, 0600)
 }
 
 func (s *Scraper) mineSession() (*Session, error) {
-	fmt.Println("[DEBUG] mineSession: starting browser")
-	browser := rod.New().MustConnect()
-	defer browser.MustClose()
+    fmt.Println("[DEBUG] mineSession: starting headless browser...")
+    browser := rod.New().MustConnect()
+    defer browser.MustClose()
 
-	page := stealth.MustPage(browser)
-	defer page.MustClose()
+    page := stealth.MustPage(browser)
+    defer page.MustClose()
 
-	page.MustNavigate("https://www.wildberries.ru/")
-	page.MustWaitLoad()
+    page.MustNavigate("https://www.wildberries.ru/")
+    page.MustWaitLoad()
 
-	tokenVal := page.MustEval(`() => window.WBAAS?.x_wbaas_token || ''`)
-	token := tokenVal.Str()
-	if token == "" {
-		tokenVal = page.MustEval(`() => localStorage.getItem('x_wbaas_token') || ''`)
-		token = tokenVal.Str()
-	}
-	if token == "" {
-		return nil, fmt.Errorf("x_wbaas_token not found")
-	}
+    cookies := page.MustCookies()
+    var cookieList []Cookie
+    var tokenValue string
+    for _, c := range cookies {
+        if c.Name == "x_wbaas_token" {
+            tokenValue = c.Value
+        }
+        cookieList = append(cookieList, Cookie{
+            Name:   c.Name,
+            Value:  c.Value,
+            Domain: c.Domain,
+            Path:   c.Path,
+        })
+    }
+    if tokenValue == "" {
+        return nil, fmt.Errorf("x_wbaas_token not found in cookies")
+    }
 
-	cookies := page.MustCookies()
-	var cookieList []Cookie
-	for _, c := range cookies {
-		cookieList = append(cookieList, Cookie{
-			Name:   c.Name,
-			Value:  c.Value,
-			Domain: c.Domain,
-			Path:   c.Path,
-		})
-	}
+    uaVal := page.MustEval(`() => navigator.userAgent`)
+    userAgent := uaVal.Str()
 
-	uaVal := page.MustEval(`() => navigator.userAgent`)
-	userAgent := uaVal.Str()
-
-	return &Session{
-		UserAgent: userAgent,
-		Cookies:   cookieList,
-		Token:     token,
-	}, nil
+    return &Session{
+        UserAgent: userAgent,
+        Cookies:   cookieList,
+        Token:     tokenValue,
+    }, nil
 }
 
 func (s *Scraper) ensureSession() error {
-    fmt.Println("[DEBUG] ensureSession: manual session setup")
     s.mu.Lock()
     defer s.mu.Unlock()
-    if s.session != nil {
+
+    if s.session != nil && time.Since(s.session.UpdatedAt) < 30*time.Minute {
         return nil
     }
-    s.session = &Session{
-        UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Token:     "1.1000.3d4fc54b6c334a838abe2ea713503a7f.MTV8OTMuMTU4LjE5MS4yNDl8TW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0NC4wLjAuMCBZYUJyb3dzZXIvMjYuMy4wLjAgU2FmYXJpLzUzNy4zNnwxNzc3NDU3NDgwfHJldXNhYmxlfDJ8ZXlKb1lYTm9Jam9pSW4wPXwwfDN8MTc3Njg1MjY4MHwx.MEUCIFR/xXwQv93XViIVR2ZfavR0T2k5cogUrXJWT6he83V6AiEAleRstYVAfuOMSnRneqiy2GheQrbWVMCaOsDLUgP79wc=",
-        Cookies:   []Cookie{},
-        UpdatedAt: time.Now(),
+
+    _, err := s.loadSession()
+    if err == nil && s.session != nil && time.Since(s.session.UpdatedAt) < 30*time.Minute {
+        return nil
     }
-    if err := s.saveSession(s.session); err != nil {
+
+    fmt.Println("[DEBUG] ensureSession: session not found or expired, mining new session...")
+    sess, err := s.mineSession()
+    if err != nil {
+        return fmt.Errorf("mine session: %w", err)
+    }
+    sess.UpdatedAt = time.Now()
+    s.session = sess
+    if err := s.saveSession(sess); err != nil {
         fmt.Printf("[WARN] failed to save session: %v\n", err)
     }
-    fmt.Println("[DEBUG] ensureSession: manual session set and saved")
     return nil
 }
 
@@ -161,12 +162,6 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
     if err := s.limiter.Wait(ctx); err != nil {
         return nil, err
     }
-	if err := s.ensureSession(); err != nil {
-		return nil, err
-	}
-	if err := s.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -175,7 +170,6 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 
 	s.mu.RLock()
 	req.Header.Set("User-Agent", s.session.UserAgent)
-	req.Header.Set("x-wbaas-token", s.session.Token)
 	for _, c := range s.session.Cookies {
 		req.AddCookie(&http.Cookie{
 			Name:   c.Name,
@@ -192,7 +186,7 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 403 || resp.StatusCode == 429 {
+	if resp.StatusCode == 403 || resp.StatusCode == 498 {
 		s.mu.Lock()
 		s.session = nil
 		s.mu.Unlock()

@@ -1,6 +1,19 @@
 {
-  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "cookies": [],
-  "token": "1.1000.3d4fc54b6c334a838abe2ea713503a7f.MTV8OTMuMTU4LjE5MS4yNDl8TW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0NC4wLjAuMCBZYUJyb3dzZXIvMjYuMy4wLjAgU2FmYXJpLzUzNy4zNnwxNzc3NDU3NDgwfHJldXNhYmxlfDJ8ZXlKb1lYTm9Jam9pSW4wPXwwfDN8MTc3Njg1MjY4MHwx.MEUCIFR/xXwQv93XViIVR2ZfavR0T2k5cogUrXJWT6he83V6AiEAleRstYVAfuOMSnRneqiy2GheQrbWVMCaOsDLUgP79wc=",
-  "updatedAt": "2026-04-22T01:30:22.568338793+03:00"
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "cookies": [
+    {
+      "name": "_wbauid",
+      "value": "4609139531777065803",
+      "domain": ".wildberries.ru",
+      "path": "/"
+    },
+    {
+      "name": "x_wbaas_token",
+      "value": "1.1000.892340d4e1054ca9969913fac28eb64a.MHwzMS4xNzMuODMuMTU2fE1vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0Ny4wLjAuMCBTYWZhcmkvNTM3LjM2fDE3NzgyNzU0MDN8cmV1c2FibGV8MnxleUpvWVhOb0lqb2lJbjA9fDB8M3wxNzc3NjcwNjAzfDE=.MEUCIAEOfZt0XGOP/UxwCKvn6rZYcFsCY1hjxdzwmXhBJtyEAiEAmybTcliBtJHovl6HJWie7DbBH44fNz04DFKCUaD4GG4=",
+      "domain": ".wildberries.ru",
+      "path": "/"
+    }
+  ],
+  "token": "",
+  "updatedAt": "2026-04-25T01:34:00+03:00"
 }

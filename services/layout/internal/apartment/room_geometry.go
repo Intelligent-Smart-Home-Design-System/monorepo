@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 // GetBestCameraPoint возвращает лучшую по алгоритму точку в комнате для камеры.
 // В прихожей камера ставится напротив входной двери.
 // В остальных комнатах камера ставится в том месте, в котором охватывается наибольшая площадь комнаты
-func (r *Room) GetBestCameraPoint(apartment *Apartment) (*point.Point, error) {
+func (r *Room) GetBestCameraPoint(apartment *Apartment, filter *filters.CameraFilter) (*point.Point, error) {
 	if r.Name == "hall" {
 		frontDoor := apartment.GetFrontDoor()
 		if frontDoor == nil {
@@ -20,7 +21,7 @@ func (r *Room) GetBestCameraPoint(apartment *Apartment) (*point.Point, error) {
 		return r.GetBestHallCameraPoint(frontDoor)
 	}
 
-	return r.GetMaxAreaCameraPoint(apartment)
+	return r.GetMaxAreaCameraPoint(apartment, filter)
 }
 
 // GetBestHallCameraPoint возвращает лучшую точку для камеры в прихожей (напротив входной двери)
@@ -42,17 +43,17 @@ func (r *Room) GetBestHallCameraPoint(frontDoor *Door) (*point.Point, error) {
 }
 
 // GetMaxAreaCameraPoint возвращает точку для камеры с наибольшей охватываемой площадью комнаты
-func (r *Room) GetMaxAreaCameraPoint(apartment *Apartment) (*point.Point, error) {
+func (r *Room) GetMaxAreaCameraPoint(apartment *Apartment, filter *filters.CameraFilter) (*point.Point, error) {
 	bestCameraPoint := r.Area[0]
 	degreePerDirection := 10
 
-	_, maxAreaCoverage, err := r.GetOptimizedCameraAreaCoverage(apartment, bestCameraPoint, degreePerDirection)
+	_, maxAreaCoverage, err := r.GetOptimizedCameraAreaCoverage(apartment, bestCameraPoint, degreePerDirection, filter)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, p := range r.Area[1:] {
-		_, areaCoverage, err := r.GetOptimizedCameraAreaCoverage(apartment, p, degreePerDirection)
+		_, areaCoverage, err := r.GetOptimizedCameraAreaCoverage(apartment, p, degreePerDirection, filter)
 		if err != nil {
 			return nil, err
 		}
@@ -68,12 +69,12 @@ func (r *Room) GetMaxAreaCameraPoint(apartment *Apartment) (*point.Point, error)
 
 // GetOptimizedCameraAreaCoverage вычисляет по позиции камеры наилучшее из заданных направление
 // и возвращает наилучшую долю покрытия комнаты
-func (r *Room) GetOptimizedCameraAreaCoverage(apartment *Apartment, cameraPoint point.Point, degreePerDirection int) (*point.Point, float64, error) {
+func (r *Room) GetOptimizedCameraAreaCoverage(apartment *Apartment, cameraPoint point.Point, degreePerDirection int, filter *filters.CameraFilter) (*point.Point, float64, error) {
 	directionCntFloat := float64(360 / degreePerDirection)
 	directionCntInt := int(directionCntFloat)
 	bestDirection := point.Point{X: 1, Y: 0}
 
-	bestCoverage, err := r.CalculateAreaCoverage(apartment, cameraPoint, bestDirection)
+	bestCoverage, err := r.CalculateAreaCoverage(apartment, cameraPoint, bestDirection, filter)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -85,7 +86,7 @@ func (r *Room) GetOptimizedCameraAreaCoverage(apartment *Apartment, cameraPoint 
 			Y: math.Sin(angle),
 		}
 
-		coverage, err := r.CalculateAreaCoverage(apartment, cameraPoint, direction)
+		coverage, err := r.CalculateAreaCoverage(apartment, cameraPoint, direction, filter)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -100,7 +101,7 @@ func (r *Room) GetOptimizedCameraAreaCoverage(apartment *Apartment, cameraPoint 
 }
 
 // CalculateAreaCoverage вычисляет охватываемую площадь комнаты по заданной точке для камеры
-func (r *Room) CalculateAreaCoverage(apartment *Apartment, cameraPoint point.Point, cameraDirection point.Point) (float64, error) {
+func (r *Room) CalculateAreaCoverage(apartment *Apartment, cameraPoint point.Point, cameraDirection point.Point, filter *filters.CameraFilter) (float64, error) {
 	gridPoints, err := r.GenerateGridPoints(0.1)
 	if err != nil {
 		return 0, err
@@ -110,10 +111,26 @@ func (r *Room) CalculateAreaCoverage(apartment *Apartment, cameraPoint point.Poi
 		return 0, nil
 	}
 
-	var cameraAngle float64 = 90 // угол обзора камеры (поставил по дефолту 90 градусов)
+	var cameraAngle float64 = 75 // угол обзора камеры (поставил по дефолту 75 градусов)
+	var visibilityMetersRange float64 = math.MaxFloat64
+
+	if filter != nil {
+		if filter.Angle != nil {
+			cameraAngle = *filter.Angle
+		}
+
+		if filter.VisibilityMetersRange != nil {
+			visibilityMetersRange = *filter.VisibilityMetersRange
+		}
+	}
+
 	visiblePoints := 0
 
 	for _, p := range gridPoints {
+		if CalculatePointsDistance(cameraPoint, p) > visibilityMetersRange {
+			continue
+		}
+
 		if r.IsPointVisibleOnCamera(apartment, p, cameraPoint, cameraAngle, cameraDirection) {
 			visiblePoints++
 		}

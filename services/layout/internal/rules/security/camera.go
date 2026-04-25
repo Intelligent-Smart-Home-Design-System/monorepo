@@ -3,6 +3,7 @@ package security
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 	"github.com/google/uuid"
 )
 
@@ -33,8 +34,13 @@ func (c *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []s
 		if !ok {
 			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
+		
+		var baseAngle float64 = 75 
+		maxRoomDistance := room.CalculateMaxDistance()
 
-		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct)
+		filter := filters.CameraFilter{Angle: &baseAngle, VisibilityMetersRange: &maxRoomDistance}
+
+		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct, &filter)
 		if err != nil {
 			return err
 		}

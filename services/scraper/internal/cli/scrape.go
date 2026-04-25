@@ -18,10 +18,11 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+
 	// "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	// sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 )
 
 func NewScrapeCmd() *cobra.Command {
@@ -63,16 +64,16 @@ func scrape(ctx context.Context, cfgFile string) error {
 	printerScraper := printer.NewPrinterScraper()
 	// sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 	wildberriesScraper := wbScraper.NewScraper(
-    cfg.Scraping.Timeout,
-    cfg.Scraping.Proxy,
-    cfg.Scraping.WBCardBasket,
-    cfg.Scraping.WBRPS,
-    cfg.Scraping.WBSessionPath,
-)
+		cfg.Scraping.Timeout,
+		cfg.Scraping.Proxy,
+		cfg.Scraping.WBCardBasket,
+		cfg.Scraping.WBRPS,
+		cfg.Scraping.WBSessionPath,
+	)
 
 	sourceToScraper := map[string]worker.Scraper{
-		"printer":    printerScraper,
-	// 	"sprut":      sprutScraper,
+		"printer": printerScraper,
+		// 	"sprut":      sprutScraper,
 		"wildberries": wildberriesScraper,
 	}
 

@@ -31,16 +31,16 @@ func (sl *SmartLockRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms
 	roomID := frontDoor.Rooms[0]
 	_, ok := apartmentLayout.Placements[roomID]
 	if !ok {
-		apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+		apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 	}
 
 	doorCenter := apartment.GetObjectCenter(frontDoor.Points)
 
 	deviceID := uuid.NewString()
-	newDevice := device.NewDevice(deviceID, "smart_lock", "security")
-	placement := device.NewPlacement(newDevice, roomID, &doorCenter)
+	newDevice := device.NewDevice(deviceID, sl.Type(), sl.track)
+	placement := device.NewPlacement(newDevice, &doorCenter, nil)
 
-	apartmentLayout.Placements[roomID][newDevice.Type] = placement
+	apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 
 	return nil
 }

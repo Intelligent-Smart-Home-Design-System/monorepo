@@ -18,11 +18,11 @@ func NewDoorSensorRule() *DoorSensorRule {
 	}
 }
 
-func (gl *DoorSensorRule) Type() string {
+func (ds *DoorSensorRule) Type() string {
 	return "door_sensor"
 }
 
-func (gl *DoorSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (ds *DoorSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
 	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {
 		return fmt.Errorf("no front door")
@@ -31,16 +31,16 @@ func (gl *DoorSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 	roomID := frontDoor.Rooms[0]
 	_, ok := apartmentLayout.Placements[roomID]
 	if !ok {
-		apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+		apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 	}
 
 	doorCenter := apartment.GetObjectCenter(frontDoor.Points)
 
 	deviceID := uuid.NewString()
-	newDevice := device.NewDevice(deviceID, "door_sensor", "security")
-	placement := device.NewPlacement(newDevice, roomID, &doorCenter)
+	newDevice := device.NewDevice(deviceID, ds.Type(), ds.track)
+	placement := device.NewPlacement(newDevice, &doorCenter, nil)
 
-	apartmentLayout.Placements[roomID][newDevice.Type] = placement
+	apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 
 	return nil
 }

@@ -61,15 +61,15 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "smart_lock":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Position)
 		case "smart_doorbell":
-			assert.Equal(t, &point.Point{X: 1, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 0}, devicePlacement.Position)
 		}
 	}
 
 	hallRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		hallRoomKeys = append(hallRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
 	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell"}

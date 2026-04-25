@@ -16,11 +16,11 @@ func NewMotionSensorRule() *MotionSensorRule {
 	}
 }
 
-func (gl *MotionSensorRule) Type() string {
+func (ms *MotionSensorRule) Type() string {
 	return "motion_sensor"
 }
 
-func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (ms *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
 	motionRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
 
 		roomCenter, err := room.GetCenter()
@@ -40,10 +40,10 @@ func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 		}
 
 		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "motion_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, roomCenter)
+		newDevice := device.NewDevice(deviceID, ms.Type(), ms.track)
+		placement := device.NewPlacement(newDevice, roomCenter, nil)
 
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 	}
 
 	return nil

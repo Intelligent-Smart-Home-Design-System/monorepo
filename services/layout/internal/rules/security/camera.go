@@ -16,11 +16,11 @@ func NewCameraRule() *CameraRule {
 	}
 }
 
-func (gl *CameraRule) Type() string {
+func (c *CameraRule) Type() string {
 	return "camera"
 }
 
-func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (c *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
 	cameraRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
 
 		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct)
@@ -40,10 +40,10 @@ func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []
 		}
 
 		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "camera", "security")
-		placement := device.NewPlacement(newDevice, roomID, cameraPoint)
+		newDevice := device.NewDevice(deviceID, c.Type(), c.track)
+		placement := device.NewPlacement(newDevice, cameraPoint, nil)
 
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 	}
 
 	return nil

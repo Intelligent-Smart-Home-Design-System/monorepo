@@ -55,8 +55,8 @@ func TestLightingLevel3(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, globalPlacement.Placements)
-	_, livingHasIllumination := globalPlacement.Placements["r1"]["illumination_sensor"]
-	_, kitchenHasIllumination := globalPlacement.Placements["r2"]["illumination_sensor"]
+	livingHasIllumination := globalPlacement.HasDeviceInRoom("smart_bulb", "r1")
+	kitchenHasIllumination := globalPlacement.HasDeviceInRoom("smart_bulb", "r2")
 	assert.True(t, livingHasIllumination)
 	assert.True(t, kitchenHasIllumination)
 }

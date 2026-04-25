@@ -33,7 +33,7 @@ func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, devic
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
 
 		roomCenter, err := room.GetCenter()
@@ -42,10 +42,10 @@ func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, devic
 		}
 
 		deviceID := uuid.NewString() // в будущем все ID будут прописаны в конфигах и будут браться оттуда
-		newDevice := device.NewDevice(deviceID, "water_leak_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, roomCenter)
+		newDevice := device.NewDevice(deviceID, wl.Type(), wl.track)
+		placement := device.NewPlacement(newDevice, roomCenter, nil)
 
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 	}
 
 	return nil

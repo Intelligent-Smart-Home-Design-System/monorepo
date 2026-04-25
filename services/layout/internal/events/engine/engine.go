@@ -62,9 +62,9 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.ApartmentLayout) *PriceInfo {
 	priceInfo := &PriceInfo{}
 
-	for _, roomPlacement := range apartmentLayout.Placements {
-		for deviceType := range roomPlacement {
-			device := e.devicesConfig.Devices[deviceType]
+	for _, roomPlacements := range apartmentLayout.Placements {
+		for _, placement := range roomPlacements {
+			device := e.devicesConfig.Devices[placement.Device.Type]
 
 			priceInfo.MinPrice += device.Price.Min
 			priceInfo.MaxPrice += device.Price.Max

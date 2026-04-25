@@ -126,21 +126,21 @@ func TestForthLevelSimpleScript(t *testing.T) {
 			switch devicePlacement.Device.Type {
 			case "camera":
 				if roomID == "1" {
-					assert.Equal(t, &point.Point{X: 4, Y: 0}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 4, Y: 0}, devicePlacement.Position)
 				} else {
 					variants := []point.Point{
 						{X: 0, Y: 3},
 						{X: 3, Y: 3},
 					}
-					assert.Contains(t, variants, *devicePlacement.Place)
+					assert.Contains(t, variants, *devicePlacement.Position)
 				}
 			}
 		}
 	}
 
 	livingRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		livingRoomKeys = append(livingRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		livingRoomKeys = append(livingRoomKeys, placement.Device.Type)
 	}
 
 	correctLivingRoomKeys := []string{"window_sensor", "motion_sensor", "camera"}
@@ -151,8 +151,8 @@ func TestForthLevelSimpleScript(t *testing.T) {
 	assert.Equal(t, len(correctLivingRoomKeys), len(livingRoomKeys))
 
 	hallRoomKeys := make([]string, 0, len(globalPlacement.Placements["2"]))
-	for key := range globalPlacement.Placements["2"] {
-		hallRoomKeys = append(hallRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["2"] {
+		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
 	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor", "motion_sensor", "camera"}

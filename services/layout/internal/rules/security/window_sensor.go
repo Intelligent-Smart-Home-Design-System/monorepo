@@ -29,16 +29,16 @@ func (gl *WindowSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 		roomID := window.Rooms[0]
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
 
 		windowCenter := apartment.GetObjectCenter(window.Points)
 
 		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "window_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, &windowCenter)
+		newDevice := device.NewDevice(deviceID, gl.Type(), gl.track)
+		placement := device.NewPlacement(newDevice, &windowCenter, nil)
 
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 	}
 
 	return nil

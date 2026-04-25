@@ -31,7 +31,7 @@ func (gl *GasLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 
 		_, ok := apartmentLayout.Placements[kitchenID]
 		if !ok {
-			apartmentLayout.Placements[kitchenID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[kitchenID] = make([]*device.Placement, 0)
 		}
 
 		kitchenCenter, err := kitchen.GetCenter()
@@ -40,10 +40,10 @@ func (gl *GasLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 		}
 
 		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "gas_leak_sensor", "security")
-		placement := device.NewPlacement(newDevice, kitchenID, kitchenCenter)
+		newDevice := device.NewDevice(deviceID, gl.Type(), gl.track)
+		placement := device.NewPlacement(newDevice, kitchenCenter, nil)
 
-		apartmentLayout.Placements[kitchenID][newDevice.Type] = placement
+		apartmentLayout.Placements[kitchenID] = append(apartmentLayout.Placements[kitchenID], placement)
 	}
 
 	return nil

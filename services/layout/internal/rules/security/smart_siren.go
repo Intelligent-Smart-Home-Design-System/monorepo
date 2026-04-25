@@ -16,11 +16,11 @@ func NewSmartSirenRule() *SmartSirenRule {
 	}
 }
 
-func (gl *SmartSirenRule) Type() string {
+func (ss *SmartSirenRule) Type() string {
 	return "smart_siren"
 }
 
-func (gl *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (ss *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
 	hallRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func (gl *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 		roomID := hallRoom.ID
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
 
 		hallCenter, err := hallRoom.GetCenter()
@@ -39,10 +39,10 @@ func (gl *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 		}
 
 		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "smart_siren", "security")
-		placement := device.NewPlacement(newDevice, roomID, hallCenter)
+		newDevice := device.NewDevice(deviceID, ss.Type(), ss.track)
+		placement := device.NewPlacement(newDevice, hallCenter, nil)
 
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 	}
 
 	return nil

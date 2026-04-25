@@ -18,11 +18,11 @@ func NewSmartDoorBellRule() *SmartDoorBellRule {
 	}
 }
 
-func (sl *SmartDoorBellRule) Type() string {
+func (sd *SmartDoorBellRule) Type() string {
 	return "smart_doorbell"
 }
 
-func (sl *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (sd *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
 	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {
 		return fmt.Errorf("no front door in apartment")
@@ -31,14 +31,14 @@ func (sl *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 	roomID := frontDoor.Rooms[0]
 	_, ok := apartmentLayout.Placements[roomID]
 	if !ok {
-		apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+		apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 	}
 
 	deviceID := uuid.NewString()
-	newDevice := device.NewDevice(deviceID, "smart_doorbell", "security")
-	placement := device.NewPlacement(newDevice, roomID, &frontDoor.Points[0])
+	newDevice := device.NewDevice(deviceID, sd.Type(), sd.track)
+	placement := device.NewPlacement(newDevice, &frontDoor.Points[0], nil)
 
-	apartmentLayout.Placements[roomID][newDevice.Type] = placement
+	apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 
 	return nil
 }

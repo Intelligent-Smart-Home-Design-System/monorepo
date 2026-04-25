@@ -47,3 +47,18 @@ func (a *Apartment) GetFrontDoor() *Door {
 
 	return nil
 }
+
+func (al *ApartmentLayout) HasDeviceInRoom(deviceType, roomID string) bool {
+	placements, ok := al.Placements[roomID]
+	if !ok {
+		return false
+	}
+
+	for _, placement := range placements {
+		if placement.Device.Type == deviceType {
+			return true
+		}
+	}
+
+	return false
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/exporter"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 )
 
@@ -41,10 +42,17 @@ func main() {
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 
-	_, err = engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
+	layout, err := engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
 	if err != nil {
 		_ = fmt.Errorf("failed to place devices: %w", err)
 	}
+
+	outputJSON, err := exporter.ExportToJSON(layout)
+	if err != nil {
+		_ = fmt.Errorf("failed to marshal output data")
+	}
+
+	fmt.Println(string(outputJSON))
 
 	go func() {
 		// TODO: несколько пользователей (параллельно)

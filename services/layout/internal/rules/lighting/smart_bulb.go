@@ -32,13 +32,13 @@ func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms 
 
 		_, ok := apartmentLayout.Placements[roomID]
 		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
 		}
 
 		deviceID := uuid.NewString()
 		dev := device.NewDevice(deviceID, r.Type(), r.track)
-		placement := device.NewPlacement(dev, roomID, &point.Point{X: 0, Y: 0})
-		apartmentLayout.Placements[roomID][dev.Type] = placement
+		placement := device.NewPlacement(dev, &point.Point{X: 0, Y: 0}, nil)
+		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
 	}
 
 	return nil

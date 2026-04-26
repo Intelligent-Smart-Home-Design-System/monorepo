@@ -12,6 +12,9 @@ class FloorExporter:
         units: str | None = None,
         warnings: list[ParseWarning] | None = None
     ) -> dict[str, object]:
+        sorted_doors = sorted(floor_plan.doors, key=lambda door: door.id)
+        sorted_windows = sorted(floor_plan.windows, key=lambda window: window.id)
+
         return {
             "schema_version": floor_plan.schema_version,
             "meta": {
@@ -20,8 +23,8 @@ class FloorExporter:
                 "units": units or "unknown",
             },
             "walls": [self._export_wall(wall) for wall in floor_plan.walls],
-            "doors": [self._export_door(door) for door in floor_plan.doors],
-            "windows": [self._export_window(window) for window in floor_plan.windows],
+            "doors": [self._export_door(door) for door in sorted_doors],
+            "windows": [self._export_window(window) for window in sorted_windows],
             "rooms": [],
             "warnings": [warning.to_dict() for warning in (warnings or [])]
         }
@@ -33,7 +36,7 @@ class FloorExporter:
                 [wall.start.x, wall.start.y],
                 [wall.end.x, wall.end.y],
             ],
-            "width": 0.0
+            "width": wall.width
         }
 
     def _export_door(self, door) -> dict[str, object]:

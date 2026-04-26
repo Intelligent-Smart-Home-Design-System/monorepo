@@ -9,7 +9,7 @@ import (
 	"github.com/fschuetz04/simgo"
 )
 
-// Lamp реализует интерфейс entities.EntityWithProcess.
+// Lamp реализует интерфейс entities.EntityWithProcess для стандартной лампы.
 type Lamp struct {
 	enginePort engine.EnginePort
 	inStore    simgo.Store[LampInData]
@@ -37,6 +37,8 @@ func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 
 	lamp.enginePort = engineAPI
 
+	lamp.inStore = *simgo.NewStore[LampInData](engineAPI.GetSimulation())
+
 	return &lamp, nil
 }
 
@@ -47,24 +49,23 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 	}
 
 	l.inStore.Put(input)
-
 	return nil
 }
 
-func (l *Lamp) HandleOutDTO(out LampOutData) error {
-	dataLamp, err := json.Marshal(out)
-	if err != nil {
-		return err
-	}
-
+func (l *Lamp) HandleOutDTO(dto []byte) {
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Info:     dataLamp,
+		Info:     dto,
 	}
 
 	l.enginePort.GetOutChan() <- outData
 
-	return nil
+	for _, receiverID := range l.Receivers {
+		l.enginePort.GetInChan() <- api.EventInDTO{
+			EntityID: receiverID,
+			Info:     dto, // TODO: подумать, то ли мы передаем
+		}
+	}
 }
 
 func (l *Lamp) GetProcessFunc() func(process simgo.Process) {
@@ -81,8 +82,13 @@ func (l *Lamp) Process(process simgo.Process) {
 
 		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
-		err := l.HandleOutDTO(outData)
-		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+
+		dataLamp, err := json.Marshal(outData)
+		if err != nil {
+			slog.Warn("cannot marshal lamp out data", "error", err, "entity_id", l.ID)
+		}
+		l.HandleOutDTO(dataLamp)
+
 	}
 }
 

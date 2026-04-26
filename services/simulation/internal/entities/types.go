@@ -26,20 +26,18 @@ type EntityWithProcess interface {
 	// HandleInDTO обрабатывает входящие данные и сохраняет их в хранилище сущности.
 	HandleInDTO(dto []byte) error
 
-	// HandleOutDTO обрабатывает исходящие данные и отправляет их в канал событий.
-	HandleOutDTO(out any) error
+	// HandleOutDTO обрабатывает исходящие данные, отправляет их в канал событий и тригерит ресиверов.
+	HandleOutDTO(dto []byte)
 
 	// GetProcessFunc возвращает функция процесс
 	GetProcessFunc() func(process simgo.Process)
 
 	// Process реализует функцию процесса устройства.
 	Process(process simgo.Process)
-
-	// GetOutCh возвращает канал для отправки данных о событиях.
-	GetOutCh() chan []byte
 }
 
 const (
-	TypeLamp         = "lamp"
-	TypeLampSwitcher = "lampSwitcher"
+	TypeLamp                 = "lamp"
+	TypeLampSwitcher         = "lampSwitcher"
+	TypeLightSwitchOffSensor = "lightSwitchOffSensor"
 )

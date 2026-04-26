@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"strings"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
@@ -128,24 +129,21 @@ func (s *SimEngine) Run(ctx context.Context) error {
 				return nil
 			}
 
-			s.HandleEvent(event)
-
-			s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+			eventType := strings.Split(event.EntityID, "_")[0]
+			if eventType == "step" {
+				s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+			} else {
+				s.HandleEvent(event)
+			}
+			if event.Done != nil {
+				close(event.Done) // сигнализируем: шаг завершён
+			}
 		}
 	}
 }
 
 // HandleEvent обрабатывает event по его entityID
 func (s *SimEngine) HandleEvent(event api.EventInDTO) {
-	entity := s.IDToEntity[event.EntityID]
-	receiversID := entity.GetReceiversID()
-
-	for _, receiverID := range receiversID {
-		s.eventsInChan <- api.EventInDTO{
-			EntityID: receiverID,
-		}
-	}
-
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
 		err := entityWithProcess.HandleInDTO(event.Info)
 		if err != nil {
@@ -165,4 +163,9 @@ func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
 	s.Field.Cells[x][y].Condition = cell.Condition
 
 	return nil
+}
+
+// GetSimulation возвращает симуляцию для взаимодействия сущностей с движком
+func (s *SimEngine) GetSimulation() *simgo.Simulation {
+	return s.simulation
 }

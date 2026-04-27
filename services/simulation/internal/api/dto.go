@@ -1,6 +1,15 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
+
+type SimulationService interface {
+	Start(reqID string, payload SimulationStartPayload) error
+	Tick(reqID string, payload SimulationTickPayload) (*SimulationStepPayload, error)
+	Stop(reqID string) error
+}
 
 // структуры конфига (по которым передаются данные между сервисами)
 
@@ -43,4 +52,79 @@ type FieldDTO struct {
 	Width  int          `json:"width"`
 	Height int          `json:"height"`
 	Cells  [][]*CellDTO `json:"cells"`
+}
+
+// ScenarioDTO структура для сценария (приходит от UI в simulation:start)
+type ScenarioDTO struct {
+	ID    string    `json:"id"`
+	Edges []EdgeDTO `json:"edges"`
+}
+
+// EdgeDTO структура для связи между устройствами в сценарии
+type EdgeDTO struct {
+	From   string `json:"from,omitempty"`
+	To     string `json:"to"`
+	Action string `json:"action"`
+}
+
+type InputDTO struct {
+	Kind    string       `json:"kind"`
+	HumanID string       `json:"humanId,omitempty"`
+	To      *PositionDTO `json:"to,omitempty"`
+}
+
+// PositionDTO структура для координат
+type PositionDTO struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+type Message struct {
+	Type    string          `json:"type"`
+	Ts      time.Time       `json:"ts"`
+	ReqID   string          `json:"reqId,omitempty"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
+// Client → Server
+type HelloPayload struct {
+	Client   string   `json:"client"`
+	Version  string   `json:"version"`
+	Features []string `json:"features"`
+}
+
+type SimulationStartPayload struct {
+	DtSim     float64       `json:"dtSim"`
+	Apartment FieldDTO      `json:"apartment"`
+	Devices   []EntityDTO   `json:"devices"`
+	Scenarios []ScenarioDTO `json:"scenarios"`
+}
+
+type SimulationTickPayload struct {
+	Tick   int        `json:"tick"`
+	Inputs []InputDTO `json:"inputs"`
+}
+
+// Server → Client
+type HelloAckPayload struct {
+	Server  string `json:"server"`
+	Version string `json:"version"`
+}
+
+type SimulationStartedPayload struct {
+	DtSim float64 `json:"dtSim"`
+	State string  `json:"state"`
+}
+
+type SimulationStepPayload struct {
+	Tick           int         `json:"tick"`
+	SimTime        float64     `json:"simTime"`
+	StateChanges   []EntityDTO `json:"stateChanges"`
+	TriggeredEdges []EdgeDTO   `json:"triggeredEdges"`
+	Humans         []EntityDTO `json:"humans"`
+}
+
+type ErrorPayload struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
 }

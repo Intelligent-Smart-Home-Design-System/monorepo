@@ -1,0 +1,342 @@
+{
+  "tracks": {
+    "security": {
+      "name": "Безопасность",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Защита от протечек и утечек газа",
+          "price_range": {
+            "min": 5000,
+            "max": 8000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor"
+          ]
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Защита входа",
+          "price_range": {
+            "min": 32000,
+            "max": 40000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock"
+          ]
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Контроль периметра",
+          "price_range": {
+            "min": 44000,
+            "max": 55000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor"
+          ]
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Видеонаблюдение",
+          "price_range": {
+            "min": 52000,
+            "max": 68000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera"
+          ]
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Охранная сигнализация",
+          "price_range": {
+            "min": 55000,
+            "max": 74000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_door_bell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera",
+            "security_alarm"
+          ]
+        }
+      }
+    },
+    "lighting": {
+      "name": "Освещение",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Основной свет в жилых комнатах и кухне (smart_bulb или inwall_relay_module)",
+          "price_range": {
+            "min": 2000,
+            "max": 6000
+          },
+          "devices": [
+            "smart_bulb"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen"
+            ]
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Основной свет в проходных и санузлах (smart_bulb или inwall_relay_module)",
+          "price_range": {
+            "min": 3500,
+            "max": 10000
+          },
+          "devices": [
+            "smart_bulb"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ]
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Автоматизация по движению и освещённости",
+          "price_range": {
+            "min": 6000,
+            "max": 20000
+          },
+          "devices": [
+            "smart_bulb",
+            "motion_sensor",
+            "illumination_sensor"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ]
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Управление естественным светом (curtains или blinds)",
+          "price_range": {
+            "min": 16000,
+            "max": 55000
+          },
+          "devices": [
+            "smart_bulb",
+            "motion_sensor",
+            "illumination_sensor",
+            "curtains"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ]
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Интерфейсы управления освещением",
+          "price_range": {
+            "min": 21000,
+            "max": 70000
+          },
+          "devices": [
+            "smart_bulb",
+            "motion_sensor",
+            "illumination_sensor",
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ]
+          }
+        },
+        "6": {
+          "name": "Шестой уровень",
+          "description": "Навигационный свет и датчики присутствия (built_in_backlight или decorative_luminaire)",
+          "price_range": {
+            "min": 25000,
+            "max": 85000
+          },
+          "devices": [
+            "smart_bulb",
+            "presence_sensor",
+            "illumination_sensor",
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer",
+            "built_in_backlight"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "presence_sensor": [
+              "passage",
+              "bathroom",
+              "cabinet"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ],
+            "built_in_backlight": [
+              "passage",
+              "bathroom"
+            ]
+          }
+        },
+        "7": {
+          "name": "Седьмой уровень",
+          "description": "Акцентный и декоративный свет",
+          "price_range": {
+            "min": 30000,
+            "max": 100000
+          },
+          "devices": [
+            "smart_bulb",
+            "presence_sensor",
+            "illumination_sensor",
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer",
+            "built_in_backlight",
+            "decorative_luminaire"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "presence_sensor": [
+              "passage",
+              "bathroom",
+              "cabinet"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ],
+            "built_in_backlight": [
+              "living",
+              "kitchen",
+              "cabinet"
+            ],
+            "decorative_luminaire": [
+              "living",
+              "bedroom"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

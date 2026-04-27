@@ -69,3 +69,26 @@ func FieldFromDTO(fieldDTO api.FieldDTO) *field.Field {
 
 	return simField
 }
+
+// FieldFromDTO парсит данные о зависимостях
+func DependenciesFromDTO(scenarios []api.ScenarioDTO) map[string][]api.ActionDTO {
+	IDToDependencies := make(map[string][]api.ActionDTO)
+ 
+	for _, scenario := range scenarios {
+		for _, edge := range scenario.Edges {
+			IDToDependencies[edge.From] = append(IDToDependencies[edge.From], api.ActionDTO{
+				ID:         edge.To,
+				ActionName: edge.Action,
+			})
+		}
+	}
+ 
+	return IDToDependencies
+}
+
+// InputToEventDTO преобразует InputDTO из simulation:tick в EventInDTO для канала движка.
+func InputToEventDTO(input api.InputDTO) api.EventInDTO {
+	return api.EventInDTO{
+		EntityID: input.HumanID,
+	}
+}

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"errors"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
@@ -30,12 +29,18 @@ type Engine interface {
 	// GetInChan возвращает канал для входящих событий.
 	GetInChan() chan api.EventInDTO
 
-	// GetOutChan возвращает канал для исходящих событий.
-	GetOutChan() chan api.EventOutDTO
-
 	// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
-	// Если контекст отменен или канал закрыт, то симуляция завершается.
-	Run(ctx context.Context) error
+	Run() error
+
+	// Step продвигает симуляционное время на dtSim вперёд.
+	// Вызывается из Simulations.Tick после отправки всех входящих событий.
+	Step()
+ 
+	// CollectStep собирает результаты текущего тика и возвращает их клиенту.
+	CollectStep(tick int) *api.SimulationStepPayload
+ 
+	// Stop завершает симуляцию, закрывая канал входящих событий.
+	Stop()
 
 	// HandleEvent обрабатывает event по его entityID
 	HandleEvent(event api.EventInDTO)
@@ -47,7 +52,6 @@ type Engine interface {
 // EnginePort определяет интерфейс для взаимодействия сущностей с движком
 type EnginePort interface {
 	UpdateField(x, y int, cell field.Cell) error
-	GetOutChan() chan api.EventOutDTO
 }
 
 var (

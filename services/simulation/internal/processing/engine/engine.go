@@ -1,39 +1,30 @@
 package engine
 
 import (
-	"context"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
-const (
-	maxEventsBuffer = 100
-	simStep         = 1.0
-)
+const maxEventsBuffer = 100
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
-	simulation *simgo.Simulation // дискретная симуляция из simgo
-
+	simulation *simgo.Simulation          // дискретная симуляция из simgo
 	IDToEntity map[string]entities.Entity // ID сущности <-> структура сущности.
-
-	Field *field.Field // Поле для симуляции
-
-	eventsInChan chan api.EventInDTO // Канал для входящих событий
-
-	eventsOutChan chan api.EventOutDTO // Канал для новых событий
+	Field *field.Field                    // Поле для симуляции
+	eventsInChan chan api.EventInDTO      // Канал для входящих событий
+	dtSim float64                         // шаг симуляционного времени, задаётся при создании
 }
 
 // NewSimEngine создает SimEngine
-func NewSimEngine() *SimEngine {
+func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
 		simulation:    simgo.NewSimulation(),
 		IDToEntity:    make(map[string]entities.Entity),
 		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
-		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
+		dtSim:        dtSim,
 	}
 }
 
@@ -111,28 +102,44 @@ func (s *SimEngine) GetInChan() chan api.EventInDTO {
 	return s.eventsInChan
 }
 
-// GetOutChan возвращает канал для исходящих событий.
-func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
-	return s.eventsOutChan
-}
-
 // Run запускает симуляцию, обрабатывая события из канала eventsInChan.
 // Если контекст отменен или канал закрыт, то симуляция завершается.
-func (s *SimEngine) Run(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case event, ok := <-s.eventsInChan:
-			if !ok {
-				return nil
+func (s *SimEngine) Run() error {
+	for event := range s.eventsInChan {
+		s.HandleEvent(event)
+	}
+	return nil
+}
+
+func (s *SimEngine) Step() {
+	s.simulation.RunUntil(s.simulation.Now() + s.dtSim)
+}
+
+// CollectStep собирает состояния всех сущностей после тика.
+// TODO: реализовать HasChanged/GetState на Entity для отдачи только изменившихся.
+func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
+	var stateChanges []api.EntityDTO
+ 
+	for id, entity := range s.IDToEntity {
+		if entityWithState, ok := entity.(entities.EntityWithState); ok {
+			if entityWithState.HasChanged() {
+				stateChanges = append(stateChanges, api.EntityDTO{
+					ID:   id,
+					Info: entityWithState.GetState(),
+				})
 			}
-
-			s.HandleEvent(event)
-
-			s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
 		}
 	}
+ 
+	return &api.SimulationStepPayload{
+		Tick:         tick,
+		SimTime:      s.simulation.Now(),
+		StateChanges: stateChanges,
+	}
+}
+
+func (s *SimEngine) Stop() {
+	close(s.eventsInChan)
 }
 
 // HandleEvent обрабатывает event по его entityID

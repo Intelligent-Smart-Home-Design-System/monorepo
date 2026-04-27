@@ -1,8 +1,9 @@
 package simulations
 
 import (
-	"context"
+	"errors"
 	"log/slog"
+	"sync"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
@@ -15,150 +16,84 @@ import (
 
 // Simulations - структура, которая усправляет всеми симуляциями.
 type Simulations struct {
-	IDToEngine       map[string]engine.Engine        // engineID <-> engine
-	IDToEventInChan  map[string]chan api.EventInDTO  // engineID <-> канал для входящих событий
-	IDToEventOutChan map[string]chan api.EventOutDTO // engineID <-> канал для исходящих событий
-	IDToDependencies map[string][]api.ActionDTO      // engineID <-> слайс со структурами, описывающими зависимости между сущностями (кто кого тригерит)
+	mu         sync.RWMutex
+	IDToEngine map[string]engine.Engine        // engineID <-> engine
 }
 
 // NewSimulation создает Simulations
 func NewSimulation() *Simulations {
 	return &Simulations{
-		IDToEngine:       make(map[string]engine.Engine),
-		IDToEventInChan:  make(map[string]chan api.EventInDTO),
-		IDToEventOutChan: make(map[string]chan api.EventOutDTO),
-		IDToDependencies: make(map[string][]api.ActionDTO),
+		IDToEngine: make(map[string]engine.Engine),
 	}
 }
 
-func (s *Simulations) Init(ctx context.Context) error {
-	slog.Debug("Creating simulations data and starting components...")
-
-	err := s.InitEngines()
+// Start инициализирует и запускает движок для симуляции.
+// Вызывается при получении simulation:start от клиента.
+func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) error {
+	eng := engine.NewSimEngine(payload.DtSim)
+ 
+	simField := converter.FieldFromDTO(payload.Apartment)
+	eng.SetField(simField)
+ 
+	entities, err := converter.EntitiesFromDTO(payload.Devices, eng)
 	if err != nil {
 		return err
 	}
-
-	s.GetEnginesInChan()
-	s.GetEnginesOutChan()
-
-	s.StartSending()
-	s.StartEngines(ctx)
-
+	dependencies := converter.DependenciesFromDTO(payload.Scenarios)
+	eng.InitEntities(entities, dependencies)
+ 
+	if eng.CheckCircleDependencies() {
+		return errors.New("circle dependencies detected")
+	}
+ 
+	eng.InitProcesses()
+ 
+	go func() {
+		if err := eng.Run(); err != nil {
+			slog.Error("engine error", "reqID", reqID, "error", err)
+		}
+	}()
+ 
+	s.mu.Lock()
+	s.IDToEngine[reqID] = eng
+	s.mu.Unlock()
+ 
 	return nil
 }
 
-// Run запускает сервис симуляции. Принимает контекст для graceful shutdown.
-func (s *Simulations) Run(ctx context.Context) error {
-	slog.Info("Simulations started!")
+// Tick продвигает симуляцию на один шаг.
+// Вызывается при получении simulation:tick от клиента.
+func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*api.SimulationStepPayload, error) {
+	s.mu.RLock()
+	eng, ok := s.IDToEngine[reqID]
+	s.mu.RUnlock()
 
-	for {
-		select {
-		case <-ctx.Done():
-			s.Stop()
-			return ctx.Err()
-		default:
-		}
-
-		SimIDToEvents, err := s.fetcher.GetEvents() // должна быть блокирующая операция
-		if err != nil {
-			return err
-		}
-
-		for simID, events := range SimIDToEvents {
-			for _, event := range events {
-				s.IDToEventInChan[simID] <- event
-			}
-		}
+	if !ok {
+		return nil, errors.New("simulation not found")
 	}
+ 
+	for _, input := range payload.Inputs {
+		eng.GetInChan() <- converter.InputToEventDTO(input)
+	}
+ 
+	eng.Step()
+ 
+	return eng.CollectStep(payload.Tick), nil
 }
 
-// InitEngines инициализирует движки для всех симуляций, заполняя их данными о поле и сущностях, полученными от fetcher.
-func (s *Simulations) InitEngines() error {
-	// TODO: понять когда приходят данные и как (в какой момент что инициализировать)
-	simulationsID := s.fetcher.GetSimulationsID()
-	for _, simID := range simulationsID {
-		s.IDToEngine[simID] = engine.NewSimEngine()
+// Stop останавливает и удаляет движок симуляции.
+// Вызывается при получении simulation:stop от клиента или разрыве соединения.
+func (s *Simulations) Stop(reqID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	eng, ok := s.IDToEngine[reqID]
+	if !ok {
+		return errors.New("simulation not found")
 	}
-
-	IDToFields, err := s.fetcher.GetFields()
-	if err != nil {
-		return err
-	}
-
-	for simID, fieldData := range IDToFields {
-		simField := converter.FieldFromDTO(fieldData)
-		s.IDToEngine[simID].SetField(simField)
-	}
-
-	IDToEntitiesData, err := s.fetcher.GetEntities()
-	if err != nil {
-		return err
-	}
-
-	IDToDependencies, err := s.fetcher.GetDependencies()
-	if err != nil {
-		return err
-	}
-
-	for simID, entitiesData := range IDToEntitiesData {
-		entities, err := converter.EntitiesFromDTO(entitiesData, s.IDToEngine[simID])
-		if err != nil {
-			return err
-		}
-
-		s.IDToEngine[simID].InitEntities(entities, IDToDependencies[simID])
-
-		if s.IDToEngine[simID].CheckCircleDependencies() {
-			slog.Error("Circle dependencies detected in simulation", "simulationID", simID)
-		}
-
-		s.IDToEngine[simID].InitProcesses()
-	}
-
+ 
+	eng.Stop()
+	delete(s.IDToEngine, reqID)
+ 
 	return nil
-}
-
-// GetEnginesInChan возвращает каналы для входящих событий.
-func (s *Simulations) GetEnginesInChan() {
-	for id, engineItem := range s.IDToEngine {
-		s.IDToEventInChan[id] = engineItem.GetInChan()
-	}
-}
-
-// GetEnginesOutChan возвращает каналы для исходящих событий.
-func (s *Simulations) GetEnginesOutChan() {
-	for id, engineItem := range s.IDToEngine {
-		s.IDToEventOutChan[id] = engineItem.GetOutChan()
-	}
-}
-
-// StartSending запускает горутины для отправки событий из каналов исходящих событий в sender.
-func (s *Simulations) StartSending() {
-	for _, eventsOutCh := range s.IDToEventOutChan {
-		go func(ch <-chan api.EventOutDTO) {
-			for event := range ch {
-				s.sender.AddEvent(event)
-			}
-		}(eventsOutCh)
-	}
-}
-
-// StartEngines запускает горутины для каждого движка, чтобы они начали обрабатывать события.
-func (s *Simulations) StartEngines(ctx context.Context) {
-	for _, engineItem := range s.IDToEngine {
-		go func(engineItem engine.Engine) {
-			err := engineItem.Run(ctx)
-			if err != nil {
-				slog.Error("Error while starting engine", "error", err)
-			}
-		}(engineItem)
-	}
-}
-
-// Stop закрывает каналы для входящих событий и останавливает симуляцию.
-func (s *Simulations) Stop() {
-	for _, eventInChan := range s.IDToEventInChan {
-		close(eventInChan)
-	}
 }

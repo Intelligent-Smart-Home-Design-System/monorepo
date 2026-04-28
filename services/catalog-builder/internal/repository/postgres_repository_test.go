@@ -1,5 +1,3 @@
-//go:build integration
-
 package repository_test
 
 import (
@@ -191,20 +189,20 @@ func TestGetLatestDirectCompatibility(t *testing.T) {
 	// old snapshot (should be ignored
 	var oldSnapID int
 	require.NoError(t, db.QueryRowContext(ctx,
-		`INSERT INTO parsed_direct_compatibility_snapshot DEFAULT VALUES RETURNING id`,
+		`INSERT INTO page_snapshots DEFAULT VALUES RETURNING id`,
 	).Scan(&oldSnapID))
 	_, err := db.ExecContext(ctx,
-		`INSERT INTO parsed_direct_compatibility_record (snapshot_id, ecosystem, brand, model, protocol) VALUES ($1, 'stale', 'brand', 'model', 'zwave')`,
+		`INSERT INTO parsed_direct_compatibility_record (page_snapshot_id, ecosystem, brand, model, protocol) VALUES ($1, 'stale', 'brand', 'model', 'zwave')`,
 		oldSnapID)
 	require.NoError(t, err)
 
 	// latest snapshot
 	var snapID int
 	require.NoError(t, db.QueryRowContext(ctx,
-		`INSERT INTO parsed_direct_compatibility_snapshot DEFAULT VALUES RETURNING id`,
+		`INSERT INTO page_snapshots DEFAULT VALUES RETURNING id`,
 	).Scan(&snapID))
 	_, err = db.ExecContext(ctx, `
-		INSERT INTO parsed_direct_compatibility_record (snapshot_id, ecosystem, brand, model, protocol)
+		INSERT INTO parsed_direct_compatibility_record (page_snapshot_id, ecosystem, brand, model, protocol)
 		VALUES ($1, 'apple', 'yandex', 'YNDX-00558', 'matter-over-wifi'),
 		       ($1, 'google', 'yandex', 'YNDX-00558', 'matter-over-thread')`,
 		snapID)

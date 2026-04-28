@@ -4,6 +4,17 @@ path = "taxonomy_schema.json"
 [extraction]
 
 [extraction.hints]
+brand = """
+Extract the manufacturer brand name. Normalize it using these mappings:
+
+яндекс -> yandex
+yndx -> yandex
+экф -> ekf
+
+Rules:
+- Use the normalized form if the brand matches any alias above
+"""
+
 model = """
 Extract and output the product model name *exactly as it appears in the text*, but ONLY IF there is a string in the text that uniquely identifies the model, such as 'JT-BZ-03AQ/A' or 'LB-L02E'.
 
@@ -14,6 +25,9 @@ It may also just look like a string of numbers (but NOT the articul)
 - If *no* unique model string is present in the text, leave the output empty.
 - DO NOT transform the model name at all, just get it from the text
 - DO NOT put the shop article number of the listing as the model.
+- If the listing has a "Модель" or "Model" field, treat it as a HINT only. 
+  Prefer a model code found elsewhere in the text if it better matches the pattern 
+  of letters+numbers+punctuation. The structured field is sometimes filled incorrectly by sellers.
 
 Examples:
 Text: "Model: SO-ME-2"
@@ -64,8 +78,9 @@ llm_model = "gpt-oss-120b/latest"
 [database]
 host = "localhost"
 port = 5432
-name = "smart_home"
-user = "extractor"
+name = "catalog"
+user = "catalog"
+password = "catalog"
 
 [logging]
 level = "INFO"

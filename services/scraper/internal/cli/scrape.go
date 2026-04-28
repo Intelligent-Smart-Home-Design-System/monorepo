@@ -21,8 +21,8 @@ import (
 
 	// "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	// sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 )
 
 func NewScrapeCmd() *cobra.Command {
@@ -59,7 +59,7 @@ func scrape(ctx context.Context, cfgFile string) error {
 	defer db.Close()
 
 	taskRepo := repository.NewTrackedPageRepo(db)
-	snapshotRepo := repository.NewSnapshotRepo(db)
+	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
 	printerScraper := printer.NewPrinterScraper()
 	// sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
@@ -71,7 +71,7 @@ func scrape(ctx context.Context, cfgFile string) error {
 		cfg.Scraping.WBSessionPath,
 	)
 
-	sourceToScraper := map[string]worker.Scraper{
+	sourceToScraper := map[string]scraper.Scraper{
 		"printer": printerScraper,
 		// 	"sprut":      sprutScraper,
 		"wildberries": wildberriesScraper,
@@ -79,7 +79,7 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	resultsCh := make(chan domain.ScrapeResult)
 
-	worker := worker.NewWorker(logger, sourceToScraper, resultsCh)
+	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
 
 	tasks, err := taskRepo.GetTasks()
 	if err != nil {

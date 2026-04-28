@@ -69,12 +69,16 @@ func (r *PostgresRepository) GetLatestExtractedListings(ctx context.Context) ([]
 	return listings, rows.Err()
 }
 
-// GetLatestDirectCompatibility returns all records from the latest direct compat snapshot.
 func (r *PostgresRepository) GetLatestDirectCompatibility(ctx context.Context) ([]*domain.ScrapedDirectCompatibility, error) {
 	rows, err := r.db.QueryContext(ctx, `
+		WITH latest_snapshots AS (
+			SELECT DISTINCT ON (tracked_page) id
+			FROM page_snapshots
+			ORDER BY tracked_page, id DESC
+		)
 		SELECT r.ecosystem, r.brand, r.model, r.protocol
 		FROM parsed_direct_compatibility_record r
-		WHERE r.snapshot_id = (SELECT MAX(id) FROM parsed_direct_compatibility_snapshot)
+		JOIN latest_snapshots ls ON ls.id = r.page_snapshot_id
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("query direct compat: %w", err)
@@ -127,10 +131,14 @@ func (r *PostgresRepository) WriteCatalog(ctx context.Context, catalog *domain.C
 			}
 		}
 
+		if d.Model != nil && *d.Model == "YNDX-00521" {
+			r.log.Info().Msg("found")
+		}
 		for _, dc := range d.DirectCompatibility {
 			if _, err := tx.ExecContext(ctx, `
 				INSERT INTO direct_compatibility (device_id, ecosystem, protocol)
 				VALUES ($1, $2, $3)
+				ON CONFLICT (device_id, ecosystem, protocol) DO NOTHING
 			`, d.Id, dc.Ecosystem, dc.Protocol); err != nil {
 				return fmt.Errorf("insert direct compat device_id=%d: %w", d.Id, err)
 			}

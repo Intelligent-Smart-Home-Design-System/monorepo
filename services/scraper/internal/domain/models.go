@@ -65,3 +65,33 @@ type Resource struct {
 
 	Timestamp time.Time // when it was fetched
 }
+
+type PageSnapshot struct {
+	ID            int
+	TrackedPageID int
+	ScrapedAt     time.Time
+	WARCBundle    []byte
+	PageType      string
+	SourceName    string
+}
+
+type ListingParseResult struct {
+	PageSnapshotID int
+
+	InStock      bool
+	Text         string
+	Name         string
+	Brand        string
+	ImageURL     string
+	Price        *int
+	Currency     *string
+	ModelNumber  *string
+	Category     *string
+	Quantity     *int
+	QuantityRaw  *string
+	Rating       float64
+	ReviewCount  int
+	ContentHash  string
+	ExtractorVer string
+	ParsedAt     time.Time
+}

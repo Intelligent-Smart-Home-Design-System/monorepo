@@ -62,14 +62,9 @@ CREATE TABLE parsed_listing_snapshots (
     content_hash VARCHAR(64) -- хэш всех полей extracted_. Если ничего не поменялось, меняем только parsed_at в последнем снепшоте
 );
 
-CREATE TABLE parsed_direct_compatibility_snapshot (
-    id SERIAL PRIMARY KEY,
-    parsed_at TIMESTAMP DEFAULT NOW()
-);
-
 CREATE TABLE parsed_direct_compatibility_record (
     id SERIAL PRIMARY KEY,
-    snapshot_id INTEGER REFERENCES parsed_direct_compatibility_snapshot(id) NOT NULL,
+    page_snapshot_id INTEGER REFERENCES page_snapshots(id) NOT NULL,
     ecosystem TEXT NOT NULL,
     brand TEXT NOT NULL,
     model TEXT NOT NULL,

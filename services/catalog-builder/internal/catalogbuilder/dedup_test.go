@@ -19,7 +19,7 @@ func TestGetPrimaryKey(t *testing.T) {
 	key, err := getPrimaryKey(&listing)
 
 	require.NoError(t, err)
-	require.Equal(t, "aqara:water_leak_sensor:WSAO-23", key)
+	require.Equal(t, "water_leak_sensor:WSAO-23", key)
 }
 
 func TestGetPrimaryKeyNilModel(t *testing.T) {
@@ -420,7 +420,7 @@ func TestDeduplicateAttributes_AllNullFieldOmitted(t *testing.T) {
 					"protocol":      []any{"matter-over-wifi", "zigbee", "bt"},
 				}},
 				{DeviceAttributes: map[string]any{
-					"name":          "yandex smart lamp",
+					"name":          "yandex smart lamp 800lm",
 					"socket_type":   nil,
 					"brightness_lm": float64(800),
 					"protocol":      []any{"zigbee"},

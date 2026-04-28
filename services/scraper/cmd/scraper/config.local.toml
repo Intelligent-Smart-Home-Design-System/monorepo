@@ -1,17 +1,17 @@
 [database]
 host = "localhost"
 port = 5432
-user = "scraper"
-password = "1234"
-dbname = "scraper_db"
+user = "catalog"
+password = "catalog"
+dbname = "catalog"
 sslmode = "disable"
 
 [scraping]
 max_retries = 3
-rate_limit_rps = 2.0
+rate_limit_rps = 50.0
 timeout = "60s"
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 proxy = ""
 wb_card_basket = "01"
 wb_session_path = "./session.json"
-wb_rps = 0.5
+wb_rps = 50.0

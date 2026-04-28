@@ -128,9 +128,16 @@ func (b *Builder) Build(listings []*domain.ExtractedListing, compat []*domain.Sc
 		modelToDevice[model] = device
 	}
 
+	d, ok := modelToDevice["yandex:YNDX-00521"]
+	b.log.Info().Msgf("%t", ok)
+	_ = d
+
 	for _, c := range compat {
 		modelKey := fmt.Sprintf("%s:%s", c.Brand, c.Model)
 		device, ok := modelToDevice[modelKey]
+		if modelKey == "yandex:YNDX-00521" {
+			b.log.Info().Msgf("found\n")
+		}
 		if !ok {
 			b.log.Warn().
 				Str("brand", c.Brand).

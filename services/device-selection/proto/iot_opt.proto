@@ -1,0 +1,73 @@
+syntax = "proto3";
+package iot.opt;
+
+import "google/protobuf/struct.proto";
+
+message Filter {
+  // device attributes field name
+  string field = 1;
+  Op op = 2;
+  // value to compare against
+  google.protobuf.Value value = 3;
+}
+
+enum Op {
+  OP_UNSPECIFIED = 0;
+  OP_EQ = 1;
+  OP_NEQ = 2;
+  OP_GT = 3;
+  OP_GTE = 4;
+  OP_LT = 5;
+  OP_LTE = 6;
+  OP_CONTAINS = 7;
+  OP_EXISTS = 8;
+}
+
+message DeviceRequirement {
+  int32 requirement_id = 1;
+  string device_type = 2;
+  int32 count = 3;
+  repeated Filter filters = 4;
+}
+
+message DeviceSelectionRequest {
+  string main_ecosystem = 1;
+  double budget = 2;
+  repeated DeviceRequirement device_requirements = 3;
+  repeated string include_ecosystems = 4;
+  repeated string exclude_ecosystems = 5;
+  optional int32 max_solutions = 6;
+  optional int64 random_seed = 7;
+  optional double time_budget_seconds = 8;
+}
+
+message ConnectionInfo {
+  optional string ecosystem = 1;
+  optional int32 hub_selected_listing_id = 2;
+}
+
+message SelectedListing {
+  int32 selected_listing_id = 1;
+  optional int32 requirement_id = 2;
+  int32 device_id = 3;
+  double device_quality = 4;
+  ConnectionInfo connection_direct = 5;
+  optional ConnectionInfo connection_final = 6;
+  int32 extracted_listing_id = 7;
+  int32 devices_per_listing = 8;
+  int32 units_to_buy = 9;
+  double unit_price = 10;
+}
+
+message ParetoPoint {
+  repeated SelectedListing listings = 1;
+  double total_cost = 2;
+  double avg_quality = 3;
+  int32 num_ecosystems = 4;
+  int32 num_hubs = 5;
+  bool is_recommended = 6;
+}
+
+message DeviceSelectionResponse {
+  repeated ParetoPoint pareto_front = 1;
+}

@@ -1,9 +1,11 @@
 package catalogbuilder
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/domain"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +19,7 @@ func TestGetPrimaryKey(t *testing.T) {
 	key, err := getPrimaryKey(&listing)
 
 	require.NoError(t, err)
-	require.Equal(t, "aqara:water_leak_sensor:WSAO-23", key)
+	require.Equal(t, "water_leak_sensor:WSAO-23", key)
 }
 
 func TestGetPrimaryKeyNilModel(t *testing.T) {
@@ -238,6 +240,206 @@ func TestGetSecondaryKey(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedKey, key)
 			}
+		})
+	}
+}
+
+func TestMergeFieldValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		values   []any
+		expected any
+	}{
+		{"bool: all true", []any{true, true, true}, true},
+		{"bool: all false", []any{false, false, false}, false},
+		{"bool: majority true", []any{true, true, false}, true},
+		{"bool: majority false", []any{true, false, false}, false},
+		{"bool: exact half", []any{true, false}, true},
+		{"bool: single true", []any{true}, true},
+		{"bool: single false", []any{false}, false},
+		{"float: single value", []any{float64(5)}, float64(5)},
+		{"float: odd count", []any{float64(1), float64(3), float64(9)}, float64(3)},
+		{"float: even count takes lower middle", []any{float64(1), float64(2), float64(3), float64(4)}, float64(2)},
+		{"float: all same", []any{float64(7), float64(7), float64(7)}, float64(7)},
+		{"float: outlier", []any{float64(1), float64(2), float64(999)}, float64(2)},
+		{"string: single value", []any{"E27"}, "E27"},
+		{"string: majority", []any{"E27", "E27", "E14", "E27", "E14", "10"}, "E27"},
+		{"string: all same", []any{"E27", "E27", "E27"}, "E27"},
+		{
+			"string set: all have zigbee",
+			[]any{
+				[]any{"zigbee"},
+				[]any{"zigbee"},
+				[]any{"zigbee"},
+			},
+			[]string{"zigbee"},
+		},
+		{
+			"string set: majority have zigbee wifi",
+			[]any{
+				[]any{"zigbee", "wifi"},
+				[]any{"zigbee", "wifi"},
+				[]any{"zigbee"},
+			},
+			[]string{"zigbee", "wifi"},
+		},
+		{
+			"string set: minority value excluded",
+			[]any{
+				[]any{"zigbee", "bluetooth"},
+				[]any{"zigbee"},
+				[]any{"zigbee"},
+			},
+			[]string{"zigbee"},
+		},
+		{
+			"string set: exact half included",
+			[]any{
+				[]any{"zigbee", "wifi"},
+				[]any{"zigbee"},
+			},
+			[]string{"zigbee", "wifi"},
+		},
+		{
+			"string set: complex case",
+			[]any{
+				[]any{"matter-over-wifi", "wifi"},
+				[]any{"matter-over-wifi", "zigbee"},
+				[]any{"matter-over-thread", "zigbee"},
+				[]any{"zigbee", "bt"},
+			},
+			[]string{"matter-over-wifi", "zigbee"},
+		},
+		{
+			"string set: lots of empty string sets",
+			[]any{
+				[]any{"matter-over-wifi", "wifi"},
+				[]any{"matter-over-wifi", "zigbee"},
+				[]any{"matter-over-thread", "zigbee"},
+				[]any{"zigbee", "bt"},
+				[]any{},
+				[]any{},
+				[]any{},
+				nil,
+				nil,
+				nil,
+			},
+			[]string{"matter-over-wifi", "zigbee"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mergeFieldValues(tt.values)
+			require.NoError(t, err)
+			if _, isStringSetTest := tt.expected.([]string); isStringSetTest {
+				require.ElementsMatch(t, tt.expected, got)
+			} else {
+				require.Equal(t, tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestMergeFieldValues_UnsupportedType_ReturnsError(t *testing.T) {
+	_, err := mergeFieldValues([]any{map[string]any{"key": "value"}})
+	require.Error(t, err)
+}
+
+func TestMergeFieldValues_Empty_ReturnsNil(t *testing.T) {
+	got, err := mergeFieldValues([]any{})
+	require.Nil(t, got)
+	require.NoError(t, err)
+}
+
+func TestDeduplicateAttributes_AllNullFieldOmitted(t *testing.T) {
+	tests := []struct {
+		name     string
+		listings []*domain.ExtractedListing
+		expected map[string]any
+	}{
+		{
+			name: "all null field omitted",
+			listings: []*domain.ExtractedListing{
+				{DeviceAttributes: map[string]any{"brightness_lm": nil}},
+				{DeviceAttributes: map[string]any{"brightness_lm": nil}},
+			},
+			expected: map[string]any{},
+		},
+		{
+			name: "partial null",
+			listings: []*domain.ExtractedListing{
+				{DeviceAttributes: map[string]any{"brightness_lm": float64(800)}},
+				{DeviceAttributes: map[string]any{"brightness_lm": nil}},
+				{DeviceAttributes: map[string]any{"brightness_lm": float64(900)}},
+				{DeviceAttributes: map[string]any{"brightness_lm": float64(100)}},
+			},
+			expected: map[string]any{
+				"brightness_lm": float64(800),
+			},
+		},
+		{
+			name: "field missing",
+			listings: []*domain.ExtractedListing{
+				{DeviceAttributes: map[string]any{"socket_type": "E27"}},
+				{DeviceAttributes: map[string]any{}},
+				{DeviceAttributes: map[string]any{"socket_type": "E27"}},
+			},
+			expected: map[string]any{
+				"socket_type": "E27",
+			},
+		},
+		{
+			name: "all null field omitted",
+			listings: []*domain.ExtractedListing{
+				{DeviceAttributes: map[string]any{"socket_type": "E27"}},
+				{DeviceAttributes: map[string]any{}},
+				{DeviceAttributes: map[string]any{"socket_type": "E27"}},
+			},
+			expected: map[string]any{
+				"socket_type": "E27",
+			},
+		},
+		{
+			name:     "empty",
+			listings: nil,
+			expected: nil,
+		},
+		{
+			name: "complex",
+			listings: []*domain.ExtractedListing{
+				{DeviceAttributes: map[string]any{
+					"name":          "yandex smart lamp 800lm",
+					"socket_type":   "E27",
+					"brightness_lm": float64(800),
+					"protocol":      []any{"matter-over-wifi", "zigbee"},
+				}},
+				{DeviceAttributes: map[string]any{
+					"name":          "yandex smart lamp 800 lm",
+					"socket_type":   "E27",
+					"brightness_lm": nil,
+					"protocol":      []any{"matter-over-wifi", "zigbee", "bt"},
+				}},
+				{DeviceAttributes: map[string]any{
+					"name":          "yandex smart lamp 800lm",
+					"socket_type":   nil,
+					"brightness_lm": float64(800),
+					"protocol":      []any{"zigbee"},
+				}},
+			},
+			expected: map[string]any{
+				"name":          "yandex smart lamp 800lm",
+				"socket_type":   "E27",
+				"brightness_lm": float64(800),
+				"protocol":      []string{"matter-over-wifi", "zigbee"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := deduplicateAttributes(tt.listings, zerolog.Nop())
+			fmt.Println(tt.name)
+			fmt.Println(got)
+			require.Equal(t, tt.expected, got)
 		})
 	}
 }

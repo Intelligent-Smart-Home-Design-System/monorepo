@@ -16,10 +16,10 @@ var errAttrNotFound = errors.New("attribute not found")
 var errUnsupportedAttr = errors.New("unsupported attribute type")
 
 func getPrimaryKey(listing *domain.ExtractedListing) (string, error) {
-	if listing.Model == nil {
+	if listing.Model == nil || *listing.Model == "unknown" {
 		return "", errNoModel
 	}
-	return fmt.Sprintf("%s:%s:%s", listing.Brand, listing.Category, *listing.Model), nil
+	return fmt.Sprintf("%s:%s", listing.Category, *listing.Model), nil
 }
 
 func getSecondaryKey(listing *domain.ExtractedListing, attrs []string) (string, error) {

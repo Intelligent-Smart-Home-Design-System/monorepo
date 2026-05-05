@@ -4,7 +4,6 @@ DROP TABLE IF EXISTS listing_device_links;
 DROP TABLE IF EXISTS devices;
 DROP TABLE IF EXISTS llm_extracted_listings;
 DROP TABLE IF EXISTS parsed_direct_compatibility_record;
-DROP TABLE IF EXISTS parsed_direct_compatibility_snapshot;
 DROP TABLE IF EXISTS parsed_listing_snapshots;
 DROP TABLE IF EXISTS page_snapshots;
 DROP TABLE IF EXISTS tracked_pages;

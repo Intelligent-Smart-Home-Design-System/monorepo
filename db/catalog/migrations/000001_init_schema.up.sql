@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE tracked_pages (
     id SERIAL PRIMARY KEY,
     source_name VARCHAR(100) NOT NULL,  -- 'amazon_us', 'sprut_ai', 'wildberries', 'yandex'
-    page_type TEXT NOT NULL, -- 'listing', 'compatibility', 'cloud_integration', ...
+    page_type TEXT NOT NULL, -- 'listing', 'compatibility', 'cloud_integration', 'discovery', ...
     url TEXT NOT NULL,
     url_hash VARCHAR(64) GENERATED ALWAYS AS (encode(digest(url::bytea, 'sha256'), 'hex')) STORED,
 
@@ -62,14 +62,9 @@ CREATE TABLE parsed_listing_snapshots (
     content_hash VARCHAR(64) -- хэш всех полей extracted_. Если ничего не поменялось, меняем только parsed_at в последнем снепшоте
 );
 
-CREATE TABLE parsed_direct_compatibility_snapshot (
-    id SERIAL PRIMARY KEY,
-    parsed_at TIMESTAMP DEFAULT NOW()
-);
-
 CREATE TABLE parsed_direct_compatibility_record (
     id SERIAL PRIMARY KEY,
-    snapshot_id INTEGER REFERENCES parsed_direct_compatibility_snapshot(id) NOT NULL,
+    page_snapshot_id INTEGER REFERENCES page_snapshots(id) NOT NULL,
     ecosystem TEXT NOT NULL,
     brand TEXT NOT NULL,
     model TEXT NOT NULL,

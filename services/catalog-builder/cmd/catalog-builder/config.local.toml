@@ -1,7 +1,33 @@
 [database]
 host = "localhost"
 port = 5432
-user = "scraper"
-# password via env: SCRAPER_DATABASE_PASSWORD
-dbname = "scraper_db"
+user = "catalog"
+password = "catalog"
+dbname = "catalog"
 sslmode = "disable"
+
+taxonomy_schema_path = "taxonomy_schema.json"
+strict_schema = false
+
+[ecosystems]
+cloud = ["yandex", "sber", "vk"]
+matter = ["apple", "google"]
+matter_protocols = ["matter-over-wifi", "matter-over-thread"]
+
+[identifying_attributes]
+smart_lamp = ["socket_type", "wattage_w", "rgb_support"]
+
+water_leak_sensor = ["battery_type"]
+door_window_sensor = ["battery_type"]
+motion_sensor = ["sensor_type"]
+gas_leak_sensor = ["has_audio_alert"]
+
+smart_camera = ["resolution", "indoor_outdoor"]
+
+smart_doorbell = ["has_camera", "resolution"]
+
+smart_lock = ["battery_type"]
+
+smart_siren = ["indoor_outdoor", "max_volume_db"]
+
+smart_hub = ["has_ir_blaster", "has_local_processing"]

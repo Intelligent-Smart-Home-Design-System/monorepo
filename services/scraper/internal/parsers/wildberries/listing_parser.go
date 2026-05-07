@@ -1,8 +1,12 @@
 package wildberries
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,9 +17,8 @@ import (
 const (
 	Source           = "wildberries"
 	ExtractorVersion = "wb_listing_v1"
-
-	fileDetail = "detail.json"
-	fileCard   = "card.json"
+	fileDetail       = "detail.json"
+	fileCard         = "card.json"
 )
 
 type detailResponse struct {
@@ -66,8 +69,7 @@ type cardSelling struct {
 	BrandName string `json:"brand_name"`
 }
 
-type ListingParser struct {
-}
+type ListingParser struct{}
 
 func NewListingParser() *ListingParser {
 	return &ListingParser{}
@@ -75,15 +77,14 @@ func NewListingParser() *ListingParser {
 
 func (p *ListingParser) Source() string { return Source }
 
-// Parse extracts a ListingParseResult
-func (p *ListingParser) Parse(pageSnapshotId int, files []*parser.ArchiveFile) (*domain.ListingParseResult, error) {
+func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (*domain.ListingParseResult, error) {
 	detailData, err := parser.FindFile(files, fileDetail)
 	if err != nil {
-		return nil, fmt.Errorf("wildberries listing parser: %w", err)
+		return nil, fmt.Errorf("%s: %w", Source, err)
 	}
 	cardData, err := parser.FindFile(files, fileCard)
 	if err != nil {
-		return nil, fmt.Errorf("wildberries listing parser: %w", err)
+		return nil, fmt.Errorf("%s: %w", Source, err)
 	}
 
 	var detail detailResponse
@@ -101,25 +102,22 @@ func (p *ListingParser) Parse(pageSnapshotId int, files []*parser.ArchiveFile) (
 	}
 
 	res := &domain.ListingParseResult{
-		PageSnapshotID: pageSnapshotId,
+		PageSnapshotID: pageSnapshotID,
 		ParsedAt:       time.Now(),
 		ExtractorVer:   ExtractorVersion,
 	}
 
 	res.Name = strings.TrimSpace(prod.Name)
-
-	// Prefer card selling brand; fall back to detail brand.
 	res.Brand = normalizeBrand(card.Selling.BrandName)
 	if res.Brand == "" {
 		res.Brand = normalizeBrand(prod.Brand)
 	}
 
-	if m := findOption(card.Options, "Модель"); m != "" {
-		res.ModelNumber = strPtr(m)
+	if model := findOption(card.Options, "Модель"); model != "" {
+		res.ModelNumber = &model
 	}
-
 	if card.SubjName != "" {
-		res.Category = strPtr(card.SubjName)
+		res.Category = &card.SubjName
 	}
 
 	totalQty, productPriceKopecks := stockAndPrice(prod.Sizes)
@@ -128,7 +126,8 @@ func (p *ListingParser) Parse(pageSnapshotId int, files []*parser.ArchiveFile) (
 	if productPriceKopecks > 0 {
 		rubles := productPriceKopecks / 100
 		res.Price = &rubles
-		res.Currency = strPtr("RUB")
+		currency := "RUB"
+		res.Currency = &currency
 	}
 
 	res.ImageURL = buildImageURL(prod.ID)
@@ -140,10 +139,12 @@ func (p *ListingParser) Parse(pageSnapshotId int, files []*parser.ArchiveFile) (
 		res.Quantity = &qty
 	}
 	if qtyRaw != "" {
-		res.QuantityRaw = strPtr(qtyRaw)
+		res.QuantityRaw = &qtyRaw
 	}
 
 	res.Text = buildText(&card)
+
+	res.ContentHash = computeHash(res)
 
 	return res, nil
 }
@@ -152,13 +153,13 @@ func normalizeBrand(brand string) string {
 	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(brand)), " ", "-")
 }
 
-func stockAndPrice(sizes []detailSize) (totalQty, firstProductPrice int) {
+func stockAndPrice(sizes []detailSize) (totalQty, productPriceKopecks int) {
 	for _, sz := range sizes {
 		for _, st := range sz.Stocks {
 			totalQty += st.Qty
 		}
-		if sz.Price.Product > 0 && firstProductPrice == 0 {
-			firstProductPrice = sz.Price.Product
+		if sz.Price.Product > 0 && productPriceKopecks == 0 {
+			productPriceKopecks = sz.Price.Product
 		}
 	}
 	return
@@ -173,16 +174,10 @@ func findOption(opts []cardOption, name string) string {
 	return ""
 }
 
-func strPtr(s string) *string { return &s }
-
 func buildImageURL(nmID int) string {
 	vol := nmID / 100_000
 	part := nmID / 1_000
-	basket := 1
-	return fmt.Sprintf(
-		"https://mow-basket-cdn-%02d.geobasket.ru/vol%d/part%d/%d/images/big/1.webp",
-		basket, vol, part, nmID,
-	)
+	return fmt.Sprintf("https://mow-basket-cdn-01.geobasket.ru/vol%d/part%d/%d/images/big/1.webp", vol, part, nmID)
 }
 
 func extractQuantity(contents string, opts []cardOption) (int, string) {
@@ -193,10 +188,15 @@ func extractQuantity(contents string, opts []cardOption) (int, string) {
 	if raw == "" {
 		return 0, ""
 	}
+	re := regexp.MustCompile(`\d+`)
+	match := re.FindString(raw)
+	if match != "" {
+		qty, _ := strconv.Atoi(match)
+		return qty, raw
+	}
 	return 1, raw
 }
 
-// buildText assembles the full description
 func buildText(card *cardResponse) string {
 	var sb strings.Builder
 	if card.ImtName != "" {
@@ -214,4 +214,26 @@ func buildText(card *cardResponse) string {
 		sb.WriteString("\n")
 	}
 	return strings.TrimSpace(sb.String())
+}
+
+func computeHash(result *domain.ListingParseResult) string {
+	data := fmt.Sprintf("%s|%s|%d|%v|%d|%d|%f|%d",
+		result.Name,
+		result.Brand,
+		nullIntOrDefault(result.Price),
+		result.InStock,
+		nullIntOrDefault(result.Quantity),
+		result.ReviewCount,
+		result.Rating,
+		nullIntOrDefault(result.Quantity),
+	)
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
+}
+
+func nullIntOrDefault(ptr *int) int {
+	if ptr == nil {
+		return 0
+	}
+	return *ptr
 }

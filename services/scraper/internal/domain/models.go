@@ -5,6 +5,19 @@ import (
 	"time"
 )
 
+// Source constants identify the scraping source for a task.
+const (
+	SourcePrinter     = "printer"
+	SourceWildberries = "wildberries"
+)
+
+// AllSources is the canonical list of all known scraping sources.
+// Add new sources here — the CLI help text and validation will pick them up automatically.
+var AllSources = []string{
+	SourcePrinter,
+	SourceWildberries,
+}
+
 type PageType uint
 
 const (

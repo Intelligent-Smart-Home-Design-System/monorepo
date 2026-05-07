@@ -1,0 +1,6 @@
+[database]
+host = "catalog-postgresql"
+port = 5432
+user = "catalog"
+dbname = "smart_home"
+sslmode = "disable"

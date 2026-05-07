@@ -1,10 +1,6 @@
 package device
 
-type Point struct {
-	X float64
-	Y float64
-	Z float64 // возможно не понадобится
-}
+import "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 
 type Device struct {
 	ID          string `json:"id"`
@@ -16,13 +12,13 @@ type Device struct {
 type Placement struct {
 	Device *Device
 	RoomID string
-	Place  *Point
+	Place  *point.Point
 }
 
 func NewDevice(ID, deviceType, trackType string) *Device {
 	return &Device{ID: ID, Type: deviceType, DeviceTrack: trackType}
 }
 
-func NewPlacement(device *Device, roomID string, place *Point) *Placement {
+func NewPlacement(device *Device, roomID string, place *point.Point) *Placement {
 	return &Placement{Device: device, RoomID: roomID, Place: place}
 }

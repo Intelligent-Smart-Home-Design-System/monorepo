@@ -144,6 +144,18 @@ func TestGetSecondaryKey(t *testing.T) {
 			expectedKey: "test:device:",
 		},
 		{
+			name: "string array attribute",
+			listing: &domain.ExtractedListing{
+				Brand:    "test",
+				Category: "device",
+				DeviceAttributes: map[string]any{
+					"attr": []any{"cc", "aa", "bb"},
+				},
+			},
+			attrs:       []string{"attr"},
+			expectedKey: "test:device:aa,bb,cc",
+		},
+		{
 			name: "different integer types",
 			listing: &domain.ExtractedListing{
 				Brand:    "test",
@@ -162,6 +174,33 @@ func TestGetSecondaryKey(t *testing.T) {
 			},
 			attrs:       []string{"int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64"},
 			expectedKey: "test:device:-10:1000:50000:1000000:255:200:60000:4000000:1000000000",
+		},
+		{
+			name: "attribute is null",
+			listing: &domain.ExtractedListing{
+				Brand:    "aqara",
+				Category: "sensor",
+				DeviceAttributes: map[string]any{
+					"protocol": nil,
+				},
+			},
+			attrs:       []string{"protocol"},
+			expectedKey: "aqara:sensor:null",
+		},
+
+		{
+			name: "multiple attributes with one null",
+			listing: &domain.ExtractedListing{
+				Brand:    "test",
+				Category: "device",
+				DeviceAttributes: map[string]any{
+					"protocol": "wifi",
+					"range":    100,
+					"attr":     nil,
+				},
+			},
+			attrs:       []string{"protocol", "attr", "range"},
+			expectedKey: "test:device:wifi:null:100",
 		},
 
 		// Error cases

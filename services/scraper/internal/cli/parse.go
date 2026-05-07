@@ -30,7 +30,10 @@ func NewParseCmd() *cobra.Command {
 }
 
 func parse(ctx context.Context, cfgFile string) error {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	logger := zerolog.New(os.Stderr).With().
+		Timestamp().
+		Str("service", "scraper").
+		Logger()
 
 	logger.Info().Msg("Hello World")
 

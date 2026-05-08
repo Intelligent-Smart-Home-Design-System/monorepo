@@ -94,4 +94,5 @@ type ListingParseResult struct {
 	ContentHash  string
 	ExtractorVer string
 	ParsedAt     time.Time
+	Processed    bool      `db:"processed"`
 }

@@ -5,19 +5,6 @@ import (
 	"time"
 )
 
-// Source constants identify the scraping source for a task.
-const (
-	SourcePrinter     = "printer"
-	SourceWildberries = "wildberries"
-)
-
-// AllSources is the canonical list of all known scraping sources.
-// Add new sources here — the CLI help text and validation will pick them up automatically.
-var AllSources = []string{
-	SourcePrinter,
-	SourceWildberries,
-}
-
 type PageType uint
 
 const (
@@ -77,4 +64,34 @@ type Resource struct {
 	ResponseBody    []byte
 
 	Timestamp time.Time // when it was fetched
+}
+
+type PageSnapshot struct {
+	ID            int
+	TrackedPageID int
+	ScrapedAt     time.Time
+	WARCBundle    []byte
+	PageType      string
+	SourceName    string
+}
+
+type ListingParseResult struct {
+	PageSnapshotID int
+
+	InStock      bool
+	Text         string
+	Name         string
+	Brand        string
+	ImageURL     string
+	Price        *int
+	Currency     *string
+	ModelNumber  *string
+	Category     *string
+	Quantity     *int
+	QuantityRaw  *string
+	Rating       float64
+	ReviewCount  int
+	ContentHash  string
+	ExtractorVer string
+	ParsedAt     time.Time
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/domain"
 
 	"github.com/rs/zerolog"
@@ -16,9 +17,34 @@ func defaultCfg() BuilderConfig {
 		IdentifyingAttributes: map[string][]string{
 			"smart_lamp": {"socket_type", "wattage_w"},
 		},
-		CloudEcosystems:  []string{"yandex", "sber", "vk"},
-		MatterEcosystems: []string{"apple", "google"},
-		MatterProtocols:  []string{"matter-over-wifi", "matter-over-thread"},
+		Ecosystems: map[string]config.EcosystemConfig{
+			"yandex": {
+				SupportsExternalIntegrations: true,
+				SupportedMatterProtocols:     []string{"matter-over-wifi"},
+				SupportedMatterDeviceTypes:   []string{"smart-lamp"},
+			},
+			"sber": {
+				SupportsExternalIntegrations: true,
+			},
+			"vk": {
+				SupportsExternalIntegrations: true,
+			},
+			"apple": {
+				SupportsExternalIntegrations: true,
+				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
+				SupportedMatterDeviceTypes:   []string{"*"},
+			},
+			"google": {
+				SupportsExternalIntegrations: true,
+				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
+				SupportedMatterDeviceTypes:   []string{"*"},
+			},
+			"aqara": {
+				SupportsExternalIntegrations: false,
+				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
+				SupportedMatterDeviceTypes:   []string{"*"},
+			},
+		},
 	}
 }
 

@@ -5,16 +5,17 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/domain"
 
 	"github.com/rs/zerolog"
 )
 
+const smartHubCategory = "smart_hub"
+
 type BuilderConfig struct {
 	IdentifyingAttributes map[string][]string
-	CloudEcosystems       []string
-	MatterEcosystems      []string
-	MatterProtocols       []string
+	Ecosystems            map[string]config.EcosystemConfig
 	TaxonomySchemaPath    string
 	// StrictSchema skips devices that fail schema validation instead of just warning
 	StrictSchema bool
@@ -124,6 +125,15 @@ func (b *Builder) Build(listings []*domain.ExtractedListing, compat []*domain.Sc
 			model = fmt.Sprintf("%s:%s", brand, *cluster[0].Model)
 		}
 
+		if category == smartHubCategory {
+			// special rule - if hub supports matter-over-wifi and ecosystem supports matter-over-wifi too, add support for it
+			attrs := device.DeviceAttributes
+			protocol := getStringSet(attrs, "protocol")
+			if slices.Contains(protocol, "wifi") && !slices.Contains(protocol, "matter-over-wifi") {
+				device.DeviceAttributes["protocol"] = append(protocol, "matter-over-wifi")
+			}
+		}
+
 		devices = append(devices, device)
 		modelToDevice[model] = device
 	}
@@ -139,10 +149,10 @@ func (b *Builder) Build(listings []*domain.ExtractedListing, compat []*domain.Sc
 				Msg("scraped compat record references unknown device")
 			continue
 		}
-		device.DirectCompatibility = append(device.DirectCompatibility, &domain.DirectCompatibility{
-			Ecosystem: c.Ecosystem,
-			Protocol:  c.Protocol,
-		})
+		if c.Ecosystem == device.Brand {
+			continue // skip - added as generic rule
+		}
+		addDirect(device, c.Ecosystem, c.Protocol)
 	}
 
 	for _, d := range devices {
@@ -156,72 +166,60 @@ func (b *Builder) buildCompatibilityLinks(d *domain.Device) {
 	ecosystems := getStringSet(d.DeviceAttributes, "ecosystem")
 	protocols := getStringSet(d.DeviceAttributes, "protocol")
 
-	alreadyDirectCompat := make(map[string]bool)
-	for _, dc := range d.DirectCompatibility {
-		alreadyDirectCompat[dc.Ecosystem] = true
-	}
-
-	var vendorEcosystems []string
 	for _, eco := range ecosystems {
-		if !slices.Contains(b.cfg.CloudEcosystems, eco) && !slices.Contains(b.cfg.MatterEcosystems, eco) {
-			vendorEcosystems = append(vendorEcosystems, eco)
+		if eco == d.Brand {
 			for _, proto := range protocols {
-				d.DirectCompatibility = append(d.DirectCompatibility, &domain.DirectCompatibility{
-					Ecosystem: eco,
-					Protocol:  proto,
-				})
+				addDirect(d, eco, proto)
 			}
-			alreadyDirectCompat[eco] = true
-		}
-	}
-
-	hasMatter := false
-	for _, proto := range protocols {
-		if slices.Contains(b.cfg.MatterProtocols, proto) {
-			hasMatter = true
-			break
 		}
 	}
 
 	for _, eco := range ecosystems {
-		if !slices.Contains(b.cfg.MatterEcosystems, eco) {
-			continue
-		}
-		if hasMatter {
+		config := b.cfg.Ecosystems[eco]
+		if !config.SupportsExternalIntegrations {
 			for _, proto := range protocols {
-				if slices.Contains(b.cfg.MatterProtocols, proto) {
-					d.DirectCompatibility = append(d.DirectCompatibility, &domain.DirectCompatibility{
-						Ecosystem: eco,
-						Protocol:  proto,
+				addDirect(d, eco, proto)
+			}
+			if d.Category == smartHubCategory {
+				continue
+			}
+			for _, ecoTarget := range ecosystems {
+				targetConfig := b.cfg.Ecosystems[ecoTarget]
+				if targetConfig.SupportsExternalIntegrations {
+					d.BridgeCompatibility = append(d.BridgeCompatibility, &domain.BridgeCompatibility{
+						SourceEcosystem: eco,
+						TargetEcosystem: ecoTarget,
+						Protocol:        "cloud",
 					})
 				}
 			}
-		} else {
-			for _, vendor := range vendorEcosystems {
-				d.BridgeCompatibility = append(d.BridgeCompatibility, &domain.BridgeCompatibility{
-					SourceEcosystem: vendor,
-					TargetEcosystem: eco,
-					Protocol:        "cloud",
-				})
+		}
+
+		// matter
+		if d.Category == smartHubCategory && config.SupportsExternalIntegrations {
+			continue
+		}
+		if config.SupportsMatterDeviceType(d.Category) {
+			protocol := getStringSet(d.DeviceAttributes, "protocol")
+			for _, matterProtocol := range config.SupportedMatterProtocols {
+				if slices.Contains(protocol, matterProtocol) {
+					addDirect(d, eco, matterProtocol)
+				}
 			}
 		}
 	}
+}
 
-	for _, eco := range ecosystems {
-		if !slices.Contains(b.cfg.CloudEcosystems, eco) {
-			continue
-		}
-		if alreadyDirectCompat[eco] {
-			continue
-		}
-		for _, vendor := range vendorEcosystems {
-			d.BridgeCompatibility = append(d.BridgeCompatibility, &domain.BridgeCompatibility{
-				SourceEcosystem: vendor,
-				TargetEcosystem: eco,
-				Protocol:        "cloud",
-			})
+func addDirect(d *domain.Device, ecosystem string, protocol string) {
+	for _, c := range d.DirectCompatibility {
+		if c.Ecosystem == ecosystem && c.Protocol == protocol {
+			return
 		}
 	}
+	d.DirectCompatibility = append(d.DirectCompatibility, &domain.DirectCompatibility{
+		Ecosystem: ecosystem,
+		Protocol:  protocol,
+	})
 }
 
 func getStringSet(attrs map[string]any, key string) []string {

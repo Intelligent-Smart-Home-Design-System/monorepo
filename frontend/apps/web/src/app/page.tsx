@@ -1,19 +1,58 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import HomeWorkRoundedIcon from "@mui/icons-material/HomeWorkRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
-import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 import Link from "next/link";
+import { api } from "./lib/api";
+import type { ApiPlanSummary } from "./lib/types";
 
 const steps = [
-  "Загрузите план квартиры в формате DXF.",
-  "Выберите экосистему и укажите приоритеты по трекам.",
-  "Настройте состав устройств по каждому уровню и запустите подбор.",
+  "Загрузите план квартиры и выберите основную экосистему.",
+  "Соберите требования к устройствам и запустите генерацию плана.",
+  "Следите за прогрессом и просматривайте реальные наборы устройств из backend.",
 ];
 
 export default function Home() {
+  const [plans, setPlans] = useState<ApiPlanSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    api
+      .listPlans()
+      .then((response) => {
+        if (!active) return;
+        setPlans(response);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Не удалось загрузить список планов.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const sortedPlans = useMemo(
+    () =>
+      [...plans].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ),
+    [plans]
+  );
+
   return (
     <Box
       sx={{
@@ -81,15 +120,15 @@ export default function Home() {
                   color: "#475569",
                 }}
               >
-                Сервис помогает собрать набор устройств под бюджет, экосистему и реальные
-                требования по безопасности, свету, климату и периметру.
+                Сервис работает с реальным backend API: можно создать план, следить за его
+                статусом и просматривать готовые наборы устройств.
               </Typography>
             </Stack>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="stretch">
               <Box
                 sx={{
-                  flex: 1.2,
+                  flex: 1.1,
                   borderRadius: 6,
                   p: { xs: 2.5, md: 3 },
                   background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
@@ -101,7 +140,8 @@ export default function Home() {
                     Новый план умного дома
                   </Typography>
                   <Typography sx={{ color: "rgba(255,255,255,0.74)" }}>
-                    Начните с ввода параметров, загрузки DXF-плана и настройки уровней устройств.
+                    Начните с выбора экосистемы и требований, после чего frontend отправит
+                    реальный запрос на создание нового плана.
                   </Typography>
                   <Link href="/settings">
                     <Button
@@ -126,21 +166,80 @@ export default function Home() {
               <Stack spacing={2} sx={{ flex: 1 }}>
                 <PreviewCard
                   icon={<HomeWorkRoundedIcon />}
-                  title="DXF-план квартиры"
-                  text="Поддерживаем загрузку инженерного плана для дальнейшего разбора."
+                  title="Реальные планы из API"
+                  text="На главной отображаются planning sessions из GET /api/v1/plans."
                 />
                 <PreviewCard
                   icon={<ChecklistRoundedIcon />}
-                  title="Гибкая настройка требований"
-                  text="Для каждого трека можно раскрыть состав устройств, поменять количество и отключить лишнее."
+                  title="Живые требования"
+                  text="Настройки подтягивают экосистемы, пресеты и типы устройств из backend."
                 />
                 <PreviewCard
                   icon={<TimelineRoundedIcon />}
-                  title="Прозрачный сценарий подбора"
-                  text="Сначала приветственная страница, затем настройки, а детализацию плана вынесем отдельным этапом."
+                  title="Статус генерации"
+                  text="Страница плана опрашивает статус генерации и показывает готовые bundles."
                 />
               </Stack>
             </Stack>
+
+            <Box>
+              <Typography sx={{ mb: 1.5, fontWeight: 800, color: "#0f172a" }}>
+                Последние планы
+              </Typography>
+
+              {loading ? (
+                <Box sx={{ py: 5, display: "grid", placeItems: "center" }}>
+                  <CircularProgress />
+                </Box>
+              ) : error ? (
+                <Alert severity="error">{error}</Alert>
+              ) : sortedPlans.length === 0 ? (
+                <Alert severity="info">Пока нет ни одного созданного плана.</Alert>
+              ) : (
+                <Stack spacing={1.5}>
+                  {sortedPlans.map((plan) => (
+                    <Link key={plan.plan_id} href={`/plan?id=${plan.plan_id}`}>
+                      <Box
+                        sx={{
+                          borderRadius: 4,
+                          p: 2.2,
+                          backgroundColor: "rgba(255,255,255,0.78)",
+                          border: "1px solid rgba(148,163,184,0.18)",
+                          transition: "160ms ease",
+                          "&:hover": {
+                            transform: "translateY(-1px)",
+                            boxShadow: "0 16px 34px rgba(15,23,42,0.10)",
+                          },
+                        }}
+                      >
+                        <Stack
+                          direction={{ xs: "column", md: "row" }}
+                          justifyContent="space-between"
+                          spacing={1}
+                        >
+                          <Box>
+                            <Typography sx={{ fontWeight: 800, color: "#0f172a" }}>
+                              План #{plan.plan_id}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Создан: {new Date(plan.created_at).toLocaleString("ru-RU")}
+                            </Typography>
+                          </Box>
+                          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                            <Chip label={`Бюджет: ${Math.round(plan.budget).toLocaleString("ru-RU")} ₽`} />
+                            <Chip
+                              label={statusLabel(plan.status)}
+                              color={statusColor(plan.status)}
+                              variant="outlined"
+                            />
+                          </Stack>
+                        </Stack>
+                      </Box>
+                    </Link>
+                  ))}
+                </Stack>
+              )}
+            </Box>
 
             <Box>
               <Typography sx={{ mb: 1.5, fontWeight: 800, color: "#0f172a" }}>
@@ -202,4 +301,34 @@ function PreviewCard(props: { icon: ReactNode; title: string; text: string }) {
       <Typography sx={{ color: "#475569" }}>{props.text}</Typography>
     </Box>
   );
+}
+
+function statusLabel(status: ApiPlanSummary["status"]) {
+  switch (status) {
+    case "queued":
+      return "В очереди";
+    case "generating":
+      return "Генерируется";
+    case "completed":
+      return "Завершён";
+    case "failed":
+      return "Ошибка";
+    default:
+      return "Неизвестно";
+  }
+}
+
+function statusColor(status: ApiPlanSummary["status"]): "default" | "primary" | "success" | "error" | "warning" {
+  switch (status) {
+    case "queued":
+      return "warning";
+    case "generating":
+      return "primary";
+    case "completed":
+      return "success";
+    case "failed":
+      return "error";
+    default:
+      return "default";
+  }
 }

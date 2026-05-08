@@ -14,6 +14,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
 )
 
 func NewParseCmd() *cobra.Command {
@@ -46,10 +47,11 @@ func parse(ctx context.Context, cfgFile string) error {
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
-	db, err := connectDB(cfg.Database)
+	db, err := postgres.NewDB(cfg.Database)
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}
+	defer db.Close()
 
 	listingParsers := []parser.SourceParser[*domain.ListingParseResult]{
 		wildberries.NewListingParser(),

@@ -96,3 +96,9 @@ type ListingParseResult struct {
 	ParsedAt     time.Time
 	Processed    bool      `db:"processed"`
 }
+
+const (
+    SourceSprut       = "sprut"
+    SourceWildberries = "wildberries"
+    SourcePrinter     = "printer"
+)

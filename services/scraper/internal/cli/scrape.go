@@ -2,49 +2,46 @@ package cli
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
-	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
-
-	// "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
-	// sprutPkg "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 )
 
 func NewScrapeCmd() *cobra.Command {
 	var cfgFile string
+	var sources []string
 
 	cmd := &cobra.Command{
 		Use:   "scrape",
-		Short: "Run the scraping job",
+		Short: "Scrape pages from tracked tasks",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
-
-			return scrape(ctx, cfgFile)
+			return scrape(ctx, cfgFile, sources)
 		},
 	}
 
 	cmd.Flags().StringVar(&cfgFile, "config", "./config.toml", "config file")
+	cmd.Flags().StringSliceVar(&sources, "sources", nil, "comma-separated list of sources to scrape (e.g., wildberries,sprut)")
 
 	return cmd
 }
 
-func scrape(ctx context.Context, cfgFile string) error {
+func scrape(ctx context.Context, cfgFile string, sources []string) error {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	var cfg config.Config
@@ -52,7 +49,7 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
-	db, err := connectDB(cfg.Database)
+	db, err := postgres.NewDB(cfg.Database)
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}
@@ -73,7 +70,7 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	sourceToScraper := map[string]scraper.Scraper{
 		"printer": printerScraper,
-		// 	"sprut":      sprutScraper,
+		// "sprut":      sprutScraper,
 		"wildberries": wildberriesScraper,
 	}
 
@@ -81,13 +78,33 @@ func scrape(ctx context.Context, cfgFile string) error {
 
 	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
 
-	tasks, err := taskRepo.GetTasks()
+	allTasks, err := taskRepo.GetTasks()
 	if err != nil {
 		return fmt.Errorf("get tasks: %w", err)
 	}
-	if len(tasks) == 0 {
-		logger.Info().Msg("no active tasks, exiting")
-		return nil
+
+	// Filter tasks by sources if provided
+	var tasks []domain.ScrapeTask
+	if len(sources) > 0 {
+		sourceSet := make(map[string]bool, len(sources))
+		for _, s := range sources {
+			sourceSet[s] = true
+		}
+		for _, t := range allTasks {
+			if sourceSet[t.Source] {
+				tasks = append(tasks, t)
+			}
+		}
+		if len(tasks) == 0 {
+			logger.Info().Msgf("no active tasks for sources: %v", sources)
+			return nil
+		}
+	} else {
+		tasks = allTasks
+		if len(tasks) == 0 {
+			logger.Info().Msg("no active tasks, exiting")
+			return nil
+		}
 	}
 
 	tasksCh := make(chan domain.ScrapeTask)
@@ -151,17 +168,4 @@ func readConfig(cfgFile string, cfg *config.Config) error {
 	}
 
 	return nil
-}
-
-func connectDB(cfg config.DatabaseConfig) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return nil, err
-	}
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-	return db, nil
 }

@@ -66,8 +66,8 @@ function saveScenes(next: Scene[]) {
 export default function ScenesPage() {
     const router = useRouter();
 
-    const [settings, setSettings] = useState<Settings | null>(null);
-    const [devices, setDevices] = useState<Device[]>([]);
+    const [settings] = useState<Settings | null>(() => loadSettings());
+    const [devices] = useState<Device[]>(() => loadDevices());
     const [scenes, setScenes] = useState<Scene[]>(() => loadScenes());
     const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
 
@@ -76,26 +76,11 @@ export default function ScenesPage() {
     const [newName, setNewName] = useState("Новая сцена");
     const [newEco, setNewEco] = useState<Ecosystem>("Apple HomeKit");
 
-    // load settings/devices/scenes
     useEffect(() => {
-        const raw = localStorage.getItem("settings");
-        if (!raw) {
-            router.push("/settings");
-            return;
-        }
-        try {
-            setSettings(JSON.parse(raw));
-        } catch {
+        if (!settings) {
             router.push("/settings");
         }
-    }, [router]);
-
-    useEffect(() => {
-        try {
-            const raw = localStorage.getItem("devices");
-            if (raw) setDevices(JSON.parse(raw));
-        } catch { }
-    }, []);
+    }, [router, settings]);
 
     // persist scenes
     useEffect(() => {
@@ -406,4 +391,24 @@ export default function ScenesPage() {
             </Dialog>
         </Box>
     );
+}
+
+function loadSettings(): Settings | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const raw = localStorage.getItem("settings");
+        return raw ? (JSON.parse(raw) as Settings) : null;
+    } catch {
+        return null;
+    }
+}
+
+function loadDevices(): Device[] {
+    if (typeof window === "undefined") return [];
+    try {
+        const raw = localStorage.getItem("devices");
+        return raw ? (JSON.parse(raw) as Device[]) : [];
+    } catch {
+        return [];
+    }
 }

@@ -38,30 +38,14 @@ type Settings = {
 export default function AnalyticsPage() {
     const router = useRouter();
 
-    const [settings, setSettings] = useState<Settings | null>(null);
-    const [devices, setDevices] = useState<Device[]>([]);
-
-    // 1) Читаем settings (как в plan)
-    useEffect(() => {
-        const raw = localStorage.getItem("settings");
-        if (!raw) {
-            router.push("/settings");
-            return;
-        }
-        try {
-            setSettings(JSON.parse(raw));
-        } catch {
-            router.push("/settings");
-        }
-    }, [router]);
+    const [settings] = useState<Settings | null>(() => loadSettings());
+    const [devices] = useState<Device[]>(() => loadDevices());
 
     useEffect(() => {
-        const raw = localStorage.getItem("devices");
-        if (!raw) return;
-        try {
-            setDevices(JSON.parse(raw));
-        } catch { }
-    }, []);
+        if (!settings) {
+            router.push("/settings");
+        }
+    }, [router, settings]);
 
     const scored = useMemo(() => {
         if (!settings) return [];
@@ -114,8 +98,8 @@ export default function AnalyticsPage() {
         if (!settings) return null;
 
         const keys = Object.keys(settings.tracks) as TrackKey[];
-        const rubByTrack: Record<TrackKey, number> = {} as any;
-        const valueByTrack: Record<TrackKey, number> = {} as any;
+        const rubByTrack = Object.fromEntries(keys.map((key) => [key, 0])) as Record<TrackKey, number>;
+        const valueByTrack = Object.fromEntries(keys.map((key) => [key, 0])) as Record<TrackKey, number>;
 
         for (const k of keys) {
             rubByTrack[k] = 0;
@@ -126,7 +110,7 @@ export default function AnalyticsPage() {
             const d = item.device;
 
             // вклад по трекам
-            const contrib: Record<TrackKey, number> = {} as any;
+            const contrib = Object.fromEntries(keys.map((key) => [key, 0])) as Record<TrackKey, number>;
             let sumContrib = 0;
 
             for (const k of keys) {
@@ -271,4 +255,24 @@ export default function AnalyticsPage() {
             </Box>
         </Box>
     );
+}
+
+function loadSettings(): Settings | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const raw = localStorage.getItem("settings");
+        return raw ? (JSON.parse(raw) as Settings) : null;
+    } catch {
+        return null;
+    }
+}
+
+function loadDevices(): Device[] {
+    if (typeof window === "undefined") return [];
+    try {
+        const raw = localStorage.getItem("devices");
+        return raw ? (JSON.parse(raw) as Device[]) : [];
+    } catch {
+        return [];
+    }
 }

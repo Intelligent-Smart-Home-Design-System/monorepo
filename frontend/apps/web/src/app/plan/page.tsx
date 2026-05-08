@@ -52,26 +52,15 @@ function PlanPageContent() {
   const [plan, setPlan] = useState<ApiHomePlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [uploadedPlan, setUploadedPlan] = useState<UploadedPlanState | null>(null);
+  const [uploadedPlan] = useState<UploadedPlanState | null>(() => loadUploadedPlan());
   const [selectedBundleId, setSelectedBundleId] = useState<number | null>(null);
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
 
   const planId = Number(searchParams.get("id") ?? "");
+  const invalidPlanId = !Number.isFinite(planId) || planId <= 0;
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("planner-uploaded-plan");
-      if (!raw) return;
-      setUploadedPlan(JSON.parse(raw) as UploadedPlanState);
-    } catch {
-      setUploadedPlan(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!Number.isFinite(planId) || planId <= 0) {
-      setError("Не передан корректный plan_id.");
-      setLoading(false);
+    if (invalidPlanId) {
       return;
     }
 
@@ -115,7 +104,7 @@ function PlanPageContent() {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [planId]);
+  }, [invalidPlanId, planId]);
 
   const selectedBundle = useMemo(
     () => plan?.bundles.find((bundle) => bundle.id === selectedBundleId) ?? plan?.bundles[0] ?? null,
@@ -187,7 +176,9 @@ function PlanPageContent() {
           </Stack>
         </Box>
 
-        {error ? (
+        {invalidPlanId ? (
+          <Alert severity="error">Не передан корректный plan_id.</Alert>
+        ) : error ? (
           <Alert severity="error">{error}</Alert>
         ) : loading && !status ? (
           <Box sx={{ py: 8, display: "grid", placeItems: "center" }}>
@@ -557,3 +548,13 @@ const surfaceCardSx = {
   boxShadow: "0 26px 70px rgba(15,23,42,0.22)",
   border: "1px solid rgba(226,232,240,0.8)",
 };
+
+function loadUploadedPlan(): UploadedPlanState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("planner-uploaded-plan");
+    return raw ? (JSON.parse(raw) as UploadedPlanState) : null;
+  } catch {
+    return null;
+  }
+}

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from itertools import combinations
 from typing import Iterable, NamedTuple, Sequence
 
-from iot_device_selection.core.model import ParetoPoint
+from device_selection.core.model import ParetoPoint
 
 
 # ------------------- dominance (your existing) -------------------

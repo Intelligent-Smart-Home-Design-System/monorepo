@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from iot_device_selection.core.model import Device, DeviceTypeId, EcosystemId
-from iot_device_selection.data.catalog import InMemoryCatalog
+from device_selection.core.model import Device, DeviceTypeId, EcosystemId
+from device_selection.data.catalog import InMemoryCatalog
 
 _type_registry: dict[str, int] = {}
 _eco_registry:  dict[str, int] = {}

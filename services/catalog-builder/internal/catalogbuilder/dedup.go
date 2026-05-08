@@ -3,6 +3,7 @@ package catalogbuilder
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -53,6 +54,24 @@ func attributeToString(val any) (string, error) {
 		return fmt.Sprintf("%.1f", v), nil
 	case bool:
 		return fmt.Sprintf("%t", v), nil
+	case []any:
+		strs := make([]string, 0, len(v))
+		for _, s := range v {
+			if s, ok := s.(string); ok {
+				strs = append(strs, s)
+			}
+		}
+		slices.Sort(strs)
+		sb := strings.Builder{}
+		for i, s := range strs {
+			sb.WriteString(s)
+			if i != len(strs)-1 {
+				sb.WriteRune(',')
+			}
+		}
+		return sb.String(), nil
+	case nil:
+		return "null", nil
 	default:
 		return "", fmt.Errorf("%w: %T", errUnsupportedAttr, val)
 	}

@@ -1,11 +1,13 @@
 package config
 
+import "slices"
+
 type Config struct {
-	Database              DatabaseConfig      `mapstructure:"database"`
-	IdentifyingAttributes map[string][]string `mapstructure:"identifying_attributes"`
-	TaxonomySchemaPath    string              `mapstructure:"taxonomy_schema_path"`
-	StrictSchema          bool                `mapstructure:"strict_schema"`
-	Ecosystems            EcosystemsConfig    `mapstructure:"ecosystems"`
+	Database              DatabaseConfig             `mapstructure:"database"`
+	IdentifyingAttributes map[string][]string        `mapstructure:"identifying_attributes"`
+	TaxonomySchemaPath    string                     `mapstructure:"taxonomy_schema_path"`
+	StrictSchema          bool                       `mapstructure:"strict_schema"`
+	Ecosystems            map[string]EcosystemConfig `mapstructure:"ecosystems"`
 }
 
 type DatabaseConfig struct {
@@ -17,13 +19,15 @@ type DatabaseConfig struct {
 	SSLMode  string `mapstructure:"sslmode"`
 }
 
-type EcosystemsConfig struct {
-	// "cloud-integration" ecosystems like yandex, sber, vk
-	// that have direct compatibility lists in their documentation
-	Cloud []string `mapstructure:"cloud"`
-	// matter enabled ecosystems that support most devices
-	// using matter protocols (matter-over-thread or matter-over-wifi)
-	Matter []string `mapstructure:"matter"`
-	// matter protocol ids
-	MatterProtocols []string `mapstructure:"matter_protocols"`
+type EcosystemConfig struct {
+	SupportsExternalIntegrations bool     `mapstructure:"supports_external_integrations"`
+	SupportedMatterProtocols     []string `mapstructure:"supported_matter_protocols"`
+	SupportedMatterDeviceTypes   []string `mapstructure:"supported_matter_device_types"`
+}
+
+func (eco *EcosystemConfig) SupportsMatterDeviceType(deviceType string) bool {
+	if len(eco.SupportedMatterDeviceTypes) == 1 && eco.SupportedMatterDeviceTypes[0] == "*" {
+		return true
+	}
+	return slices.Contains(eco.SupportedMatterDeviceTypes, deviceType)
 }

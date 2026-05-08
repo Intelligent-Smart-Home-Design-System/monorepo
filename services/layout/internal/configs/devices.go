@@ -3,10 +3,13 @@ package configs
 import (
 	"encoding/json"
 	"os"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 )
 
 type Devices struct {
 	Devices map[string]Device `json:"device_types"`
+	Filters map[string]filters.DeviceFilter
 }
 
 type Device struct {
@@ -29,13 +32,24 @@ func LoadDevicesConfig(path string) (*Devices, error) {
 		return nil, err
 	}
 
+	devices.Filters = make(map[string]filters.DeviceFilter)
+	for deviceType, device := range devices.Devices {
+		if device.Filters != nil {
+			filter, err := filters.GetCertainFilter(deviceType, device.Filters)
+			if err != nil {
+				return nil, err
+			}
+			
+			devices.Filters[deviceType] = filter
+		}
+	}
+
 	return &devices, err
 }
 
-func (d *Devices) GetDeviceFilter(deviceType string) map[string]interface{} {
-	device, ok := d.Devices[deviceType]
-	if ok {
-		return device.Filters
+func (d *Devices) GetDeviceFilter(deviceType string) filters.DeviceFilter {
+	if d.Filters != nil {
+		return d.Filters[deviceType]
 	}
 
 	return nil

@@ -26,12 +26,10 @@ func (ws *WindowSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 	deviceType := ws.Type()
 
 	configFilters := ws.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.WindowSensorFilter{}
 	}
-
-	windowSensorFilters := typeFilters.(*filters.WindowSensorFilter)
+	windowSensorFilters := configFilters.(*filters.WindowSensorFilter)
 
 	for _, window := range apartmentStruct.Windows {
 		if len(window.Rooms) > 1 {

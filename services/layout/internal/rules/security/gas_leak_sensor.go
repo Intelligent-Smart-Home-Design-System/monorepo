@@ -26,12 +26,10 @@ func (gl *GasLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 	deviceType := gl.Type()
 
 	configFilters := gl.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.GasLeakSensorFilter{}
 	}
-
-	gasLeakSensorFilters := typeFilters.(*filters.GasLeakSensorFilter)
+	gasLeakSensorFilters := configFilters.(*filters.GasLeakSensorFilter)
 
 	kitchens, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {

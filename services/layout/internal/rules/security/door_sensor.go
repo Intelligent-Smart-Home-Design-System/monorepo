@@ -28,12 +28,10 @@ func (ds *DoorSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 	deviceType := ds.Type()
 
 	configFilters := ds.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.DoorSensorFilter{}
 	}
-
-	doorSensorFilters := typeFilters.(*filters.DoorSensorFilter)
+	doorSensorFilters := configFilters.(*filters.DoorSensorFilter)
 
 	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {

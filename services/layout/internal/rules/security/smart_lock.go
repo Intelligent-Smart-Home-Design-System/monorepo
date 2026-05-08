@@ -28,12 +28,10 @@ func (sl *SmartLockRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms
 	deviceType := sl.Type()
 
 	configFilters := sl.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.SmartLockFilter{}
 	}
-
-	smartLockFilters := typeFilters.(*filters.SmartLockFilter)
+	smartLockFilters := configFilters.(*filters.SmartLockFilter)
 
 	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {

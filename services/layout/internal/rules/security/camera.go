@@ -26,12 +26,10 @@ func (c *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []s
 	deviceType := c.Type()
 
 	configFilters := c.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.CameraFilter{}
 	}
-
-	cameraFilters := typeFilters.(*filters.CameraFilter)
+	cameraFilters := configFilters.(*filters.CameraFilter)
 
 	cameraRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
@@ -41,7 +39,7 @@ func (c *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []s
 	for _, room := range cameraRooms {
 		roomID := room.ID
 
-		maxDistance := int(room.CalculateMaxDistance() * 1.5)
+		maxDistance := room.CalculateMaxDistance() * 1.2
 		cameraFilters.Range = maxDistance
 
 		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct, cameraFilters)

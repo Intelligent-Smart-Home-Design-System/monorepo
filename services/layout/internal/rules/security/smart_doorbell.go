@@ -28,12 +28,10 @@ func (sd *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 	deviceType := sd.Type()
 
 	configFilters := sd.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.SmartDoorBellFilter{}
 	}
-
-	smartDoorBellFilters := typeFilters.(*filters.SmartDoorBellFilter)
+	smartDoorBellFilters := configFilters.(*filters.SmartDoorBellFilter)
 
 	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {

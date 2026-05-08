@@ -26,12 +26,10 @@ func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, devic
 	deviceType := wl.Type()
 
 	configFilters := wl.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.WaterLeakSensorFilter{}
 	}
-
-	waterLeakSensorFilters := typeFilters.(*filters.WaterLeakSensorFilter)
+	waterLeakSensorFilters := configFilters.(*filters.WaterLeakSensorFilter)
 
 	wetRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {

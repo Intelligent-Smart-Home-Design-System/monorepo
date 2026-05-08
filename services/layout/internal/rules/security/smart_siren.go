@@ -26,12 +26,10 @@ func (ss *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 	deviceType := ss.Type()
 
 	configFilters := ss.deviceConfig.GetDeviceFilter(deviceType)
-	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
-	if err != nil {
-		return err
+	if configFilters == nil {
+		configFilters = &filters.SmartSirenFilter{}
 	}
-
-	smartSirenFilters := typeFilters.(*filters.SmartSirenFilter)
+	smartSirenFilters := configFilters.(*filters.SmartSirenFilter)
 
 	hallRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {

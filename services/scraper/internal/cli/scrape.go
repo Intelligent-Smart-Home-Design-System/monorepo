@@ -71,9 +71,9 @@ func scrape(ctx context.Context, cfgFile string, sources []string) error {
 	)
 
 	sourceToScraper := map[string]scraper.Scraper{
-		"printer": printerScraper,
-		// "sprut":      sprutScraper,
-		"wildberries": wildberriesScraper,
+		domain.SourcePrinter:     printerScraper,
+		// domain.SourceSprut:       spruScraper,
+    	domain.SourceWildberries: wildberriesScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)

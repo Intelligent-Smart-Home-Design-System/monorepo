@@ -32,14 +32,17 @@ func defaultCfg() BuilderConfig {
 			"apple": {
 				SupportsExternalIntegrations: true,
 				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
+				SupportedMatterDeviceTypes:   []string{"*"},
 			},
 			"google": {
 				SupportsExternalIntegrations: true,
 				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
+				SupportedMatterDeviceTypes:   []string{"*"},
 			},
 			"aqara": {
 				SupportsExternalIntegrations: false,
 				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
+				SupportedMatterDeviceTypes:   []string{"*"},
 			},
 		},
 	}

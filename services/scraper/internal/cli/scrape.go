@@ -45,7 +45,9 @@ func scrape(ctx context.Context, cfgFile string, sources []string) error {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	var cfg config.Config
-	readConfig(cfgFile, &cfg)
+	if err := readConfig(cfgFile, &cfg); err != nil {
+		return fmt.Errorf("read config: %w", err)
+	}
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 

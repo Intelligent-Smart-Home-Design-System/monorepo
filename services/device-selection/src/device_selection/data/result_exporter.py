@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from typing import Sequence
 
-from iot_device_selection.core.model import ParetoPoint
-from iot_device_selection.data.loader import get_type_registry, get_eco_registry
+from device_selection.core.model import ParetoPoint
+from device_selection.data.loader import get_type_registry, get_eco_registry
 
 
 def _device_lookup(enriched_devices: list[dict]) -> dict[int, dict]:

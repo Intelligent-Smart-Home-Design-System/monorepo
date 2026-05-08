@@ -2,8 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-from iot_device_selection.core.model import DeviceSelectionRequest, ParetoPoint, ConnectionMethod
-from iot_device_selection.data.catalog import Catalog
+from device_selection.core.model import DeviceSelectionRequest, ParetoPoint, ConnectionMethod
+from device_selection.data.catalog import Catalog
 
 @dataclass(frozen=True)
 class ValidationError:

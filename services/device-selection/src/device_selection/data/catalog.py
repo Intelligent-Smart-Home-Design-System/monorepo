@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Protocol, Sequence
 
-from iot_device_selection.core.model import Device, DeviceId, DeviceTypeId
+from device_selection.core.model import Device, DeviceId, DeviceTypeId
 
 class Catalog(Protocol):
     def devices_for_type(self, type_id: DeviceTypeId) -> Sequence[Device]: ...

@@ -6,7 +6,7 @@ from itertools import combinations
 from time import perf_counter
 from typing import Iterable, Optional, TypeVar
 
-from iot_device_selection.core.model import (
+from device_selection.core.model import (
     ConnectionMethod,
     ConnectionPlan,
     Device,
@@ -17,8 +17,8 @@ from iot_device_selection.core.model import (
     SolutionItem,
     DeviceTypeId,
 )
-from iot_device_selection.data.catalog import Catalog
-from iot_device_selection.core.pareto import ParetoArchive
+from device_selection.data.catalog import Catalog
+from device_selection.core.pareto import ParetoArchive
 
 MAX_BRIDGE_ECOSYSTEMS = 5
 MAX_HUBS = 4

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from iot_device_selection.core.model import Device, DeviceSelectionRequest, TypeCount, ParetoPoint
-from iot_device_selection.core.pareto import ObjectiveBounds
-from iot_device_selection.core.validate import validate_solution
-from iot_device_selection.data.catalog import Catalog, InMemoryCatalog
-from iot_device_selection.data.loader import load_catalog, type_id, eco_id
-from iot_device_selection.data.result_exporter import export_result
-from iot_device_selection.solvers.enum_repair import solve_enum_repair
+from device_selection.core.model import Device, DeviceSelectionRequest, TypeCount, ParetoPoint
+from device_selection.core.pareto import ObjectiveBounds
+from device_selection.core.validate import validate_solution
+from device_selection.data.catalog import Catalog, InMemoryCatalog
+from device_selection.data.loader import load_catalog, type_id, eco_id
+from device_selection.data.result_exporter import export_result
+from device_selection.solvers.enum_repair import solve_enum_repair
 
 import json
 from pathlib import Path

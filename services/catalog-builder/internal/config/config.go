@@ -1,5 +1,7 @@
 package config
 
+import "slices"
+
 type Config struct {
 	Database              DatabaseConfig             `mapstructure:"database"`
 	IdentifyingAttributes map[string][]string        `mapstructure:"identifying_attributes"`
@@ -18,7 +20,14 @@ type DatabaseConfig struct {
 }
 
 type EcosystemConfig struct {
-	IsBridgeTarget             bool     `mapstructure:"is_bridge_target"`
-	SupportedMatterProtocols   []string `mapstructure:"supported_matter_protocols"`
-	SupportedMatterDeviceTypes []string `mapstructure:"supported_matter_device_types"`
+	SupportsExternalIntegrations bool     `mapstructure:"supports_external_integrations"`
+	SupportedMatterProtocols     []string `mapstructure:"supported_matter_protocols"`
+	SupportedMatterDeviceTypes   []string `mapstructure:"supported_matter_device_types"`
+}
+
+func (eco *EcosystemConfig) SupportsMatterDeviceType(deviceType string) bool {
+	if len(eco.SupportedMatterDeviceTypes) == 1 && eco.SupportedMatterDeviceTypes[0] == "*" {
+		return true
+	}
+	return slices.Contains(eco.SupportedMatterDeviceTypes, deviceType)
 }

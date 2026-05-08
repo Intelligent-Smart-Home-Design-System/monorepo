@@ -12,34 +12,34 @@ strict_schema = false
 [ecosystems]
 
 [ecosystems.apple]
-is_bridge_target = true
-supported_matter_protocols = ["matter-over-wifi", "matter-over-thread"]
-supported_matter_device_types = [] # empty = all types supported
+supports_external_integrations = true
+supported_matter_protocols = ["matter-over-thread"]
+supported_matter_device_types = ["*"]
 
 [ecosystems.google]
-is_bridge_target = true
+supports_external_integrations = true
 supported_matter_protocols = ["matter-over-wifi", "matter-over-thread"]
-supported_matter_device_types = []
+supported_matter_device_types = ["*"]
 
 [ecosystems.yandex]
-is_bridge_target = true
+supports_external_integrations = true
 supported_matter_protocols = ["matter-over-wifi"]
-supported_matter_device_types = ["smart_lamp"]
+supported_matter_device_types = ["smart_lamp", "smart_plug", "smart_switch"]
 
 [ecosystems.sber]
-is_bridge_target = true
+supports_external_integrations = true
 supported_matter_protocols = []
 supported_matter_device_types = []
 
 [ecosystems.vk]
-is_bridge_target = true
+supports_external_integrations = true
 supported_matter_protocols = []
 supported_matter_device_types = []
 
 [ecosystems.aqara]
-is_bridge_target = false
-supported_matter_protocols = ["matter-over-wifi", "matter-over-thread"]
-supported_matter_device_types = []
+supports_external_integrations = false
+supported_matter_protocols = ["matter-over-thread"]
+supported_matter_device_types = ["*"]
 
 [identifying_attributes]
 smart_lamp = ["protocol", "ecosystem", "socket_type", "wattage_w", "rgb_support", "color_temp_min_k", "color_temp_max_k", "brightness_lm"]

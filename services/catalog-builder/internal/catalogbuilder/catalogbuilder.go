@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const smartHubCategory = "smart_hub"
+
 type BuilderConfig struct {
 	IdentifyingAttributes map[string][]string
 	Ecosystems            map[string]config.EcosystemConfig
@@ -123,7 +125,7 @@ func (b *Builder) Build(listings []*domain.ExtractedListing, compat []*domain.Sc
 			model = fmt.Sprintf("%s:%s", brand, *cluster[0].Model)
 		}
 
-		if category == "smart_hub" {
+		if category == smartHubCategory {
 			// special rule - if hub supports matter-over-wifi and ecosystem supports matter-over-wifi too, add support for it
 			attrs := device.DeviceAttributes
 			protocol := getStringSet(attrs, "protocol")
@@ -174,13 +176,16 @@ func (b *Builder) buildCompatibilityLinks(d *domain.Device) {
 
 	for _, eco := range ecosystems {
 		config := b.cfg.Ecosystems[eco]
-		if !config.IsBridgeTarget {
+		if !config.SupportsExternalIntegrations {
 			for _, proto := range protocols {
 				addDirect(d, eco, proto)
 			}
+			if d.Category == smartHubCategory {
+				continue
+			}
 			for _, ecoTarget := range ecosystems {
 				targetConfig := b.cfg.Ecosystems[ecoTarget]
-				if targetConfig.IsBridgeTarget {
+				if targetConfig.SupportsExternalIntegrations {
 					d.BridgeCompatibility = append(d.BridgeCompatibility, &domain.BridgeCompatibility{
 						SourceEcosystem: eco,
 						TargetEcosystem: ecoTarget,
@@ -191,14 +196,15 @@ func (b *Builder) buildCompatibilityLinks(d *domain.Device) {
 		}
 
 		// matter
-		if len(config.SupportedMatterProtocols) == 0 || len(config.SupportedMatterDeviceTypes) > 0 && !slices.Contains(config.SupportedMatterDeviceTypes, d.Category) {
+		if d.Category == smartHubCategory && config.SupportsExternalIntegrations {
 			continue
 		}
-
-		protocol := getStringSet(d.DeviceAttributes, "protocol")
-		for _, matterProtocol := range config.SupportedMatterProtocols {
-			if slices.Contains(protocol, matterProtocol) {
-				addDirect(d, eco, matterProtocol)
+		if config.SupportsMatterDeviceType(d.Category) {
+			protocol := getStringSet(d.DeviceAttributes, "protocol")
+			for _, matterProtocol := range config.SupportedMatterProtocols {
+				if slices.Contains(protocol, matterProtocol) {
+					addDirect(d, eco, matterProtocol)
+				}
 			}
 		}
 	}

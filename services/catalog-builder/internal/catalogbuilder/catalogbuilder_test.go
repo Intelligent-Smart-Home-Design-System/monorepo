@@ -19,27 +19,27 @@ func defaultCfg() BuilderConfig {
 		},
 		Ecosystems: map[string]config.EcosystemConfig{
 			"yandex": {
-				IsBridgeTarget:             true,
-				SupportedMatterProtocols:   []string{"matter-over-wifi"},
-				SupportedMatterDeviceTypes: []string{"smart-lamp"},
+				SupportsExternalIntegrations: true,
+				SupportedMatterProtocols:     []string{"matter-over-wifi"},
+				SupportedMatterDeviceTypes:   []string{"smart-lamp"},
 			},
 			"sber": {
-				IsBridgeTarget: true,
+				SupportsExternalIntegrations: true,
 			},
 			"vk": {
-				IsBridgeTarget: true,
+				SupportsExternalIntegrations: true,
 			},
 			"apple": {
-				IsBridgeTarget:           true,
-				SupportedMatterProtocols: []string{"matter-over-wifi", "matter-over-thread"},
+				SupportsExternalIntegrations: true,
+				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
 			},
 			"google": {
-				IsBridgeTarget:           true,
-				SupportedMatterProtocols: []string{"matter-over-wifi", "matter-over-thread"},
+				SupportsExternalIntegrations: true,
+				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
 			},
 			"aqara": {
-				IsBridgeTarget:           false,
-				SupportedMatterProtocols: []string{"matter-over-wifi", "matter-over-thread"},
+				SupportsExternalIntegrations: false,
+				SupportedMatterProtocols:     []string{"matter-over-wifi", "matter-over-thread"},
 			},
 		},
 	}

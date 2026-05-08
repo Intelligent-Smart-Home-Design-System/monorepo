@@ -15,14 +15,14 @@ type Device struct {
 type Placement struct {
 	Device   *Device              `json:"device"`
 	Position *point.Point         `json:"position"`
-	Filters  *filters.DeviceFilter `json:"filters,omitempty"`
+	Filters  filters.DeviceFilter `json:"filters,omitempty"`
 }
 
 func NewDevice(ID, deviceType, trackType string) *Device {
 	return &Device{ID: ID, Type: deviceType, Track: trackType}
 }
 
-func NewPlacement(device *Device, position *point.Point, filters *filters.DeviceFilter) *Placement {
+func NewPlacement(device *Device, position *point.Point, filters filters.DeviceFilter) *Placement {
 	return &Placement{Device: device, Position: position, Filters: filters}
 }
 

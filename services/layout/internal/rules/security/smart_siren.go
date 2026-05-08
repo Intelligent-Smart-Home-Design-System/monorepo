@@ -2,17 +2,19 @@ package security
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 )
 
 type SmartSirenRule struct {
 	track string
+	deviceConfig *configs.Devices
 }
 
-func NewSmartSirenRule() *SmartSirenRule {
+func NewSmartSirenRule(deviceConfig *configs.Devices) *SmartSirenRule {
 	return &SmartSirenRule{
 		track: "security",
+		deviceConfig: deviceConfig,
 	}
 }
 
@@ -20,7 +22,17 @@ func (ss *SmartSirenRule) Type() string {
 	return "smart_siren"
 }
 
-func (ss *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (ss *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	deviceType := ss.Type()
+
+	configFilters := ss.deviceConfig.GetDeviceFilter(deviceType)
+	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
+	if err != nil {
+		return err
+	}
+
+	smartSirenFilters := typeFilters.(*filters.SmartSirenFilter)
+
 	hallRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -28,21 +40,13 @@ func (ss *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRoom
 
 	for _, hallRoom := range hallRooms {
 		roomID := hallRoom.ID
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
-		}
 
 		hallCenter, err := hallRoom.GetCenter()
 		if err != nil {
 			return err
 		}
 
-		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, ss.Type(), ss.track)
-		placement := device.NewPlacement(newDevice, hallCenter, nil)
-
-		apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
+		layout.AddDeviceToLayout(ss.Type(), ss.track, roomID, hallCenter, smartSirenFilters)
 	}
 
 	return nil

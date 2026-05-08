@@ -10,9 +10,10 @@ type Devices struct {
 }
 
 type Device struct {
-	Name   string     `json:"name"`
-	Price  PriceRange `json:"price_range"`
-	Tracks []string   `json:"tracks"`
+	Name    string                 `json:"name"`
+	Price   PriceRange             `json:"price_range"`
+	Tracks  []string               `json:"tracks"`
+	Filters map[string]interface{} `json:"filters"`
 }
 
 func LoadDevicesConfig(path string) (*Devices, error) {
@@ -29,4 +30,13 @@ func LoadDevicesConfig(path string) (*Devices, error) {
 	}
 
 	return &devices, err
+}
+
+func (d *Devices) GetDeviceFilter(deviceType string) map[string]interface{} {
+	device, ok := d.Devices[deviceType]
+	if ok {
+		return device.Filters
+	}
+
+	return nil
 }

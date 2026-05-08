@@ -23,12 +23,9 @@ func GetSelectedLevels() map[string]string {
 
 func main() {
 	apartmentStruct := GetApartment()
-	apartmentStruct.MakeRoomDependency()
+	apartmentStruct.Index()
 
 	selectedLevels := GetSelectedLevels()
-
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
 
 	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
@@ -39,6 +36,9 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to load devices config")
 	}
+
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(devicesConfig)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 
@@ -57,6 +57,4 @@ func main() {
 	go func() {
 		// TODO: несколько пользователей (параллельно)
 	}()
-
-	// TODO: записать результаты на плане квартиры
 }

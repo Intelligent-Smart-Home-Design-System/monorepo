@@ -4,17 +4,19 @@ import (
 	"fmt"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 )
 
 type SmartDoorBellRule struct {
 	track string
+	deviceConfig *configs.Devices
 }
 
-func NewSmartDoorBellRule() *SmartDoorBellRule {
+func NewSmartDoorBellRule(deviceConfig *configs.Devices) *SmartDoorBellRule {
 	return &SmartDoorBellRule{
 		track: "security",
+		deviceConfig: deviceConfig,
 	}
 }
 
@@ -22,23 +24,24 @@ func (sd *SmartDoorBellRule) Type() string {
 	return "smart_doorbell"
 }
 
-func (sd *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (sd *SmartDoorBellRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	deviceType := sd.Type()
+
+	configFilters := sd.deviceConfig.GetDeviceFilter(deviceType)
+	typeFilters, err := filters.GetCertainFilter(deviceType, configFilters)
+	if err != nil {
+		return err
+	}
+
+	smartDoorBellFilters := typeFilters.(*filters.SmartDoorBellFilter)
+
 	frontDoor := apartmentStruct.GetFrontDoor()
 	if frontDoor == nil {
 		return fmt.Errorf("no front door in apartment")
 	}
 
 	roomID := frontDoor.Rooms[0]
-	_, ok := apartmentLayout.Placements[roomID]
-	if !ok {
-		apartmentLayout.Placements[roomID] = make([]*device.Placement, 0)
-	}
-
-	deviceID := uuid.NewString()
-	newDevice := device.NewDevice(deviceID, sd.Type(), sd.track)
-	placement := device.NewPlacement(newDevice, &frontDoor.Points[0], nil)
-
-	apartmentLayout.Placements[roomID] = append(apartmentLayout.Placements[roomID], placement)
+	layout.AddDeviceToLayout(sd.Type(), sd.track, roomID, &frontDoor.Points[0], smartDoorBellFilters)
 
 	return nil
 }

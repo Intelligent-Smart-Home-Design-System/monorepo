@@ -23,7 +23,7 @@ func NewEngine(st *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *
 }
 
 // PlaceDevices расставляет устройства по выбранному уровню в каждом треке
-func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLevels map[string]string) (*apartment.ApartmentLayout, error) {
+func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLevels map[string]string) (*apartment.Layout, error) {
 	if apartmentStruct == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
@@ -31,6 +31,7 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 	if apartmentStruct.Rooms == nil {
 		return nil, fmt.Errorf("nil rooms")
 	}
+	apartmentStruct.Index()
 
 	res := apartment.NewApartmentResult()
 
@@ -59,7 +60,7 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 	return res, nil
 }
 
-func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.ApartmentLayout) *PriceInfo {
+func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.Layout) *PriceInfo {
 	priceInfo := &PriceInfo{}
 
 	for _, roomPlacements := range apartmentLayout.Placements {

@@ -1,9 +1,6 @@
 package apartment
 
 import (
-	"encoding/json"
-
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
@@ -45,21 +42,4 @@ type Room struct {
 	Windows []string      `json:"windows"` // ID окон
 	Doors   []string      `json:"doors"`   // ID дверей
 	Walls   []string      `json:"walls"`   // ID стен
-}
-
-type ApartmentLayout struct {
-	Placements map[string][]*device.Placement `json:"placements"`
-	// roomID -> deviceType -> devicePlacement
-	// То есть по roomID получаем мапу между
-	// типом устройства и его расстановкой.
-
-	// В дальнейшем необходимо будет хранить доп поля в этой структуре (для других модулей)
-}
-
-func NewApartmentResult() *ApartmentLayout {
-	return &ApartmentLayout{Placements: make(map[string][]*device.Placement)}
-}
-
-func (al *ApartmentLayout) ToJSON() ([]byte, error) {
-	return json.MarshalIndent(al, "", "  ")
 }

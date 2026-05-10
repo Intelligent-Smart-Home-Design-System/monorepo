@@ -1,21 +1,26 @@
 """
-Exact enumeration solver. Used as a baseline to evaluate solve_enum_repair.
+Exact enumeration solver. Used as ground truth to evaluate solve_enum_repair
+on small instances.
 
-Differences from solve_enum_repair:
-- Allows heterogeneous picks per requirement (multisets via
-  combinations_with_replacement) instead of homogeneous (same model x count).
-- Keeps all connectable candidates per requirement (no per-candidate
-  price/quality Pareto pruning).
-- Enumerates specific hub devices, not just hub types.
+Iterates over all possible sets of devices matching requirements + any hub for each ecosystem.
+Algorithm:
+1. Per requirement, enumerate all multisets of size `count` over matching devices.
+2. Cross-product across requirements.
+3. For each device combo, compute candidate ecosystems (union of compatibility
+   record ecosystems, filtered by include/exclude; main_ecosystem always included).
+4. Iterate subsets of non-main ecosystems -> available_ecosystems = subset + main.
+5. Per available ecosystem, iterate hub choices: [None, ...all hubs that are
+   directly compatible with that ecosystem].
+6. Run find_connection per device, find_hub_connection per chosen hub.
+7. Check budget and that every chosen hub is actually used by some connection.
 
-Intractable on large catalogs. Intended for small instances to validate the
-heuristic against optimal Pareto fronts.
+
 """
 from __future__ import annotations
 
-from itertools import combinations_with_replacement, product
+from itertools import combinations, combinations_with_replacement, product
 from time import perf_counter
-from typing import Optional
+from typing import Iterable, Iterator, Optional, TypeVar
 
 from device_selection.core.model import (
     ConnectionInfo,
@@ -24,6 +29,8 @@ from device_selection.core.model import (
     DeviceRequirement,
     DeviceSelectionRequest,
     EcosystemId,
+    Filter,
+    FilterOp,
     HubType,
     ParetoPoint,
     ProtocolId,
@@ -36,121 +43,238 @@ from device_selection.core.pathfinding import (
     hub_required,
 )
 from device_selection.data.catalog import Catalog
-from device_selection.solvers.enum_repair import (
-    SolverConfig,
-    _hub_type_to_requirement,
-    _iter_hub_sets,
-    _iter_subsets,
-)
 
 
-def _connectable_candidates(
-    devices: list[Device],
-    requirement: DeviceRequirement,
-    main_ecosystem: EcosystemId,
-    available_ecosystems: frozenset[EcosystemId],
-    available_hub_types: frozenset[HubType],
-    max_candidates: Optional[int],
-    hub_target_ecosystem: Optional[EcosystemId] = None,
-) -> list[Device]:
+T = TypeVar("T")
+
+
+def _powerset(items: Iterable[T]) -> Iterator[frozenset[T]]:
+    items = list(items)
+    for r in range(len(items) + 1):
+        for combo in combinations(items, r):
+            yield frozenset(combo)
+
+
+def _hub_type_for(hub: Device, ecosystem: EcosystemId) -> HubType:
+    """HubType this hub represents when used to serve the given ecosystem."""
+    protocols = frozenset(
+        dc.protocol for dc in hub.direct_compat if dc.ecosystem == ecosystem
+    )
+    return HubType(ecosystem=ecosystem, protocols=protocols)
+
+
+def _hubs_in_ecosystem(catalog: Catalog, ecosystem: EcosystemId) -> list[Device]:
+    """Hubs that have at least one direct_compat record in the given ecosystem.
+    
+    The catalog query may return hubs whose only relation to `ecosystem` is via
+    e.g. a bridge_compat record; we want hubs that can directly serve devices
+    in this ecosystem.
     """
-    Return all connectable devices, sorted by price ascending.
-    No Pareto-by-price/quality pruning - that would be a heuristic.
-    """
-    res: list[Device] = []
-    for d in devices:
-        if hub_target_ecosystem is None:
-            conn = find_connection(
-                device=d,
-                require_main_ecosystem=requirement.connect_to_main_ecosystem,
-                main_ecosystem=main_ecosystem,
-                available_ecosystems=available_ecosystems,
-                available_hub_types=available_hub_types,
-            )
-        else:
-            conn = find_hub_connection(
-                hub=d,
-                target_ecosystem=hub_target_ecosystem,
-            )
-        if conn is None:
-            continue
-        res.append(d)
-        if max_candidates is not None and len(res) >= max_candidates:
+    candidates = catalog.devices_for_requirement(DeviceRequirement(
+        requirement_id=-1,
+        device_type="smart_hub",
+        count=1,
+        connect_to_main_ecosystem=False,
+        filters=(Filter(field="ecosystem", op=FilterOp.CONTAINS, value=ecosystem),),
+    ))
+    return [
+        h for h in candidates
+        if any(dc.ecosystem == ecosystem for dc in h.direct_compat)
+    ]
+
+
+def solve_brute_force(req: DeviceSelectionRequest, catalog: Catalog) -> ParetoArchive:
+    start = perf_counter()
+    archive = ParetoArchive()
+
+    def time_up() -> bool:
+        return perf_counter() - start >= req.time_budget_seconds
+
+    # 1. candidates per requirement
+    candidates_per_req: list[list[Device]] = []
+    for r in req.requirements:
+        cands = list(catalog.devices_for_requirement(r))
+        if not cands:
+            return archive
+        candidates_per_req.append(cands)
+
+    # 2. multisets per requirement
+    multisets_per_req = [
+        list(combinations_with_replacement(cands, r.count))
+        for r, cands in zip(req.requirements, candidates_per_req)
+    ]
+
+    included = frozenset(req.include_ecosystems) if req.include_ecosystems else None
+    excluded = frozenset(req.exclude_ecosystems)
+    hub_cache: dict[EcosystemId, list[Device]] = {}
+
+    def get_hubs(eco: EcosystemId) -> list[Device]:
+        if eco not in hub_cache:
+            hub_cache[eco] = _hubs_in_ecosystem(catalog, eco)
+        return hub_cache[eco]
+
+    for combo in product(*multisets_per_req):
+        if time_up():
             break
-    return res
+
+        device_cost = sum(d.price for ms in combo for d in ms)
+        if device_cost > req.budget + 1e-9:
+            continue
+
+        # 3. ecosystems present in any chosen device (filtered by include/exclude)
+        ecos_present: set[EcosystemId] = set()
+        for ms in combo:
+            for d in ms:
+                ecos_present.update(dc.ecosystem for dc in d.direct_compat)
+                for bc in d.bridge_compat:
+                    ecos_present.add(bc.source_ecosystem)
+                    ecos_present.add(bc.target_ecosystem)
+        if included is not None:
+            ecos_present &= included
+        ecos_present -= excluded
+        ecos_present.add(req.main_ecosystem)  # main is always available regardless
+        non_main_ecos = ecos_present - {req.main_ecosystem}
+
+        # 4. iterate subsets of non-main ecosystems
+        for eco_subset in _powerset(non_main_ecos):
+            if time_up():
+                break
+            avail_ecos = frozenset({req.main_ecosystem}) | eco_subset
+
+            # 5. hub picks per available ecosystem; None = no hub bought
+            ecos_ordered = sorted(avail_ecos)
+            hub_options: list[list[Optional[Device]]] = [
+                [None, *get_hubs(eco)] for eco in ecos_ordered
+            ]
+
+            for hub_pick in product(*hub_options):
+                if time_up():
+                    break
+
+                # Track (ecosystem, hub) pairs so HubType is bound to the chosen ecosystem
+                chosen_hub_pairs: list[tuple[EcosystemId, Device]] = [
+                    (eco, h) for eco, h in zip(ecos_ordered, hub_pick) if h is not None
+                ]
+                total_cost = device_cost + sum(h.price for _, h in chosen_hub_pairs)
+                if total_cost > req.budget + 1e-9:
+                    continue
+
+                avail_hub_types = frozenset(
+                    _hub_type_for(h, eco) for eco, h in chosen_hub_pairs
+                )
+
+                # 6. find connection plans for each device
+                dev_plans: list[tuple[Device, DeviceRequirement, ConnectionPlan]] = []
+                feasible = True
+                for r, ms in zip(req.requirements, combo):
+                    for d in ms:
+                        plan = find_connection(
+                            device=d,
+                            require_main_ecosystem=r.connect_to_main_ecosystem,
+                            main_ecosystem=req.main_ecosystem,
+                            available_ecosystems=avail_ecos,
+                            available_hub_types=avail_hub_types,
+                        )
+                        if plan is None:
+                            feasible = False
+                            break
+                        dev_plans.append((d, r, plan))
+                    if not feasible:
+                        break
+                if not feasible:
+                    continue
+
+                # find_hub_connection per chosen hub, target = its chosen ecosystem
+                hub_plans: list[tuple[Device, EcosystemId, ConnectionPlan]] = []
+                for eco, h in chosen_hub_pairs:
+                    hp = find_hub_connection(hub=h, target_ecosystem=eco)
+                    if hp is None:
+                        feasible = False
+                        break
+                    hub_plans.append((h, eco, hp))
+                if not feasible:
+                    continue
+
+                # 7. every chosen (eco, hub) must be used by some device's connection
+                required_keys: set[tuple[EcosystemId, ProtocolId]] = {
+                    (info.ecosystem, info.protocol)
+                    for _, _, plan in dev_plans
+                    for info in (plan.connection_direct, plan.connection_final)
+                    if info is not None and hub_required(info.protocol)
+                }
+                if any(
+                    not (
+                        {
+                            (dc.ecosystem, dc.protocol)
+                            for dc in h.direct_compat
+                            if dc.ecosystem == eco and hub_required(dc.protocol)
+                        }
+                        & required_keys
+                    )
+                    for eco, h in chosen_hub_pairs
+                ):
+                    continue
+
+                point = _build_point(dev_plans, hub_plans, total_cost)
+                if point is not None:
+                    archive.add(point)
+
+    return archive
 
 
-def _build_solution_brute(
-    requirements: list[DeviceRequirement],
-    chosen_per_req: list[tuple[Device, ...]],
-    hub_types_ordered: list[HubType],
-    chosen_hub_devices: list[Device],
-    main_ecosystem: EcosystemId,
-    available_ecosystems: frozenset[EcosystemId],
-    available_hub_types: frozenset[HubType],
+def _build_point(
+    dev_plans: list[tuple[Device, DeviceRequirement, ConnectionPlan]],
+    hub_plans: list[tuple[Device, EcosystemId, ConnectionPlan]],
+    total_cost: float,
 ) -> Optional[ParetoPoint]:
-    """
-    Build a ParetoPoint from a brute-force pick.
+    """Group multiset duplicates into items, resolve hub_solution_item_id, compute objectives."""
 
-    chosen_per_req[i] is a multiset of devices satisfying requirements[i].
-    chosen_hub_devices[i] is a specific hub device for hub_types_ordered[i].
+    # group device picks by (requirement_id, device_id) -> (device, req, plan, qty)
+    grouped: dict[
+        tuple[int, int],
+        tuple[Device, DeviceRequirement, ConnectionPlan, int],
+    ] = {}
+    order: list[tuple[int, int]] = []
+    for d, r, plan in dev_plans:
+        key = (r.requirement_id, d.device_id)
+        if key in grouped:
+            old = grouped[key]
+            grouped[key] = (old[0], old[1], old[2], old[3] + 1)
+        else:
+            grouped[key] = (d, r, plan, 1)
+            order.append(key)
 
-    Identical devices within a requirement's multiset are grouped into one
-    SolutionItem with the appropriate quantity.
-    """
+    # Each items_partial entry carries: (item_id, device, req_id, qty, plan, hub_eco_or_None)
+    # hub_eco_or_None is set for hub items so we know which ecosystem to register
+    # in hub_key_to_item; None for non-hub items.
     items_partial: list[
-        tuple[int, Device, Optional[int], int, ConnectionPlan]
+        tuple[int, Device, Optional[int], int, ConnectionPlan, Optional[EcosystemId]]
     ] = []
-    next_item_id = 0
+    next_id = 0
+    for key in order:
+        d, r, plan, qty = grouped[key]
+        items_partial.append((next_id, d, r.requirement_id, qty, plan, None))
+        next_id += 1
+    for h, eco, plan in hub_plans:
+        items_partial.append((next_id, h, None, 1, plan, eco))
+        next_id += 1
 
-    for req, devices in zip(requirements, chosen_per_req):
-        # Group identical devices, preserving first-seen order for stable output
-        order: list[int] = []
-        counts: dict[int, int] = {}
-        device_by_id: dict[int, Device] = {}
-        for d in devices:
-            if d.device_id not in counts:
-                counts[d.device_id] = 0
-                order.append(d.device_id)
-                device_by_id[d.device_id] = d
-            counts[d.device_id] += 1
+    # (ecosystem, protocol) -> hub item_id lookup, restricted to the ecosystem
+    # each hub was chosen for.
+    hub_key_to_item: dict[tuple[EcosystemId, ProtocolId], int] = {}
+    for item_id, device, _, _, _, hub_eco in items_partial:
+        if hub_eco is None:
+            continue
+        for dc in device.direct_compat:
+            if dc.ecosystem != hub_eco:
+                continue
+            if hub_required(dc.protocol):
+                hub_key_to_item[(dc.ecosystem, dc.protocol)] = item_id
 
-        for device_id in order:
-            d = device_by_id[device_id]
-            qty = counts[device_id]
-            conn = find_connection(
-                device=d,
-                require_main_ecosystem=req.connect_to_main_ecosystem,
-                main_ecosystem=main_ecosystem,
-                available_ecosystems=available_ecosystems,
-                available_hub_types=available_hub_types,
-            )
-            if conn is None:
-                return None
-            items_partial.append((next_item_id, d, req.requirement_id, qty, conn))
-            next_item_id += 1
-
-    for hub_type, hub_dev in zip(hub_types_ordered, chosen_hub_devices):
-        conn = find_hub_connection(hub=hub_dev, target_ecosystem=hub_type.ecosystem)
-        if conn is None:
-            return None
-        items_partial.append((next_item_id, hub_dev, None, 1, conn))
-        next_item_id += 1
-
-    # Lookup: (ecosystem, protocol) -> item_id for hubs, used to fill
-    # hub_solution_item_id on connections that need a hub.
-    hub_key_to_item_id: dict[tuple[EcosystemId, ProtocolId], int] = {}
-    for item_id, device, _, _, _ in items_partial:
-        if device.device_type == "smart_hub":
-            for dc in device.direct_compat:
-                hub_key_to_item_id[(dc.ecosystem, dc.protocol)] = item_id
-
-    def _resolve(info: ConnectionInfo) -> ConnectionInfo:
-        if info.hub_solution_item_id is not None:
+    def resolve(info: ConnectionInfo) -> ConnectionInfo:
+        if info.hub_solution_item_id is not None or not hub_required(info.protocol):
             return info
-        if not hub_required(info.protocol):
-            return info
-        item_id = hub_key_to_item_id.get((info.ecosystem, info.protocol))
+        item_id = hub_key_to_item.get((info.ecosystem, info.protocol))
         if item_id is None:
             return info
         return ConnectionInfo(
@@ -160,190 +284,34 @@ def _build_solution_brute(
         )
 
     items: list[SolutionItem] = []
-    used_ecosystems: set[EcosystemId] = set()
-    used_hub_item_ids: set[int] = set()
-    total_cost = 0.0
-
-    for item_id, device, req_id, qty, conn in items_partial:
-        direct = _resolve(conn.connection_direct)
-        final = _resolve(conn.connection_final) if conn.connection_final else None
-
-        if direct.hub_solution_item_id is not None:
-            used_hub_item_ids.add(direct.hub_solution_item_id)
-        if final is not None and final.hub_solution_item_id is not None:
-            used_hub_item_ids.add(final.hub_solution_item_id)
-
-        used_ecosystems.add(direct.ecosystem)
+    used_ecos: set[EcosystemId] = set()
+    for item_id, device, req_id, qty, plan, _ in items_partial:
+        direct = resolve(plan.connection_direct)
+        final = resolve(plan.connection_final) if plan.connection_final else None
+        used_ecos.add(direct.ecosystem)
         if final is not None:
-            used_ecosystems.add(final.ecosystem)
+            used_ecos.add(final.ecosystem)
+        items.append(SolutionItem(
+            id=item_id,
+            device=device,
+            requirement_id=req_id,
+            quantity=qty,
+            connection=ConnectionPlan(connection_direct=direct, connection_final=final),
+        ))
 
-        total_cost += qty * device.price
-
-        items.append(
-            SolutionItem(
-                id=item_id,
-                device=device,
-                requirement_id=req_id,
-                quantity=qty,
-                connection=ConnectionPlan(
-                    connection_direct=direct,
-                    connection_final=final,
-                ),
-            )
-        )
-
-    if len(used_hub_item_ids) != len(available_hub_types):
-        # some hubs are useless - reject solution (matches enum_repair)
-        return None
-
-    # Per advisor's spec:
-    # 1. For each requirement, average quality across its multiset.
-    # 2. Average across requirement-averages and individual hub qualities.
-    # This avoids weighting big-count requirements (e.g. 5 lamps) over small ones (1 leak sensor).
-    req_qualities: list[float] = []
-    for req, devices in zip(requirements, chosen_per_req):
-        req_qualities.append(sum(d.quality for d in devices) / len(devices))
-    hub_qualities = [d.quality for d in chosen_hub_devices]
-    all_q = req_qualities + hub_qualities
+    # avg quality per advisor's spec: per-req avg, then avg across reqs + hub items
+    req_qs: dict[int, list[float]] = {}
+    for d, r, _ in dev_plans:
+        req_qs.setdefault(r.requirement_id, []).append(d.quality)
+    req_avgs = [sum(qs) / len(qs) for qs in req_qs.values()]
+    hub_qs = [h.quality for h, _, _ in hub_plans]
+    all_q = req_avgs + hub_qs
     avg_quality = sum(all_q) / len(all_q) if all_q else 0.0
 
     return ParetoPoint(
         items=tuple(items),
         total_cost=total_cost,
         avg_quality=avg_quality,
-        num_ecosystems=len(used_ecosystems),
-        num_hubs=len(used_hub_item_ids),
+        num_ecosystems=len(used_ecos),
+        num_hubs=len(hub_plans),
     )
-
-
-def solve_brute_force(
-    req: DeviceSelectionRequest,
-    catalog: Catalog,
-    cfg: SolverConfig = SolverConfig(),
-) -> ParetoArchive:
-    start = perf_counter()
-    archive = ParetoArchive()
-
-    devices_by_req: list[list[Device]] = []
-    for r in req.requirements:
-        devices = list(catalog.devices_for_requirement(r))
-        devices.sort(key=lambda d: d.price)
-        devices_by_req.append(devices)
-
-    all_ecosystems = catalog.available_ecosystems()
-    candidate_bridge_ecosystems: set[EcosystemId] = set()
-    for devices in devices_by_req:
-        for d in devices:
-            for bc in d.bridge_compat:
-                eco = bc.source_ecosystem
-                if eco == req.main_ecosystem:
-                    continue
-                if req.include_ecosystems and eco not in req.include_ecosystems:
-                    continue
-                if eco in req.exclude_ecosystems:
-                    continue
-                if eco in all_ecosystems:
-                    candidate_bridge_ecosystems.add(eco)
-
-    def time_up() -> bool:
-        return perf_counter() - start >= req.time_budget_seconds
-
-    for bridge_set in _iter_subsets(
-        sorted(candidate_bridge_ecosystems), cfg.max_bridge_ecosystems
-    ):
-        if time_up():
-            break
-
-        avail_ecosystems = frozenset({req.main_ecosystem}) | bridge_set
-
-        hub_types_by_ecosystem: dict[EcosystemId, list[HubType]] = {}
-        for ecosystem in avail_ecosystems:
-            hub_types = catalog.available_hub_types_for_ecosystem(ecosystem)
-            if hub_types:
-                hub_types_by_ecosystem[ecosystem] = hub_types
-
-        for hub_set in _iter_hub_sets(hub_types_by_ecosystem, cfg.max_hub_types):
-            if time_up():
-                break
-
-            # candidates per requirement (no Pareto filter - exact solver)
-            candidates_per_req: list[list[Device]] = []
-            infeasible = False
-            for i, r in enumerate(req.requirements):
-                cands = _connectable_candidates(
-                    devices=devices_by_req[i],
-                    requirement=r,
-                    main_ecosystem=req.main_ecosystem,
-                    available_ecosystems=avail_ecosystems,
-                    available_hub_types=hub_set,
-                    max_candidates=cfg.max_candidates_per_type,
-                )
-                if not cands:
-                    infeasible = True
-                    break
-                candidates_per_req.append(cands)
-            if infeasible:
-                continue
-
-            # specific hub devices per hub type
-            hub_types_ordered = sorted(hub_set, key=lambda h: h.ecosystem)
-            hub_devices_per_type: list[list[Device]] = []
-            for hub_type in hub_types_ordered:
-                hub_req = _hub_type_to_requirement(hub_type, req_id=-1)
-                hub_devices = list(catalog.devices_for_requirement(hub_req))
-                hub_devices.sort(key=lambda d: d.price)
-                filtered = _connectable_candidates(
-                    devices=hub_devices,
-                    requirement=hub_req,
-                    main_ecosystem=req.main_ecosystem,
-                    available_ecosystems=avail_ecosystems,
-                    available_hub_types=hub_set,
-                    max_candidates=cfg.max_candidates_per_type,
-                    hub_target_ecosystem=hub_type.ecosystem,
-                )
-                if not filtered:
-                    infeasible = True
-                    break
-                hub_devices_per_type.append(filtered)
-            if infeasible:
-                continue
-
-            # multisets per requirement (size = req.count, with replacement)
-            multisets_per_req = [
-                list(combinations_with_replacement(cands, r.count))
-                for r, cands in zip(req.requirements, candidates_per_req)
-            ]
-
-            # cross product over multisets, then over hub device choices
-            for combo in product(*multisets_per_req):
-                if time_up():
-                    break
-
-                # cheap prune: minimum cost just from device picks
-                base_cost = sum(sum(d.price for d in ms) for ms in combo)
-                if base_cost > req.budget + 1e-9:
-                    continue
-
-                # product([]) yields one empty tuple, so the no-hub case still runs once
-                for hub_combo in product(*hub_devices_per_type):
-                    if time_up():
-                        break
-
-                    total = base_cost + sum(d.price for d in hub_combo)
-                    if total > req.budget + 1e-9:
-                        continue
-
-                    point = _build_solution_brute(
-                        requirements=list(req.requirements),
-                        chosen_per_req=list(combo),
-                        hub_types_ordered=hub_types_ordered,
-                        chosen_hub_devices=list(hub_combo),
-                        main_ecosystem=req.main_ecosystem,
-                        available_ecosystems=avail_ecosystems,
-                        available_hub_types=hub_set,
-                    )
-                    if point is None:
-                        continue
-                    archive.add(point)
-
-    return archive

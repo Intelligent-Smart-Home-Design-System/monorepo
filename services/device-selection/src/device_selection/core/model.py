@@ -2,66 +2,114 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import FrozenSet, Optional, Sequence
+from typing import Any, FrozenSet, Optional
 
 
-EcosystemId = int
+EcosystemId = str
 DeviceId = int
-DeviceTypeId = int
+DeviceType = str
+ProtocolId = str
 
 
-class ConnectionMethod(Enum):
-    DIRECT = "direct"
-    VIA_ECOSYSTEM = "via_ecosystem"
+@dataclass(frozen=True, slots=True)
+class DirectCompat:
+    ecosystem: EcosystemId
+    protocol: ProtocolId
+
+
+@dataclass(frozen=True, slots=True)
+class BridgeCompat:
+    source_ecosystem: EcosystemId
+    target_ecosystem: EcosystemId
+    protocol: ProtocolId
+
+
+@dataclass(frozen=True, slots=True)
+class HubType:
+    ecosystem: EcosystemId
+    protocols: FrozenSet[ProtocolId]
 
 
 @dataclass(frozen=True, slots=True)
 class Device:
     device_id: DeviceId
-    type_id: DeviceTypeId
+    device_type: DeviceType
+    brand: Optional[str]
+    model: Optional[str]
+    attributes: dict[str, Any]
+
     price: float
     quality: float
-    bridge_ecosystem_id: Optional[EcosystemId]
-    hub_type_id: Optional[DeviceTypeId]
+    source_listing_id: int
+
+    direct_compat: tuple[DirectCompat, ...]
+    bridge_compat: tuple[BridgeCompat, ...]
+
+
+class FilterOp(Enum):
+    EQ = "eq"
+    NEQ = "neq"
+    GT = "gt"
+    GTE = "gte"
+    LT = "lt"
+    LTE = "lte"
+    CONTAINS = "contains"
+    EXISTS = "exists"
 
 
 @dataclass(frozen=True, slots=True)
-class TypeCount:
-    type_id: DeviceTypeId
+class Filter:
+    field: str
+    op: FilterOp
+    value: str | int | float | None
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceRequirement:
+    requirement_id: int
+    device_type: DeviceType
     count: int
+    connect_to_main_ecosystem: bool = True
+    filters: tuple[Filter, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class DeviceSelectionRequest:
-    main_ecosystem_id: EcosystemId
+    main_ecosystem: EcosystemId
     budget: float
-    type_counts: Sequence[TypeCount]
-    include_ecosystem_ids: FrozenSet[EcosystemId] = frozenset()
-    exclude_ecosystem_ids: FrozenSet[EcosystemId] = frozenset()
+    requirements: tuple[DeviceRequirement, ...]
+    include_ecosystems: FrozenSet[EcosystemId] = frozenset()
+    exclude_ecosystems: FrozenSet[EcosystemId] = frozenset()
     max_solutions: int = 7
     random_seed: Optional[int] = None
     time_budget_seconds: float = 180.0
 
 
 @dataclass(frozen=True, slots=True)
+class ConnectionInfo:
+    ecosystem: EcosystemId
+    protocol: ProtocolId
+    hub_solution_item_id: Optional[int] = None
+
+
+@dataclass(frozen=True, slots=True)
 class ConnectionPlan:
-    method: ConnectionMethod
-    # if VIA_ECOSYSTEM, through which ecosystem
-    bridge_ecosystem_id: Optional[EcosystemId] = None
-    # if hub required, which hub is used
-    hub_device_id: Optional[DeviceId] = None
+    connection_direct: ConnectionInfo
+    connection_final: Optional[ConnectionInfo] = None
 
 
 @dataclass(frozen=True, slots=True)
 class SolutionItem:
+    id: int
     device: Device
+    requirement_id: Optional[int]
     quantity: int
     connection: ConnectionPlan
 
 
 @dataclass(frozen=True, slots=True)
 class ParetoPoint:
-    items: Sequence[SolutionItem]
+    items: tuple[SolutionItem, ...]
     total_cost: float
     avg_quality: float
     num_ecosystems: int

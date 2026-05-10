@@ -1,0 +1,26 @@
+[database]
+host = "localhost"
+port = 5432
+name = "catalog"
+user = "catalog"
+password = "catalog"
+
+[temporal]
+host = "localhost"
+port = 7233
+namespace = "default"
+task_queue = "device-selection"
+
+[quality]
+calculate = true
+min_reviews = 10
+global_avg_rating = 4.0
+rating_floor = 4.0
+
+[logging]
+format = "console"   # "json" in production
+
+[solver]
+max_bridge_ecosystems = 5
+max_hub_types = 4
+default_time_budget_seconds = 120.0

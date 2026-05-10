@@ -106,6 +106,8 @@ CREATE TABLE devices (
     -- Classification (assume category is one with highest confidence?)
     category TEXT NOT NULL,        -- 'smart_lamp', 'motion_sensor', 'hub'
 
+    -- device quality (optional)
+    quality FLOAT,
     -- Category-specific attributes(merged from multiple llm extracted ones)
     device_attributes JSONB NOT NULL,
 

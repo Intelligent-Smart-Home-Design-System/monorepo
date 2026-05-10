@@ -27,7 +27,8 @@ message DeviceRequirement {
   int32 requirement_id = 1;
   string device_type = 2;
   int32 count = 3;
-  repeated Filter filters = 4;
+  bool connect_to_main_ecosystem = 4;
+  repeated Filter filters = 5;
 }
 
 message DeviceSelectionRequest {
@@ -42,8 +43,9 @@ message DeviceSelectionRequest {
 }
 
 message ConnectionInfo {
-  optional string ecosystem = 1;
-  optional int32 hub_selected_listing_id = 2;
+  string ecosystem = 1;
+  string protocol = 2;
+  optional int32 hub_selected_listing_id = 3;
 }
 
 message SelectedListing {

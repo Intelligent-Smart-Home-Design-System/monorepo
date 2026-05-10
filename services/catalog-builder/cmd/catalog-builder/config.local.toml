@@ -1,7 +1,54 @@
 [database]
 host = "localhost"
 port = 5432
-user = "scraper"
-# password via env: SCRAPER_DATABASE_PASSWORD
-dbname = "scraper_db"
+user = "catalog"
+password = "catalog"
+dbname = "catalog"
 sslmode = "disable"
+
+taxonomy_schema_path = "taxonomy_schema.json"
+strict_schema = false
+
+[ecosystems]
+
+[ecosystems.apple]
+supports_external_integrations = true
+supported_matter_protocols = ["matter-over-thread"]
+supported_matter_device_types = ["*"]
+
+[ecosystems.google]
+supports_external_integrations = true
+supported_matter_protocols = ["matter-over-wifi", "matter-over-thread"]
+supported_matter_device_types = ["*"]
+
+[ecosystems.yandex]
+supports_external_integrations = true
+supported_matter_protocols = ["matter-over-wifi"]
+supported_matter_device_types = ["smart_lamp", "smart_plug", "smart_switch"]
+
+[ecosystems.sber]
+supports_external_integrations = true
+supported_matter_protocols = []
+supported_matter_device_types = []
+
+[ecosystems.vk]
+supports_external_integrations = true
+supported_matter_protocols = []
+supported_matter_device_types = []
+
+[ecosystems.aqara]
+supports_external_integrations = false
+supported_matter_protocols = ["matter-over-thread"]
+supported_matter_device_types = ["*"]
+
+[identifying_attributes]
+smart_lamp = ["protocol", "ecosystem", "socket_type", "wattage_w", "rgb_support", "color_temp_min_k", "color_temp_max_k", "brightness_lm"]
+water_leak_sensor = ["protocol", "ecosystem", "battery_type", "battery_quantity", "ip_rating", "has_audio_alert", "detects_leaks_above", "detects_leaks_below"]
+door_window_sensor = ["protocol", "ecosystem", "battery_type", "battery_quantity", "ip_rating"]
+motion_sensor = ["protocol", "ecosystem", "sensor_type", "detection_range_m", "detection_angle_deg", "battery_type", "has_light_sensor"]
+gas_leak_sensor = ["protocol", "ecosystem", "detected_gas", "power_source", "has_audio_alert", "battery_type"]
+smart_camera = ["protocol", "ecosystem", "resolution", "indoor_outdoor", "ptz", "has_two_way_audio", "power_source", "field_of_view_deg"]
+smart_doorbell = ["protocol", "ecosystem", "has_camera", "resolution", "has_two_way_audio", "power_source", "has_night_vision"]
+smart_lock = ["protocol", "ecosystem", "access_methods", "battery_type", "battery_quantity", "door_thickness_min_mm", "door_thickness_max_mm"]
+smart_siren = ["protocol", "ecosystem", "indoor_outdoor", "max_volume_db", "power_source", "has_strobe_light"]
+smart_hub = ["protocol", "ecosystem", "has_ir_blaster", "has_local_processing", "matter_bridge", "zigbee_version", "wired_connection"]

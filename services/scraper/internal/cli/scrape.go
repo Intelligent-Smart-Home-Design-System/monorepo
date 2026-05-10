@@ -8,93 +8,143 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/worker"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 )
 
 func NewScrapeCmd() *cobra.Command {
 	var cfgFile string
+	var sources []string
 
 	cmd := &cobra.Command{
 		Use:   "scrape",
-		Short: "Run the scraping job",
+		Short: "Scrape pages from tracked tasks",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
-
-			return scrape(ctx, cfgFile)
+			return scrape(ctx, cfgFile, sources)
 		},
 	}
 
 	cmd.Flags().StringVar(&cfgFile, "config", "./config.toml", "config file")
+	cmd.Flags().StringSliceVar(&sources, "sources", nil, "comma-separated list of sources to scrape (e.g., wildberries,sprut)")
 
 	return cmd
 }
 
-func scrape(ctx context.Context, cfgFile string) error {
+func scrape(ctx context.Context, cfgFile string, sources []string) error {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	var cfg config.Config
-	readConfig(cfgFile, &cfg)
+	if err := readConfig(cfgFile, &cfg); err != nil {
+		return fmt.Errorf("read config: %w", err)
+	}
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
 
-	// TODO: get tasks from db
-	tasksCh := getTasks()
+	db, err := postgres.NewDB(cfg.Database)
+	if err != nil {
+		return fmt.Errorf("connect to db: %w", err)
+	}
+	defer db.Close()
 
-	printer := printer.NewPrinterScraper()
+	taskRepo := repository.NewTrackedPageRepo(db)
+	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
-	sourceToScraper := map[string]worker.Scraper{
-		"printer": printer,
-		// TODO: "sprut_ai": sprutScraper,
-		// "wildberries": wildberriesScraper
+	printerScraper := printer.NewPrinterScraper()
+	// sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
+	wildberriesScraper := wbScraper.NewScraper(
+		cfg.Scraping.Timeout,
+		cfg.Scraping.Proxy,
+		cfg.Scraping.WBCardBasket,
+		cfg.Scraping.WBRPS,
+		cfg.Scraping.WBSessionPath,
+	)
+
+	sourceToScraper := map[string]scraper.Scraper{
+		domain.SourcePrinter:     printerScraper,
+		// domain.SourceSprut:       spruScraper,
+    	domain.SourceWildberries: wildberriesScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
 
-	worker := worker.NewWorker(logger, sourceToScraper, resultsCh)
+	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
 
-	go worker.Run(ctx, tasksCh)
-
-	// TODO: save results to db
-	for result := range resultsCh {
-		for _, resource := range result.Resources {
-			logger.Info().Msgf("scraped %s: %s", resource.Name, string(resource.ResponseBody))
-		}
+	allTasks, err := taskRepo.GetTasks()
+	if err != nil {
+		return fmt.Errorf("get tasks: %w", err)
 	}
 
-	return nil
-}
-
-func getTasks() <-chan domain.ScrapeTask {
-	tasks := []domain.ScrapeTask{
-		{
-			Source:   "printer",
-			PageType: "none",
-			URL:      "http://www.example.com",
-		},
-		{
-			Source:   "printer",
-			PageType: "none",
-			URL:      "http://www.example.com",
-		},
+	// Filter tasks by sources if provided
+	var tasks []domain.ScrapeTask
+	if len(sources) > 0 {
+		sourceSet := make(map[string]bool, len(sources))
+		for _, s := range sources {
+			sourceSet[s] = true
+		}
+		for _, t := range allTasks {
+			if sourceSet[t.Source] {
+				tasks = append(tasks, t)
+			}
+		}
+		if len(tasks) == 0 {
+			logger.Info().Msgf("no active tasks for sources: %v", sources)
+			return nil
+		}
+	} else {
+		tasks = allTasks
+		if len(tasks) == 0 {
+			logger.Info().Msg("no active tasks, exiting")
+			return nil
+		}
 	}
 
 	tasksCh := make(chan domain.ScrapeTask)
-
 	go func() {
+		defer close(tasksCh)
 		for _, task := range tasks {
-			tasksCh <- task
+			select {
+			case <-ctx.Done():
+				return
+			case tasksCh <- task:
+			}
 		}
-		close(tasksCh)
 	}()
 
-	return tasksCh
+	go worker.Run(ctx, tasksCh)
+
+	for result := range resultsCh {
+		fmt.Printf("[DEBUG] run: received result for task %d, err=%v, resources=%d\n", result.TrackedPageID, result.Err, len(result.Resources))
+		if result.Err != nil {
+			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
+			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
+				logger.Error().Err(err).Msg("update status error")
+			}
+			continue
+		}
+		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
+			logger.Error().Err(err).Msg("save snapshot")
+		} else {
+			logger.Info().Msg("snapshot saved successfully")
+			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
+				logger.Error().Err(err).Msg("update status")
+			}
+		}
+		fmt.Printf("[DEBUG] run: finished processing task %d\n", result.TrackedPageID)
+	}
+
+	logger.Info().Msg("all tasks processed, exiting")
+	return nil
 }
 
 func readConfig(cfgFile string, cfg *config.Config) error {

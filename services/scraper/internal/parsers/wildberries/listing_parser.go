@@ -69,10 +69,16 @@ type cardSelling struct {
 	BrandName string `json:"brand_name"`
 }
 
-type ListingParser struct{}
+type ListingParser struct {
+	brandAliases     map[string]string
+	smartHomeMarkers []string
+}
 
-func NewListingParser() *ListingParser {
-	return &ListingParser{}
+func NewListingParser(brandAliases map[string]string, smartHomeMarkers []string) *ListingParser {
+	return &ListingParser{
+		brandAliases:     brandAliases,
+		smartHomeMarkers: smartHomeMarkers,
+	}
 }
 
 func (p *ListingParser) Source() string { return Source }
@@ -101,6 +107,10 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 		return nil, fmt.Errorf("unmarshal card.json: %w", err)
 	}
 
+	if !p.containsSmartHomeMarker(&card) {
+		return nil, fmt.Errorf("listing does not contain any smart home marker, skipping")
+	}
+
 	res := &domain.ListingParseResult{
 		PageSnapshotID: pageSnapshotID,
 		ParsedAt:       time.Now(),
@@ -108,10 +118,11 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 	}
 
 	res.Name = strings.TrimSpace(prod.Name)
-	res.Brand = normalizeBrand(card.Selling.BrandName)
-	if res.Brand == "" {
-		res.Brand = normalizeBrand(prod.Brand)
+	brand := card.Selling.BrandName
+	if brand == "" {
+		brand = prod.Brand
 	}
+	res.Brand = p.normalizeBrand(brand)
 
 	if model := findOption(card.Options, "Модель"); model != "" {
 		res.ModelNumber = &model
@@ -143,14 +154,36 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 	}
 
 	res.Text = buildText(&card)
-
 	res.ContentHash = computeHash(res)
 
 	return res, nil
 }
 
-func normalizeBrand(brand string) string {
-	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(brand)), " ", "-")
+func (p *ListingParser) containsSmartHomeMarker(card *cardResponse) bool {
+	if len(p.smartHomeMarkers) == 0 {
+		return true
+	}
+	text := strings.ToLower(card.ImtName + " " + card.Description + " " + card.Contents)
+	for _, opt := range card.Options {
+		text += " " + opt.Name + " " + opt.Value
+	}
+	for _, marker := range p.smartHomeMarkers {
+		if strings.Contains(text, strings.ToLower(marker)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *ListingParser) normalizeBrand(brand string) string {
+	if brand == "" {
+		return ""
+	}
+	normalized := strings.ReplaceAll(strings.ToLower(strings.TrimSpace(brand)), " ", "-")
+	if alias, ok := p.brandAliases[normalized]; ok {
+		return alias
+	}
+	return normalized
 }
 
 func stockAndPrice(sizes []detailSize) (totalQty, productPriceKopecks int) {

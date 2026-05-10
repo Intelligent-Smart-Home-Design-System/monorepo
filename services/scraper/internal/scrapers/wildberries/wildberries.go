@@ -41,24 +41,44 @@ type Scraper struct {
 	sessionPath string
 	session     *Session
 	mu          sync.RWMutex
+	discoveryURLTemplate string
+    discoveryMaxPages    int
 }
 
-func NewScraper(timeout time.Duration, proxyURL, cardBasket string, rps float64, sessionPath string) *Scraper {
+func NewScraper(
+	timeout time.Duration,
+	proxyURL, cardBasket string,
+	rps float64,
+	sessionPath string,
+	discoveryURLTemplate string,
+	discoveryMaxPages int,
+) *Scraper {
 	transport := &http.Transport{}
 	if proxyURL != "" {
 		if proxy, err := url.Parse(proxyURL); err == nil {
 			transport.Proxy = http.ProxyURL(proxy)
 		}
 	}
-	limiter := rate.NewLimiter(rate.Limit(rps), 100)
+	limiter := rate.NewLimiter(rate.Limit(rps), 1)
+	var session *Session
+	if data, err := os.ReadFile(sessionPath); err == nil {
+		var sess Session
+		if err := json.Unmarshal(data, &sess); err == nil && time.Since(sess.UpdatedAt) < time.Hour {
+			session = &sess
+		}
+	}
+
 	return &Scraper{
 		client: &http.Client{
 			Timeout:   timeout,
 			Transport: transport,
 		},
-		limiter:     limiter,
-		cardBasket:  cardBasket,
-		sessionPath: sessionPath,
+		limiter:              limiter,
+		cardBasket:           cardBasket,
+		sessionPath:          sessionPath,
+		session:              session,
+		discoveryURLTemplate: discoveryURLTemplate,
+		discoveryMaxPages:    discoveryMaxPages,
 	}
 }
 
@@ -296,8 +316,16 @@ func buildCardURLNew(basket string, nmID int) string {
 }
 
 func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-	if err := s.ensureSession(); err != nil {
-		return nil, fmt.Errorf("ensure session: %w", err)
+	if strings.HasPrefix(task.URL, "wildberries://discovery/") {
+		query, err := parseDiscoveryURL(task.URL)
+		if err != nil {
+			return nil, err
+		}
+		resources, err := s.scrapeDiscovery(ctx, query, s.discoveryMaxPages, s.discoveryURLTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("discovery scrape failed: %w", err)
+		}
+		return &domain.ScrapeResult{Resources: resources}, nil
 	}
 
 	nmID, err := extractNmID(task.URL)
@@ -315,13 +343,11 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		return nil, fmt.Errorf("get card URL: %w", err)
 	}
 
-	fmt.Println("[DEBUG] fetching detail.json...")
 	detailBody, err := s.fetchWithRetry(ctx, detailURL)
 	if err != nil {
 		return nil, fmt.Errorf("detail.json: %w", err)
 	}
 
-	fmt.Println("[DEBUG] fetching card.json...")
 	cardBody, err := s.fetchWithRetry(ctx, cardURL)
 	if err != nil {
 		return nil, fmt.Errorf("card.json: %w", err)
@@ -346,4 +372,46 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		},
 	}
 	return &domain.ScrapeResult{Resources: resources}, nil
+}
+
+func parseDiscoveryURL(url string) (string, error) {
+    const prefix = "wildberries://discovery/"
+    if !strings.HasPrefix(url, prefix) {
+        return "", fmt.Errorf("invalid discovery URL: %s", url)
+    }
+    query := strings.TrimPrefix(url, prefix)
+    if query == "" {
+        return "", fmt.Errorf("empty discovery query")
+    }
+    return query, nil
+}
+
+func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages int, urlTemplate string) ([]domain.Resource, error) {
+    var resources []domain.Resource
+    for page := 1; page <= maxPages; page++ {
+        searchURL := strings.ReplaceAll(urlTemplate, "{query}", url.QueryEscape(query))
+        searchURL = strings.ReplaceAll(searchURL, "{page}", strconv.Itoa(page))
+
+        body, err := s.fetchWithRetry(ctx, searchURL)
+        if err != nil {
+            if page == 1 {
+                return nil, fmt.Errorf("failed to fetch search page %d: %w", page, err)
+            }
+            break
+        }
+
+        resource := domain.Resource{
+            Name:         fmt.Sprintf("page_%d.json", page),
+            URL:          searchURL,
+            ResponseBody: body,
+            StatusCode:   http.StatusOK,
+            Status:       "200 OK",
+            Timestamp:    time.Now(),
+        }
+        resources = append(resources, resource)
+    }
+    if len(resources) == 0 {
+        return nil, fmt.Errorf("no search results found for query %s", query)
+    }
+    return resources, nil
 }

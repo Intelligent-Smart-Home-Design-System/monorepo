@@ -68,8 +68,6 @@ func TestCompatibilityParser_NormalizeBrand(t *testing.T) {
 		"яндекс": "yandex",
 		"aqara":  "aqara",
 	}
-	p := NewCompatibilityParser(aliases)
-
 	tests := []struct {
 		input    string
 		expected string
@@ -80,7 +78,7 @@ func TestCompatibilityParser_NormalizeBrand(t *testing.T) {
 		{"Apple Home", "apple-home"},
 	}
 	for _, tt := range tests {
-		result := p.normalizeBrand(tt.input)
+		result := parser.NormalizeBrand(tt.input, aliases)
 		assert.Equal(t, tt.expected, result)
 	}
 }

@@ -88,12 +88,9 @@ func TestListingParser_Filtering(t *testing.T) {
 }
 
 func TestNormalizeBrand(t *testing.T) {
-	aliases := map[string]string{
-		"yandex": "yandex",
-	}
-	p := NewListingParser(aliases, []string{})
-	assert.Equal(t, "yandex", p.normalizeBrand("  Yandex  "))
-	assert.Equal(t, "apple-iphone", p.normalizeBrand("Apple iPhone"))
+    aliases := map[string]string{"yandex": "yandex"}
+    assert.Equal(t, "yandex", parser.NormalizeBrand("  Yandex  ", aliases))
+    assert.Equal(t, "apple-iphone", parser.NormalizeBrand("Apple iPhone", aliases))
 }
 
 func TestExtractQuantity(t *testing.T) {

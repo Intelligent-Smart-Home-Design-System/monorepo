@@ -24,16 +24,10 @@ func (p *CompatibilityParser) Source() string {
 }
 
 func (p *CompatibilityParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) ([]*domain.DirectCompatibilityRecord, error) {
-	var htmlData []byte
-	for _, f := range files {
-		if f.Name == "html" {
-			htmlData = f.Data
-			break
-		}
+	if len(files) != 1 {
+		return nil, fmt.Errorf("expected exactly 1 file in snapshot %d, got %d", pageSnapshotID, len(files))
 	}
-	if len(htmlData) == 0 {
-		return nil, fmt.Errorf("no HTML file found in snapshot %d", pageSnapshotID)
-	}
+	htmlData := files[0].Data
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(htmlData)))
 	if err != nil {
@@ -54,10 +48,10 @@ func (p *CompatibilityParser) Parse(pageSnapshotID int, files []*parser.ArchiveF
 		brandText := strings.TrimSpace(strong.Text())
 
 		fullText := content.Text()
-		parts := strings.SplitN(fullText, "|", 2)
+		idx := strings.Index(fullText, "|")
 		var model string
-		if len(parts) == 2 {
-			model = strings.TrimSpace(parts[1])
+		if idx != -1 {
+			model = strings.TrimSpace(fullText[idx+1:])
 		} else {
 			model = strings.TrimSpace(strings.TrimPrefix(fullText, strong.Text()))
 			model = strings.TrimPrefix(model, "|")
@@ -69,8 +63,10 @@ func (p *CompatibilityParser) Parse(pageSnapshotID int, files []*parser.ArchiveF
 
 		records = append(records, &domain.DirectCompatibilityRecord{
 			PageSnapshotID: pageSnapshotID,
-			Brand:          p.normalizeBrand(brandText),
+			Brand:          parser.NormalizeBrand(brandText, p.brandAliases),
 			Model:          normalizeModel(model),
+			Ecosystem:      "yandex",
+			Protocol:       "zigbee",
 		})
 	})
 

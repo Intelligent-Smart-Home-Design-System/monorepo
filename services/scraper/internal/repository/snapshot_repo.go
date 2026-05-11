@@ -192,9 +192,9 @@ func (r *SnapshotRepo) SaveListingParseResult(result *domain.ListingParseResult)
 
 func (r *SnapshotRepo) SaveDirectCompatibilityRecord(rec *domain.DirectCompatibilityRecord) error {
     _, err := r.db.Exec(`
-        INSERT INTO direct_compatibility (brand, model, ecosystem, tracked_page_id, discovered_at)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (brand, model, ecosystem) DO UPDATE SET last_confirmed_at = NOW()
-    `, rec.Brand, rec.Model, "yandex", rec.PageSnapshotID, time.Now())
+        INSERT INTO direct_compatibility (brand, model, ecosystem, protocol, tracked_page_id, discovered_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (brand, model, ecosystem, protocol) DO UPDATE SET last_confirmed_at = NOW()
+    `, rec.Brand, rec.Model, rec.Ecosystem, rec.Protocol, rec.PageSnapshotID, time.Now())
     return err
 }

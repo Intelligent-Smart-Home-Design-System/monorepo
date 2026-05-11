@@ -122,7 +122,7 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 	if brand == "" {
 		brand = prod.Brand
 	}
-	res.Brand = p.normalizeBrand(brand)
+	res.Brand = parser.NormalizeBrand(brand, p.brandAliases)
 
 	if model := findOption(card.Options, "Модель"); model != "" {
 		res.ModelNumber = &model
@@ -173,17 +173,6 @@ func (p *ListingParser) containsSmartHomeMarker(card *cardResponse) bool {
 		}
 	}
 	return false
-}
-
-func (p *ListingParser) normalizeBrand(brand string) string {
-	if brand == "" {
-		return ""
-	}
-	normalized := strings.ReplaceAll(strings.ToLower(strings.TrimSpace(brand)), " ", "-")
-	if alias, ok := p.brandAliases[normalized]; ok {
-		return alias
-	}
-	return normalized
 }
 
 func stockAndPrice(sizes []detailSize) (totalQty, productPriceKopecks int) {

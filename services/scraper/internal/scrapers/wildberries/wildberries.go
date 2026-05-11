@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/stealth"
 	"golang.org/x/time/rate"
@@ -35,14 +35,14 @@ type Cookie struct {
 }
 
 type Scraper struct {
-	client      *http.Client
-	limiter     *rate.Limiter
-	cardBasket  string
-	sessionPath string
-	session     *Session
-	mu          sync.RWMutex
+	client               *http.Client
+	limiter              *rate.Limiter
+	cardBasket           string
+	sessionPath          string
+	session              *Session
+	mu                   sync.RWMutex
 	discoveryURLTemplate string
-    discoveryMaxPages    int
+	discoveryMaxPages    int
 }
 
 func NewScraper(
@@ -67,7 +67,6 @@ func NewScraper(
 			session = &sess
 		}
 	}
-
 	return &Scraper{
 		client: &http.Client{
 			Timeout:   timeout,
@@ -108,42 +107,47 @@ func (s *Scraper) saveSession(sess *Session) error {
 }
 
 func (s *Scraper) mineSession() (*Session, error) {
-	fmt.Println("[DEBUG] mineSession: starting headless browser...")
-	browser := rod.New().MustConnect()
-	defer browser.MustClose()
+    fmt.Println("[DEBUG] mineSession: starting headless browser...")
+    l := launcher.New().Headless(true).Set("no-sandbox").Set("disable-setuid-sandbox")
+    url, err := l.Launch()
+    if err != nil {
+        return nil, fmt.Errorf("launch browser: %w", err)
+    }
+    browser := rod.New().ControlURL(url).MustConnect()
+    defer browser.MustClose()
 
-	page := stealth.MustPage(browser)
-	defer page.MustClose()
+    page := stealth.MustPage(browser)
+    defer page.MustClose()
 
-	page.MustNavigate("https://www.wildberries.ru/")
-	page.MustWaitLoad()
+    page.MustNavigate("https://www.wildberries.ru/")
+    page.MustWaitLoad()
 
-	cookies := page.MustCookies()
-	var cookieList []Cookie
-	var tokenValue string
-	for _, c := range cookies {
-		if c.Name == "x_wbaas_token" {
-			tokenValue = c.Value
-		}
-		cookieList = append(cookieList, Cookie{
-			Name:   c.Name,
-			Value:  c.Value,
-			Domain: c.Domain,
-			Path:   c.Path,
-		})
-	}
-	if tokenValue == "" {
-		return nil, fmt.Errorf("x_wbaas_token not found in cookies")
-	}
+    cookies := page.MustCookies()
+    var cookieList []Cookie
+    var tokenValue string
+    for _, c := range cookies {
+        if c.Name == "x_wbaas_token" {
+            tokenValue = c.Value
+        }
+        cookieList = append(cookieList, Cookie{
+            Name:   c.Name,
+            Value:  c.Value,
+            Domain: c.Domain,
+            Path:   c.Path,
+        })
+    }
+    if tokenValue == "" {
+        return nil, fmt.Errorf("x_wbaas_token not found in cookies")
+    }
 
-	uaVal := page.MustEval(`() => navigator.userAgent`)
-	userAgent := uaVal.Str()
+    uaVal := page.MustEval(`() => navigator.userAgent`)
+    userAgent := uaVal.Str()
 
-	return &Session{
-		UserAgent: userAgent,
-		Cookies:   cookieList,
-		Token:     tokenValue,
-	}, nil
+    return &Session{
+        UserAgent: userAgent,
+        Cookies:   cookieList,
+        Token:     tokenValue,
+    }, nil
 }
 
 func (s *Scraper) ensureSession() error {
@@ -316,18 +320,21 @@ func buildCardURLNew(basket string, nmID int) string {
 }
 
 func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-	if strings.HasPrefix(task.URL, "wildberries://discovery/") {
-		query, err := parseDiscoveryURL(task.URL)
-		if err != nil {
-			return nil, err
-		}
-		resources, err := s.scrapeDiscovery(ctx, query, s.discoveryMaxPages, s.discoveryURLTemplate)
-		if err != nil {
-			return nil, fmt.Errorf("discovery scrape failed: %w", err)
-		}
-		return &domain.ScrapeResult{Resources: resources}, nil
+	if err := s.ensureSession(); err != nil {
+		return nil, fmt.Errorf("ensure session: %w", err)
 	}
 
+	switch task.PageType {
+	case domain.PageTypeListing:
+		return s.scrapeListing(ctx, task)
+	case domain.PageTypeDiscovery:
+		return s.scrapeDiscoveryTask(ctx, task)
+	default:
+		return nil, fmt.Errorf("unsupported page type %s for source %s", task.PageType.String(), task.Source)
+	}
+}
+
+func (s *Scraper) scrapeListing(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
 	nmID, err := extractNmID(task.URL)
 	if err != nil {
 		return nil, err
@@ -374,16 +381,20 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 	return &domain.ScrapeResult{Resources: resources}, nil
 }
 
-func parseDiscoveryURL(url string) (string, error) {
-    const prefix = "wildberries://discovery/"
-    if !strings.HasPrefix(url, prefix) {
-        return "", fmt.Errorf("invalid discovery URL: %s", url)
-    }
-    query := strings.TrimPrefix(url, prefix)
-    if query == "" {
-        return "", fmt.Errorf("empty discovery query")
-    }
-    return query, nil
+func (s *Scraper) scrapeDiscoveryTask(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
+	const prefix = "wildberries://discovery/"
+	if !strings.HasPrefix(task.URL, prefix) {
+		return nil, fmt.Errorf("invalid discovery URL: %s", task.URL)
+	}
+	query := strings.TrimPrefix(task.URL, prefix)
+	if query == "" {
+		return nil, fmt.Errorf("empty discovery query")
+	}
+	resources, err := s.scrapeDiscovery(ctx, query, s.discoveryMaxPages, s.discoveryURLTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("discovery scrape failed: %w", err)
+	}
+	return &domain.ScrapeResult{Resources: resources}, nil
 }
 
 func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages int, urlTemplate string) ([]domain.Resource, error) {
@@ -397,6 +408,19 @@ func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages in
             if page == 1 {
                 return nil, fmt.Errorf("failed to fetch search page %d: %w", page, err)
             }
+            break
+        }
+
+        var resp struct {
+            Products []interface{} `json:"products"`
+        }
+        if err := json.Unmarshal(body, &resp); err != nil {
+            if page == 1 {
+                return nil, fmt.Errorf("invalid response on page %d: %w", page, err)
+            }
+            break
+        }
+        if len(resp.Products) == 0 {
             break
         }
 

@@ -72,3 +72,8 @@ func (r *TrackedPageRepo) CreateTask(source, pageType, url string) error {
     `, source, pageType, url)
     return err
 }
+
+func (r *TrackedPageRepo) DeleteTaskByID(id int) error {
+	_, err := r.db.Exec(`DELETE FROM tracked_pages WHERE id = $1`, id)
+	return err
+}

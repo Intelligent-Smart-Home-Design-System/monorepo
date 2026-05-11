@@ -24,7 +24,7 @@ func (p *DiscoveryParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile)
 	seen := make(map[string]bool)
 
 	for _, file := range files {
-		if !strings.HasPrefix(file.Name, "page_") || !strings.HasSuffix(file.Name, ".json") {
+		if !strings.HasSuffix(file.Name, ".json") {
 			continue
 		}
 		var resp struct {

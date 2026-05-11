@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
-
+	"slices"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
@@ -21,30 +22,32 @@ import (
 )
 
 func NewScrapeCmd() *cobra.Command {
-    var cfgFile string
-    var sources []string
-    var pageTypes []string
-    var discoveryOnly bool
+	var cfgFile string
+	var sources []string
+	var pageTypes []string
+	var discoveryOnly bool
+	var cleanupDiscovery bool
 
-    cmd := &cobra.Command{
-        Use:   "scrape",
-        Short: "Scrape pages from tracked tasks",
-        RunE: func(cmd *cobra.Command, args []string) error {
-            ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-            defer cancel()
-            return scrape(ctx, cfgFile, sources, pageTypes, discoveryOnly)
-        },
-    }
+	cmd := &cobra.Command{
+		Use:   "scrape",
+		Short: "Scrape pages from tracked tasks",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+			defer cancel()
+			return scrape(ctx, cfgFile, sources, pageTypes, discoveryOnly, cleanupDiscovery)
+		},
+	}
 
-    cmd.Flags().StringVar(&cfgFile, "config", "./config.toml", "config file")
-    cmd.Flags().StringSliceVar(&sources, "sources", nil, "comma-separated list of sources to scrape (e.g., wildberries,sprut)")
-    cmd.Flags().StringSliceVar(&pageTypes, "page-types", nil, "comma-separated list of page types (listing, discovery, compatibility)")
-    cmd.Flags().BoolVar(&discoveryOnly, "discovery", false, "if true, scrape only discovery pages")
+	cmd.Flags().StringVar(&cfgFile, "config", "./config.toml", "config file")
+	cmd.Flags().StringSliceVar(&sources, "sources", nil, "comma-separated list of sources to scrape (e.g., wildberries,sprut)")
+	cmd.Flags().StringSliceVar(&pageTypes, "page-types", nil, "comma-separated list of page types (listing, discovery, compatibility)")
+	cmd.Flags().BoolVar(&discoveryOnly, "discovery", false, "if true, scrape only discovery pages")
+	cmd.Flags().BoolVar(&cleanupDiscovery, "cleanup-discovery", false, "if true, delete discovery tasks that are not in config")
 
-    return cmd
+	return cmd
 }
 
-func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, discoveryOnly bool) error {
+func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, discoveryOnly, cleanupDiscovery bool) error {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	var cfg config.Config
@@ -64,7 +67,6 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
 	printerScraper := printer.NewPrinterScraper()
-	// sprutScraper := sprutPkg.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 	wildberriesScraper := wbScraper.NewScraper(
 		cfg.Scraping.Timeout,
 		cfg.Scraping.Proxy,
@@ -93,10 +95,50 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
 
 	if len(cfg.Wildberries.Discovery.DiscoveryTextQueries) > 0 {
+		// Create tasks for queries from config
 		for _, query := range cfg.Wildberries.Discovery.DiscoveryTextQueries {
 			discoveryURL := fmt.Sprintf("wildberries://discovery/%s", query)
 			if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeDiscovery.String(), discoveryURL); err != nil {
 				logger.Error().Err(err).Str("query", query).Msg("failed to create discovery task")
+			}
+		}
+
+		if cleanupDiscovery {
+			allTasks, err := taskRepo.GetTasks()
+			if err != nil {
+				logger.Error().Err(err).Msg("failed to get tasks for cleanup")
+			} else {
+				queriesMap := make(map[string]bool)
+				for _, q := range cfg.Wildberries.Discovery.DiscoveryTextQueries {
+					queriesMap[q] = true
+				}
+				for _, t := range allTasks {
+					if t.Source == domain.SourceWildberries && t.PageType == domain.PageTypeDiscovery {
+						query := strings.TrimPrefix(t.URL, "wildberries://discovery/")
+						if !queriesMap[query] {
+							if err := taskRepo.DeleteTaskByID(t.ID); err != nil {
+								logger.Error().Err(err).Int("task_id", t.ID).Msg("failed to delete stale discovery task")
+							} else {
+								logger.Debug().Str("url", t.URL).Msg("deleted stale discovery task")
+							}
+						}
+					}
+				}
+			}
+		}
+	} else if cleanupDiscovery {
+		allTasks, err := taskRepo.GetTasks()
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to get tasks for cleanup")
+		} else {
+			for _, t := range allTasks {
+				if t.Source == domain.SourceWildberries && t.PageType == domain.PageTypeDiscovery {
+					if err := taskRepo.DeleteTaskByID(t.ID); err != nil {
+						logger.Error().Err(err).Int("task_id", t.ID).Msg("failed to delete discovery task")
+					} else {
+						logger.Debug().Str("url", t.URL).Msg("deleted discovery task (no queries in config)")
+					}
+				}
 			}
 		}
 	}
@@ -126,17 +168,8 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 		if sourceSet != nil && !sourceSet[t.Source] {
 			continue
 		}
-		if len(allowedPageTypes) > 0 {
-			match := false
-			for _, pt := range allowedPageTypes {
-				if t.PageType.String() == pt {
-					match = true
-					break
-				}
-			}
-			if !match {
-				continue
-			}
+		if len(allowedPageTypes) > 0 && !slices.Contains(allowedPageTypes, t.PageType.String()) {
+			continue
 		}
 		tasks = append(tasks, t)
 	}

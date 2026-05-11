@@ -9,12 +9,10 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
-	"golang.org/x/time/rate"
 )
 
 type Scraper struct {
-	client  *http.Client
-	limiter *rate.Limiter
+	client *http.Client
 }
 
 func NewScraper(timeout time.Duration, proxyURL string, rps float64) *Scraper {
@@ -24,21 +22,15 @@ func NewScraper(timeout time.Duration, proxyURL string, rps float64) *Scraper {
 			transport.Proxy = http.ProxyURL(proxy)
 		}
 	}
-	limiter := rate.NewLimiter(rate.Limit(rps), 1)
 	return &Scraper{
 		client: &http.Client{
 			Timeout:   timeout,
 			Transport: transport,
 		},
-		limiter: limiter,
 	}
 }
 
 func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-	if err := s.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
-
 	req, err := http.NewRequestWithContext(ctx, "GET", task.URL, nil)
 	if err != nil {
 		return nil, err

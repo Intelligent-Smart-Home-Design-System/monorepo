@@ -7,7 +7,7 @@ def validate():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     eval_path = os.path.join(current_dir, "evaluation_traits.json")
     types_path = os.path.abspath(
-        os.path.join(current_dir, "..", "..", "shared", "schemas", "devices", "device_types.json"))
+        os.path.join(current_dir, "..", "..", "..", "shared", "schemas", "devices", "device_types.json"))
 
     try:
         with open(eval_path, 'r', encoding='utf-8') as f:

@@ -1,6 +1,6 @@
 import random
 import pytest
-from evaluator import QualityEvaluator
+from quality_calculator.evaluator import QualityEvaluator
 
 ITERATIONS = 10000
 

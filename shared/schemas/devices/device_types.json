@@ -8,14 +8,27 @@
         },
         "brand": {
           "type": "string",
-          "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'"
+          "description": "Normalized lower-case brand name, e.g. 'aqara', 'xiaomi'"
         },
         "model": {
           "type": "string",
           "description": "Manufacturer model or SKU"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in local currency",
+          "minimum": 0
+        },
+        "articul_YANDEX": {
+          "type": "string",
+          "description": "Yandex Market article ID"
         }
       },
-      "required": ["name", "brand", "model"]
+      "required": [
+        "name",
+        "brand",
+        "model"
+      ]
     },
     "connectivity": {
       "properties": {
@@ -23,7 +36,16 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["yandex", "apple", "google", "aqara", "tuya", "xiaomi", "smartthings", "homekit"]
+            "enum": [
+              "yandex",
+              "apple",
+              "google",
+              "aqara",
+              "tuya",
+              "xiaomi",
+              "smartthings",
+              "homekit"
+            ]
           },
           "minItems": 1,
           "uniqueItems": true,
@@ -33,240 +55,265 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["zigbee", "z-wave", "wifi", "bluetooth", "matter", "thread"]
+            "enum": [
+              "zigbee",
+              "z-wave",
+              "wifi",
+              "bluetooth",
+              "matter",
+              "thread"
+            ]
           },
           "minItems": 1,
           "uniqueItems": true,
           "description": "Communication protocols supported by the device"
         }
       },
-      "required": ["ecosystem", "protocol"]
+      "required": [
+        "ecosystem",
+        "protocol"
+      ]
     },
     "battery_operated": {
       "properties": {
         "battery_type": {
           "type": "string",
-          "enum": ["CR2032", "CR2450", "CR123A", "AA", "AAA", "18650", "built-in"],
-          "description": "Type of battery or built‑in rechargeable cell"
+          "enum": [
+            "CR2032",
+            "CR2450",
+            "CR123A",
+            "AA",
+            "AAA",
+            "18650",
+            "built-in"
+          ]
         },
         "battery_life_months": {
           "type": "number",
           "minimum": 1,
-          "maximum": 300,
-          "description": "Estimated battery life in months"
+          "description": "Estimated battery life"
         },
         "rechargeable": {
-          "type": "boolean",
-          "description": "Whether the device has a built‑in rechargeable battery"
-        }
-      },
-      "required": []
-    },
-    "ip_rated": {
-      "properties": {
-        "ip_rating": {
-          "type": "string",
-          "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-          "description": "Ingress Protection code, e.g. IP67, IP44"
+          "type": "boolean"
         }
       },
       "required": []
     },
     "lighting": {
       "properties": {
-        "power_watts": {
+        "luminous_flux": {
           "type": "number",
-          "minimum": 0,
-          "description": "Power consumption in watts"
+          "description": "Luminous flux in lumens. Core metric for brightness evaluation.",
+          "minimum": 400,
+          "maximum": 1500
         },
-        "voltage_min_watt": {
+        "cri": {
           "type": "number",
-          "minimum": 0,
-          "description": "Minimum operating voltage in volts"
-        },
-        "voltage_max_watt": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Maximum operating voltage in volts"
-        },
-        "lifetime_hours": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Rated lifetime in hours"
-        },
-        "color_temperature_kelvin": {
-          "type": "number",
-          "minimum": 1000,
-          "maximum": 10000,
-          "description": "Correlated color temperature in Kelvin"
-        },
-        "color_rendering_index": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Color Rendering Index (CRI)"
-        },
-        "color_mode": {
-          "type": "string",
-          "enum": ["RGB", "RGBW", "CCT", "Dimmable", "On/Off"],
-          "description": "Supported color modes"
+          "description": "Color Rendering Index (CRI). Affects the naturalness of light.",
+          "minimum": 70,
+          "maximum": 100
         }
       },
-      "required": ["power_watts", "voltage_min_watt", "voltage_max_watt"]
+      "required": [
+        "luminous_flux"
+      ]
+    },
+    "switch": {
+      "properties": {
+        "max_load_watt": {
+          "type": "number",
+          "description": "Maximum load power. Higher values mean more versatile relays/plugs.",
+          "minimum": 1000,
+          "maximum": 3680
+        },
+        "has_energy_monitoring": {
+          "type": "boolean",
+          "description": "Presence of energy monitoring feature."
+        }
+      },
+      "required": [
+        "max_load_watt"
+      ]
     },
     "sensor": {
       "properties": {
-        "accuracy": {
+        "battery_life_months": {
           "type": "number",
-          "minimum": 0,
-          "description": "Measurement accuracy in percent or absolute value"
+          "description": "Claimed battery life from a single battery in months.",
+          "minimum": 6,
+          "maximum": 36
+        },
+        "measurement_error_margin": {
+          "type": "number",
+          "description": "Measurement error margin percentage.",
+          "minimum": 0.1,
+          "maximum": 2.0
+        }
+      },
+      "required": [
+        "battery_life_months"
+      ]
+    },
+    "security": {
+      "properties": {
+        "resolution_mp": {
+          "type": "number",
+          "description": "Camera resolution in megapixels.",
+          "minimum": 1.0,
+          "maximum": 8.0
+        },
+        "fov_degrees": {
+          "type": "number",
+          "description": "Lens field of view in degrees.",
+          "minimum": 90,
+          "maximum": 180
+        }
+      },
+      "required": [
+        "resolution_mp"
+      ]
+    },
+    "climate": {
+      "properties": {
+        "noise_level_db": {
+          "type": "number",
+          "description": "Noise level in decibels.",
+          "minimum": 20,
+          "maximum": 65
+        },
+        "coverage_area_sqm": {
+          "type": "number",
+          "description": "Effective coverage area in square meters.",
+          "minimum": 10,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "noise_level_db"
+      ]
+    },
+    "cover": {
+      "properties": {
+        "motor_torque_nm": {
+          "type": "number",
+          "description": "Motor torque for curtains/gates in Newton-meters.",
+          "minimum": 0.5,
+          "maximum": 2.0
         }
       },
       "required": []
     },
-    "motion_detection": {
+    "media": {
       "properties": {
-        "detection_range_meters": {
+        "hdmi_ports": {
           "type": "number",
-          "minimum": 0,
-          "description": "Maximum detection range in meters"
-        },
-        "detection_angle_degrees": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 360,
-          "description": "Detection angle in degrees"
+          "description": "Number of HDMI ports (for TVs/Set-top boxes).",
+          "minimum": 1,
+          "maximum": 4
         }
       },
       "required": []
+    },
+    "infra": {
+      "properties": {
+        "max_child_devices": {
+          "type": "number",
+          "description": "Maximum number of connected sub-devices (for Hubs/Routers).",
+          "minimum": 32,
+          "maximum": 256
+        },
+        "has_local_control": {
+          "type": "boolean",
+          "description": "Support for local scenario execution without internet."
+        }
+      },
+      "required": [
+        "max_child_devices"
+      ]
     }
   },
   "types": {
     "water_leak_sensor": {
-      "description": "Detects water leaks, placed under sinks, near pipes, etc.",
-      "traits": ["base", "connectivity", "battery_operated", "ip_rated"],
+      "description": "Detects water leaks. Typically placed under sinks.",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "sensor"
+      ],
       "extra_schema": {
         "properties": {
-          "type": { "const": "water_leak_sensor" },
-          "has_audio_alert": {
-            "type": "boolean",
-            "description": "Whether the device emits an audible alert when water is detected"
-          },
-          "audio_alert_volume_db": {
-            "type": "number",
-            "minimum": 60,
-            "maximum": 120,
-            "description": "Sound volume of the alert in decibels"
-          },
-          "detects_leaks_above": {
-            "type": "boolean",
-            "description": "Can detect water dripping from above (e.g. on contacts)"
-          },
-          "detects_leaks_below": {
-            "type": "boolean",
-            "description": "Can detect water on the floor"
-          },
-          "min_detected_water_level_mm": {
-            "type": "number",
-            "minimum": 0.1,
-            "maximum": 10,
-            "description": "Minimum water layer thickness that triggers detection (mm)"
+          "type": {
+            "const": "water_leak_sensor"
           }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     "temperature_sensor": {
-      "description": "Measures ambient temperature and optionally humidity",
-      "traits": ["base", "connectivity", "battery_operated", "ip_rated", "sensor"],
+      "description": "Measures ambient temperature and humidity.",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "sensor"
+      ],
       "extra_schema": {
         "properties": {
-          "type": { "const": "temperature_sensor" },
-          "temperature_min_celsius": {
-            "type": "number",
-            "description": "Minimum measurable temperature in degrees Celsius"
-          },
-          "temperature_max_celsius": {
-            "type": "number",
-            "description": "Maximum measurable temperature in degrees Celsius"
-          },
-          "humidity_sensor": {
-            "type": "boolean",
-            "description": "Whether the device also measures relative humidity"
-          },
-          "accuracy_temperature_celsius": {
-            "type": "number",
-            "description": "Temperature measurement accuracy (± °C)"
-          },
-          "accuracy_humidity_percent": {
-            "type": "number",
-            "description": "Humidity measurement accuracy (± %)"
+          "type": {
+            "const": "temperature_sensor"
           }
         },
-        "required": ["type", "temperature_min_celsius", "temperature_max_celsius"]
-      }
-    },
-    "motion_sensor": {
-      "description": "Detects motion using PIR or other technologies",
-      "traits": ["base", "connectivity", "battery_operated", "ip_rated", "motion_detection"],
-      "extra_schema": {
-        "properties": {
-          "type": { "const": "motion_sensor" }
-        },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     "smart_lamp": {
-      "description": "Smart light bulb or luminaire",
-      "traits": ["base", "connectivity", "lighting"],
+      "description": "Smart light bulb or luminaire.",
+      "traits": [
+        "base",
+        "connectivity",
+        "lighting"
+      ],
       "extra_schema": {
         "properties": {
-          "type": { "const": "smart_lamp" },
+          "type": {
+            "const": "smart_lamp"
+          },
           "mount_type": {
             "type": "string",
-            "enum": ["ceiling", "wall", "table", "floor"],
-            "description": "Typical mounting style: ceiling, wall, table, floor"
+            "enum": [
+              "ceiling",
+              "wall",
+              "table",
+              "floor"
+            ]
           }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     "smart_plug": {
       "description": "Smart plug that controls connected appliances",
-      "traits": ["base", "connectivity"],
+      "traits": [
+        "base",
+        "connectivity",
+        "switch"
+      ],
       "extra_schema": {
         "properties": {
-          "type": { "const": "smart_plug" },
-          "max_power_watts": {
-            "type": "number",
-            "minimum": 0,
-            "description": "Maximum load power in watts"
-          },
-          "voltage_min_watt": {
-            "type": "number",
-            "minimum": 0,
-            "description": "Minimum operating voltage in volts"
-          },
-          "voltage_max_watt": {
-            "type": "number",
-            "minimum": 0,
-            "description": "Maximum operating voltage in volts"
-          },
-          "usb_ports": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Number of built‑in USB ports"
-          },
-          "child_lock": {
-            "type": "boolean",
-            "description": "Whether the plug has a child safety lock"
-          },
-          "power_consumption_watts": {
-            "type": "number",
-            "description": "Standby power consumption of the plug itself (watts)"
+          "type": {
+            "const": "smart_plug"
           }
         },
-        "required": ["type", "max_power_watts", "voltage_min_watt", "voltage_max_watt"]
+        "required": [
+          "type"
+        ]
       }
     }
   }

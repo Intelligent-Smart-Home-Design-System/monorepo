@@ -13,7 +13,7 @@ def run(
         help="Path to config file"
     ),
 ):
-    """Run the quality-calculator service."""
+    """Run the quality_calculator service."""
 
     asyncio.run(_run(config_path))
 
@@ -27,10 +27,10 @@ def help(
 ):
     """Quality calculator service help"""
 
-    typer.echo("Help for quality-calculator")
+    typer.echo("Help for quality_calculator")
 
 async def _run(config_path: Path):
-    typer.echo(f"Hello from quality-calculator service")
+    typer.echo(f"Hello from quality_calculator service")
 
 if __name__ == "__main__":
     app()

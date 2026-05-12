@@ -1,0 +1,32 @@
+{
+  "lighting": {
+    "luminous_flux": { "weight": 0.6 },
+    "cri": { "weight": 0.4 }
+  },
+  "switch": {
+    "max_load_watt": { "weight": 1.0 },
+    "has_energy_monitoring": { "bonus": 0.3 }
+  },
+  "sensor": {
+    "battery_life_months": { "weight": 0.6 },
+    "measurement_error_margin": { "weight": 0.4, "inverse": true }
+  },
+  "security": {
+    "resolution_mp": { "weight": 0.6 },
+    "fov_degrees": { "weight": 0.4 }
+  },
+  "climate": {
+    "noise_level_db": { "weight": 0.5, "inverse": true },
+    "coverage_area_sqm": { "weight": 0.5 }
+  },
+  "cover": {
+    "motor_torque_nm": { "weight": 1.0 }
+  },
+  "media": {
+    "hdmi_ports": { "weight": 1.0 }
+  },
+  "infra": {
+    "max_child_devices": { "weight": 1.0 },
+    "has_local_control": { "bonus": 0.4 }
+  }
+}

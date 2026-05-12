@@ -2,11 +2,16 @@
 host = "localhost"
 port = 5432
 user = "scraper"
-# password via env: SCRAPER_DATABASE_PASSWORD
+password = "1234"
 dbname = "scraper_db"
 sslmode = "disable"
 
 [scraping]
 max_retries = 3
 rate_limit_rps = 2.0
-timeout = "30s"
+timeout = "60s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+proxy = ""
+wb_card_basket = "01"
+wb_session_path = "./session.json"
+wb_rps = 0.5

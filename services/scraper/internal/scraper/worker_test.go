@@ -1,4 +1,4 @@
-package worker
+package scraper
 
 import (
 	"context"
@@ -27,27 +27,27 @@ func TestScrapeTaskDispatch(t *testing.T) {
 	tasks := []domain.ScrapeTask{
 		{
 			Source:   "second_source",
-			PageType: "type_1",
+			PageType: domain.PageTypeListing,
 			URL:      "http://example.com",
 		},
 		{
 			Source:   "first_source",
-			PageType: "type_1",
+			PageType: domain.PageTypeListing,
 			URL:      "http://example.com/3",
 		},
 		{
 			Source:   "second_source",
-			PageType: "type_2",
+			PageType: domain.PageTypeCompatibility,
 			URL:      "http://example.com/1",
 		},
 		{
 			Source:   "first_source",
-			PageType: "type_3",
+			PageType: domain.PageTypeDiscovery,
 			URL:      "http://example.com/4",
 		},
 		{
 			Source:   "unknown_source",
-			PageType: "type_3",
+			PageType: domain.PageTypeDiscovery,
 			URL:      "http://example.com/4",
 		},
 	}
@@ -95,17 +95,17 @@ func TestScrapeFailure(t *testing.T) {
 	tasks := []domain.ScrapeTask{
 		{
 			Source:   "source",
-			PageType: "type_1",
+			PageType: domain.PageTypeListing,
 			URL:      "http://example.com",
 		},
 		{
 			Source:   "source",
-			PageType: "type_1",
+			PageType: domain.PageTypeListing,
 			URL:      "http://example.com/1",
 		},
 		{
 			Source:   "source",
-			PageType: "type_1",
+			PageType: domain.PageTypeListing,
 			URL:      "http://example.com/2",
 		},
 	}

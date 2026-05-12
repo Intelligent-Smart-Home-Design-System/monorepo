@@ -3,7 +3,16 @@
 Сервис отвечает за скачивание ресурсов маркетплейсов/документации экосистем и их сохранение в [БД каталога](../../db/catalog/README.md), в бронзовый слой.  
 
 ### Usage 
-`./scraper run`
+```
+cd services/scraper
+
+go build -o scraper
+
+./mytool scrape --config ./cmd/scraper/config.local.toml
+
+# Запустить несколько источников
+./mytool scrape --config ./cmd/scraper/config.local.toml --sources printer,wildberries
+```
 
 Конфиг - config.toml, пример есть в cmd/scraper. В нем необходимо указать параметры для подключения к БД. Пароль задается переменной окружения:
 `SCRAPER_DATABASE_PASSWORD`

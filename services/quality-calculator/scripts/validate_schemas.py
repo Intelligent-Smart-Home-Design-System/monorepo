@@ -5,7 +5,7 @@ import sys
 
 def validate():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    eval_path = os.path.join(current_dir, "evaluation_traits.json")
+    eval_path = os.path.abspath(os.path.join(current_dir, "..", "config", "evaluation_traits.json"))
     types_path = os.path.abspath(
         os.path.join(current_dir, "..", "..", "..", "shared", "schemas", "devices", "device_types.json"))
 

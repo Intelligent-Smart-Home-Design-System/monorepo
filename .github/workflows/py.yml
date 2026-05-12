@@ -46,7 +46,7 @@ jobs:
         working-directory: services/quality-calculator
 
       - name: Validate JSON Schemas
-        run: uv run python validate_schemas.py
+        run: uv run python scripts/validate_schemas.py
         working-directory: services/quality-calculator
 
       - name: Run tests

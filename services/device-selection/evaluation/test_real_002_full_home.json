@@ -1,0 +1,22 @@
+{
+  "id": "real_002_full_home",
+  "description": "Real catalog test: full home setup matching the example from the codebase. 3 E27 lamps + 2 motion sensors + 5 leak sensors + 3 door/window sensors + 1 smart lock (connect_to_main=false). Budget 25000. This is the reference test for realistic usage. Excludes xiaomi, digma.",
+  "run_brute_force": false,
+  "catalog": "real_catalog.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 25000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",           "count": 3, "connect_to_main_ecosystem": true,
+        "filters": [{"field": "socket_type", "op": "eq", "value": "E27"}]},
+      {"requirement_id": 2, "device_type": "motion_sensor",        "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "water_leak_sensor",    "count": 5, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 4, "device_type": "door_window_sensor",   "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 5, "device_type": "smart_lock",           "count": 1, "connect_to_main_ecosystem": false, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": ["xiaomi", "digma"],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

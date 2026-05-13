@@ -16,7 +16,7 @@ from device_selection.core.model import (
 from device_selection.core.pareto import ParetoArchive
 from device_selection.core.validate import validate_solution
 from device_selection.data.catalog import InMemoryCatalog
-from device_selection.solvers.enum_repair import SolverConfig, solve_enum_repair
+from device_selection.solvers.brute_force import solve_brute_force
 
 
 # Ecosystems:
@@ -140,78 +140,63 @@ def _request(
     )
 
 
-DEFAULT_CFG = SolverConfig(max_bridge_ecosystems=3, max_hub_types=2)
-
-
 def _all_points(archive: ParetoArchive) -> list[ParetoPoint]:
     return list(archive.points)
-
-
-def _item_for_req(point: ParetoPoint, req_id: int) -> list[SolutionItem]:
-    return [it for it in point.items if it.requirement_id == req_id]
-
-
-def _hub_items(point: ParetoPoint) -> list[SolutionItem]:
-    return [it for it in point.items if it.requirement_id is None]
-
-
-def _device_ids_in_point(point: ParetoPoint) -> set[int]:
-    return {it.device.device_id for it in point.items}
 
 
 class TestBasicFeasibility:
     def test_single_wifi_lamp_finds_solution(self, catalog):
         req = _request([_req(1, "smart_lamp")])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_single_wifi_sensor_finds_solution(self, catalog):
         req = _request([_req(1, "motion_sensor")])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_lamp_and_sensor_finds_solution(self, catalog):
         req = _request([_req(1, "smart_lamp"), _req(2, "motion_sensor")])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_unknown_device_type_returns_empty(self, catalog):
         req = _request([_req(1, "smart_toaster")])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) == 0
 
     def test_budget_too_small_returns_empty(self, catalog):
         req = _request([_req(1, "smart_lamp")], budget=100.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) == 0
 
 
 class TestRequirementsSatisfied:
     def test_each_requirement_has_one_item(self, catalog):
         req = _request([_req(1, "smart_lamp"), _req(2, "motion_sensor")])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
-        for point in _all_points(archive):
+        for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_item_device_type_matches_requirement(self, catalog):
         req = _request([_req(1, "smart_lamp"), _req(2, "motion_sensor")])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
-        for point in _all_points(archive):
+        for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_quantity_matches_requirement(self, catalog):
         req = _request([_req(1, "smart_lamp", count=2)])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
-        for point in _all_points(archive):
+        for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_filter_respected(self, catalog):
@@ -222,48 +207,40 @@ class TestRequirementsSatisfied:
                 Filter("rgb_support", FilterOp.EQ, True),
             )),
         ])
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) == 0
 
-
-# ---------------------------------------------------------------------------
-# Connection validity
-# ---------------------------------------------------------------------------
 
 class TestConnectionValidity:
     def test_wifi_device_has_no_hub(self, catalog):
         # with tight budget only wifi lamp fits, no hub
         req = _request([_req(1, "smart_lamp")], budget=1000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
-        for point in _all_points(archive):
+        for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_zigbee_device_has_hub_in_solution(self, catalog):
         req = _request([_req(1, "smart_lamp")], budget=10_000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
-        for point in _all_points(archive):
+        for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_bridge_connection_has_connection_final(self, catalog):
         req = _request([_req(1, "smart_lamp")], budget=10_000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_all_hub_solution_item_ids_reference_valid_items(self, catalog):
         req = _request([_req(1, "smart_lamp"), _req(2, "motion_sensor")], budget=20_000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
-
-# ---------------------------------------------------------------------------
-# Ecosystem filtering
-# ---------------------------------------------------------------------------
 
 class TestEcosystemFiltering:
     def test_excluded_ecosystem_not_used_as_bridge(self, catalog):
@@ -272,7 +249,7 @@ class TestEcosystemFiltering:
             exclude=frozenset({"aqara"}),
             budget=10_000.0,
         )
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
@@ -284,7 +261,7 @@ class TestEcosystemFiltering:
             exclude=frozenset({"aqara"}),
             budget=10_000.0,
         )
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
@@ -297,7 +274,7 @@ class TestHubSelection:
             [_req(1, "smart_lamp"), _req(2, "motion_sensor")],
             budget=1500.0,
         )
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
@@ -307,30 +284,29 @@ class TestHubSelection:
             [_req(1, "smart_lamp"), _req(2, "motion_sensor")],
             budget=20_000.0,
         )
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_hub_counted_in_num_hubs(self, catalog):
         req = _request([_req(1, "smart_lamp")], budget=20_000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
-
 class TestParetoFront:
     def test_avg_quality_includes_hubs(self, catalog):
         req = _request([_req(1, "smart_lamp")], budget=20_000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0
 
     def test_num_ecosystems_correct(self, catalog):
         req = _request([_req(1, "smart_lamp")], budget=20_000.0)
-        archive = solve_enum_repair(req, catalog, DEFAULT_CFG)
+        archive = solve_brute_force(req, catalog)
         assert len(_all_points(archive)) > 0
         for point in archive.points:
             assert len(validate_solution(req, point)) == 0

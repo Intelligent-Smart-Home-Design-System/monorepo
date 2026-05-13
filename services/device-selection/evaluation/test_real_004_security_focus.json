@@ -1,0 +1,20 @@
+{
+  "id": "real_004_security_focus",
+  "description": "Real catalog: security-focused setup. Cameras, motion sensors, door sensors, and one lock. No lamp requirement. Budget 20000. Tests device types with smaller catalog slices (camera=147, door_window=36, lock=26, motion=21).",
+  "run_brute_force": false,
+  "catalog": "real_catalog.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 20000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_camera",        "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor",       "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "door_window_sensor",  "count": 5, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 4, "device_type": "smart_lock",          "count": 1, "connect_to_main_ecosystem": false, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": ["xiaomi", "digma"],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

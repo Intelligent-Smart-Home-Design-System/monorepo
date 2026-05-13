@@ -19,6 +19,7 @@ from device_selection.core.model import (
     ProtocolId,
     SolutionItem,
 )
+from device_selection.core.objectives import compute_objectives
 from device_selection.core.pareto import ParetoArchive
 from device_selection.core.pathfinding import find_connection, find_hub_connection, hub_required
 from device_selection.data.catalog import Catalog
@@ -129,7 +130,7 @@ def _build_slots(
         )
         if not filtered:
             return None
-        slots.append(_Slot(requirement=hub_req, candidates=hub_devices, hub_type=hub_type))
+        slots.append(_Slot(requirement=hub_req, candidates=filtered, hub_type=hub_type))
 
     return slots
 
@@ -252,7 +253,6 @@ def _build_solution(
     items: list[SolutionItem] = []
     used_ecosystems: set[EcosystemId] = set()
     used_hub_item_ids: set[int] = set()
-    total_cost = 0.0
 
     for item_id, device, req, conn in items_partial:
         direct = _resolve(conn.connection_direct)
@@ -268,7 +268,6 @@ def _build_solution(
             used_ecosystems.add(final.ecosystem)
 
         qty = req.count
-        total_cost += qty * device.price
 
         # requirement_id = -1 means auto-added hub, expose as None to caller
         requirement_id = req.requirement_id if req.requirement_id != -1 else None
@@ -284,18 +283,17 @@ def _build_solution(
             ),
         ))
 
-    avg_quality = sum(item.device.quality for item in items) / len(items)
-
     if len(used_hub_item_ids) != len(available_hub_types):
         # some hubs are useless - reject solution
         return None
 
+    obj = compute_objectives(items)
     return ParetoPoint(
         items=tuple(items),
-        total_cost=total_cost,
-        avg_quality=avg_quality,
-        num_ecosystems=len(used_ecosystems),
-        num_hubs=len(used_hub_item_ids),
+        total_cost=obj.total_cost,
+        avg_quality=obj.avg_quality,
+        num_ecosystems=obj.num_ecosystems,
+        num_hubs=obj.num_hubs,
     )
 
 

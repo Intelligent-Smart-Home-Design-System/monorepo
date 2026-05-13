@@ -157,6 +157,15 @@ func (b *Builder) Build(listings []*domain.ExtractedListing, compat []*domain.Sc
 
 	for _, d := range devices {
 		b.buildCompatibilityLinks(d)
+		if d.Category == smartHubCategory {
+			ecosystems := []string{}
+			for _, c := range d.DirectCompatibility {
+				if !slices.Contains(ecosystems, c.Ecosystem) {
+					ecosystems = append(ecosystems, c.Ecosystem)
+				}
+			}
+			d.DeviceAttributes["ecosystem"] = ecosystems
+		}
 	}
 
 	return &domain.Catalog{Devices: devices}

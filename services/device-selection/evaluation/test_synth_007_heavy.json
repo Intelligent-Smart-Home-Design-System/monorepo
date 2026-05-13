@@ -1,0 +1,19 @@
+{
+  "id": "synth_007_multieco_heavy",
+  "description": "Multi-ecosystem heavy test. 3 lamps + 3 sensors + 3 plugs. Count=3 per requirement creates significantly larger search space (combinations_with_replacement(N, 3) vs (N, 2)). Brute force may take several minutes; set run_brute_force=false if you only want heuristic. With run_brute_force=true, use this to stress-test correctness under longer runtimes and verify the heuristic front is competitive.",
+  "run_brute_force": false,
+  "catalog": "catalog_multieco.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 18000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 3, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 100,
+    "time_budget_seconds": 6000.0
+  }
+}

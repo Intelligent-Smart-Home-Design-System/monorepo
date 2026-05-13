@@ -1,0 +1,18 @@
+{
+  "id": "synth_003_bridge_required",
+  "description": "Bridge ecosystem test. 2 lamps + 2 sensors, main=yandex. Aqara devices reach yandex only via cloud bridge (need aqara hub for their zigbee direct leg). Expected Pareto front: (1) yandex-direct premium (E=1, H=0); (2) aqara-bridge premium + aqara premium hub (E=2, H=1, higher quality). Tests bridge logic and ecosystem/hub trade-off.",
+  "run_brute_force": true,
+  "catalog": "catalog_synth_003.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 4500.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 10,
+    "time_budget_seconds": 120.0
+  }
+}

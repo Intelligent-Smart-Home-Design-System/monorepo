@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/stealth"
 	"golang.org/x/time/rate"
@@ -35,30 +35,49 @@ type Cookie struct {
 }
 
 type Scraper struct {
-	client      *http.Client
-	limiter     *rate.Limiter
-	cardBasket  string
-	sessionPath string
-	session     *Session
-	mu          sync.RWMutex
+	client               *http.Client
+	limiter              *rate.Limiter
+	cardBasket           string
+	sessionPath          string
+	session              *Session
+	mu                   sync.RWMutex
+	discoveryURLTemplate string
+	discoveryMaxPages    int
 }
 
-func NewScraper(timeout time.Duration, proxyURL, cardBasket string, rps float64, sessionPath string) *Scraper {
+func NewScraper(
+	timeout time.Duration,
+	proxyURL, cardBasket string,
+	rps float64,
+	sessionPath string,
+	discoveryURLTemplate string,
+	discoveryMaxPages int,
+) *Scraper {
 	transport := &http.Transport{}
 	if proxyURL != "" {
 		if proxy, err := url.Parse(proxyURL); err == nil {
 			transport.Proxy = http.ProxyURL(proxy)
 		}
 	}
-	limiter := rate.NewLimiter(rate.Limit(rps), 100)
+	limiter := rate.NewLimiter(rate.Limit(rps), 1)
+	var session *Session
+	if data, err := os.ReadFile(sessionPath); err == nil {
+		var sess Session
+		if err := json.Unmarshal(data, &sess); err == nil && time.Since(sess.UpdatedAt) < time.Hour {
+			session = &sess
+		}
+	}
 	return &Scraper{
 		client: &http.Client{
 			Timeout:   timeout,
 			Transport: transport,
 		},
-		limiter:     limiter,
-		cardBasket:  cardBasket,
-		sessionPath: sessionPath,
+		limiter:              limiter,
+		cardBasket:           cardBasket,
+		sessionPath:          sessionPath,
+		session:              session,
+		discoveryURLTemplate: discoveryURLTemplate,
+		discoveryMaxPages:    discoveryMaxPages,
 	}
 }
 
@@ -88,42 +107,47 @@ func (s *Scraper) saveSession(sess *Session) error {
 }
 
 func (s *Scraper) mineSession() (*Session, error) {
-	fmt.Println("[DEBUG] mineSession: starting headless browser...")
-	browser := rod.New().MustConnect()
-	defer browser.MustClose()
+    fmt.Println("[DEBUG] mineSession: starting headless browser...")
+    l := launcher.New().Headless(true).Set("no-sandbox").Set("disable-setuid-sandbox")
+    url, err := l.Launch()
+    if err != nil {
+        return nil, fmt.Errorf("launch browser: %w", err)
+    }
+    browser := rod.New().ControlURL(url).MustConnect()
+    defer browser.MustClose()
 
-	page := stealth.MustPage(browser)
-	defer page.MustClose()
+    page := stealth.MustPage(browser)
+    defer page.MustClose()
 
-	page.MustNavigate("https://www.wildberries.ru/")
-	page.MustWaitLoad()
+    page.MustNavigate("https://www.wildberries.ru/")
+    page.MustWaitLoad()
 
-	cookies := page.MustCookies()
-	var cookieList []Cookie
-	var tokenValue string
-	for _, c := range cookies {
-		if c.Name == "x_wbaas_token" {
-			tokenValue = c.Value
-		}
-		cookieList = append(cookieList, Cookie{
-			Name:   c.Name,
-			Value:  c.Value,
-			Domain: c.Domain,
-			Path:   c.Path,
-		})
-	}
-	if tokenValue == "" {
-		return nil, fmt.Errorf("x_wbaas_token not found in cookies")
-	}
+    cookies := page.MustCookies()
+    var cookieList []Cookie
+    var tokenValue string
+    for _, c := range cookies {
+        if c.Name == "x_wbaas_token" {
+            tokenValue = c.Value
+        }
+        cookieList = append(cookieList, Cookie{
+            Name:   c.Name,
+            Value:  c.Value,
+            Domain: c.Domain,
+            Path:   c.Path,
+        })
+    }
+    if tokenValue == "" {
+        return nil, fmt.Errorf("x_wbaas_token not found in cookies")
+    }
 
-	uaVal := page.MustEval(`() => navigator.userAgent`)
-	userAgent := uaVal.Str()
+    uaVal := page.MustEval(`() => navigator.userAgent`)
+    userAgent := uaVal.Str()
 
-	return &Session{
-		UserAgent: userAgent,
-		Cookies:   cookieList,
-		Token:     tokenValue,
-	}, nil
+    return &Session{
+        UserAgent: userAgent,
+        Cookies:   cookieList,
+        Token:     tokenValue,
+    }, nil
 }
 
 func (s *Scraper) ensureSession() error {
@@ -300,6 +324,17 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		return nil, fmt.Errorf("ensure session: %w", err)
 	}
 
+	switch task.PageType {
+	case domain.PageTypeListing:
+		return s.scrapeListing(ctx, task)
+	case domain.PageTypeDiscovery:
+		return s.scrapeDiscoveryTask(ctx, task)
+	default:
+		return nil, fmt.Errorf("unsupported page type %s for source %s", task.PageType.String(), task.Source)
+	}
+}
+
+func (s *Scraper) scrapeListing(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
 	nmID, err := extractNmID(task.URL)
 	if err != nil {
 		return nil, err
@@ -315,13 +350,11 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		return nil, fmt.Errorf("get card URL: %w", err)
 	}
 
-	fmt.Println("[DEBUG] fetching detail.json...")
 	detailBody, err := s.fetchWithRetry(ctx, detailURL)
 	if err != nil {
 		return nil, fmt.Errorf("detail.json: %w", err)
 	}
 
-	fmt.Println("[DEBUG] fetching card.json...")
 	cardBody, err := s.fetchWithRetry(ctx, cardURL)
 	if err != nil {
 		return nil, fmt.Errorf("card.json: %w", err)
@@ -346,4 +379,63 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		},
 	}
 	return &domain.ScrapeResult{Resources: resources}, nil
+}
+
+func (s *Scraper) scrapeDiscoveryTask(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
+	const prefix = "wildberries://discovery/"
+	if !strings.HasPrefix(task.URL, prefix) {
+		return nil, fmt.Errorf("invalid discovery URL: %s", task.URL)
+	}
+	query := strings.TrimPrefix(task.URL, prefix)
+	if query == "" {
+		return nil, fmt.Errorf("empty discovery query")
+	}
+	resources, err := s.scrapeDiscovery(ctx, query, s.discoveryMaxPages, s.discoveryURLTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("discovery scrape failed: %w", err)
+	}
+	return &domain.ScrapeResult{Resources: resources}, nil
+}
+
+func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages int, urlTemplate string) ([]domain.Resource, error) {
+    var resources []domain.Resource
+    for page := 1; page <= maxPages; page++ {
+        searchURL := strings.ReplaceAll(urlTemplate, "{query}", url.QueryEscape(query))
+        searchURL = strings.ReplaceAll(searchURL, "{page}", strconv.Itoa(page))
+
+        body, err := s.fetchWithRetry(ctx, searchURL)
+        if err != nil {
+            if page == 1 {
+                return nil, fmt.Errorf("failed to fetch search page %d: %w", page, err)
+            }
+            break
+        }
+
+        var resp struct {
+            Products []interface{} `json:"products"`
+        }
+        if err := json.Unmarshal(body, &resp); err != nil {
+            if page == 1 {
+                return nil, fmt.Errorf("invalid response on page %d: %w", page, err)
+            }
+            break
+        }
+        if len(resp.Products) == 0 {
+            break
+        }
+
+        resource := domain.Resource{
+            Name:         fmt.Sprintf("page_%d.json", page),
+            URL:          searchURL,
+            ResponseBody: body,
+            StatusCode:   http.StatusOK,
+            Status:       "200 OK",
+            Timestamp:    time.Now(),
+        }
+        resources = append(resources, resource)
+    }
+    if len(resources) == 0 {
+        return nil, fmt.Errorf("no search results found for query %s", query)
+    }
+    return resources, nil
 }

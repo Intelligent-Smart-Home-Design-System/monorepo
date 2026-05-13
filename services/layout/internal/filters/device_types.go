@@ -8,7 +8,7 @@ type Base struct {
     Model string `json:"model"`
 }
 
-type Connectivity struct {я 
+type Connectivity struct {
     Ecosystem []string `json:"ecosystem"`
     Protocol []string `json:"protocol"`
 }

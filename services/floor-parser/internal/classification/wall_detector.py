@@ -4,43 +4,9 @@ from dataclasses import dataclass
 from math import sqrt
 from typing import NamedTuple
 
+from internal.classification.config import WALL_DETECTOR_CONFIG, build_wall_thresholds
 from internal.entities.floor import Wall
 from internal.entities.geometry import LineEntity, NormalizedEntity, Point, PolylineEntity
-
-
-MIN_WALL_WIDTH_MM = 2.0
-PARALLEL_CROSS_TOLERANCE = 0.01
-MIN_OVERLAP_RATIO = 0.6
-MAX_WIDTH_TO_LENGTH = 0.35
-LINE_OFFSET_TOLERANCE_MM = 2.0
-MAX_RUN_GAP_MM = 250.0
-MAX_FALLBACK_RUN_GAP_MM = 25.0
-RUN_WIDTH_TOLERANCE_MM = 50.0
-
-WALL_LAYER_MARKERS = (
-    "wall",
-    "walls",
-    "стена",
-    "стены",
-)
-
-UNITS_TO_MILLIMETERS: dict[str, float] = {
-    "mm": 1.0,
-    "millimeter": 1.0,
-    "millimeters": 1.0,
-    "cm": 10.0,
-    "centimeter": 10.0,
-    "centimeters": 10.0,
-    "m": 1000.0,
-    "meter": 1000.0,
-    "meters": 1000.0,
-    "in": 25.4,
-    "inch": 25.4,
-    "inches": 25.4,
-    "ft": 304.8,
-    "foot": 304.8,
-    "feet": 304.8,
-}
 
 
 @dataclass(frozen=True)
@@ -60,8 +26,9 @@ class PartnerScore(NamedTuple):
 class WallDetector:
     def detect(self, entities: list[NormalizedEntity], units: str | None = None) -> list[Wall]:
         boundaries = self._collect_boundaries(entities)
-        min_width = self._mm_to_units(MIN_WALL_WIDTH_MM, units)
-        offset_tolerance = self._mm_to_units(LINE_OFFSET_TOLERANCE_MM, units)
+        thresholds = build_wall_thresholds(units)
+        min_width = thresholds.min_wall_width
+        offset_tolerance = thresholds.line_offset_tolerance
 
         walls: list[Wall] = []
         used: set[str] = set()
@@ -79,15 +46,12 @@ class WallDetector:
                 walls.append(self._build_fallback_wall(boundary))
                 used.add(boundary.id)
 
-        max_run_gap = self._mm_to_units(MAX_RUN_GAP_MM, units)
-        max_fallback_run_gap = self._mm_to_units(MAX_FALLBACK_RUN_GAP_MM, units)
-        run_width_tolerance = self._mm_to_units(RUN_WIDTH_TOLERANCE_MM, units)
         return self._assign_run_ids(
             walls,
             offset_tolerance,
-            max_run_gap,
-            max_fallback_run_gap,
-            run_width_tolerance,
+            thresholds.max_run_gap,
+            thresholds.max_fallback_run_gap,
+            thresholds.run_width_tolerance,
         )
 
     def _collect_boundaries(self, entities: list[NormalizedEntity]) -> list[WallBoundary]:
@@ -113,7 +77,7 @@ class WallDetector:
 
     def _is_wall_layer(self, layer: str) -> bool:
         normalized_layer = layer.strip().lower()
-        return any(marker in normalized_layer for marker in WALL_LAYER_MARKERS)
+        return any(marker in normalized_layer for marker in WALL_DETECTOR_CONFIG.wall_layer_markers)
 
     def _boundaries_from_segment(
         self,
@@ -170,7 +134,7 @@ class WallDetector:
             return None
 
         shorter = min(self._length(boundary.start, boundary.end), self._length(candidate.start, candidate.end))
-        if shorter == 0.0 or overlap / shorter < MIN_OVERLAP_RATIO:
+        if shorter == 0.0 or overlap / shorter < WALL_DETECTOR_CONFIG.min_overlap_ratio:
             return None
 
         offsets = self._signed_offsets(boundary, candidate, direction)
@@ -182,7 +146,7 @@ class WallDetector:
             return None
 
         width = (abs(offset_start) + abs(offset_end)) / 2.0
-        if width < min_width or width / overlap > MAX_WIDTH_TO_LENGTH:
+        if width < min_width or width / overlap > WALL_DETECTOR_CONFIG.max_width_to_length:
             return None
 
         return PartnerScore(width=width, neg_overlap=-overlap)
@@ -340,13 +304,13 @@ class WallDetector:
 
         ux = (end.x - start.x) / length
         uy = (end.y - start.y) / length
-        if ux < 0.0 or (abs(ux) <= PARALLEL_CROSS_TOLERANCE and uy < 0.0):
+        if ux < 0.0 or (abs(ux) <= WALL_DETECTOR_CONFIG.parallel_cross_tolerance and uy < 0.0):
             ux, uy = -ux, -uy
 
         return Point(x=ux, y=uy)
 
     def _are_parallel(self, a: Point, b: Point) -> bool:
-        return abs(a.x * b.y - a.y * b.x) <= PARALLEL_CROSS_TOLERANCE
+        return abs(a.x * b.y - a.y * b.x) <= WALL_DETECTOR_CONFIG.parallel_cross_tolerance
 
     def _project(self, point: Point, origin: Point, direction: Point) -> float:
         return (point.x - origin.x) * direction.x + (point.y - origin.y) * direction.y
@@ -379,9 +343,3 @@ class WallDetector:
 
     def _length(self, start: Point, end: Point) -> float:
         return round(sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2), 6)
-
-    def _mm_to_units(self, value_mm: float, units: str | None) -> float:
-        if units is None:
-            return value_mm
-        mm_per_unit = UNITS_TO_MILLIMETERS.get(units.strip().lower())
-        return value_mm / mm_per_unit if mm_per_unit is not None else value_mm

@@ -28,6 +28,15 @@ class ParseFloorIntegrationTest(unittest.TestCase):
     def test_floorplan(self):
         self._assert_floor_json_matches_expected("floorplan.dxf", "floorplan.json")
 
+    def test_image_apartment_plan(self):
+        self._assert_floor_json_matches_expected("image_apartment_plan.dxf", "image_apartment_plan.json")
+
+    def test_two_bedroom_ensuite_apartment(self):
+        self._assert_floor_json_matches_expected(
+            "two_bedroom_ensuite_apartment.dxf",
+            "two_bedroom_ensuite_apartment.json",
+        )
+
     def test_opening_bindings_are_populated(self):
         classified = self._classify_dxf("floorplan.dxf")
 

@@ -23,8 +23,7 @@ class SemanticClassifier:
 
     def classify(self, entities: list[NormalizedEntity], units: str | None = None) -> ClassifiedEntities:
         walls = self._wall_detector.detect(entities, units=units)
-        doors = self._opening_detector.detect_doors(entities, walls)
-        windows = self._opening_detector.detect_windows(entities, walls)
+        doors, windows = self._opening_detector.detect(entities, walls, units=units)
 
         return ClassifiedEntities(
             walls=walls,

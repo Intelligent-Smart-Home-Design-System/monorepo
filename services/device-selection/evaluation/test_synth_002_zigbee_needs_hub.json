@@ -1,0 +1,18 @@
+{
+  "id": "synth_002_zigbee_needs_hub",
+  "description": "Hub selection test. 2 lamps + 2 sensors. Zigbee devices have higher quality but need a hub; wifi devices are inferior but hubless. Expected Pareto front: (1) all wifi premium, no hub; (2) all zigbee premium + premium hub. Tests trade-off between fewer hubs and higher quality.",
+  "run_brute_force": true,
+  "catalog": "catalog_synth_002.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 5500.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

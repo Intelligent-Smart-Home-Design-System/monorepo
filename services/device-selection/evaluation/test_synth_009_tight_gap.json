@@ -1,0 +1,18 @@
+{
+  "id": "synth_009_tight_gap",
+  "description": "Tight-budget heterogeneous gap test using catalog_multieco. Budget 2900 makes 2x-premium-lamp infeasible (cost 2+2+hub=3080) but 1-mid+1-premium lamp fits (2760). Expected: enum_repair finds Q=0.893 (2x AQL-Mid + 2x AQMS-Prem + AQ-Hub), brute force finds Q=0.905 (1x AQL-Mid + 1x AQL-Prem + 2x AQMS-Prem + AQ-Hub). BF strictly dominates heuristic on quality (same E=2, H=1). Also has yandex-direct solution (E=1 H=0 Q~0.77) on Pareto front. Fast BF (~1-2s), pure gap demonstration.",
+  "run_brute_force": true,
+  "catalog": "catalog_multieco.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 2900.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 50,
+    "time_budget_seconds": 600.0
+  }
+}

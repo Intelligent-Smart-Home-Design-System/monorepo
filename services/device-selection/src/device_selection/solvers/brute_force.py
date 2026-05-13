@@ -36,6 +36,7 @@ from device_selection.core.model import (
     ProtocolId,
     SolutionItem,
 )
+from device_selection.core.objectives import compute_objectives
 from device_selection.core.pareto import ParetoArchive
 from device_selection.core.pathfinding import (
     find_connection,
@@ -215,7 +216,7 @@ def solve_brute_force(req: DeviceSelectionRequest, catalog: Catalog) -> ParetoAr
                 ):
                     continue
 
-                point = _build_point(dev_plans, hub_plans, total_cost)
+                point = _build_point(dev_plans, hub_plans)
                 if point is not None:
                     archive.add(point)
 
@@ -225,7 +226,6 @@ def solve_brute_force(req: DeviceSelectionRequest, catalog: Catalog) -> ParetoAr
 def _build_point(
     dev_plans: list[tuple[Device, DeviceRequirement, ConnectionPlan]],
     hub_plans: list[tuple[Device, EcosystemId, ConnectionPlan]],
-    total_cost: float,
 ) -> Optional[ParetoPoint]:
     """Group multiset duplicates into items, resolve hub_solution_item_id, compute objectives."""
 
@@ -299,19 +299,11 @@ def _build_point(
             connection=ConnectionPlan(connection_direct=direct, connection_final=final),
         ))
 
-    # avg quality per advisor's spec: per-req avg, then avg across reqs + hub items
-    req_qs: dict[int, list[float]] = {}
-    for d, r, _ in dev_plans:
-        req_qs.setdefault(r.requirement_id, []).append(d.quality)
-    req_avgs = [sum(qs) / len(qs) for qs in req_qs.values()]
-    hub_qs = [h.quality for h, _, _ in hub_plans]
-    all_q = req_avgs + hub_qs
-    avg_quality = sum(all_q) / len(all_q) if all_q else 0.0
-
+    obj = compute_objectives(items)
     return ParetoPoint(
         items=tuple(items),
-        total_cost=total_cost,
-        avg_quality=avg_quality,
-        num_ecosystems=len(used_ecos),
-        num_hubs=len(hub_plans),
+        total_cost=obj.total_cost,
+        avg_quality=obj.avg_quality,
+        num_ecosystems=obj.num_ecosystems,
+        num_hubs=obj.num_hubs,
     )

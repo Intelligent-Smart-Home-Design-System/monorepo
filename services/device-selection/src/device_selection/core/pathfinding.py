@@ -13,8 +13,8 @@ from device_selection.core.model import (
     ProtocolId,
 )
 
-# protocols that don't require a hub for direct connection
-_HUBLESS_PROTOCOLS = frozenset({"wifi"})
+# protocols that don't require a hub for connection
+_HUBLESS_PROTOCOLS = frozenset({"wifi", "cloud"})
 
 
 def hub_required(protocol: ProtocolId) -> bool:

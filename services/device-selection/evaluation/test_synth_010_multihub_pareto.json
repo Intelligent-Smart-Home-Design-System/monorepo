@@ -1,0 +1,19 @@
+{
+  "id": "synth_010_multihub_pareto",
+  "description": "Multi-hub Pareto front demonstration using catalog_multihub. 2 lamps + 2 sensors + 2 plugs, generous budget. The catalog has ultra-quality yandex-zigbee (q=0.98) and tuya-zigbee (q=0.97) devices; the aqara hub is intentionally basic quality (q=0.85) so that H=1-all-aqara (Q~0.930) is beaten by H=2 solutions. Expected 4-point Pareto front: (E=1 H=0 Q~0.913), (E=2 H=1 Q~0.930), (E=2 H=2 Q~0.940), (E=3 H=3 Q~0.942). BF estimated ~40s.",
+  "run_brute_force": true,
+  "catalog": "catalog_multihub.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 15000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 100,
+    "time_budget_seconds": 180.0
+  }
+}

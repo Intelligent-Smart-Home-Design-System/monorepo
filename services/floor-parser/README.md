@@ -21,7 +21,7 @@
 Архитектура сейчас такая:
 
 ```text
-cmd/floor_parser/main.py        <- точка входа
+app/floor_parser/main.py        <- точка входа
 internal/
 ├── api/                  <- HTTP API
 ├── classification/       <- определение смысла сущностей
@@ -50,7 +50,7 @@ pip install -r requirements.txt
 После установки сервис можно запустить так:
 
 ```bash
-python -m cmd.floor_parser.main
+python -m app.floor_parser.main
 ```
 
 По умолчанию сервис слушает порт `8080`:
@@ -62,7 +62,7 @@ http://127.0.0.1:8080
 Порт можно изменить через переменную окружения `PARSER_PORT`:
 
 ```bash
-PARSER_PORT=8090 python -m cmd.floor_parser.main
+PARSER_PORT=8090 python -m app.floor_parser.main
 ```
 
 Проверить, что он поднялся, можно так:

@@ -17,6 +17,7 @@ func defaultCfg() BuilderConfig {
 		IdentifyingAttributes: map[string][]string{
 			"smart_lamp": {"socket_type", "wattage_w"},
 		},
+		SupportedHubProtocols: []string{"*"},
 		Ecosystems: map[string]config.EcosystemConfig{
 			"yandex": {
 				SupportsExternalIntegrations: true,

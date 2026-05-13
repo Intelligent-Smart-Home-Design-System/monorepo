@@ -141,66 +141,65 @@ async def _test_selection(settings: Settings, output_path: Path) -> None:
         )
         catalog = await loader.load()
         log.info("catalog loaded", device_count=len(catalog._devices_by_id))
-        for i in range(1000, 60000, 1000):
-            req = DeviceSelectionRequest(
-                main_ecosystem="yandex",
-                budget=25000,
-                requirements=(
-                    DeviceRequirement(
-                        requirement_id=1,
-                        device_type="smart_lamp",
-                        count=3,
-                        connect_to_main_ecosystem=True,
-                        filters=(
-                            Filter(field="socket_type", op=FilterOp.EQ, value="E27"),
-                        ),
-                    ),
-                    DeviceRequirement(
-                        requirement_id=2,
-                        device_type="motion_sensor",
-                        count=2,
-                        connect_to_main_ecosystem=True,
-                    ),
-                    DeviceRequirement(
-                        requirement_id=3,
-                        device_type="water_leak_sensor",
-                        count=5,
-                        connect_to_main_ecosystem=True,
-                    ),
-                    DeviceRequirement(
-                        requirement_id=4,
-                        device_type="door_window_sensor",
-                        count=3,
-                        connect_to_main_ecosystem=True,
-                    ),
-                    DeviceRequirement(
-                       requirement_id=5,
-                       device_type="smart_lock",
-                       count=1,
-                       connect_to_main_ecosystem=False,
+        req = DeviceSelectionRequest(
+            main_ecosystem="yandex",
+            budget=25000,
+            requirements=(
+                DeviceRequirement(
+                    requirement_id=1,
+                    device_type="smart_lamp",
+                    count=3,
+                    connect_to_main_ecosystem=True,
+                    filters=(
+                        Filter(field="socket_type", op=FilterOp.EQ, value="E27"),
                     ),
                 ),
-                exclude_ecosystems=[],
-                max_solutions=10,
-                time_budget_seconds=60.0,
-            )
+                DeviceRequirement(
+                    requirement_id=2,
+                    device_type="motion_sensor",
+                    count=2,
+                    connect_to_main_ecosystem=True,
+                ),
+                DeviceRequirement(
+                    requirement_id=3,
+                    device_type="water_leak_sensor",
+                    count=5,
+                    connect_to_main_ecosystem=True,
+                ),
+                DeviceRequirement(
+                    requirement_id=4,
+                    device_type="door_window_sensor",
+                    count=3,
+                    connect_to_main_ecosystem=True,
+                ),
+                DeviceRequirement(
+                    requirement_id=5,
+                    device_type="smart_lock",
+                    count=1,
+                    connect_to_main_ecosystem=False,
+                ),
+            ),
+            exclude_ecosystems=[],
+            max_solutions=10,
+            time_budget_seconds=60.0,
+        )
 
-            solver_cfg = SolverConfig(
-                max_bridge_ecosystems=settings.solver.max_bridge_ecosystems,
-                max_hub_types=settings.solver.max_hub_types,
-                max_candidates_per_type=settings.solver.max_candidates_per_type,
-            )
+        solver_cfg = SolverConfig(
+            max_bridge_ecosystems=settings.solver.max_bridge_ecosystems,
+            max_hub_types=settings.solver.max_hub_types,
+            max_candidates_per_type=settings.solver.max_candidates_per_type,
+        )
 
-            #log.info("running selection")
-            archive = solve_enum_repair(req, catalog, solver_cfg)
-            points = list(archive.points)
+        log.info("running selection")
+        archive = solve_enum_repair(req, catalog, solver_cfg)
+        points = list(archive.points)
 
-            log.info("selection done", num_solutions=len(points))
-            # enrich with listing urls
-            result = await _build_result(points, pool, req)
+        log.info("selection done", num_solutions=len(points))
+        # enrich with listing urls
+        result = await _build_result(points, pool, req)
 
-            (output_path.with_suffix('.' + str(i) + '.json')).write_text(json.dumps(result, ensure_ascii=False, indent=2))
-            log.info("results written", path=str(output_path))
+        output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2))
+        log.info("results written", path=str(output_path))
 
     finally:
         await pool.close()

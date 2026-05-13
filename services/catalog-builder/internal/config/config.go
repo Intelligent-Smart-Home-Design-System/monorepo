@@ -8,6 +8,7 @@ type Config struct {
 	TaxonomySchemaPath    string                     `mapstructure:"taxonomy_schema_path"`
 	StrictSchema          bool                       `mapstructure:"strict_schema"`
 	Ecosystems            map[string]EcosystemConfig `mapstructure:"ecosystems"`
+	SupportedHubProtocols []string                   `mapstructure:"supported_hub_protocols"`
 }
 
 type DatabaseConfig struct {

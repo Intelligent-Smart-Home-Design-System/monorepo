@@ -1,3 +1,7 @@
+taxonomy_schema_path = "taxonomy_schema.json"
+strict_schema = false
+supported_hub_protocols = ["wifi", "zigbee", "matter-over-wifi", "matter-over-thread"]
+
 [database]
 host = "localhost"
 port = 5432
@@ -5,9 +9,6 @@ user = "catalog"
 password = "catalog"
 dbname = "catalog"
 sslmode = "disable"
-
-taxonomy_schema_path = "taxonomy_schema.json"
-strict_schema = false
 
 [ecosystems]
 

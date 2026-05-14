@@ -37,6 +37,12 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = lampSwitcher
+		case entities.TypeLightSwitchOffSensor:
+			switcher, err := devices.NewLightSwitchOffSensor(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = switcher
 		default:
 			return nil, ErrorInvalidFormat
 		}

@@ -6,6 +6,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
+	"github.com/fschuetz04/simgo"
 )
 
 // Engine определяет главный интерфейс для запуска и обработки симуляции
@@ -56,6 +57,8 @@ type Engine interface {
 type EnginePort interface {
 	UpdateField(x, y int, cell field.Cell) error
 	GetOutChan() chan api.EventOutDTO
+	GetInChan() chan api.EventInDTO
+	GetSimulation() *simgo.Simulation
 }
 
 var (

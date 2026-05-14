@@ -3,10 +3,11 @@ strict_schema = false
 supported_hub_protocols = ["wifi", "zigbee", "matter-over-wifi", "matter-over-thread"]
 
 [database]
-host = "localhost"
+host = "catalog-postgresql"
 port = 5432
 user = "catalog"
 dbname = "smart_home"
+password = "catalog"
 sslmode = "disable"
 
 [ecosystems]

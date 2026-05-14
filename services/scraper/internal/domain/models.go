@@ -101,4 +101,13 @@ const (
     SourceSprut       = "sprut"
     SourceWildberries = "wildberries"
     SourcePrinter     = "printer"
+    SourceYandex      = "yandex"
 )
+
+type DirectCompatibilityRecord struct {
+    PageSnapshotID int
+    Brand          string
+    Model          string
+    Ecosystem      string
+    Protocol       string
+}

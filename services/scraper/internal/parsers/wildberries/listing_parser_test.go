@@ -41,7 +41,10 @@ func TestListingParser_Parse(t *testing.T) {
 		{Name: "card.json", Data: []byte(cardJSON)},
 	}
 
-	p := NewListingParser()
+	brandAliases := map[string]string{
+		"yandex": "yandex",
+	}
+	p := NewListingParser(brandAliases, []string{})
 	result, err := p.Parse(123, files)
 	require.NoError(t, err)
 
@@ -61,9 +64,33 @@ func TestListingParser_Parse(t *testing.T) {
 	assert.NotEmpty(t, result.ContentHash)
 }
 
+func TestListingParser_Filtering(t *testing.T) {
+    detailJSON := `{"products":[{"id":123,"brand":"Test","name":"Test","reviewRating":4,"feedbacks":10,"sizes":[{"price":{"product":1000},"stocks":[{"qty":1}]}]}]}`
+
+    cardJSON := `{"imt_name":"Обычный товар","description":"Не умный дом","contents":"без маркеров","selling":{"brand_name":"Test"}}`
+    files := []*parser.ArchiveFile{
+        {Name: "detail.json", Data: []byte(detailJSON)},
+        {Name: "card.json", Data: []byte(cardJSON)},
+    }
+    p := NewListingParser(nil, []string{"Zigbee"})
+    _, err := p.Parse(1, files)
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "does not contain any smart home marker")
+
+    cardJSON2 := `{"imt_name":"Умный дом","description":"Поддерживает Zigbee","contents":"","selling":{"brand_name":"Test"}}`
+    files2 := []*parser.ArchiveFile{
+        {Name: "detail.json", Data: []byte(detailJSON)},
+        {Name: "card.json", Data: []byte(cardJSON2)},
+    }
+    result, err := p.Parse(1, files2)
+    assert.NoError(t, err)
+    assert.NotNil(t, result)
+}
+
 func TestNormalizeBrand(t *testing.T) {
-	assert.Equal(t, "yandex", normalizeBrand("  Yandex  "))
-	assert.Equal(t, "apple-iphone", normalizeBrand("Apple iPhone"))
+    aliases := map[string]string{"yandex": "yandex"}
+    assert.Equal(t, "yandex", parser.NormalizeBrand("  Yandex  ", aliases))
+    assert.Equal(t, "apple-iphone", parser.NormalizeBrand("Apple iPhone", aliases))
 }
 
 func TestExtractQuantity(t *testing.T) {

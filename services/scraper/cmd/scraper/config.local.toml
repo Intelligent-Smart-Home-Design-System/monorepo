@@ -14,4 +14,16 @@ user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 proxy = ""
 wb_card_basket = "01"
 wb_session_path = "./session.json"
-wb_rps = 0.5
+wb_rps = 50
+
+[wildberries.discovery]
+discovery_text_queries = ["умный дом", "zigbee датчик"]
+max_pages = 5
+url_template = "https://catalog.wb.ru/catalog/electronic15/search?appType=1&curr=rub&dest=-1257786&query={query}&page={page}"
+
+[wildberries]
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+smart_home_device_markers = ["Алиса", "Маруся", "Экосистема умного дома", "Zigbee", "умный дом"]
+
+[yandex]
+supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"

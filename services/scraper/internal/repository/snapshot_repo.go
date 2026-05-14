@@ -189,3 +189,12 @@ func (r *SnapshotRepo) SaveListingParseResult(result *domain.ListingParseResult)
 
 	return nil
 }
+
+func (r *SnapshotRepo) SaveDirectCompatibilityRecord(rec *domain.DirectCompatibilityRecord) error {
+    _, err := r.db.Exec(`
+        INSERT INTO direct_compatibility (brand, model, ecosystem, protocol, tracked_page_id, discovered_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (brand, model, ecosystem, protocol) DO UPDATE SET last_confirmed_at = NOW()
+    `, rec.Brand, rec.Model, rec.Ecosystem, rec.Protocol, rec.PageSnapshotID, time.Now())
+    return err
+}

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
@@ -28,7 +27,10 @@ type Engine interface {
 	SetField(simField *field.Field)
 
 	// GetInChan возвращает канал для входящих событий.
-	GetInChan() chan EventIn
+	GetInChan() chan api.EventInDTO
+
+	// GetOutChan возвращает канал для выходящих событий.
+	GetOutChan() chan api.EventOutDTO
 
 	// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
 	Run() error
@@ -44,7 +46,7 @@ type Engine interface {
 	Stop()
 
 	// HandleEvent обрабатывает event по его entityID
-	HandleEvent(event EventIn)
+	HandleEvent(event api.EventInDTO)
 
 	// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
 	UpdateField(x, y int, cell field.Cell) error
@@ -53,15 +55,10 @@ type Engine interface {
 // EnginePort определяет интерфейс для взаимодействия сущностей с движком
 type EnginePort interface {
 	UpdateField(x, y int, cell field.Cell) error
+	GetOutChan() chan api.EventOutDTO
 }
 
 var (
 	ErrorFieldInvalidParameterX = errors.New("invalid parameter x")
 	ErrorFieldInvalidParameterY = errors.New("invalid parameter y")
 )
-
-// EventIn внутренняя структура для событий симуляции
-type EventIn struct {
-	EntityID string          `json:"entityID"`
-	Info     json.RawMessage `json:"info"`
-}

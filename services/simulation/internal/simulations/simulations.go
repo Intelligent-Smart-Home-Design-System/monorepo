@@ -17,7 +17,7 @@ import (
 // Simulations - структура, которая усправляет всеми симуляциями.
 type Simulations struct {
 	mu         sync.RWMutex
-	IDToEngine map[string]engine.Engine        // engineID <-> engine
+	IDToEngine map[string]engine.Engine // engineID <-> engine
 }
 
 // NewSimulation создает Simulations
@@ -31,33 +31,33 @@ func NewSimulation() *Simulations {
 // Вызывается при получении simulation:start от клиента.
 func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) error {
 	eng := engine.NewSimEngine(payload.DtSim)
- 
+
 	simField := converter.FieldFromDTO(payload.Apartment)
 	eng.SetField(simField)
- 
+
 	entities, err := converter.EntitiesFromDTO(payload.Devices, eng)
 	if err != nil {
 		return err
 	}
 	dependencies := converter.DependenciesFromDTO(payload.Scenarios)
 	eng.InitEntities(entities, dependencies)
- 
+
 	if eng.CheckCircleDependencies() {
 		return errors.New("circle dependencies detected")
 	}
- 
+
 	eng.InitProcesses()
- 
+
 	go func() {
 		if err := eng.Run(); err != nil {
 			slog.Error("engine error", "reqID", reqID, "error", err)
 		}
 	}()
- 
+
 	s.mu.Lock()
 	s.IDToEngine[reqID] = eng
 	s.mu.Unlock()
- 
+
 	return nil
 }
 
@@ -71,13 +71,13 @@ func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*ap
 	if !ok {
 		return nil, errors.New("simulation not found")
 	}
- 
+
 	for _, input := range payload.Inputs {
-		eng.GetInChan() <- converter.InputToEventDTO(input)
+		eng.GetInChan() <- input
 	}
- 
+
 	eng.Step()
- 
+
 	return eng.CollectStep(payload.Tick), nil
 }
 
@@ -91,9 +91,9 @@ func (s *Simulations) Stop(reqID string) error {
 	if !ok {
 		return errors.New("simulation not found")
 	}
- 
+
 	eng.Stop()
 	delete(s.IDToEngine, reqID)
- 
+
 	return nil
 }

@@ -59,7 +59,7 @@ func (l *Lamp) HandleOutDTO(out LampOutData) error {
 
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Patch:    dataLamp,
+		Payload:  dataLamp,
 	}
 
 	l.enginePort.GetOutChan() <- outData

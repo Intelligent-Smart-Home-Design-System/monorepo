@@ -11,11 +11,12 @@ const maxEventsBuffer = 100
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
-	simulation   *simgo.Simulation          // дискретная симуляция из simgo
-	IDToEntity   map[string]entities.Entity // ID сущности <-> структура сущности.
-	Field        *field.Field               // Поле для симуляции
-	eventsInChan chan EventIn               // Канал для входящих событий
-	dtSim        float64                    // шаг симуляционного времени, задаётся при создании
+	simulation    *simgo.Simulation          // дискретная симуляция из simgo
+	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
+	Field         *field.Field               // Поле для симуляции
+	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
+	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
+	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
 }
 
 // NewSimEngine создает SimEngine
@@ -23,7 +24,7 @@ func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
 		simulation:   simgo.NewSimulation(),
 		IDToEntity:   make(map[string]entities.Entity),
-		eventsInChan: make(chan EventIn, maxEventsBuffer),
+		eventsInChan: make(chan api.EventInDTO, maxEventsBuffer),
 		dtSim:        dtSim,
 	}
 }
@@ -98,8 +99,13 @@ func (s *SimEngine) SetField(simField *field.Field) {
 }
 
 // GetInChan возвращает канал для входящих событий.
-func (s *SimEngine) GetInChan() chan EventIn {
+func (s *SimEngine) GetInChan() chan api.EventInDTO {
 	return s.eventsInChan
+}
+
+// GetOutChan возвращает канал для выходящих событий.
+func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
+	return s.eventsOutChan
 }
 
 // Run запускает симуляцию, обрабатывая события из канала eventsInChan.
@@ -115,26 +121,21 @@ func (s *SimEngine) Step() {
 	s.simulation.RunUntil(s.simulation.Now() + s.dtSim)
 }
 
-// CollectStep собирает состояния всех сущностей после тика.
-// TODO: реализовать HasChanged/GetState на Entity для отдачи только изменившихся.
+// CollectStep собирает обновления от всех сущностей после тика.
 func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
-	var stateChanges []api.EventOutDTO
+	changes := make([]api.EventOutDTO, 0)
 
-	for id, entity := range s.IDToEntity {
-		if entityWithState, ok := entity.(entities.EntityWithState); ok {
-			if entityWithState.HasChanged() {
-				stateChanges = append(stateChanges, api.EventOutDTO{
-					EntityID: id,
-					Patch:    entityWithState.GetState(),
-				})
+	for {
+		select {
+		case event := <-s.eventsOutChan:
+			changes = append(changes, event)
+		default:
+			return &api.SimulationStepPayload{
+				Tick:         tick,
+				SimTime:      s.simulation.Now(),
+				StateChanges: changes,
 			}
 		}
-	}
-
-	return &api.SimulationStepPayload{
-		Tick:         tick,
-		SimTime:      s.simulation.Now(),
-		StateChanges: stateChanges,
 	}
 }
 
@@ -143,18 +144,18 @@ func (s *SimEngine) Stop() {
 }
 
 // HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event EventIn) {
+func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	entity := s.IDToEntity[event.EntityID]
 	receiversID := entity.GetReceiversID()
 
 	for _, receiverID := range receiversID {
-		s.eventsInChan <- EventIn{
+		s.eventsInChan <- api.EventInDTO{
 			EntityID: receiverID,
 		}
 	}
 
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
-		err := entityWithProcess.HandleInDTO(event.Info)
+		err := entityWithProcess.HandleInDTO(event.Payload)
 		if err != nil {
 			return
 		}

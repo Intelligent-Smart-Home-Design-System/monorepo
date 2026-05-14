@@ -60,7 +60,7 @@ func (l *LampSwitcher) HandleOutDTO(out LampSwitcherOutData) error {
 
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Patch:    dataLamp,
+		Payload:  dataLamp,
 	}
 
 	l.enginePort.GetOutChan() <- outData

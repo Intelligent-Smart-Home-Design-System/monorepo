@@ -79,10 +79,3 @@ func DependenciesFromDTO(scenarios []api.ScenarioDTO) map[string][]api.EdgeDTO {
 
 	return IDToDependencies
 }
-
-// InputToEventDTO преобразует EventInDTO из simulation:tick в EventIn для канала движка.
-func InputToEventDTO(input api.EventInDTO) engine.EventIn {
-	return engine.EventIn{
-		EntityID: input.EntityID,
-	}
-}

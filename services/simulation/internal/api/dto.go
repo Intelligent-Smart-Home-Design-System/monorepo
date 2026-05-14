@@ -17,16 +17,14 @@ type SimulationService interface {
 type EventInDTO struct {
 	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityId"`
-	Patch    json.RawMessage `json:"patch,omitempty"`
-	To       *PositionDTO    `json:"to,omitempty"`
+	Payload  json.RawMessage `json:"payload"`
 }
 
 // EventOutDTO структура для обработанных событий симуляции
 type EventOutDTO struct {
 	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityID"`
-	Patch    json.RawMessage `json:"patch,omitempty"`
-	To       *PositionDTO    `json:"to,omitempty"`
+	Payload  json.RawMessage `json:"payload"`
 }
 
 // EntityDTO структура для сущностей (девайсы, люди)
@@ -63,13 +61,6 @@ type EdgeDTO struct {
 	Action string        `json:"action"`
 	Data   []interface{} `json:"data,omitempty"` // доп параметры
 }
-
-// PositionDTO структура для координат
-type PositionDTO struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-
 type Message struct {
 	Type    string          `json:"type"`
 	Ts      time.Time       `json:"ts"`

@@ -54,6 +54,7 @@ class Settings(BaseModel):
     quality: QualityConfig = QualityConfig()
     logging: LoggingConfig = LoggingConfig()
     solver: SolverConfig = SolverConfig()
+    catalog_ttl_seconds: float = 86400.0 # 1 day
 
     @classmethod
     def from_toml(cls, path: Path) -> Settings:

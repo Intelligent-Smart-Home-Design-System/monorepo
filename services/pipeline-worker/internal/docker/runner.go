@@ -277,7 +277,16 @@ func (r *Runner) containerLogs(ctx context.Context, containerID string) (string,
 		strings.TrimSpace(stdout.String()),
 		strings.TrimSpace(stderr.String()),
 	}, "\n"))
-	return strings.TrimSpace(combined), nil
+
+	truncate := func(logs string, maxBytes int) string {
+		if len(logs) <= maxBytes {
+			return logs
+		}
+		// keep the tail
+		return "...[truncated]...\n" + logs[len(logs)-maxBytes:]
+	}
+
+	return truncate(strings.TrimSpace(combined), 100_000), nil
 }
 
 func tarDirectory(sourceDir string, destinationRoot string) (io.ReadCloser, error) {

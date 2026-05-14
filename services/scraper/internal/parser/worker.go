@@ -14,6 +14,7 @@ type SourceParser[T any] interface {
 
 type SnapshotRepository interface {
 	GetUnprocessedSnapshots(ctx context.Context, source, pageType string) ([]*domain.PageSnapshot, error)
+	SetProcessed(snapshotId int) error
 }
 
 type Worker[T any] struct {
@@ -64,8 +65,11 @@ func (w *Worker[T]) Parse(ctx context.Context) []T {
 				continue
 			}
 
-			result, err := parser.Parse(snapshot.ID, files)
-			if err != nil {
+			result, parseErr := parser.Parse(snapshot.ID, files)
+			if err = w.repo.SetProcessed(snapshot.ID); err != nil {
+				w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to set snapshot as processed")
+			}
+			if parseErr != nil {
 				w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to parse snapshot")
 				continue
 			}

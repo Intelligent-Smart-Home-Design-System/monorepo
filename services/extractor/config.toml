@@ -64,8 +64,8 @@ llm_model = "gpt-oss-120b/latest"
 [database]
 host = "localhost"
 port = 5432
-name = "smart_home"
-user = "extractor"
+name = "catalog"
+user = "catalog"
 
 [logging]
 level = "INFO"

@@ -20,6 +20,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/rs/zerolog"
+	"go.temporal.io/sdk/activity"
 )
 
 type Settings struct {
@@ -135,20 +136,28 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		return nil, fmt.Errorf("start container: %w", err)
 	}
 
-	waitResponse, waitErrors := r.client.ContainerWait(ctx, created.ID, container.WaitConditionNotRunning)
 	var statusCode int64
-	select {
-	case err := <-waitErrors:
+	for {
+		// heartbeat so temporal knows we're alive
+		activity.RecordHeartbeat(ctx, created.ID)
+
+		// check if temporal cancelled us
+		if ctx.Err() != nil {
+			_ = r.client.ContainerStop(context.Background(), created.ID, container.StopOptions{})
+			return nil, ctx.Err()
+		}
+
+		inspect, err := r.client.ContainerInspect(ctx, created.ID)
 		if err != nil {
-			return nil, fmt.Errorf("wait for container: %w", err)
+			return nil, fmt.Errorf("inspect container: %w", err)
 		}
-	case response := <-waitResponse:
-		statusCode = response.StatusCode
-		if response.Error != nil && response.Error.Message != "" {
-			return nil, fmt.Errorf("container exited with wait error: %s", response.Error.Message)
+
+		if !inspect.State.Running {
+			statusCode = int64(inspect.State.ExitCode)
+			break
 		}
-	case <-ctx.Done():
-		return nil, ctx.Err()
+
+		time.Sleep(5 * time.Second)
 	}
 
 	logs, logErr := r.containerLogs(ctx, created.ID)

@@ -70,7 +70,7 @@ name = "extractor"
 image = "extractor:latest"
 config_path = "extractor/config.toml"
 command = ["/app/.venv/bin/extractor", "run", "--config", "{{config_path}}"]
-env_mapping = { EXTRACTOR_DATABASE__PASSWORD = "CATALOG_DATABASE_PASSWORD", EXTRACTOR_YANDEX_CLOUD__API_KEY = "YANDEX_CLOUD_API_KEY" }
+env_mapping = { EXTRACTOR_DATABASE__PASSWORD = "CATALOG_DATABASE_PASSWORD", EXTRACTOR_YANDEX_CLOUD__API_KEY = "YANDEX_CLOUD_API_KEY", "YANDEX_CLOUD_API_KEY" = "YANDEX_CLOUD_API_KEY" }
 
 [[jobs]]
 name = "catalog-builder"

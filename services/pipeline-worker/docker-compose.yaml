@@ -183,26 +183,9 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     ports:
-      - "9090:9090"
+      - "9092:9092"
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    networks:
-      - pipeline
-
-  grafana:
-    image: grafana/grafana:10.4.3
-    depends_on:
-      - loki
-      - prometheus
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - pipeline
 

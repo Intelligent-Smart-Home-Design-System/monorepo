@@ -2,17 +2,19 @@ package security
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 )
 
 type WaterLeakSensorRule struct {
 	track string
+	deviceConfig *configs.Devices
 }
 
-func NewWaterLeakRule() *WaterLeakSensorRule {
+func NewWaterLeakRule(deviceConfig *configs.Devices) *WaterLeakSensorRule {
 	return &WaterLeakSensorRule{
 		track: "security",
+		deviceConfig: deviceConfig,
 	}
 }
 
@@ -20,7 +22,15 @@ func (wl *WaterLeakSensorRule) Type() string {
 	return "water_leak_sensor"
 }
 
-func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	deviceType := wl.Type()
+
+	configFilters := wl.deviceConfig.GetDeviceFilter(deviceType)
+	if configFilters == nil {
+		configFilters = &filters.WaterLeakSensorFilter{}
+	}
+	waterLeakSensorFilters := configFilters.(*filters.WaterLeakSensorFilter)
+
 	wetRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -31,21 +41,12 @@ func (wl *WaterLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, devic
 	for _, room := range wetRooms {
 		roomID := room.ID
 
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
-
 		roomCenter, err := room.GetCenter()
 		if err != nil {
 			return err
 		}
 
-		deviceID := uuid.NewString() // в будущем все ID будут прописаны в конфигах и будут браться оттуда
-		newDevice := device.NewDevice(deviceID, "water_leak_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, roomCenter)
-
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		layout.AddDeviceToLayout(wl.Type(), wl.track, roomID, roomCenter, waterLeakSensorFilters)
 	}
 
 	return nil

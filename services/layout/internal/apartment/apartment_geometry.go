@@ -49,6 +49,24 @@ func GetObjectCenter(points []point.Point) point.Point {
 	return point.Point{X: (points[0].X + points[1].X) / 2, Y: (points[0].Y + points[1].Y) / 2}
 }
 
+// GetBoundaries возвращает противоположные точки прямоугольника, описывающего комнату
+func (r *Room) GetBoundaries() (point.Point, point.Point) {
+	minX, minY, maxX, maxY := r.Area[0].X, r.Area[0].Y, r.Area[0].X, r.Area[0].Y
+	for _, p := range r.Area[1:] {
+		minX = min(minX, p.X)
+		maxX = max(maxX, p.X)
+		minY = min(minY, p.Y)
+		maxY = max(maxY, p.Y)
+	}
+
+	return point.Point{X: minX, Y: minY}, point.Point{X: maxX, Y: maxY}
+}
+
+// CalculateMaxDistance считает дистанцию между точками прямоугольника, описывающего комнату
+func (r *Room) CalculateMaxDistance() float64 {
+	return CalculatePointsDistance(r.GetBoundaries())
+}
+
 // GenerateGridPoints генерирует сетку в комнате с заданным шагом.
 // Эта функция нужна для того, чтобы проверять уровень охватываемости
 // комнаты (камерой) по доле видимых точек из сетки (что удобнее)
@@ -59,15 +77,7 @@ func (r *Room) GenerateGridPoints(step float64) ([]point.Point, error) {
 		return nil, fmt.Errorf("no corner points in room")
 	}
 
-	minX, minY, maxX, maxY := r.Area[0].X, r.Area[0].Y, r.Area[0].X, r.Area[0].Y
-	for _, point := range r.Area[1:] {
-		minX = min(minX, point.X)
-		maxX = max(maxX, point.X)
-		minY = min(minY, point.Y)
-		maxY = max(maxY, point.Y)
-	}
-
-	minPoint, maxPoint := point.Point{X: minX, Y: minY}, point.Point{X: maxX, Y: maxY}
+	minPoint, maxPoint := r.GetBoundaries()
 
 	for x := minPoint.X + step/2; x <= maxPoint.X; x += step {
 		for y := minPoint.Y + step/2; y <= maxPoint.Y; y += step {

@@ -1,14 +1,14 @@
 package apartment
 
-// MakeDependency создает вспомогающую зависимость в квартире
-func (a *Apartment) MakeDependency() {
-	a.MakeRoomDependency()
-	a.MakeWallDependency()
+// Index создает вспомогающую зависимость в квартире
+func (a *Apartment) Index() {
+	a.IndexRooms()
+	a.IndexWalls()
 }
 
-// MakeRoomDependency создает словарь зависимости названия комнаты
+// IndexRooms создает словарь зависимости названия комнаты
 // со слайсом структур комнат с таким же названием
-func (a *Apartment) MakeRoomDependency() {
+func (a *Apartment) IndexRooms() {
 	a.roomsByName = make(map[string][]Room)
 
 	for _, room := range a.Rooms {
@@ -16,8 +16,8 @@ func (a *Apartment) MakeRoomDependency() {
 	}
 }
 
-// MakeWallDependency создает словарь зависимости индекса стены с его структурой
-func (a *Apartment) MakeWallDependency() {
+// IndexWalls создает словарь зависимости индекса стены с его структурой
+func (a *Apartment) IndexWalls() {
 	a.wallsByID = make(map[string]Wall)
 
 	for _, wall := range a.Walls {

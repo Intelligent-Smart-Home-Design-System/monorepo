@@ -123,7 +123,6 @@ func (s *Scraper) mineSession() (*Session, error) {
 	page.MustNavigate("https://www.wildberries.ru/")
 	page.MustWaitIdle()
 	time.Sleep(5 * time.Second)
-	fmt.Println(page.HTML())
 
 	cookies := page.MustCookies()
 	var cookieList []Cookie

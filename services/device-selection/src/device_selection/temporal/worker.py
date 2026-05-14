@@ -11,7 +11,7 @@ from device_selection.config import Settings
 from device_selection.temporal.activities import (
     ActivityState,
     init_activity_state,
-    solve_device_selection,
+    select_devices,
 )
 
 
@@ -37,7 +37,7 @@ async def run_worker(settings: Settings) -> None:
         client,
         task_queue=settings.temporal.task_queue,
         workflows=[],                     # no workflows — we are an activity provider
-        activities=[solve_device_selection],
+        activities=[select_devices],
     ):
         log.info("worker started", task_queue=settings.temporal.task_queue)
         await asyncio.Event().wait()      # run until SIGINT / SIGTERM

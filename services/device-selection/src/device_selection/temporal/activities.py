@@ -89,8 +89,8 @@ class SolveOutput:
 # Activity                                                                     #
 # --------------------------------------------------------------------------- #
 
-@activity.defn(name="solve_device_selection")
-async def solve_device_selection(inp: SolveInput) -> SolveOutput:
+@activity.defn(name="select_devices")
+async def select_devices(inp: SolveInput) -> SolveOutput:
     from device_selection.proto import iot_opt_pb2 as pb
     from device_selection.temporal.codec import request_from_proto, response_to_proto
     from device_selection.solvers.enum_repair import SolverConfig, solve_enum_repair

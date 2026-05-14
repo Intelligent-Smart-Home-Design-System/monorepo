@@ -108,6 +108,10 @@ func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
 	return s.eventsOutChan
 }
 
+func (s *SimEngine) GetSimulation() *simgo.Simulation {
+	return s.simulation
+}
+
 // Run запускает симуляцию, обрабатывая события из канала eventsInChan.
 // Если контекст отменен или канал закрыт, то симуляция завершается.
 func (s *SimEngine) Run() error {

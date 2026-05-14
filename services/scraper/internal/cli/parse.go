@@ -102,6 +102,9 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 
 		logger.Debug().Msgf("parsed %d listings", len(listings))
 		for _, listing := range listings {
+			if !listing.HasSmartHomeMarkers {
+				logger.Info().Err(err).Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
+			}
 			if err := snapshotRepo.SaveListingParseResult(listing); err != nil {
 				logger.Error().Err(err).Msg("failed to save listing result")
 			}

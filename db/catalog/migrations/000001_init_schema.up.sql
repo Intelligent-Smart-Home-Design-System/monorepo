@@ -22,7 +22,7 @@ CREATE TABLE tracked_pages (
 
 CREATE TABLE page_snapshots (
     id SERIAL PRIMARY KEY,
-    tracked_page INTEGER REFERENCES tracked_pages(id),
+    tracked_page INTEGER REFERENCES tracked_pages(id) ON DELETE CASCADE,
     scraped_at TIMESTAMP DEFAULT NOW(),
     processed BOOLEAN DEFAULT FALSE,
     warc_bundle_archive BYTEA, -- .tar.gz of all .warc of json/html downloaded with page
@@ -33,7 +33,7 @@ CREATE TABLE page_snapshots (
 
 CREATE TABLE parsed_listing_snapshots (
     id SERIAL PRIMARY KEY,
-    page_snapshot_id INTEGER REFERENCES page_snapshots(id),
+    page_snapshot_id INTEGER REFERENCES page_snapshots(id) ON DELETE CASCADE,
     parsed_at TIMESTAMP DEFAULT NOW(),
     processed BOOLEAN DEFAULT FALSE,
 
@@ -64,7 +64,7 @@ CREATE TABLE parsed_listing_snapshots (
 
 CREATE TABLE parsed_direct_compatibility_record (
     id SERIAL PRIMARY KEY,
-    page_snapshot_id INTEGER REFERENCES page_snapshots(id) NOT NULL,
+    page_snapshot_id INTEGER REFERENCES page_snapshots(id) ON DELETE CASCADE NOT NULL,
     ecosystem TEXT NOT NULL,
     brand TEXT NOT NULL,
     model TEXT NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE parsed_direct_compatibility_record (
 
 CREATE TABLE llm_extracted_listings (
     id SERIAL PRIMARY KEY,
-    parsed_listing_snapshot_id INTEGER REFERENCES parsed_listing_snapshots(id),
+    parsed_listing_snapshot_id INTEGER REFERENCES parsed_listing_snapshots(id) ON DELETE CASCADE,
     extracted_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- identification
@@ -116,8 +116,8 @@ CREATE TABLE devices (
 );
 
 CREATE TABLE listing_device_links (
-    llm_extracted_listing_id INTEGER PRIMARY KEY REFERENCES llm_extracted_listings(id),
-    device_id INTEGER REFERENCES devices(id),
+    llm_extracted_listing_id INTEGER PRIMARY KEY REFERENCES llm_extracted_listings(id) ON DELETE CASCADE,
+    device_id INTEGER REFERENCES devices(id) ON DELETE CASCADE,
 
     linked_at TIMESTAMP DEFAULT NOW()
 );
@@ -126,7 +126,7 @@ CREATE TABLE direct_compatibility (
     id SERIAL PRIMARY KEY,
     
     -- What device
-    device_id INTEGER REFERENCES devices(id),
+    device_id INTEGER REFERENCES devices(id) ON DELETE CASCADE,
     
     -- Compatible with what
     ecosystem TEXT NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE direct_compatibility (
     protocol TEXT NOT NULL,
     
     -- Where we learned this (nullable = rule-based or manual)
-    tracked_page_id INTEGER REFERENCES tracked_pages(id),
+    tracked_page_id INTEGER REFERENCES tracked_pages(id) ON DELETE CASCADE,
     
     -- Timestamps
     discovered_at TIMESTAMP DEFAULT NOW(),
@@ -147,7 +147,7 @@ CREATE TABLE bridge_ecosystem_compatibility (
     id SERIAL PRIMARY KEY,
     
     -- What device
-    device_id INTEGER REFERENCES devices(id),
+    device_id INTEGER REFERENCES devices(id) ON DELETE CASCADE,
     
     -- Bridging
     -- meaning: device added to ecosystem_source can be exported to ecosystem_target
@@ -157,7 +157,7 @@ CREATE TABLE bridge_ecosystem_compatibility (
     protocol TEXT NOT NULL, -- over which protocol
     
     -- Where we learned this (nullable = rule-based or manual)
-    tracked_page_id INTEGER REFERENCES tracked_pages(id),
+    tracked_page_id INTEGER REFERENCES tracked_pages(id) ON DELETE CASCADE,
     
     -- Timestamps
     discovered_at TIMESTAMP DEFAULT NOW(),

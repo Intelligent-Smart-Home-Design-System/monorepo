@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
@@ -13,7 +14,7 @@ type Engine interface {
 	// InitEntities инициализирует сущности и их зависимости.
 	InitEntities(
 		IDToEntity map[string]entities.Entity,
-		IDToDependencies map[string][]api.ActionDTO,
+		IDToDependencies map[string][]api.EdgeDTO,
 	)
 
 	// InitProcesses инициализирует данные для процессов и запускает процессы.
@@ -27,7 +28,7 @@ type Engine interface {
 	SetField(simField *field.Field)
 
 	// GetInChan возвращает канал для входящих событий.
-	GetInChan() chan api.EventInDTO
+	GetInChan() chan EventIn
 
 	// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
 	Run() error
@@ -35,15 +36,15 @@ type Engine interface {
 	// Step продвигает симуляционное время на dtSim вперёд.
 	// Вызывается из Simulations.Tick после отправки всех входящих событий.
 	Step()
- 
+
 	// CollectStep собирает результаты текущего тика и возвращает их клиенту.
 	CollectStep(tick int) *api.SimulationStepPayload
- 
+
 	// Stop завершает симуляцию, закрывая канал входящих событий.
 	Stop()
 
 	// HandleEvent обрабатывает event по его entityID
-	HandleEvent(event api.EventInDTO)
+	HandleEvent(event EventIn)
 
 	// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
 	UpdateField(x, y int, cell field.Cell) error
@@ -58,3 +59,9 @@ var (
 	ErrorFieldInvalidParameterX = errors.New("invalid parameter x")
 	ErrorFieldInvalidParameterY = errors.New("invalid parameter y")
 )
+
+// EventIn внутренняя структура для событий симуляции
+type EventIn struct {
+	EntityID string          `json:"entityID"`
+	Info     json.RawMessage `json:"info"`
+}

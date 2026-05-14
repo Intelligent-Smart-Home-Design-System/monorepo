@@ -59,7 +59,7 @@ func (l *Lamp) HandleOutDTO(out LampOutData) error {
 
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Info:     dataLamp,
+		Patch:    dataLamp,
 	}
 
 	l.enginePort.GetOutChan() <- outData
@@ -110,10 +110,10 @@ func (l *Lamp) GetReceiversID() []string {
 	return l.Receivers
 }
 
-func (l *Lamp) SetReceivers(actions []api.ActionDTO) {
+func (l *Lamp) SetReceivers(actions []api.EdgeDTO) {
 	receivers := make([]string, len(actions))
 	for i, action := range actions {
-		receivers[i] = action.ID
+		receivers[i] = action.ToID
 	}
 
 	l.Receivers = receivers

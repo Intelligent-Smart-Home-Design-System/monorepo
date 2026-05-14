@@ -13,30 +13,27 @@ type SimulationService interface {
 
 // структуры конфига (по которым передаются данные между сервисами)
 
-// EventInDTO структура для событий симуляции
+// EventInDTO структура для входящих событий от клиента в simulation:tick
 type EventInDTO struct {
-	EntityID string          `json:"entityID"`
-	Info     json.RawMessage `json:"info"`
+	Kind     string          `json:"kind"`
+	EntityID string          `json:"entityId"`
+	Patch    json.RawMessage `json:"patch,omitempty"`
+	To       *PositionDTO    `json:"to,omitempty"`
 }
 
 // EventOutDTO структура для обработанных событий симуляции
 type EventOutDTO struct {
+	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityID"`
-	Info     json.RawMessage `json:"info"`
+	Patch    json.RawMessage `json:"patch,omitempty"`
+	To       *PositionDTO    `json:"to,omitempty"`
 }
 
 // EntityDTO структура для сущностей (девайсы, люди)
 type EntityDTO struct {
-	ID        string          `json:"id"`
-	Receivers []string        `json:"receivers"` // те, кого данная сущность тригерит
-	Info      json.RawMessage `json:"info"`      // парсится позже в converter (метод engine)
-}
-
-// ActionDTO структура для действия сущностей
-type ActionDTO struct {
-	ID         string        `json:"id"`
-	ActionName string        `json:"action_name"`
-	Data       []interface{} `json:"data"` // доп параметры
+	ID   string          `json:"id"`
+	Type string          `json:"type"`
+	Info json.RawMessage `json:"info"` // парсится позже в converter (метод engine)
 }
 
 // CellDTO структура для клетки поля
@@ -53,23 +50,18 @@ type FieldDTO struct {
 	Cells  [][]*CellDTO `json:"cells"`
 }
 
-// ScenarioDTO структура для сценария (приходит от UI в simulation:start)
+// ScenarioDTO структура для сценария (приходит от UI в simulation:start), описывает устройство (EntityID) и
+// кого оно тригерит (Edges).
 type ScenarioDTO struct {
-	ID    string    `json:"id"`
-	Edges []EdgeDTO `json:"edges"`
+	EntityID string    `json:"id"`
+	Edges    []EdgeDTO `json:"edges"`
 }
 
 // EdgeDTO структура для связи между устройствами в сценарии
 type EdgeDTO struct {
-	From   string `json:"from,omitempty"`
-	To     string `json:"to"`
-	Action string `json:"action"`
-}
-
-type InputDTO struct {
-	Kind    string       `json:"kind"`
-	HumanID string       `json:"humanId,omitempty"`
-	To      *PositionDTO `json:"to,omitempty"`
+	ToID   string        `json:"to"`
+	Action string        `json:"action"`
+	Data   []interface{} `json:"data,omitempty"` // доп параметры
 }
 
 // PositionDTO структура для координат
@@ -100,8 +92,8 @@ type SimulationStartPayload struct {
 }
 
 type SimulationTickPayload struct {
-	Tick   int        `json:"tick"`
-	Inputs []InputDTO `json:"inputs"`
+	Tick   int          `json:"tick"`
+	Inputs []EventInDTO `json:"inputs"`
 }
 
 // Server → Client
@@ -116,14 +108,28 @@ type SimulationStartedPayload struct {
 }
 
 type SimulationStepPayload struct {
-	Tick           int         `json:"tick"`
-	SimTime        float64     `json:"simTime"`
-	StateChanges   []EntityDTO `json:"stateChanges"`
-	TriggeredEdges []EdgeDTO   `json:"triggeredEdges"`
-	Humans         []EntityDTO `json:"humans"`
+	Tick           int           `json:"tick"`
+	SimTime        float64       `json:"simTime"`
+	StateChanges   []EventOutDTO `json:"stateChanges"`
+	TriggeredEdges []EdgeDTO     `json:"triggeredEdges"`
+	Humans         []EntityDTO   `json:"humans"`
+}
+
+// SimulationStatusPayload структура для статуса симуляции (Server → Client)
+type SimulationStatusPayload struct {
+	State string  `json:"state"`
+	DtSim float64 `json:"dtSim"`
+	Tick  int     `json:"tick"`
 }
 
 type ErrorPayload struct {
 	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// LogEventPayload структура для лога события (Server → Client)
+type LogEventPayload struct {
+	Level   string `json:"level"`
+	Device  string `json:"device"`
 	Message string `json:"message"`
 }

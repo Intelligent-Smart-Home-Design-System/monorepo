@@ -11,19 +11,19 @@ const maxEventsBuffer = 100
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
-	simulation *simgo.Simulation          // дискретная симуляция из simgo
-	IDToEntity map[string]entities.Entity // ID сущности <-> структура сущности.
-	Field *field.Field                    // Поле для симуляции
-	eventsInChan chan api.EventInDTO      // Канал для входящих событий
-	dtSim float64                         // шаг симуляционного времени, задаётся при создании
+	simulation   *simgo.Simulation          // дискретная симуляция из simgo
+	IDToEntity   map[string]entities.Entity // ID сущности <-> структура сущности.
+	Field        *field.Field               // Поле для симуляции
+	eventsInChan chan EventIn               // Канал для входящих событий
+	dtSim        float64                    // шаг симуляционного времени, задаётся при создании
 }
 
 // NewSimEngine создает SimEngine
 func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
-		simulation:    simgo.NewSimulation(),
-		IDToEntity:    make(map[string]entities.Entity),
-		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
+		simulation:   simgo.NewSimulation(),
+		IDToEntity:   make(map[string]entities.Entity),
+		eventsInChan: make(chan EventIn, maxEventsBuffer),
 		dtSim:        dtSim,
 	}
 }
@@ -31,7 +31,7 @@ func NewSimEngine(dtSim float64) *SimEngine {
 // InitEntities инициализирует сущности и их зависимости.
 func (s *SimEngine) InitEntities(
 	IDToEntity map[string]entities.Entity,
-	IDToDependencies map[string][]api.ActionDTO,
+	IDToDependencies map[string][]api.EdgeDTO,
 ) {
 	s.IDToEntity = IDToEntity
 
@@ -98,7 +98,7 @@ func (s *SimEngine) SetField(simField *field.Field) {
 }
 
 // GetInChan возвращает канал для входящих событий.
-func (s *SimEngine) GetInChan() chan api.EventInDTO {
+func (s *SimEngine) GetInChan() chan EventIn {
 	return s.eventsInChan
 }
 
@@ -118,19 +118,19 @@ func (s *SimEngine) Step() {
 // CollectStep собирает состояния всех сущностей после тика.
 // TODO: реализовать HasChanged/GetState на Entity для отдачи только изменившихся.
 func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
-	var stateChanges []api.EntityDTO
- 
+	var stateChanges []api.EventOutDTO
+
 	for id, entity := range s.IDToEntity {
 		if entityWithState, ok := entity.(entities.EntityWithState); ok {
 			if entityWithState.HasChanged() {
-				stateChanges = append(stateChanges, api.EntityDTO{
-					ID:   id,
-					Info: entityWithState.GetState(),
+				stateChanges = append(stateChanges, api.EventOutDTO{
+					EntityID: id,
+					Patch:    entityWithState.GetState(),
 				})
 			}
 		}
 	}
- 
+
 	return &api.SimulationStepPayload{
 		Tick:         tick,
 		SimTime:      s.simulation.Now(),
@@ -143,12 +143,12 @@ func (s *SimEngine) Stop() {
 }
 
 // HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event api.EventInDTO) {
+func (s *SimEngine) HandleEvent(event EventIn) {
 	entity := s.IDToEntity[event.EntityID]
 	receiversID := entity.GetReceiversID()
 
 	for _, receiverID := range receiversID {
-		s.eventsInChan <- api.EventInDTO{
+		s.eventsInChan <- EventIn{
 			EntityID: receiverID,
 		}
 	}

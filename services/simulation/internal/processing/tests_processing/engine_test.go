@@ -5,14 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/fschuetz04/simgo"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
+	"github.com/fschuetz04/simgo"
 )
 
-//=====Stubs=====
+// =====Stubs=====
 type stubEntity struct {
 	id        string
 	receivers []string
@@ -27,11 +27,11 @@ func (s *stubEntity) GetReceiversID() []string {
 	return s.receivers
 }
 
-func (s *stubEntity) SetReceivers(actions []api.ActionDTO) {
+func (s *stubEntity) SetReceivers(actions []api.EdgeDTO) {
 	s.setCalled = true
 	var ids []string
 	for _, a := range actions {
-		ids = append(ids, a.ID)
+		ids = append(ids, a.ToID)
 	}
 	s.receivers = ids
 }
@@ -62,7 +62,7 @@ func (s *stubEntityWithProcess) GetOutCh() chan []byte {
 	return make(chan []byte)
 }
 
-//=====Helper=====
+// =====Helper=====
 func newTestField(height, width int) *field.Field {
 	cells := make([][]*field.Cell, height+1)
 	for i := range cells {
@@ -78,8 +78,8 @@ func newTestField(height, width int) *field.Field {
 	}
 }
 
-//=====Tests=====
-//Тест проверки функции CheckCircleDependencies()
+// =====Tests=====
+// Тест проверки функции CheckCircleDependencies()
 func TestCheckCircleDependencies(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -128,7 +128,7 @@ func TestCheckCircleDependencies(t *testing.T) {
 	}
 }
 
-//Тест проверки функции HandleEvent()
+// Тест проверки функции HandleEvent()
 func TestHandleEvent(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -160,7 +160,7 @@ func TestHandleEvent(t *testing.T) {
 			e := engine.NewSimEngine()
 			e.IDToEntity["a"] = tt.entity
 			e.IDToEntity["b"] = &stubEntity{id: "b"}
-			event := api.EventInDTO{EntityID: "a"}
+			event := engine.EventIn{EntityID: "a"}
 
 			e.HandleEvent(event)
 
@@ -182,7 +182,7 @@ func TestHandleEvent(t *testing.T) {
 	}
 }
 
-//Тест проверки функции UpdateField()
+// Тест проверки функции UpdateField()
 func TestUpdateField(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -212,7 +212,7 @@ func TestUpdateField(t *testing.T) {
 	}
 }
 
-//Тест корректного поведения функции Run() при отмене контекста
+// Тест корректного поведения функции Run() при отмене контекста
 func TestRun_ContextCancel(t *testing.T) {
 	t.Run("context canceled", func(t *testing.T) {
 		e := engine.NewSimEngine()
@@ -226,7 +226,7 @@ func TestRun_ContextCancel(t *testing.T) {
 	})
 }
 
-//Тест корректного поведения функции Run() при закрытии канала
+// Тест корректного поведения функции Run() при закрытии канала
 func TestRun_ChannelClosed(t *testing.T) {
 	t.Run("channel closed", func(t *testing.T) {
 		e := engine.NewSimEngine()

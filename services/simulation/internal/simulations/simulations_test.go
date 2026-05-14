@@ -10,13 +10,13 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/sender"
 )
 
-//=====Stubs=====
+// =====Stubs=====
 type stubFetcher struct {
 	simIDs       []string
 	fields       map[string]api.FieldDTO
 	entities     map[string][]api.EntityDTO
-	dependencies map[string]map[string][]api.ActionDTO
-	events       map[string][]api.EventInDTO
+	dependencies map[string]map[string][]api.EdgeDTO
+	events       map[string][]engine.EventIn
 	err          error
 }
 
@@ -32,11 +32,11 @@ func (s *stubFetcher) GetEntities() (map[string][]api.EntityDTO, error) {
 	return s.entities, s.err
 }
 
-func (s *stubFetcher) GetDependencies() (map[string]map[string][]api.ActionDTO, error) {
+func (s *stubFetcher) GetDependencies() (map[string]map[string][]api.EdgeDTO, error) {
 	return s.dependencies, s.err
 }
 
-func (s *stubFetcher) GetEvents() (map[string][]api.EventInDTO, error) {
+func (s *stubFetcher) GetEvents() (map[string][]engine.EventIn, error) {
 	return s.events, s.err
 }
 
@@ -55,13 +55,13 @@ func (s *stubSender) Send(e api.EventOutDTO) {
 	s.events = append(s.events, e)
 }
 
-//=====Helper=====
+// =====Helper=====
 func newTestSimulations(fetcher fetcher.Fetcher, sender sender.Sender) *Simulations {
 	return NewSimulation(fetcher, sender)
 }
 
-//=====Tests=====
-//Тест проверки инициализации
+// =====Tests=====
+// Тест проверки инициализации
 func TestNewSimulation(t *testing.T) {
 	tests := []struct {
 		name string
@@ -89,7 +89,7 @@ func TestNewSimulation(t *testing.T) {
 	}
 }
 
-//Тест проверки функции InitEngines()
+// Тест проверки функции InitEngines()
 func TestInitEngines(t *testing.T) {
 	tests := []struct {
 		name string
@@ -112,7 +112,7 @@ func TestInitEngines(t *testing.T) {
 						},
 					},
 				},
-				dependencies: map[string]map[string][]api.ActionDTO{
+				dependencies: map[string]map[string][]api.EdgeDTO{
 					"sim1": {
 						"lamp_1": {},
 					},
@@ -133,7 +133,7 @@ func TestInitEngines(t *testing.T) {
 	}
 }
 
-//Тест проверки функции InitEngines()
+// Тест проверки функции InitEngines()
 func TestInitEngines_FetchFieldsError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -159,7 +159,7 @@ func TestInitEngines_FetchFieldsError(t *testing.T) {
 	}
 }
 
-//Тест проверки функции GetEnginesInChan()
+// Тест проверки функции GetEnginesInChan()
 func TestGetEnginesInChan(t *testing.T) {
 	tests := []struct {
 		name string
@@ -184,7 +184,7 @@ func TestGetEnginesInChan(t *testing.T) {
 	}
 }
 
-//Тест проверки функции GetEnginesOutChan()
+// Тест проверки функции GetEnginesOutChan()
 func TestGetEnginesOutChan(t *testing.T) {
 	tests := []struct {
 		name string
@@ -209,7 +209,7 @@ func TestGetEnginesOutChan(t *testing.T) {
 	}
 }
 
-//Тест проверки функции Stop()
+// Тест проверки функции Stop()
 func TestStop(t *testing.T) {
 	tests := []struct {
 		name string
@@ -222,7 +222,7 @@ func TestStop(t *testing.T) {
 			fetcher := &stubFetcher{}
 			sender := &stubSender{}
 			s := newTestSimulations(fetcher, sender)
-			ch := make(chan api.EventInDTO)
+			ch := make(chan engine.EventIn)
 			s.IDToEventInChan["sim1"] = ch
 
 			s.Stop()

@@ -16,7 +16,7 @@ type Entity interface {
 	GetReceiversID() []string
 
 	// SetReceivers устанавливает сущности, которые данная сущность тригерит
-	SetReceivers(actions []api.ActionDTO)
+	SetReceivers(actions []api.EdgeDTO)
 }
 
 // EntityWithProcess определяет интерфейс сущности с бизнес-логикой

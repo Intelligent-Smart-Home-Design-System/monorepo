@@ -60,7 +60,7 @@ func (l *LampSwitcher) HandleOutDTO(out LampSwitcherOutData) error {
 
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Info:     dataLamp,
+		Patch:    dataLamp,
 	}
 
 	l.enginePort.GetOutChan() <- outData
@@ -109,10 +109,10 @@ func (l *LampSwitcher) GetReceiversID() []string {
 	return l.Receivers
 }
 
-func (l *LampSwitcher) SetReceivers(actions []api.ActionDTO) {
+func (l *LampSwitcher) SetReceivers(actions []api.EdgeDTO) {
 	receivers := make([]string, len(actions))
 	for i, action := range actions {
-		receivers[i] = action.ID
+		receivers[i] = action.ToID
 	}
 
 	l.Receivers = receivers

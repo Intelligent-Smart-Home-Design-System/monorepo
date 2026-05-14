@@ -66,6 +66,7 @@ host = "localhost"
 port = 5432
 user = "catalog"
 name = "smart_home"
+password = "catalog"
 
 [logging]
 level = "INFO"

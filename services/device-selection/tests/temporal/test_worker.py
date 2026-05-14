@@ -12,7 +12,7 @@ from device_selection.temporal.activities import (
     SolveInput,
     SolveOutput,
     init_activity_state,
-    solve_device_selection,
+    select_devices,
 )
 from device_selection.config import Settings
 from device_selection.proto import iot_opt_pb2 as pb
@@ -133,7 +133,7 @@ class TestSolveDeviceSelectionActivity:
             ],
         )
         env = ActivityEnvironment()
-        result: SolveOutput = await env.run(solve_device_selection, SolveInput(raw))
+        result: SolveOutput = await env.run(select_devices, SolveInput(raw))
 
         resp = _parse_response(result.response_proto_bytes)
         assert len(resp.pareto_front) > 0
@@ -160,7 +160,7 @@ class TestSolveDeviceSelectionActivity:
             ],
         )
         env = ActivityEnvironment()
-        result: SolveOutput = await env.run(solve_device_selection, SolveInput(raw))
+        result: SolveOutput = await env.run(select_devices, SolveInput(raw))
 
         resp = _parse_response(result.response_proto_bytes)
         assert len(resp.pareto_front) > 0
@@ -186,7 +186,7 @@ class TestSolveDeviceSelectionActivity:
             ],
         )
         env = ActivityEnvironment()
-        result: SolveOutput = await env.run(solve_device_selection, SolveInput(raw))
+        result: SolveOutput = await env.run(select_devices, SolveInput(raw))
 
         resp = _parse_response(result.response_proto_bytes)
         assert len(resp.pareto_front) == 0
@@ -206,7 +206,7 @@ class TestSolveDeviceSelectionActivity:
             ],
         )
         env = ActivityEnvironment()
-        result: SolveOutput = await env.run(solve_device_selection, SolveInput(raw))
+        result: SolveOutput = await env.run(select_devices, SolveInput(raw))
 
         resp = _parse_response(result.response_proto_bytes)
         assert len(resp.pareto_front) == 0
@@ -225,7 +225,7 @@ class TestSolveDeviceSelectionActivity:
             ],
         )
         env = ActivityEnvironment()
-        result: SolveOutput = await env.run(solve_device_selection, SolveInput(raw))
+        result: SolveOutput = await env.run(select_devices, SolveInput(raw))
 
         resp = _parse_response(result.response_proto_bytes)
         assert len(resp.pareto_front) == 0
@@ -244,7 +244,7 @@ class TestSolveDeviceSelectionActivity:
             ],
         )
         env = ActivityEnvironment()
-        result: SolveOutput = await env.run(solve_device_selection, SolveInput(raw))
+        result: SolveOutput = await env.run(select_devices, SolveInput(raw))
 
         resp = _parse_response(result.response_proto_bytes)
         listing = resp.pareto_front[0].listings[0]

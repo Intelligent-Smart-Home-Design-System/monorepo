@@ -1,0 +1,33 @@
+[taxonomy]
+path = "/pipeline/config/taxonomy_schema.json"
+
+[extraction]
+
+[extraction.hints]
+model = """
+Extract and output the product model name exactly as it appears in the text.
+"""
+ecosystem = "Only output each ecosystem once."
+protocol = "Only include protocols explicitly mentioned."
+
+[extraction.hint_templates]
+ecosystem = "Include {value} if and only if the device can connect to the {value} ecosystem."
+protocol = "Include {value} if and only if the device explicitly supports the {value} protocol."
+
+[yandex_cloud]
+folder = "b1ghdbj0nn88kkalmtlj"
+llm_model = "gpt-oss-120b/latest"
+api_key = ""
+
+[database]
+host = "catalog-postgresql"
+port = 5432
+name = "smart_home"
+user = "catalog"
+password = ""
+
+[logging]
+level = "INFO"
+format = "json"
+
+batch_size = 10

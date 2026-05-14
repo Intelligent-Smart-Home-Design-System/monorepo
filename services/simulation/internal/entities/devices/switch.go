@@ -58,7 +58,7 @@ func (l *LampSwitcher) HandleInDTO(dto []byte) error {
 func (l *LampSwitcher) HandleOutDTO(dto []byte) {
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Payload:     dto,
+		Payload:  dto,
 	}
 
 	l.enginePort.GetOutChan() <- outData
@@ -66,7 +66,7 @@ func (l *LampSwitcher) HandleOutDTO(dto []byte) {
 	for _, receiverID := range l.Receivers {
 		l.enginePort.GetInChan() <- api.EventInDTO{
 			EntityID: receiverID,
-			Info:     dto, // TODO: подумать, то ли мы передаем
+			Payload:  dto,
 		}
 	}
 }
@@ -182,7 +182,7 @@ func (l *LightSwitchOffSensor) HandleInDTO(dto []byte) error {
 func (l *LightSwitchOffSensor) HandleOutDTO(dto []byte) {
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Info:     dto,
+		Payload:  dto,
 	}
 
 	l.enginePort.GetOutChan() <- outData
@@ -190,7 +190,7 @@ func (l *LightSwitchOffSensor) HandleOutDTO(dto []byte) {
 	for _, receiverID := range l.Receivers {
 		l.enginePort.GetInChan() <- api.EventInDTO{
 			EntityID: receiverID,
-			Info:     dto, // TODO: подумать, то ли мы передаем
+			Payload:  dto,
 		}
 	}
 }
@@ -283,10 +283,10 @@ func (l *LightSwitchOffSensor) GetReceiversID() []string {
 	return l.Receivers
 }
 
-func (l *LightSwitchOffSensor) SetReceivers(actions []api.ActionDTO) {
+func (l *LightSwitchOffSensor) SetReceivers(actions []api.EdgeDTO) {
 	receivers := make([]string, len(actions))
 	for i, action := range actions {
-		receivers[i] = action.ID
+		receivers[i] = action.ToID
 	}
 
 	l.Receivers = receivers

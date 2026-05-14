@@ -62,7 +62,7 @@ llm_model = "gpt-oss-120b/latest"
 # "gemma-3-27b-it/latest"
 
 [database]
-host = "catalog-potsgresql"
+host = "catalog-postgresql"
 port = 5432
 user = "catalog"
 name = "smart_home"

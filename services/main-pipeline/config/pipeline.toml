@@ -1,0 +1,25 @@
+[temporal]
+host_port = "temporal:7233"
+namespace = "default"
+task_queue = "main-pipeline-orchestration"
+connect_attempts = 30
+workflow_id_prefix = "main-pipeline"
+
+[metrics]
+listen_address = ":2112"
+
+[queues]
+floor_parser = "main-pipeline-floor-parser"
+layout = "main-pipeline-layout"
+device_selection = "main-pipeline-device-selection"
+
+[activity]
+start_to_close_timeout = "15m"
+heartbeat_timeout = "30s"
+maximum_attempts = 3
+initial_interval = "2s"
+backoff_coefficient = 2.0
+maximum_interval = "1m"
+
+[trigger]
+request_path = ""

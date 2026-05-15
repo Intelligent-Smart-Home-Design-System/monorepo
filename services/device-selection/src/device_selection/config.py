@@ -8,11 +8,12 @@ from pydantic import BaseModel
 
 
 class DatabaseConfig(BaseModel):
+    enabled: bool = True
     host: str = "localhost"
     port: int = 5432
-    name: str
-    user: str
-    password: str
+    name: str = "catalog"
+    user: str = "catalog"
+    password: str = "catalog"
 
     @property
     def dsn(self) -> str:
@@ -41,6 +42,19 @@ class LoggingConfig(BaseModel):
     format: str = "console"
 
 
+class WorkerConfig(BaseModel):
+    max_concurrent_activities: int = 32
+    compute_concurrency: int = 4
+
+
+class ObservabilityConfig(BaseModel):
+    metrics_host: str = "0.0.0.0"
+    metrics_port: int = 2115
+    tracing_enabled: bool = True
+    otlp_endpoint: Optional[str] = None
+    otlp_insecure: bool = True
+
+
 class SolverConfig(BaseModel):
     max_bridge_ecosystems: int = 5
     max_hub_types: int = 4
@@ -53,6 +67,8 @@ class Settings(BaseModel):
     temporal: TemporalConfig = TemporalConfig()
     quality: QualityConfig = QualityConfig()
     logging: LoggingConfig = LoggingConfig()
+    worker: WorkerConfig = WorkerConfig()
+    observability: ObservabilityConfig = ObservabilityConfig()
     solver: SolverConfig = SolverConfig()
     catalog_ttl_seconds: float = 86400.0 # 1 day
 

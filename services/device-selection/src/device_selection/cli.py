@@ -30,13 +30,9 @@ from device_selection.data.export import export_catalog
 from device_selection.data.catalog import Catalog
 
 import csv
-from device_selection.core.metrics import (
-    best_known_front,
-    hypervolume,
-    igd,
-    igd_plus,
-)
+from device_selection.core.metrics import best_known_front, hypervolume, igd, igd_plus
 from device_selection.core.pareto import ObjectiveBounds
+from device_selection.temporal.observability import configure_logging
 
 SOLVERS: list[tuple[str, Callable[[DeviceSelectionRequest, Catalog], ParetoArchive]]] = [
     ("enum_repair",      lambda req, cat: solve_enum_repair(req, cat, SolverConfig())),
@@ -49,14 +45,7 @@ app = typer.Typer()
 
 
 def _setup_logging(settings: Settings) -> None:
-    structlog.configure(
-        processors=[
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.JSONRenderer()
-            if settings.logging.format == "json"
-            else structlog.dev.ConsoleRenderer(),
-        ]
-    )
+    configure_logging(settings)
 
 
 def _conn_to_dict(info: Optional[ConnectionInfo]) -> Optional[dict[str, Any]]:

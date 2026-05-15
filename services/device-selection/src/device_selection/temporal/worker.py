@@ -12,16 +12,37 @@ from device_selection.temporal.activities import (
     ActivityState,
     init_activity_state,
     select_devices,
+    select_devices_from_file,
+)
+from device_selection.temporal.observability import (
+    configure_logging,
+    configure_metrics,
+    configure_tracing,
 )
 
 
 async def run_worker(settings: Settings) -> None:
+    configure_logging(settings)
+    configure_tracing(settings, "device-selection-worker")
+    metrics = configure_metrics(settings, "device_selection")
     log = structlog.get_logger()
 
-    pool = await asyncpg.create_pool(settings.database.dsn)
-    log.info("database pool created")
+    pool: asyncpg.Pool | None = None
+    if settings.database.enabled:
+        pool = await asyncpg.create_pool(settings.database.dsn)
+        log.info("database pool created")
+    else:
+        log.info("database pool disabled")
 
-    init_activity_state(ActivityState(pool=pool, settings=settings))
+    init_activity_state(
+        ActivityState(
+            pool=pool,
+            settings=settings,
+            metrics=metrics,
+            semaphore=asyncio.Semaphore(settings.worker.compute_concurrency),
+            service_name="device-selection-worker",
+        )
+    )
 
     client = await Client.connect(
         settings.temporal.address,
@@ -36,8 +57,15 @@ async def run_worker(settings: Settings) -> None:
     async with Worker(
         client,
         task_queue=settings.temporal.task_queue,
-        workflows=[],                     # no workflows — we are an activity provider
-        activities=[select_devices],
+        workflows=[],
+        activities=[select_devices, select_devices_from_file],
+        max_concurrent_activities=settings.worker.max_concurrent_activities,
     ):
-        log.info("worker started", task_queue=settings.temporal.task_queue)
-        await asyncio.Event().wait()      # run until SIGINT / SIGTERM
+        log.info(
+            "worker started",
+            task_queue=settings.temporal.task_queue,
+            max_concurrent_activities=settings.worker.max_concurrent_activities,
+            compute_concurrency=settings.worker.compute_concurrency,
+            metrics_port=settings.observability.metrics_port,
+        )
+        await asyncio.Event().wait()

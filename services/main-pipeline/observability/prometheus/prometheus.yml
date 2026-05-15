@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: main-pipeline-worker
+    static_configs:
+      - targets: ["main-pipeline-worker:2112"]
+
+  - job_name: floor-parser-worker
+    static_configs:
+      - targets: ["floor-parser-worker:2113"]
+
+  - job_name: layout-worker
+    static_configs:
+      - targets: ["layout-worker:2114"]
+
+  - job_name: device-selection-worker
+    static_configs:
+      - targets: ["device-selection-worker:2115"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]

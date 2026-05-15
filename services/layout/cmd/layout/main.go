@@ -22,7 +22,7 @@ func main() {
 	}
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(devicesConfig)
+	storage.LoadAllRules(devicesConfig)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 

@@ -20,6 +20,13 @@ func (s *Storage) LoadRule(rule rules.Rule) {
 	s.Rules[rule.Type()] = rule
 }
 
+func (s *Storage) LoadAllRules(deviceConfig *configs.Devices) {
+	s.LoadAllSecurityRules(deviceConfig)
+	s.LoadAllLightingRules()
+
+	// TODO: добавить оставшиеся треки
+}
+
 func (s *Storage) LoadAllSecurityRules(deviceConfig *configs.Devices) {
 	storageRules := []rules.Rule{
 		security.NewWaterLeakRule(deviceConfig),

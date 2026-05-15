@@ -115,14 +115,6 @@ device-selection evaluate --config config.toml
 | real_003 | real | same as real_002 | 12k | ✗ | Tight budget on real catalog |
 | real_004 | real | 3Cam + 3M + 5DW + 1Lock | 20k | ✗ | Security-focused setup |
 
-### Tests removed from the suite
-
-The following tests were dropped from the evaluation as redundant or non-informative:
-
-- **`synth_012_forced_hubs_heavy`** — count=3 variant of `synth_010v2`. Identical single Pareto point (Q=0.942, E=3, H=2) but BF runtime 111s vs 2.8s. No new information.
-- **`synth_014b_natural_5pt_heavy`** — count=3 variant of `synth_014`. Same 5-point front, BF runtime 32s vs 1s.
-- **`real_005_gas_safety`** — returns 0 solutions across all algorithms at the configured budget; doesn't differentiate algorithms.
-
 ---
 
 ## Results

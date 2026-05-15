@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
@@ -87,7 +88,7 @@ func (s *ActivityService) BuildLayout(ctx context.Context, input LayoutActivityI
 		s.metrics.record("failure", time.Since(start))
 		return nil, err
 	}
-	apartmentStruct.MakeDependency()
+	prepareApartment(apartmentStruct)
 
 	tracksConfig, err := configs.LoadTracksConfig(s.settings.TracksConfigPath)
 	if err != nil {
@@ -102,7 +103,7 @@ func (s *ActivityService) BuildLayout(ctx context.Context, input LayoutActivityI
 	}
 
 	rulesStorage := storage.NewStorage()
-	rulesStorage.LoadAllSecurityRules()
+	loadSecurityRules(rulesStorage, devicesConfig)
 
 	layoutEngine := engine.NewEngine(rulesStorage, tracksConfig, devicesConfig)
 	layoutResult, err := layoutEngine.PlaceDevices(apartmentStruct, input.SelectedLevels)
@@ -152,7 +153,7 @@ func loadApartment(path string) (*apartment.Apartment, error) {
 	return &model, nil
 }
 
-func writeArtifact(requestID string, outputPath string, layoutResult *apartment.ApartmentLayout, priceInfo *engine.PriceInfo) error {
+func writeArtifact(requestID string, outputPath string, layoutResult any, priceInfo *engine.PriceInfo) error {
 	artifact := layoutArtifact{
 		RequestID:      requestID,
 		PlacementCount: countPlacements(layoutResult),
@@ -175,37 +176,166 @@ func writeArtifact(requestID string, outputPath string, layoutResult *apartment.
 	return nil
 }
 
-func countPlacements(layoutResult *apartment.ApartmentLayout) int {
+func prepareApartment(apartmentStruct *apartment.Apartment) {
+	switch typed := any(apartmentStruct).(type) {
+	case interface{ MakeDependency() }:
+		typed.MakeDependency()
+	case interface{ Index() }:
+		typed.Index()
+	}
+}
+
+func loadSecurityRules(rulesStorage *storage.Storage, devicesConfig *configs.Devices) {
+	switch typed := any(rulesStorage).(type) {
+	case interface{ LoadAllSecurityRules(*configs.Devices) }:
+		typed.LoadAllSecurityRules(devicesConfig)
+	case interface{ LoadAllSecurityRules() }:
+		typed.LoadAllSecurityRules()
+	}
+}
+
+func countPlacements(layoutResult any) int {
 	if layoutResult == nil {
 		return 0
 	}
 
+	placementsValue := reflect.ValueOf(layoutResult)
+	if placementsValue.Kind() == reflect.Pointer {
+		if placementsValue.IsNil() {
+			return 0
+		}
+		placementsValue = placementsValue.Elem()
+	}
+
+	placementsField := placementsValue.FieldByName("Placements")
+	if !placementsField.IsValid() || placementsField.Kind() != reflect.Map {
+		return 0
+	}
+
 	total := 0
-	for _, roomPlacements := range layoutResult.Placements {
-		total += len(roomPlacements)
+	for _, roomKey := range placementsField.MapKeys() {
+		roomPlacements := placementsField.MapIndex(roomKey)
+		switch roomPlacements.Kind() {
+		case reflect.Map, reflect.Slice, reflect.Array:
+			total += roomPlacements.Len()
+		}
 	}
 	return total
 }
 
-func flattenPlacements(layoutResult *apartment.ApartmentLayout) []placementArtifact {
+func flattenPlacements(layoutResult any) []placementArtifact {
 	if layoutResult == nil {
 		return nil
 	}
 
+	placementsValue := reflect.ValueOf(layoutResult)
+	if placementsValue.Kind() == reflect.Pointer {
+		if placementsValue.IsNil() {
+			return nil
+		}
+		placementsValue = placementsValue.Elem()
+	}
+
+	placementsField := placementsValue.FieldByName("Placements")
+	if !placementsField.IsValid() || placementsField.Kind() != reflect.Map {
+		return nil
+	}
+
 	placements := make([]placementArtifact, 0, countPlacements(layoutResult))
-	for roomID, roomPlacements := range layoutResult.Placements {
-		for _, placement := range roomPlacements {
-			placements = append(placements, placementArtifact{
-				RoomID:      roomID,
-				DeviceID:    placement.Device.ID,
-				DeviceType:  placement.Device.Type,
-				DeviceTrack: placement.Device.DeviceTrack,
-				Point: pointArtifact{
-					X: placement.Place.X,
-					Y: placement.Place.Y,
-				},
-			})
+	for _, roomKey := range placementsField.MapKeys() {
+		roomID := roomKey.String()
+		roomPlacements := placementsField.MapIndex(roomKey)
+
+		switch roomPlacements.Kind() {
+		case reflect.Map:
+			for _, placementKey := range roomPlacements.MapKeys() {
+				if artifact, ok := placementArtifactFromValue(roomID, roomPlacements.MapIndex(placementKey)); ok {
+					placements = append(placements, artifact)
+				}
+			}
+		case reflect.Slice, reflect.Array:
+			for i := 0; i < roomPlacements.Len(); i++ {
+				if artifact, ok := placementArtifactFromValue(roomID, roomPlacements.Index(i)); ok {
+					placements = append(placements, artifact)
+				}
+			}
 		}
 	}
 	return placements
+}
+
+func placementArtifactFromValue(roomID string, placementValue reflect.Value) (placementArtifact, bool) {
+	if placementValue.Kind() == reflect.Pointer {
+		if placementValue.IsNil() {
+			return placementArtifact{}, false
+		}
+		placementValue = placementValue.Elem()
+	}
+
+	deviceField := placementValue.FieldByName("Device")
+	if !deviceField.IsValid() {
+		return placementArtifact{}, false
+	}
+	if deviceField.Kind() == reflect.Pointer {
+		if deviceField.IsNil() {
+			return placementArtifact{}, false
+		}
+		deviceField = deviceField.Elem()
+	}
+
+	pointField := placementValue.FieldByName("Place")
+	if !pointField.IsValid() {
+		pointField = placementValue.FieldByName("Position")
+	}
+	if !pointField.IsValid() {
+		return placementArtifact{}, false
+	}
+	if pointField.Kind() == reflect.Pointer {
+		if pointField.IsNil() {
+			return placementArtifact{}, false
+		}
+		pointField = pointField.Elem()
+	}
+
+	deviceTrack := stringField(deviceField, "DeviceTrack")
+	if deviceTrack == "" {
+		deviceTrack = stringField(deviceField, "Track")
+	}
+
+	return placementArtifact{
+		RoomID:      roomID,
+		DeviceID:    stringField(deviceField, "ID"),
+		DeviceType:  stringField(deviceField, "Type"),
+		DeviceTrack: deviceTrack,
+		Point: pointArtifact{
+			X: floatField(pointField, "X"),
+			Y: floatField(pointField, "Y"),
+		},
+	}, true
+}
+
+func stringField(value reflect.Value, fieldName string) string {
+	field := value.FieldByName(fieldName)
+	if !field.IsValid() || field.Kind() != reflect.String {
+		return ""
+	}
+	return field.String()
+}
+
+func floatField(value reflect.Value, fieldName string) float64 {
+	field := value.FieldByName(fieldName)
+	if !field.IsValid() {
+		return 0
+	}
+
+	switch field.Kind() {
+	case reflect.Float32, reflect.Float64:
+		return field.Float()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(field.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(field.Uint())
+	default:
+		return 0
+	}
 }

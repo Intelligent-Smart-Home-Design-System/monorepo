@@ -8,14 +8,14 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from prometheus_client import Counter, Gauge, Histogram, PlatformCollector, ProcessCollector, Registry, start_http_server
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, PlatformCollector, ProcessCollector, start_http_server
 
 from device_selection.config import Settings
 
 
 @dataclass
 class Metrics:
-    registry: Registry
+    registry: CollectorRegistry
     runs_total: Counter
     duration_seconds: Histogram
     concurrent_runs: Gauge
@@ -55,7 +55,7 @@ def configure_tracing(settings: Settings, service_name: str) -> None:
 
 
 def configure_metrics(settings: Settings, prefix: str) -> Metrics:
-    registry = Registry()
+    registry = CollectorRegistry()
     ProcessCollector(registry=registry)
     PlatformCollector(registry=registry)
 

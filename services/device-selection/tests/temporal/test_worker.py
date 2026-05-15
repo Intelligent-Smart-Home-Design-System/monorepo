@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from unittest.mock import MagicMock
+
 import pytest
 
 from device_selection.core.model import (
@@ -73,7 +76,17 @@ def _patch_activity_state(catalog, settings, monkeypatch):
     import time
     import device_selection.temporal.activities as act_module
 
-    init_activity_state(ActivityState(pool=_FakePool(), settings=settings))
+    mock_metrics = MagicMock()
+
+    init_activity_state(
+        ActivityState(
+            pool=_FakePool(),
+            settings=settings,
+            metrics=mock_metrics,
+            semaphore=asyncio.Semaphore(1),
+            service_name="test",
+        )
+    )
 
     # pre-warm the cache so _get_catalog() returns our InMemoryCatalog
     act_module._catalog_cache = act_module._CatalogCache(

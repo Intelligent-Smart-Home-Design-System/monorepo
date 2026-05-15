@@ -11,11 +11,11 @@ import (
 
 type Handlers struct {
 	mu             sync.RWMutex
-	userApartments map[string]*apartment.Apartment
+	sessionApartment map[string]*apartment.Apartment
 }
 
 func NewHandlers() *Handlers {
-	return &Handlers{userApartments: make(map[string]*apartment.Apartment)}
+	return &Handlers{sessionApartment: make(map[string]*apartment.Apartment)}
 }
 
 // ApartmentHandler - обработчик парсинга квартиры
@@ -48,7 +48,7 @@ func (h *Handlers) ApartmentHandler(w http.ResponseWriter, r *http.Request) {
 	req.Apartment.Index()
 
 	h.mu.Lock()
-	h.userApartments[req.SessionID] = req.Apartment
+	h.sessionApartment[req.SessionID] = req.Apartment
 	h.mu.Unlock()
 
 	w.WriteHeader(http.StatusOK)
@@ -78,7 +78,7 @@ func (h *Handlers) LayoutHandler(eng *engine.Engine) http.HandlerFunc {
 		}
 
 		h.mu.RLock()
-		apart, ok := h.userApartments[req.SessionID]
+		apart, ok := h.sessionApartment[req.SessionID]
 		h.mu.RUnlock()
 
 		if !ok || apart == nil {

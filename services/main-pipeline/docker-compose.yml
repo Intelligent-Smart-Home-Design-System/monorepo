@@ -1,0 +1,243 @@
+services:
+  temporal-postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - temporal-postgresql-data:/var/lib/postgresql/data
+    networks:
+      - main-pipeline
+
+  temporal:
+    image: temporalio/auto-setup:1.23.0
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgresql
+    ports:
+      - "7233:7233"
+    networks:
+      - main-pipeline
+
+  temporal-ui:
+    image: temporalio/ui:2.21.3
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "8080:8080"
+    networks:
+      - main-pipeline
+
+  main-pipeline-worker:
+    image: main-pipeline-worker:latest
+    build:
+      context: .
+      target: worker
+    depends_on:
+      - temporal
+      - jaeger
+      - prometheus
+    environment:
+      PIPELINE_CONFIG: /app/config/pipeline.toml
+      LOG_LEVEL: info
+      TRACING_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    volumes:
+      - ./config:/app/config:ro
+      - ../../:/workspace:ro
+      - ./artifacts:/data/artifacts
+    ports:
+      - "2112:2112"
+    restart: unless-stopped
+    networks:
+      - main-pipeline
+
+  floor-parser-worker:
+    image: floor-parser-worker:latest
+    build:
+      context: ../floor-parser
+      target: worker
+    depends_on:
+      - temporal
+      - jaeger
+    environment:
+      SERVICE_NAME: floor-parser-worker
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: main-pipeline-floor-parser
+      METRICS_PORT: "2113"
+      LOG_FORMAT: json
+      TRACING_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      MAX_CONCURRENT_ACTIVITIES: "32"
+      COMPUTE_CONCURRENCY: "4"
+    volumes:
+      - ../../:/workspace:ro
+      - ./artifacts:/data/artifacts
+    ports:
+      - "2113:2113"
+    restart: unless-stopped
+    networks:
+      - main-pipeline
+
+  layout-worker:
+    image: layout-worker:latest
+    build:
+      context: ../layout
+    depends_on:
+      - temporal
+      - jaeger
+    environment:
+      SERVICE_NAME: layout-worker
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: main-pipeline-layout
+      METRICS_LISTEN_ADDRESS: :2114
+      LOG_LEVEL: info
+      TRACING_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      MAX_CONCURRENT_ACTIVITIES: "32"
+      COMPUTE_CONCURRENCY: "4"
+      TRACKS_CONFIG_PATH: /app/internal/configs/tracks.json
+      DEVICES_CONFIG_PATH: /app/internal/configs/devices.json
+    volumes:
+      - ../../:/workspace:ro
+      - ./artifacts:/data/artifacts
+    ports:
+      - "2114:2114"
+    restart: unless-stopped
+    networks:
+      - main-pipeline
+
+  device-selection-worker:
+    image: device-selection-worker:latest
+    build:
+      context: ../device-selection
+    depends_on:
+      - temporal
+      - jaeger
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../../:/workspace:ro
+      - ./artifacts:/data/artifacts
+    ports:
+      - "2115:2115"
+    restart: unless-stopped
+    networks:
+      - main-pipeline
+
+  main-pipeline-trigger:
+    image: main-pipeline-trigger:latest
+    build:
+      context: .
+      target: trigger
+    depends_on:
+      - temporal
+      - main-pipeline-worker
+      - floor-parser-worker
+      - layout-worker
+      - device-selection-worker
+    environment:
+      PIPELINE_CONFIG: /app/config/pipeline.toml
+      LOG_LEVEL: info
+      TRACING_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      WAIT_FOR_COMPLETION: "true"
+    volumes:
+      - ./config:/app/config:ro
+      - ../../:/workspace:ro
+      - ./artifacts:/data/artifacts
+    profiles:
+      - tools
+    networks:
+      - main-pipeline
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - main-pipeline
+
+  loki:
+    image: grafana/loki:2.9.8
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - main-pipeline
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - main-pipeline
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - main-pipeline
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    depends_on:
+      - prometheus
+      - loki
+    ports:
+      - "3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - main-pipeline
+
+networks:
+  main-pipeline:
+    name: main-pipeline-network
+    driver: bridge
+
+volumes:
+  temporal-postgresql-data:
+  loki-data:
+  grafana-data:

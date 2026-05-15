@@ -1,0 +1,59 @@
+[database]
+host = "catalog-postgresql"
+port = 5432
+user = "catalog"
+dbname = "smart_home"
+password = "catalog"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 2.0
+timeout = "60s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+proxy = ""
+wb_card_basket = "01"
+wb_session_path = "./session.json"
+wb_rps = 50
+
+[wildberries.discovery]
+discovery_text_queries = [
+    "умная лампа",
+    "умная лампа с алисой",
+    "умная лампа tuya",
+    "умный датчик газа",
+    "умный датчик газа с алисой",
+    "датчик протечки воды",
+    "датчик протечки воды с алисой",
+    "умный дверной замок",
+    "умный дверной замок с алисой",
+    "датчик открытия двери с алисой",
+    "умная камера",
+    "хаб умный дом",
+    "умная сирена с алисой",
+    "aqara",
+    "tuya",
+    "matter устройства"
+]
+
+max_pages = 1
+url_template = "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=model_distance_deboost_on&appType=1&curr=rub&dest=123589415&hide_vflags=4294967296&lang=ru&locale=ru&page={page}&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false"
+[wildberries]
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+smart_home_device_markers = ["Экосистема умного дома",
+    "Алис",
+    "Сбер",
+    "Маруся",
+    "Яндекс",
+    "tuya",
+    "Tuya",
+    "Matter",
+    "Apple",
+    "Google",
+    "Zigbee",
+    "ZigBee",
+    "Digma"
+]
+
+[yandex]
+supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"

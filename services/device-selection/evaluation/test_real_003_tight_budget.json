@@ -1,0 +1,22 @@
+{
+  "id": "real_003_tight_budget",
+  "description": "Real catalog: same as real_002 but budget halved to 12000. Tests behavior when budget forces minimal ecosystem footprint and cheaper devices. Expect fewer Pareto solutions and heavier constraint pruning.",
+  "run_brute_force": false,
+  "catalog": "real_catalog.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 12000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",           "count": 3, "connect_to_main_ecosystem": true,
+        "filters": [{"field": "socket_type", "op": "eq", "value": "E27"}]},
+      {"requirement_id": 2, "device_type": "motion_sensor",        "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "water_leak_sensor",    "count": 5, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 4, "device_type": "door_window_sensor",   "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 5, "device_type": "smart_lock",           "count": 1, "connect_to_main_ecosystem": false, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": ["xiaomi", "digma"],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

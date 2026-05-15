@@ -108,13 +108,15 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 	}
 
 	if !p.containsSmartHomeMarker(&card) {
-		return nil, fmt.Errorf("listing does not contain any smart home marker, skipping")
+		// return with HasSmartHomeMarkers = false
+		return &domain.ListingParseResult{PageSnapshotID: pageSnapshotID}, nil
 	}
 
 	res := &domain.ListingParseResult{
-		PageSnapshotID: pageSnapshotID,
-		ParsedAt:       time.Now(),
-		ExtractorVer:   ExtractorVersion,
+		PageSnapshotID:      pageSnapshotID,
+		HasSmartHomeMarkers: true,
+		ParsedAt:            time.Now(),
+		ExtractorVer:        ExtractorVersion,
 	}
 
 	res.Name = strings.TrimSpace(prod.Name)

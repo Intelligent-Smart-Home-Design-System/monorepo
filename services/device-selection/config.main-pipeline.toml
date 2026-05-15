@@ -1,0 +1,34 @@
+catalog_ttl_seconds = 86400
+
+[database]
+enabled = false
+host = "localhost"
+port = 5432
+name = "catalog"
+user = "catalog"
+password = "catalog"
+
+[temporal]
+host = "temporal"
+port = 7233
+namespace = "default"
+task_queue = "main-pipeline-device-selection"
+
+[logging]
+format = "json"
+
+[worker]
+max_concurrent_activities = 32
+compute_concurrency = 4
+
+[observability]
+metrics_host = "0.0.0.0"
+metrics_port = 2115
+tracing_enabled = true
+otlp_endpoint = "jaeger:4317"
+otlp_insecure = true
+
+[solver]
+max_bridge_ecosystems = 5
+max_hub_types = 4
+default_time_budget_seconds = 120.0

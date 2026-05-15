@@ -1,0 +1,64 @@
+{
+  "devices": [
+    {
+      "device_id": 1,
+      "device_type": "smart_lamp",
+      "brand": "lampco",
+      "model": "L1",
+      "attributes": {"socket_type": "E27", "lumens": 800},
+      "price": 1500.0,
+      "quality": 0.75,
+      "source_listing_id": 1001,
+      "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 2,
+      "device_type": "smart_lamp",
+      "brand": "lampco",
+      "model": "L2",
+      "attributes": {"socket_type": "E27", "lumens": 1200},
+      "price": 2200.0,
+      "quality": 0.85,
+      "source_listing_id": 1002,
+      "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 3,
+      "device_type": "smart_lamp",
+      "brand": "lampco",
+      "model": "L3-premium",
+      "attributes": {"socket_type": "E27", "lumens": 1500},
+      "price": 4000.0,
+      "quality": 0.95,
+      "source_listing_id": 1003,
+      "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 4,
+      "device_type": "motion_sensor",
+      "brand": "sensorco",
+      "model": "M1",
+      "attributes": {"range_m": 5},
+      "price": 1000.0,
+      "quality": 0.70,
+      "source_listing_id": 1004,
+      "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 5,
+      "device_type": "motion_sensor",
+      "brand": "sensorco",
+      "model": "M2",
+      "attributes": {"range_m": 8},
+      "price": 1800.0,
+      "quality": 0.88,
+      "source_listing_id": 1005,
+      "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}],
+      "bridge_compat": []
+    }
+  ]
+}

@@ -14,6 +14,11 @@ type Engine struct {
 	devicesConfig *configs.Devices
 }
 
+type PriceInfo struct {
+	MinPrice int
+	MaxPrice int
+}
+
 func NewEngine(st *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
 	return &Engine{
 		storage:       st,

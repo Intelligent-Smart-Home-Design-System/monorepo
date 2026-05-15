@@ -18,7 +18,7 @@ type SmartLockFilter struct {
 
 type SmartDoorBellFilter struct {
 	Angle      float64 `json:"angle,omitempty"`
-	Resolution string `json:"resolution,omitempty"`
+	Resolution string  `json:"resolution,omitempty"`
 }
 
 type DoorSensorFilter struct{}
@@ -31,10 +31,10 @@ type MotionSensorFilter struct {
 }
 
 type CameraFilter struct {
-	Angle       float64    `json:"angle,omitempty"`
-	Range       float64    `json:"range,omitempty"`
-	NightVision bool   `json:"night_vision,omitempty"`
-	Resolution  string `json:"resolution,omitempty"`
+	Angle       float64 `json:"angle,omitempty"`
+	Range       float64 `json:"range,omitempty"`
+	NightVision bool    `json:"night_vision,omitempty"`
+	Resolution  string  `json:"resolution,omitempty"`
 }
 
 type SmartSirenFilter struct {

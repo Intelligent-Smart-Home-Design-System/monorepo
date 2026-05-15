@@ -163,4 +163,3 @@ func MovePointInDirection(vec point.Point, vecDirection point.Point, offset floa
 		Y: vec.Y + vecDirection.Y * offset,
 	}
 }
-

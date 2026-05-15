@@ -1,9 +1,9 @@
 [database]
 host = "localhost"
 port = 5432
-user = "scraper"
-password = "1234"
-dbname = "scraper_db"
+user = "catalog"
+password = "catalog"
+dbname = "catalog"
 sslmode = "disable"
 
 [scraping]
@@ -17,10 +17,9 @@ wb_session_path = "./session.json"
 wb_rps = 50
 
 [wildberries.discovery]
-discovery_text_queries = ["умный дом", "zigbee датчик"]
-max_pages = 5
-url_template = "https://catalog.wb.ru/catalog/electronic15/search?appType=1&curr=rub&dest=-1257786&query={query}&page={page}"
-
+discovery_text_queries = ["умная лампа яндекс"]
+max_pages = 1
+url_template = "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=model_distance_deboost_on&appType=1&curr=rub&dest=123589415&hide_vflags=4294967296&lang=ru&locale=ru&page={page}&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false"
 [wildberries]
 brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
 smart_home_device_markers = ["Алиса", "Маруся", "Экосистема умного дома", "Zigbee", "умный дом"]

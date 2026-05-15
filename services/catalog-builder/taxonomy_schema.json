@@ -32,7 +32,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -152,7 +153,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "uniqueItems": true,
@@ -416,7 +418,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -564,7 +567,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -714,7 +718,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -812,7 +817,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -941,7 +947,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -1089,7 +1096,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,
@@ -1226,7 +1234,8 @@
                             "xiaomi",
                             "digma",
                             "sber",
-                            "vk"
+                            "vk",
+                            "ekf"
                         ]
                     },
                     "minItems": 1,

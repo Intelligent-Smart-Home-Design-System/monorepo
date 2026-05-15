@@ -1,0 +1,19 @@
+{
+  "id": "synth_014_natural_5pt",
+  "description": "5-point natural Pareto front WITHOUT forced ecosystems. Yandex happens to make the best lamps (zigbee ultra q=0.98), aqara the best sensors (q=0.95), tuya the best plugs (zigbee ultra q=0.97). Each additional hub+ecosystem unlocks a strictly higher quality tier: H=0E=1 (Q=0.913) → H=1E=1 yandex-zigbee (Q=0.9475) → H=1E=2 all-aqara (Q=0.950) → H=2E=2 yandex-lamp+aqara-rest (Q=0.952) → H=3E=3 all-ultra (Q=0.953). Demonstrates naturally increasing quality with complexity. Both algorithms should agree on all 5 points. BF ~1s.",
+  "run_brute_force": true,
+  "catalog": "catalog_natural_5pt.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 15000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 20,
+    "time_budget_seconds": 600.0
+  }
+}

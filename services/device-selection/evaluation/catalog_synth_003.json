@@ -1,0 +1,254 @@
+{
+  "devices": [
+    {
+      "device_id": 1,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQ-L-B",
+      "attributes": {},
+      "price": 200,
+      "quality": 0.85,
+      "source_listing_id": 3001,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 2,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQ-L-P",
+      "attributes": {},
+      "price": 500,
+      "quality": 0.95,
+      "source_listing_id": 3002,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 3,
+      "device_type": "smart_lamp",
+      "brand": "yx",
+      "model": "YX-L-C",
+      "attributes": {},
+      "price": 700,
+      "quality": 0.85,
+      "source_listing_id": 3003,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 4,
+      "device_type": "smart_lamp",
+      "brand": "yx",
+      "model": "YX-L-P",
+      "attributes": {},
+      "price": 1300,
+      "quality": 0.95,
+      "source_listing_id": 3004,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 5,
+      "device_type": "motion_sensor",
+      "brand": "aqara",
+      "model": "AQ-S-B",
+      "attributes": {},
+      "price": 150,
+      "quality": 0.85,
+      "source_listing_id": 3005,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 6,
+      "device_type": "motion_sensor",
+      "brand": "aqara",
+      "model": "AQ-S-P",
+      "attributes": {},
+      "price": 400,
+      "quality": 0.95,
+      "source_listing_id": 3006,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 7,
+      "device_type": "motion_sensor",
+      "brand": "yx",
+      "model": "YX-S-C",
+      "attributes": {},
+      "price": 500,
+      "quality": 0.85,
+      "source_listing_id": 3007,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 8,
+      "device_type": "motion_sensor",
+      "brand": "yx",
+      "model": "YX-S-P",
+      "attributes": {},
+      "price": 1100,
+      "quality": 0.95,
+      "source_listing_id": 3008,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 9,
+      "device_type": "smart_hub",
+      "brand": "aqara",
+      "model": "AQ-HUB-B",
+      "attributes": {},
+      "price": 1000,
+      "quality": 0.85,
+      "source_listing_id": 3009,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 10,
+      "device_type": "smart_hub",
+      "brand": "aqara",
+      "model": "AQ-HUB-P",
+      "attributes": {},
+      "price": 2000,
+      "quality": 0.95,
+      "source_listing_id": 3010,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        },
+        {
+          "ecosystem": "aqara",
+          "protocol": "matter"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 11,
+      "device_type": "smart_hub",
+      "brand": "yandex",
+      "model": "Y-HUB-B",
+      "attributes": {},
+      "price": 1500,
+      "quality": 0.85,
+      "source_listing_id": 3011,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 12,
+      "device_type": "smart_lamp",
+      "brand": "tuya",
+      "model": "TY-L",
+      "attributes": {},
+      "price": 400,
+      "quality": 0.8,
+      "source_listing_id": 3012,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    }
+  ]
+}

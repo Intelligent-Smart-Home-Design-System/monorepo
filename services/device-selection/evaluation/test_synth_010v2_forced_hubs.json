@@ -1,0 +1,19 @@
+{
+  "id": "synth_010v2_forced_hubs",
+  "description": "Fixed H=2/H=3 test. Sensors are ONLY aqara/zigbee (forces aqara hub) and plugs are ONLY tuya/zigbee (forces tuya hub). All solutions use H>=2, E=3. Lamps have options across yandex-wifi, yandex-zigbee, aqara-zigbee, tuya-wifi. Expected Pareto: (E=3 H=2 Q~0.938) = aqara ultra lamp + aqara sensor ultra + tuya plug ultra + 2 hubs; (E=3 H=3 Q~0.942) = yandex-zigbee-ultra lamp + aqara sensor ultra + tuya plug ultra + 3 hubs. Also lower-Q H=2 solutions on front. BF ~1s.",
+  "run_brute_force": true,
+  "catalog": "catalog_forced_multihub.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 12000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 50,
+    "time_budget_seconds": 600.0
+  }
+}

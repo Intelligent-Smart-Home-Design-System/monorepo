@@ -7,7 +7,7 @@ from typing import Dict
 
 class YandexCloudModelsConfig(BaseModel):
     folder: str
-    api_key: str
+    api_key: str = ""
     llm_model: str
     temperature: float = 0
 
@@ -17,7 +17,7 @@ class DatabaseConfig(BaseModel):
     port: int = 5432
     name: str
     user: str
-    password: str
+    password: str = ""
 
     @property
     def dsn(self) -> str:

@@ -32,7 +32,7 @@ async def parse_floor(file: UploadFile) -> dict[str, object]:
         read_result = reader.read_path(temp_path)
         raw_plan = extractor.extract(read_result)
         normalized_entities = normalizer.normalize(raw_plan)
-        classified_entities = classifier.classify(normalized_entities)
+        classified_entities = classifier.classify(normalized_entities, units=raw_plan.metadata.units)
         floor_plan = topology_builder.build_floor(
             source_file=file.filename or raw_plan.metadata.source_file,
             classified_entities=classified_entities,

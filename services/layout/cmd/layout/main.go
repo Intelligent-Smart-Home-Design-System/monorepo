@@ -1,32 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/exporter"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/handlers"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 )
 
-// TODO: убрать
-func GetApartment() *apartment.Apartment {
-	return &apartment.Apartment{}
-}
-
-// TODO: убрать
-func GetSelectedLevels() map[string]string {
-	return make(map[string]string)
-}
-
 func main() {
-	apartmentStruct := GetApartment()
-	apartmentStruct.Index()
-
-	selectedLevels := GetSelectedLevels()
-
 	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
 		log.Fatal("failed to load tracks config")
@@ -38,23 +22,16 @@ func main() {
 	}
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(devicesConfig)
+	storage.LoadAllRules(devicesConfig)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 
-	layout, err := engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
-	if err != nil {
-		_ = fmt.Errorf("failed to place devices: %w", err)
-	}
+	handlers := handlers.NewHandlers()
+	http.HandleFunc("/apartment", handlers.ApartmentHandler)   // TODO: договориться с названием URL
+	http.HandleFunc("/layout", handlers.LayoutHandler(engine)) // TODO: договориться с названием URL
 
-	outputJSON, err := exporter.ExportToJSON(layout)
-	if err != nil {
-		_ = fmt.Errorf("failed to marshal output data")
-	}
+	err = http.ListenAndServe(":8080", nil)
 
-	fmt.Println(string(outputJSON))
-
-	go func() {
-		// TODO: несколько пользователей (параллельно)
-	}()
+	log.Println("Layout algorithm is running")
+	log.Fatal(err)
 }

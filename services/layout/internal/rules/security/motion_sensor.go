@@ -2,25 +2,35 @@ package security
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 )
 
 type MotionSensorRule struct {
 	track string
+	deviceConfig *configs.Devices
 }
 
-func NewMotionSensorRule() *MotionSensorRule {
+func NewMotionSensorRule(deviceConfig *configs.Devices) *MotionSensorRule {
 	return &MotionSensorRule{
 		track: "security",
+		deviceConfig: deviceConfig,
 	}
 }
 
-func (gl *MotionSensorRule) Type() string {
+func (ms *MotionSensorRule) Type() string {
 	return "motion_sensor"
 }
 
-func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (ms *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	deviceType := ms.Type()
+
+	configFilters := ms.deviceConfig.GetDeviceFilter(deviceType)
+	if configFilters == nil {
+		configFilters = &filters.MotionSensorFilter{}
+	}
+	motionSensorFilters := configFilters.(*filters.MotionSensorFilter)
+
 	motionRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -29,21 +39,12 @@ func (gl *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRo
 	for _, room := range motionRooms {
 		roomID := room.ID
 
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
-
 		roomCenter, err := room.GetCenter()
 		if err != nil {
 			return err
 		}
 
-		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "motion_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, roomCenter)
-
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		layout.AddDeviceToLayout(deviceType, ms.track, roomID, roomCenter, motionSensorFilters)
 	}
 
 	return nil

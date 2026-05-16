@@ -87,8 +87,10 @@ class ModelMetrics:
             for field_name in all_scalar_fields:
                 expected = r.expected_output.get(field_name)
                 actual = r.actual_output.get(field_name)
+                if field_name not in r.expected_output:
+                    continue
+                
                 total[field_name] += 1
-
                 if actual is not None:
                     actual_count[field_name] += 1
 

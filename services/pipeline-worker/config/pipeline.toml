@@ -1,0 +1,80 @@
+[temporal]
+host_port = "temporal:7233"
+namespace = "default"
+task_queue = "catalog-pipeline"
+schedule_id = "catalog-pipeline-daily"
+schedule_cron = "0 11 * * *"
+schedule_timezone = "Europe/Moscow"
+schedule_enabled = true
+connect_attempts = 30
+workflow_id_prefix = "catalog-pipeline"
+
+[docker]
+host = "unix:///var/run/docker.sock"
+network_name = "catalog-pipeline-network"
+container_prefix = "catalog-pipeline"
+auto_remove = true
+
+[metrics]
+listen_address = ":2112"
+
+[activity]
+start_to_close_timeout = "2h"
+heartbeat_timeout = "30s"
+maximum_attempts = 3
+initial_interval = "1m"
+backoff_coefficient = 2.0
+maximum_interval = "15m"
+
+[pipeline]
+config_root = "./jobs"
+job_names = [
+  "scraper-scrape-discovery",
+  "scraper-parse-discovery",
+  "scraper-scrape",
+  "scraper-parse",
+  "extractor",
+  "catalog-builder",
+]
+
+[[jobs]]
+name = "scraper-scrape-discovery"
+image = "scraper:latest"
+config_path = "scraper/config.toml"
+command = ["/scraper", "scrape", "--config", "{{config_path}}", "--discovery"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "scraper-parse-discovery"
+image = "scraper:latest"
+config_path = "scraper/config.toml"
+command = ["/scraper", "parse", "--config", "{{config_path}}", "--discovery"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "scraper-scrape"
+image = "scraper:latest"
+config_path = "scraper/config.toml"
+command = ["/scraper", "scrape", "--config", "{{config_path}}"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "scraper-parse"
+image = "scraper:latest"
+config_path = "scraper/config.toml"
+command = ["/scraper", "parse", "--config", "{{config_path}}"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "extractor"
+image = "extractor:latest"
+config_path = "extractor/config.toml"
+command = ["/app/.venv/bin/extractor", "run", "--config", "{{config_path}}"]
+env_mapping = { EXTRACTOR_DATABASE__PASSWORD = "CATALOG_DATABASE_PASSWORD", EXTRACTOR_YANDEX_CLOUD__API_KEY = "YANDEX_CLOUD_API_KEY", "YANDEX_CLOUD_API_KEY" = "YANDEX_CLOUD_API_KEY" }
+
+[[jobs]]
+name = "catalog-builder"
+image = "catalog-builder:latest"
+config_path = "catalog-builder/config.toml"
+command = ["/catalog-builder", "run", "--config", "{{config_path}}"]
+env_mapping = { CATALOG_BUILDER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }

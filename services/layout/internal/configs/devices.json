@@ -2,7 +2,6 @@
   "device_types": {
     "water_leak_sensor": {
       "name": "Датчик протечки воды",
-      "id": "1",
       "price_range": {
         "min": 1000,
         "max": 2000
@@ -13,40 +12,50 @@
     },
     "gas_leak_sensor": {
       "name": "Датчик утечки газа",
-      "id": "2",
       "price_range": {
         "min": 2000,
         "max": 5000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "filters": {
+        "gas_type": "methane"
+      }
     },
     "smart_lock": {
       "name": "Умный замок",
-      "id": "3",
       "price_range": {
         "min": 25000,
         "max": 28000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "filters": {
+        "unlock_methods": [
+          "fingerprint",
+          "code",
+          "key"
+        ]
+      }
     },
     "smart_doorbell": {
       "name": "Умный дверной звонок",
-      "id": "4",
       "price_range": {
         "min": 2000,
         "max": 3000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "filters": {
+        "angle": 140,
+        "resolution": "1080p"
+      }
     },
     "door_sensor": {
       "name": "Датчик открытия дверей",
-      "id": "5",
       "price_range": {
         "min": 1500,
         "max": 3000
@@ -57,7 +66,6 @@
     },
     "window_sensor": {
       "name": "Датчик открытия окон",
-      "id": "6",
       "price_range": {
         "min": 1500,
         "max": 3000
@@ -68,36 +76,46 @@
     },
     "motion_sensor": {
       "name": "Датчик движения",
-      "id": "7",
       "price_range": {
         "min": 2000,
         "max": 4000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "filters": {
+        "angle": 120,
+        "range": 7
+      }
     },
     "camera": {
       "name": "Камера",
-      "id": "8",
       "price_range": {
         "min": 8000,
         "max": 13000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "filters": {
+        "angle": 100,
+        "range": 10,
+        "night_vision": true,
+        "resolution": "1080p"
+      }
     },
     "smart_siren": {
       "name": "Умная сирена",
-      "id": "9",
       "price_range": {
         "min": 3000,
         "max": 6000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "filters": {
+        "volume_db": 80
+      }
     }
   }
 }

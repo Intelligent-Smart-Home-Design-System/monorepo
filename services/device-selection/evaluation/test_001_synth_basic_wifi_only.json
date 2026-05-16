@@ -1,0 +1,30 @@
+{
+  "id": "synth_001_basic_wifi_only",
+  "description": "Two requirements, all-wifi devices, no hubs needed. Sanity check: brute force and enum_repair should agree exactly (same Pareto front).",
+  "run_brute_force": true,
+  "catalog": "catalog_synth_001.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 15000.0,
+    "requirements": [
+      {
+        "requirement_id": 1,
+        "device_type": "smart_lamp",
+        "count": 2,
+        "connect_to_main_ecosystem": true,
+        "filters": []
+      },
+      {
+        "requirement_id": 2,
+        "device_type": "motion_sensor",
+        "count": 2,
+        "connect_to_main_ecosystem": true,
+        "filters": []
+      }
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

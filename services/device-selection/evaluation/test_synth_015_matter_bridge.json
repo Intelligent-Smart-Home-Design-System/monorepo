@@ -1,0 +1,23 @@
+{
+  "id": "synth_015_matter_bridge",
+  "description": "Matter bridge connectivity test. 2 lamps, 3 options: (1) yandex wifi, no hub needed; (2) aqara zigbee + cloud bridge, needs aqara basic hub only on source side; (3) aqara matter + matter bridge, needs BOTH aqara matter hub (source leg, direct_compat matter) AND yandex matter hub (final leg, target of matter bridge). Expected 3-point Pareto front: (E=1 H=0 Q=0.80), (E=2 H=1 Q=0.84), (E=2 H=2 Q=0.917). Verifies that matter bridge requires hub on both ends and that basic hubs without matter support cannot serve the matter leg.",
+  "run_brute_force": true,
+  "catalog": "catalog_synth_matter_bridge.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 7000.0,
+    "requirements": [
+      {
+        "requirement_id": 1,
+        "device_type": "smart_lamp",
+        "count": 2,
+        "connect_to_main_ecosystem": true,
+        "filters": []
+      }
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 10,
+    "time_budget_seconds": 30.0
+  }
+}

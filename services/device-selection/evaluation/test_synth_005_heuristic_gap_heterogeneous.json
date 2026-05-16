@@ -1,0 +1,18 @@
+{
+  "id": "synth_005_heuristic_gap_heterogeneous",
+  "description": "Constructed to expose enum_repair's homogeneous-within-requirement limitation. 2 lamps + 2 sensors, single ecosystem, no hubs needed. Budget 4000 makes 2x premium-lamp infeasible (3600+at-least-600=4200) but 1xmid+1xpremium-lamp fits (2200+space). Expected: enum_repair best = 2M lamp + 2P sensor at Q=0.90; brute force best = 1M+1P lamp + 2P sensor at Q=0.925. Same H=0, E=1 - brute force solution strictly dominates enum_repair's best on quality.",
+  "run_brute_force": true,
+  "catalog": "catalog_synth_005.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 4000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 10,
+    "time_budget_seconds": 30.0
+  }
+}

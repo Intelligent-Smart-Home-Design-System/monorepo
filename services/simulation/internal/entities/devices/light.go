@@ -36,7 +36,7 @@ func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 	}
 
 	lamp.enginePort = engineAPI
-
+	lamp.inStore = *simgo.NewStore[LampInData](engineAPI.GetSimulation())
 	return &lamp, nil
 }
 

@@ -23,7 +23,7 @@ type EventInDTO struct {
 // EventOutDTO структура для обработанных событий симуляции
 type EventOutDTO struct {
 	Kind     string          `json:"kind"`
-	EntityID string          `json:"entityID"`
+	EntityID string          `json:"entityId"`
 	Payload  json.RawMessage `json:"payload"`
 }
 

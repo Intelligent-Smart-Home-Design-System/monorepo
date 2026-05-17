@@ -22,10 +22,11 @@ type SimEngine struct {
 // NewSimEngine создает SimEngine
 func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
-		simulation:   simgo.NewSimulation(),
-		IDToEntity:   make(map[string]entities.Entity),
-		eventsInChan: make(chan api.EventInDTO, maxEventsBuffer),
-		dtSim:        dtSim,
+		simulation:    simgo.NewSimulation(),
+		IDToEntity:    make(map[string]entities.Entity),
+		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
+		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
+		dtSim:         dtSim,
 	}
 }
 

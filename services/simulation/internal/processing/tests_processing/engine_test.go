@@ -1,7 +1,6 @@
 package tests_processing
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -117,7 +116,7 @@ func TestCheckCircleDependencies(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine()
+			e := engine.NewSimEngine(1.0)
 			e.IDToEntity = tt.entities
 			got := e.CheckCircleDependencies()
 			if got != tt.want {
@@ -156,10 +155,10 @@ func TestHandleEvent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine()
+			e := engine.NewSimEngine(1.0)
 			e.IDToEntity["a"] = tt.entity
 			e.IDToEntity["b"] = &stubEntity{id: "b"}
-			event := engine.EventIn{EntityID: "a"}
+			event := api.EventInDTO{EntityID: "a"}
 
 			e.HandleEvent(event)
 
@@ -184,7 +183,7 @@ func TestUpdateField(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine()
+			e := engine.NewSimEngine(1.0)
 			e.SetField(newTestField(1, 1))
 			cell := field.Cell{Condition: true}
 
@@ -200,28 +199,13 @@ func TestUpdateField(t *testing.T) {
 	}
 }
 
-// Тест корректного поведения функции Run() при отмене контекста
-func TestRun_ContextCancel(t *testing.T) {
-	t.Run("context canceled", func(t *testing.T) {
-		e := engine.NewSimEngine()
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-
-		err := e.Run(ctx)
-		if err == nil {
-			t.Errorf("expected context error, got nil")
-		}
-	})
-}
-
 // Тест корректного поведения функции Run() при закрытии канала
 func TestRun_ChannelClosed(t *testing.T) {
 	t.Run("channel closed", func(t *testing.T) {
-		e := engine.NewSimEngine()
+		e := engine.NewSimEngine(1.0)
 		close(e.GetInChan())
 
-		ctx := context.Background()
-		err := e.Run(ctx)
+		err := e.Run()
 		if err != nil {
 			t.Errorf("expected nil error, got %v", err)
 		}

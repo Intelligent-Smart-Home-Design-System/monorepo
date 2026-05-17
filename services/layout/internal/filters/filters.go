@@ -18,7 +18,7 @@ type SmartLockFilter struct {
 
 type SmartDoorBellFilter struct {
 	Angle      float64 `json:"angle,omitempty"`
-	Resolution string `json:"resolution,omitempty"`
+	Resolution string  `json:"resolution,omitempty"`
 }
 
 type DoorSensorFilter struct{}
@@ -31,14 +31,23 @@ type MotionSensorFilter struct {
 }
 
 type CameraFilter struct {
-	Angle       float64    `json:"angle,omitempty"`
-	Range       float64    `json:"range,omitempty"`
-	NightVision bool   `json:"night_vision,omitempty"`
-	Resolution  string `json:"resolution,omitempty"`
+	Angle       float64 `json:"angle,omitempty"`
+	Range       float64 `json:"range,omitempty"`
+	NightVision bool    `json:"night_vision,omitempty"`
+	Resolution  string  `json:"resolution,omitempty"`
 }
 
 type SmartSirenFilter struct {
 	VolumeDB float64 `json:"volume_db,omitempty"`
+}
+
+type AirConditionerFilter struct {
+	NoiseLevelDB       float64 `json:"noise_level_db,omitempty"`
+	MaxNoiseLevelDB    float64 `json:"max_noise_level_db,omitempty"`
+	CoolingPowerBTU    float64 `json:"cooling_power_btu,omitempty"`
+	CoolingPowerWatts  float64 `json:"cooling_power_watts,omitempty"`
+	IndoorUnitLengthMM float64 `json:"indoor_unit_length_mm,omitempty"`
+	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
 }
 
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
@@ -64,6 +73,8 @@ func GetCertainFilter(deviceType string, filters map[string]interface{}) (Device
 		filter = &CameraFilter{}
 	case "smart_siren":
 		filter = &SmartSirenFilter{}
+	case "air_conditioner":
+		filter = &AirConditionerFilter{}
 	}
 
 	if filter == nil {

@@ -5,13 +5,15 @@ import (
 )
 
 type Apartment struct {
-	Walls   []Wall   `json:"walls"`
-	Doors   []Door   `json:"door"`
-	Windows []Window `json:"windows"`
-	Rooms   []Room   `json:"rooms"`
+	Walls     []Wall      `json:"walls"`
+	Doors     []Door      `json:"door"`
+	Windows   []Window    `json:"windows"`
+	Rooms     []Room      `json:"rooms"`
+	Furniture []Furniture `json:"furniture"`
 
-	roomsByName map[string][]Room
-	wallsByID   map[string]Wall
+	roomsByName   map[string][]Room
+	wallsByID     map[string]*Wall
+	furnitureByID map[string]*Furniture
 }
 
 type Wall struct {
@@ -34,12 +36,23 @@ type Window struct {
 	Rooms  []string      `json:"rooms"`
 }
 
+type Furniture struct {
+	ID     string        `json:"id"`
+	Name   string        `json:"name"`
+	Points []point.Point `json:"points"`
+	Rooms  []string      `json:"rooms"`
+}
+
 type Room struct {
-	ID      string        `json:"id"`
-	Name    string        `json:"name"`
-	Area    []point.Point `json:"area"`
-	AreaM2  float64       `json:"area_m2"`
-	Windows []string      `json:"windows"` // ID окон
-	Doors   []string      `json:"doors"`   // ID дверей
-	Walls   []string      `json:"walls"`   // ID стен
+	ID        string        `json:"id"`
+	Name      string        `json:"name"`
+	Area      []point.Point `json:"area"`
+	AreaM2    float64       `json:"area_m2"`
+	Windows   []string      `json:"windows"`   // ID окон
+	Doors     []string      `json:"doors"`     // ID дверей
+	Walls     []string      `json:"walls"`     // ID стен
+	Furniture []string      `json:"furniture"` // ID мебели
+
+	// back-reference to parent apartment for resolving IDs to objects
+	apartment *Apartment
 }

@@ -2,7 +2,6 @@ package apartment
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
@@ -64,7 +63,8 @@ func (r *Room) GetBoundaries() (point.Point, point.Point) {
 
 // CalculateMaxDistance считает дистанцию между точками прямоугольника, описывающего комнату
 func (r *Room) CalculateMaxDistance() float64 {
-	return CalculatePointsDistance(r.GetBoundaries())
+	p1, p2 := r.GetBoundaries()
+	return point.CalculatePointsDistance(p1, p2)
 }
 
 // GenerateGridPoints генерирует сетку в комнате с заданным шагом.
@@ -81,9 +81,9 @@ func (r *Room) GenerateGridPoints(step float64) ([]point.Point, error) {
 
 	for x := minPoint.X + step/2; x <= maxPoint.X; x += step {
 		for y := minPoint.Y + step/2; y <= maxPoint.Y; y += step {
-			point := point.Point{X: x, Y: y}
-			if r.IsPointInRoom(point) {
-				points = append(points, point)
+			p := point.Point{X: x, Y: y}
+			if r.IsPointInRoom(p) {
+				points = append(points, p)
 			}
 		}
 	}
@@ -93,74 +93,33 @@ func (r *Room) GenerateGridPoints(step float64) ([]point.Point, error) {
 
 // IsPointInRoom проверяет, находится ли точка в комнате
 func (r *Room) IsPointInRoom(targetPoint point.Point) bool {
-	points := r.Area
-	maxAreaX := points[0].X
-	if targetPoint.X == points[0].X && targetPoint.Y == points[0].Y {
-		return true
+	if len(r.Area) < 3 {
+		return false
 	}
 
-	for _, point := range points[1:] {
-		maxAreaX = max(maxAreaX, point.X)
-		if targetPoint.X == point.X && targetPoint.Y == point.Y {
-			return true
-		}
+	polygon := make([]*point.Point, len(r.Area))
+	for i := range r.Area {
+		polygon[i] = &r.Area[i]
 	}
 
-	maxCoordPoint := point.Point{X: maxAreaX + 1, Y: targetPoint.Y}
-	targetSegment := point.Segment{LeftPoint: targetPoint, RightPoint: maxCoordPoint}
-	intersectionCnts := 0
-
-	n := len(points)
-	for i := 1; i < n; i++ {
-		if targetPoint.IsInSegment(points[i-1].X, points[i-1].Y, points[i].X, points[i].Y) {
-			return true
-		}
-
-		if targetSegment.HasSegmentIntersection(points[i-1], points[i]) {
-			intersectionCnts++
-		}
-	}
-
-	if targetPoint.IsInSegment(points[n-1].X, points[n-1].Y, points[0].X, points[0].Y) {
-		return true
-	}
-
-	if targetSegment.HasSegmentIntersection(points[n-1], points[0]) {
-		intersectionCnts++
-	}
-
-	return intersectionCnts%2 != 0
+	return point.IsPointInPolygon(targetPoint, polygon)
 }
 
-// IsWallBetweenPoints проверяет, есть ли стены между двумя точками
+// IsWallBetweenPoints проверяет, есть ли стены между двумя точками.
 func (a *Apartment) IsWallBetweenPoints(A, B point.Point) bool {
+	segAB := &point.Segment{From: A, To: B}
+
 	for _, wall := range a.Walls {
 		x1, y1, x2, y2 := wall.Points[0].X, wall.Points[0].Y, wall.Points[1].X, wall.Points[1].Y
-		if A.IsInSegment(x1, y1, x2, y2) && B.IsInSegment(x1, y1, x2, y2) {
+		if A.IsInInterval(x1, y1, x2, y2) && B.IsInInterval(x1, y1, x2, y2) {
 			continue
 		}
 
-		segmentAB := point.Segment{LeftPoint: A, RightPoint: B}
-		if segmentAB.HasSegmentIntersection(wall.Points[0], wall.Points[1]) {
+		wallSeg := &point.Segment{From: wall.Points[0], To: wall.Points[1]}
+		if point.IsSegmentsIntersect(segAB, wallSeg) {
 			return true
 		}
 	}
 
 	return false
 }
-
-// CalculatePointsDistance вычисляет расстояние между двумя точками
-func CalculatePointsDistance(p1, p2 point.Point) float64 {
-	diffX := p1.X - p2.X
-	diffY := p1.Y - p2.Y
-	return math.Sqrt(diffX * diffX + diffY * diffY)
-}
-
-// MovePointInDirection сдвигает вектор по направлению в offset раз
-func MovePointInDirection(vec point.Point, vecDirection point.Point, offset float64) point.Point {
-	return point.Point{
-		X: vec.X + vecDirection.X * offset,
-		Y: vec.Y + vecDirection.Y * offset,
-	}
-}
-

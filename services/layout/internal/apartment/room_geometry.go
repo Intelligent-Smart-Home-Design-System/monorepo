@@ -14,7 +14,7 @@ const baseCameraAngle = 100
 // В прихожей камера ставится напротив входной двери.
 // В остальных комнатах камера ставится в том месте, в котором охватывается наибольшая площадь комнаты
 func (r *Room) GetBestCameraPoint(apartment *Apartment, filters *filters.CameraFilter) (*point.Point, error) {
-	if r.Name == "hall" {
+	if r.Name == RoomHall {
 		frontDoor := apartment.GetFrontDoor()
 		if frontDoor == nil {
 			return nil, fmt.Errorf("no front door in apartment")
@@ -31,10 +31,10 @@ func (r *Room) GetBestHallCameraPoint(frontDoor *Door) (*point.Point, error) {
 	doorCenter := GetObjectCenter(frontDoor.Points)
 
 	bestPoint := r.Area[0]
-	maxDist := CalculatePointsDistance(doorCenter, bestPoint)
+	maxDist := point.CalculatePointsDistance(doorCenter, bestPoint)
 
 	for _, p := range r.Area[1:] {
-		dist := CalculatePointsDistance(doorCenter, p)
+		dist := point.CalculatePointsDistance(doorCenter, p)
 		if dist > maxDist {
 			maxDist = dist
 			bestPoint = p
@@ -129,7 +129,7 @@ func (r *Room) CalculateAreaCoverage(apartment *Apartment, cameraPoint point.Poi
 	visiblePoints := 0
 
 	for _, p := range gridPoints {
-		if CalculatePointsDistance(cameraPoint, p) > cameraRange {
+		if point.CalculatePointsDistance(cameraPoint, p) > cameraRange {
 			continue
 		}
 
@@ -179,7 +179,7 @@ func (r *Room) IsPointVisibleOnCamera(apartment *Apartment, p point.Point, camer
 	}
 
 	cameraOffset := r.GetCameraOffset(apartment, cameraPoint, cameraDirection)
-	cameraPoint = MovePointInDirection(cameraPoint, cameraDirection, cameraOffset)
+	cameraPoint = point.MovePointInDirection(cameraPoint, cameraDirection, cameraOffset)
 
 	return !apartment.IsWallBetweenPoints(p, cameraPoint)
 }
@@ -191,7 +191,7 @@ func (r *Room) GetCameraOffset(apartment *Apartment, cameraPoint point.Point, ca
 
 	for _, wallID := range r.Walls {
 		wall := apartment.wallsByID[wallID]
-		minWallLen = min(minWallLen, CalculatePointsDistance(wall.Points[0], wall.Points[1]))
+		minWallLen = min(minWallLen, point.CalculatePointsDistance(wall.Points[0], wall.Points[1]))
 	}
 
 	return minWallLen * 0.01

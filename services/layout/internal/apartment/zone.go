@@ -1,0 +1,61 @@
+package apartment
+
+import (
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
+	"github.com/gofrs/uuid/v5"
+)
+
+// Zone представляет зону внутри комнаты (например, непродуваемая зона вокруг кровати).
+type Zone struct {
+	ID     uuid.UUID     `json:"id"`
+	Points []point.Point `json:"points"`
+}
+
+func NewZone(p []point.Point) *Zone {
+	return &Zone{ID: uuid.Must(uuid.NewV4()), Points: p}
+}
+
+// ZonedRoom комната, обогащённая зонами после обработки правилами.
+type ZonedRoom struct {
+	OrigRoom         *Room
+	NoWindZones      []*Zone             `json:"no_wind_zones"`
+	ACAvailableWalls map[string]struct{} // nil = все стены доступны
+}
+
+func NewZonedRoom(r *Room) *ZonedRoom {
+	return &ZonedRoom{OrigRoom: r}
+}
+
+// GetFurniture возвращает мебель оригинальной комнаты.
+func (zr *ZonedRoom) GetFurniture() []*Furniture {
+	if zr.OrigRoom == nil {
+		return nil
+	}
+	return zr.OrigRoom.GetFurniture()
+}
+
+// ZonedApartment квартира, обогащённая зонами после обработки правилами.
+type ZonedApartment struct {
+	OrigAp     *Apartment
+	ZonedRooms []*ZonedRoom
+}
+
+func NewZonedApartment(ap *Apartment) *ZonedApartment {
+	return &ZonedApartment{OrigAp: ap}
+}
+
+// Build создаёт ZonedApartment из JSON-десериализованной Apartment.
+// Вызывает Index() для построения внутренних индексов и создаёт
+// ZonedRoom для каждой комнаты, готовую к обогащению правилами.
+func Build(ap *Apartment) *ZonedApartment {
+	ap.Index()
+
+	zoned := NewZonedApartment(ap)
+	zoned.ZonedRooms = make([]*ZonedRoom, 0, len(ap.Rooms))
+
+	for i := range ap.Rooms {
+		zoned.ZonedRooms = append(zoned.ZonedRooms, NewZonedRoom(&ap.Rooms[i]))
+	}
+
+	return zoned
+}

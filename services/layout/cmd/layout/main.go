@@ -32,13 +32,15 @@ func main() {
 		log.Fatal("failed to load tracks config")
 	}
 
-	devicesConfig, err := configs.LoadDevicesConfig("internal/configs/tracks.json")
+	devicesConfig, err := configs.LoadDevicesConfig("internal/configs/devices.json")
 	if err != nil {
 		log.Fatal("failed to load devices config")
 	}
 
 	storage := storage.NewStorage()
 	storage.LoadAllSecurityRules(devicesConfig)
+	storage.LoadAllLightingRules()
+	storage.LoadAllClimateRules(devicesConfig)
 
 	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
 

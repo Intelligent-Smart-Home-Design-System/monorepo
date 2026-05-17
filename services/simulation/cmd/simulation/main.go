@@ -2,12 +2,9 @@ package main
 
 import (
 	"log/slog"
-	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/app"
 )
-
-const timeoutGraceful = 5 * time.Second
 
 func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)

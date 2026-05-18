@@ -2,7 +2,6 @@ package simulations
 
 import (
 	"errors"
-	"log/slog"
 	"sync"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
@@ -48,12 +47,6 @@ func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) er
 
 	eng.InitProcesses()
 
-	go func() {
-		if err := eng.Run(); err != nil {
-			slog.Error("engine error", "reqID", reqID, "error", err)
-		}
-	}()
-
 	s.mu.Lock()
 	s.IDToEngine[reqID] = eng
 	s.mu.Unlock()
@@ -77,7 +70,6 @@ func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*ap
 	}
 
 	eng.Step()
-
 	return eng.CollectStep(payload.Tick), nil
 }
 

@@ -123,7 +123,27 @@ func (s *SimEngine) Run() error {
 }
 
 func (s *SimEngine) Step() {
-	s.simulation.RunUntil(s.simulation.Now() + s.dtSim)
+    targetTime := s.simulation.Now() + s.dtSim
+
+    s.simulation.RunUntil(targetTime)
+
+    for s.drainInChan() {
+        s.simulation.RunUntil(targetTime)
+    }
+}
+
+// drainInChan читает все доступные события из канала, возвращает true если было хоть одно
+func (s *SimEngine) drainInChan() bool {
+    hasEvents := false
+    for {
+        select {
+        case event := <-s.eventsInChan:
+            s.HandleEvent(event)
+            hasEvents = true
+        default:
+            return hasEvents
+        }
+    }
 }
 
 // CollectStep собирает обновления от всех сущностей после тика.
@@ -150,15 +170,6 @@ func (s *SimEngine) Stop() {
 
 // HandleEvent обрабатывает event по его entityID
 func (s *SimEngine) HandleEvent(event api.EventInDTO) {
-	entity := s.IDToEntity[event.EntityID]
-	receiversID := entity.GetReceiversID()
-
-	for _, receiverID := range receiversID {
-		s.eventsInChan <- api.EventInDTO{
-			EntityID: receiverID,
-		}
-	}
-
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
 		err := entityWithProcess.HandleInDTO(event.Payload)
 		if err != nil {

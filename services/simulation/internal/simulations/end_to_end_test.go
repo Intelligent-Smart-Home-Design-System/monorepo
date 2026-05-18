@@ -1,308 +1,247 @@
 package simulations
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"log/slog"
-	"sync"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/client/ws"
+	"github.com/gorilla/websocket"
 )
 
-// =====Stubs=====
-type StubFetcher struct {
-	simIDs       []string
-	entities     map[string][]api.EntityDTO
-	dependencies map[string]map[string][]api.ActionDTO
-	fields       map[string]api.FieldDTO
-	events       map[string]chan api.EventInDTO
-}
+// ===== Helper =====
+func dialSim(t *testing.T, server *httptest.Server) *websocket.Conn {
+	t.Helper()
 
-func (s *StubFetcher) GetSimulationsID() []string {
-	return s.simIDs
-}
+	url := "ws" + strings.TrimPrefix(server.URL, "http")
 
-func (s *StubFetcher) GetEntities() (map[string][]api.EntityDTO, error) {
-	return s.entities, nil
-}
-
-func (s *StubFetcher) GetDependencies() (map[string]map[string][]api.ActionDTO, error) {
-	return s.dependencies, nil
-}
-
-func (s *StubFetcher) GetFields() (map[string]api.FieldDTO, error) {
-	return s.fields, nil
-}
-
-func (s *StubFetcher) GetEvents() (map[string][]api.EventInDTO, error) {
-	evCopy := make(map[string][]api.EventInDTO, len(s.events))
-	for simID, ch := range s.events {
-		evCopy[simID] = nil
-		select {
-		case ev := <-ch:
-			evCopy[simID] = append(evCopy[simID], ev)
-		}
-	}
-	return evCopy, nil
-}
-
-type StubSender struct {
-	events []api.EventOutDTO
-	mu     sync.Mutex
-}
-
-func (s *StubSender) Run() {
-}
-
-func (s *StubSender) AddEvent(dto api.EventOutDTO) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.events = append(s.events, dto)
-}
-
-func (s *StubSender) Send(dto api.EventOutDTO) {
-}
-
-// =====Helper=====
-func (s *StubSender) Count() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return len(s.events)
-}
-
-func mustJSON(v any) []byte {
-	b, _ := json.Marshal(v)
-	return b
-}
-
-func stepTick(ch chan api.EventInDTO) {
-	done := make(chan struct{})
-	ch <- api.EventInDTO{EntityID: "step_tick", Done: done}
-	<-done // блокируемся до завершения шага
-}
-
-func stepInit(ch chan api.EventInDTO) {
-	done := make(chan struct{})
-	ch <- api.EventInDTO{EntityID: "step_init", Done: done}
-	<-done
-}
-
-func sendEventSync(ch chan api.EventInDTO, id string, state bool) {
-	done := make(chan struct{})
-	data, _ := json.Marshal(map[string]bool{"turn_on": state})
-
-	ch <- api.EventInDTO{
-		EntityID: id,
-		Info:     data,
-		Done:     done,
-	}
-	<-done
-}
-
-func (s *StubSender) Snapshot() []api.EventOutDTO {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	out := make([]api.EventOutDTO, len(s.events))
-	copy(out, s.events)
-	return out
-}
-
-func waitForSenderEvents(t *testing.T, sender *StubSender, want int, timeout time.Duration) []api.EventOutDTO {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		if sender.Count() >= want {
-			return sender.Snapshot()
-		}
-		time.Sleep(10 * time.Millisecond)
+	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatalf("dialSim: %v", err)
 	}
 
-	t.Fatalf("timeout: expected at least %d events, got %d", want, sender.Count())
-	return nil
+	t.Cleanup(func() {
+		conn.Close()
+	})
+
+	return conn
 }
 
-func sensorStatesFrom(events []api.EventOutDTO, sensorID string) []bool {
-	states := make([]bool, 0)
+func sendMsg(t *testing.T, conn *websocket.Conn, msg api.Message) {
+	t.Helper()
 
-	for _, e := range events {
-		if e.EntityID != sensorID {
-			continue
-		}
-
-		var out struct {
-			TurnOn bool `json:"turn_on"`
-		}
-		_ = json.Unmarshal(e.Info, &out)
-		states = append(states, out.TurnOn)
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("sendMsg: %v", err)
 	}
 
-	return states
+	if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("sendMsg: %v", err)
+	}
 }
 
-// =====Tests=====
-// Тест проверки корректности работы программы в стандартном случае
-//   - очередь событий задана и не меняется со временем
+func recvMsg(t *testing.T, conn *websocket.Conn) api.Message {
+	t.Helper()
+
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	_, data, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("recvMsg: %v", err)
+	}
+
+	var msg api.Message
+
+	if err := json.Unmarshal(data, &msg); err != nil {
+		t.Fatalf("recvMsg: %v", err)
+	}
+
+	return msg
+}
+
+func recvStep(t *testing.T, conn *websocket.Conn) api.SimulationStepPayload {
+	t.Helper()
+
+	msg := recvMsg(t, conn)
+
+	if msg.Type != "simulation:step" {
+		t.Fatalf("expected simulation:step, got %q", msg.Type)
+	}
+
+	var step api.SimulationStepPayload
+
+	if err := json.Unmarshal(msg.Payload, &step); err != nil {
+		t.Fatalf("recvStep: %v", err)
+	}
+
+	return step
+}
+
+func newSimServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	simService := NewSimulation()
+	manager := ws.NewManager(simService)
+	server := httptest.NewServer(http.HandlerFunc(manager.ServeWS))
+	t.Cleanup(server.Close)
+	return server
+}
+
+func startSim(t *testing.T, conn *websocket.Conn, reqID string, payload api.SimulationStartPayload) {
+	t.Helper()
+
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("startSim: %v", err)
+	}
+
+	sendMsg(t, conn, api.Message{Type: "simulation:start", Ts: time.Now(), ReqID: reqID, Payload: raw})
+	msg := recvMsg(t, conn)
+	if msg.Type != "simulation:started" {
+		t.Fatalf("startSim: expected simulation:started, got %q", msg.Type)
+	}
+}
+
+func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []api.EventInDTO) api.SimulationStepPayload {
+	t.Helper()
+
+	raw, err := json.Marshal(api.SimulationTickPayload{Tick: tickN, Inputs: inputs})
+	if err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+
+	sendMsg(t, conn, api.Message{
+		Type:    "simulation:tick",
+		Ts:      time.Now(),
+		ReqID:   reqID,
+		Payload: raw,
+	})
+
+	return recvStep(t, conn)
+}
+
+func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventInDTO {
+	t.Helper()
+
+	payload, err := json.Marshal(map[string]bool{"turn_on": turnOn})
+	if err != nil {
+		t.Fatalf("inputEvent: %v", err)
+	}
+
+	return api.EventInDTO{
+		EntityID: entityID,
+		Payload:  payload,
+	}
+}
+
+// statesFrom собирает последовательность turn_on из StateChanges для конкретного entityID.
+func statesFrom(steps []api.SimulationStepPayload, entityID string) []bool {
+	var result []bool
+	for _, step := range steps {
+		for _, change := range step.StateChanges {
+			if change.EntityID != entityID {
+				continue
+			}
+
+			var out struct {TurnOn bool `json:"turn_on"`}
+			_ = json.Unmarshal(change.Payload, &out)
+			result = append(result, out.TurnOn)
+		}
+	}
+
+	return result
+}
+
+// lastStateOf возвращает последнее значение turn_on для entityID из всех шагов.
+func lastStateOf(steps []api.SimulationStepPayload, entityID string) (bool, bool) {
+	states := statesFrom(steps, entityID)
+
+	if len(states) == 0 {
+		return false, false
+	}
+
+	return states[len(states)-1], true
+}
+
+// ===== Tests =====
+// Тест проверки корректности работы программы в стандартном случае.
 func TestSimulation_Default(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	server := newSimServer(t)
+	conn := dialSim(t, server)
 
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	const reqID = "sim-default"
 
-	simID := "sim1"
-
-	switch1 := api.EntityDTO{
-		ID:   "lampSwitcher_1",
-		Info: mustJSON(map[string]any{"id": "lampSwitcher_1", "delay": 1.0}),
-	}
-	switch2 := api.EntityDTO{
-		ID:   "lampSwitcher_2",
-		Info: mustJSON(map[string]any{"id": "lampSwitcher_2", "delay": 0.3}),
-	}
-	lamp1 := api.EntityDTO{
-		ID:   "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.5}),
-	}
-	lamp2 := api.EntityDTO{
-		ID:   "lamp_2",
-		Info: mustJSON(map[string]any{"id": "lamp_2", "delay": 1.0}),
-	}
-
-	deps := map[string]map[string][]api.ActionDTO{
-		simID: {
-			"lampSwitcher_1": {{ID: "lamp_1"}},
-			"lampSwitcher_2": {{ID: "lamp_1"}, {ID: "lamp_2"}},
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Devices: []api.EntityDTO{
+			{ID: "lampSwitcher_1", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_1", "delay":1.0}`)},
+			{ID: "lampSwitcher_2", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_2", "delay":0.3}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1", "delay":0.5}`)},
+			{ID: "lamp_2", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_2", "delay":1.0}`)},
 		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "lampSwitcher_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+			{EntityID: "lampSwitcher_2", Edges: []api.EdgeDTO{{ToID: "lamp_1"}, {ToID: "lamp_2"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lampSwitcher_2", true)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 4, nil))
+	steps = append(steps, tick(t, conn, reqID, 5, nil))
+	steps = append(steps, tick(t, conn, reqID, 6, nil))
+
+	total := 0
+
+	for _, s := range steps {
+		total += len(s.StateChanges)
 	}
-
-	eventsChan := make(chan api.EventInDTO, 10)
-
-	fetcher := &StubFetcher{
-		simIDs:       []string{simID},
-		entities:     map[string][]api.EntityDTO{simID: {switch1, switch2, lamp1, lamp2}},
-		dependencies: deps,
-		fields:       map[string]api.FieldDTO{simID: {}},
-		events:       map[string]chan api.EventInDTO{simID: eventsChan},
-	}
-
-	sender := &StubSender{}
-
-	sim := NewSimulation(fetcher, sender)
-
-	err := sim.Init(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go func() {
-		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			t.Logf("Simulations.Run error: %v", err)
-		}
-	}()
-
-	stepInit(eventsChan)
-	sendEventSync(eventsChan, "lampSwitcher_1", true)
-	stepTick(eventsChan)
-	sendEventSync(eventsChan, "lampSwitcher_2", true)
-	stepTick(eventsChan)
-	sendEventSync(eventsChan, "lampSwitcher_1", false)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-
-	waitForSenderEvents(t, sender, 7, 5*time.Second)
-	if sender.Count() != 7 {
-		t.Fatalf("expected 7 events, got %d", sender.Count())
+	if total != 7 {
+		t.Fatalf("expected 7 total state changes, got %d", total)
 	}
 }
 
-// Тест проверки корректности работы программы в стандартном случае
-//   - очередь событий меняется со временем
-func TestSimulation_UserIntervention(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// Тест проверки корректности работы программы при вмешательстве пользователя.
+func TestWS_Simulation_UserIntervention(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
 
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	const reqID = "sim-intervention"
 
-	simID := "sim2"
-
-	switch1 := api.EntityDTO{
-		ID:   "lampSwitcher_1",
-		Info: mustJSON(map[string]any{"id": "lampSwitcher_1", "delay": 0.0}),
-	}
-	switch2 := api.EntityDTO{
-		ID:   "lampSwitcher_2",
-		Info: mustJSON(map[string]any{"id": "lampSwitcher_2", "delay": 0.0}),
-	}
-	lamp1 := api.EntityDTO{
-		ID:   "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.0}),
-	}
-	lamp2 := api.EntityDTO{
-		ID:   "lamp_2",
-		Info: mustJSON(map[string]any{"id": "lamp_2", "delay": 0.0}),
-	}
-
-	deps := map[string]map[string][]api.ActionDTO{
-		simID: {
-			"lampSwitcher_1": {{ID: "lamp_1"}},
-			"lampSwitcher_2": {{ID: "lamp_2"}},
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 10.0,
+		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Devices: []api.EntityDTO{
+			{ID: "lampSwitcher_1", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_1","delay":0.0}`)},
+			{ID: "lampSwitcher_2", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_2","delay":0.0}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "lamp_2", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_2","delay":0.0}`)},
 		},
-	}
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "lampSwitcher_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+			{EntityID: "lampSwitcher_2", Edges: []api.EdgeDTO{{ToID: "lamp_2"}}},
+		},
+	})
 
-	eventsChan := make(chan api.EventInDTO, 10)
+	var steps []api.SimulationStepPayload
 
-	fetcher := &StubFetcher{
-		simIDs:       []string{simID},
-		entities:     map[string][]api.EntityDTO{simID: {switch1, switch2, lamp1, lamp2}},
-		dependencies: deps,
-		fields:       map[string]api.FieldDTO{simID: {}},
-		events:       map[string]chan api.EventInDTO{simID: eventsChan},
-	}
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "lampSwitcher_2", true)}))
+	steps = append(steps, tick(t, conn, reqID, 4, nil))
+	steps = append(steps, tick(t, conn, reqID, 5, nil))
+	steps = append(steps, tick(t, conn, reqID, 6, nil))
+	steps = append(steps, tick(t, conn, reqID, 7, nil))
 
-	sender := &StubSender{}
-
-	sim := NewSimulation(fetcher, sender)
-
-	err := sim.Init(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go func() {
-		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			t.Logf("Simulations.Run error: %v", err)
-		}
-	}()
-
-	stepInit(eventsChan)
-	sendEventSync(eventsChan, "lampSwitcher_1", true)
-	sendEventSync(eventsChan, "lampSwitcher_1", false)
-	stepTick(eventsChan)
-	sendEventSync(eventsChan, "lampSwitcher_2", true)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-
-	events := waitForSenderEvents(t, sender, 6, 2*time.Second)
-
-	var lamp1State, lamp2State bool
-	for _, e := range events {
-		if e.EntityID == "lamp_1" {
-			var out map[string]bool
-			_ = json.Unmarshal(e.Info, &out)
-			lamp1State = out["turn_on"]
-		}
-		if e.EntityID == "lamp_2" {
-			var out map[string]bool
-			_ = json.Unmarshal(e.Info, &out)
-			lamp2State = out["turn_on"]
-		}
-	}
+	lamp1State, _ := lastStateOf(steps, "lamp_1")
+	lamp2State, _ := lastStateOf(steps, "lamp_2")
 
 	if lamp1State != false {
 		t.Fatalf("lamp_1 expected OFF, got ON")
@@ -312,152 +251,93 @@ func TestSimulation_UserIntervention(t *testing.T) {
 	}
 }
 
-// =====Tests for LightSwitchOffSensor=====
+// ===== Tests for LightSwitchOffSensor =====
 // Обычный сценарий: сенсор получил сигнал, потом завершил таймаут и выключился.
 func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	server := newSimServer(t)
+	conn := dialSim(t, server)
 
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	const reqID = "sim-sensor-no-interrupt"
 
-	simID := "sim_light_switch_off_1"
-
-	sensor := api.EntityDTO{
-		ID:   "lightSwitchOffSensor_1",
-		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.5, "timeout": 1.0, "turned_on": false, "receivers": []string{}}),
-	}
-	lamp := api.EntityDTO{
-		ID:   "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.5, "turned_on": false}),
-	}
-
-	deps := map[string]map[string][]api.ActionDTO{
-		simID: {
-			"lightSwitchOffSensor_1": {{ID: "lamp_1"}},
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Devices: []api.EntityDTO{
+			{ID: "lightSwitchOffSensor_1", Type: "lightSwitchOffSensor", Info: json.RawMessage(`{"id":"lightSwitchOffSensor_1","delay":0.5,"timeout":1.0,"turned_on":false}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.5,"turned_on":false}`)},
 		},
-	}
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "lightSwitchOffSensor_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+		},
+	})
 
-	eventsChan := make(chan api.EventInDTO, 64)
+	var steps []api.SimulationStepPayload
 
-	fetcher := &StubFetcher{
-		simIDs:       []string{simID},
-		entities:     map[string][]api.EntityDTO{simID: {sensor, lamp}},
-		dependencies: deps,
-		fields:       map[string]api.FieldDTO{simID: {}},
-		events:       map[string]chan api.EventInDTO{simID: eventsChan},
-	}
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 4, nil))
 
-	sender := &StubSender{}
-
-	sim := NewSimulation(fetcher, sender)
-
-	err := sim.Init(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go func() {
-		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			t.Logf("Simulations.Run error: %v", err)
-		}
-	}()
-
-	stepInit(eventsChan)
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
-	stepTick(eventsChan)
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-
-	events := waitForSenderEvents(t, sender, 4, 2*time.Second)
-	got := sensorStatesFrom(events, "lightSwitchOffSensor_1")
+	got := statesFrom(steps, "lightSwitchOffSensor_1")
 	want := []bool{true, false}
+
+	if len(got) < len(want) {
+		t.Fatalf("not enough state changes for sensor: got %v, want %v", got, want)
+	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Fatalf("unexpected sequence at index %d: got=%v want=%v", i, got, want)
+			t.Fatalf("sensor state mismatch at index %d: got=%v want=%v (full: %v)", i, got[i], want[i], got)
 		}
 	}
 }
 
 // Сценарий с 2 прерываниями: каждое новое срабатывание продлевает время работы сенсора.
 func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	server := newSimServer(t)
+	conn := dialSim(t, server)
 
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	const reqID = "sim-sensor-two-interrupts"
 
-	simID := "sim_light_switch_off_1"
-
-	sensor := api.EntityDTO{
-		ID:   "lightSwitchOffSensor_1",
-		Info: mustJSON(map[string]any{"id": "lightSwitchOffSensor_1", "delay": 0.0, "timeout": 4.0, "turned_on": false, "receivers": []string{}}),
-	}
-	lamp := api.EntityDTO{
-		ID:   "lamp_1",
-		Info: mustJSON(map[string]any{"id": "lamp_1", "delay": 0.0, "turned_on": false}),
-	}
-
-	deps := map[string]map[string][]api.ActionDTO{
-		simID: {
-			"lightSwitchOffSensor_1": {{ID: "lamp_1"}},
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Devices: []api.EntityDTO{
+			{ID: "lightSwitchOffSensor_1", Type: "lightSwitchOffSensor", Info: json.RawMessage(`{"id":"lightSwitchOffSensor_1","delay":0.0,"timeout":4.0,"turned_on":false}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turned_on":false}`)},
 		},
-	}
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "lightSwitchOffSensor_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+		},
+	})
 
-	eventsChan := make(chan api.EventInDTO, 64)
+	var steps []api.SimulationStepPayload
 
-	fetcher := &StubFetcher{
-		simIDs:       []string{simID},
-		entities:     map[string][]api.EntityDTO{simID: {sensor, lamp}},
-		dependencies: deps,
-		fields:       map[string]api.FieldDTO{simID: {}},
-		events:       map[string]chan api.EventInDTO{simID: eventsChan},
-	}
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{
+		inputEvent(t, "lightSwitchOffSensor_1", true),
+		inputEvent(t, "lightSwitchOffSensor_1", false),
+	}))
+	steps = append(steps, tick(t, conn, reqID, 4, nil))
+	steps = append(steps, tick(t, conn, reqID, 5, []api.EventInDTO{
+		inputEvent(t, "lightSwitchOffSensor_1", true),
+		inputEvent(t, "lightSwitchOffSensor_1", false),
+	}))
+	steps = append(steps, tick(t, conn, reqID, 6, nil))
+	steps = append(steps, tick(t, conn, reqID, 7, nil))
+	steps = append(steps, tick(t, conn, reqID, 8, nil))
+	steps = append(steps, tick(t, conn, reqID, 9, nil))
+	steps = append(steps, tick(t, conn, reqID, 10, nil))
 
-	sender := &StubSender{}
-
-	sim := NewSimulation(fetcher, sender)
-
-	err := sim.Init(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go func() {
-		if err := sim.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			t.Logf("Simulations.Run error: %v", err)
-		}
-	}()
-
-	stepInit(eventsChan)
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
-	stepTick(eventsChan)
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
-
-	stepTick(eventsChan)
-
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
-
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", true)
-	sendEventSync(eventsChan, "lightSwitchOffSensor_1", false)
-
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-	stepTick(eventsChan)
-
-	events := waitForSenderEvents(t, sender, 4, 2*time.Second)
-	got := sensorStatesFrom(events, "lightSwitchOffSensor_1")
+	got := statesFrom(steps, "lightSwitchOffSensor_1")
 	want := []bool{true, false}
+
+	if len(got) < len(want) {
+		t.Fatalf("not enough state changes for sensor: got %v, want %v", got, want)
+	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Fatalf("unexpected sequence at index %d: got=%v want=%v", i, got, want)
+			t.Fatalf("sensor state mismatch at index %d: got=%v want=%v (full: %v)", i, got[i], want[i], got)
 		}
 	}
 }

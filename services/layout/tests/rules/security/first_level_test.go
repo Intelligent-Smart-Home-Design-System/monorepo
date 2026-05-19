@@ -27,22 +27,21 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 	apartmentStruct := &apartment.Apartment{
 		Rooms: []apartment.Room{room},
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
@@ -50,15 +49,15 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Position)
 		case "gas_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Position)
 		}
 	}
 
 	kitchenRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		kitchenRoomKeys = append(kitchenRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		kitchenRoomKeys = append(kitchenRoomKeys, placement.Device.Type)
 	}
 
 	correctKitchenRoomKeys := []string{"water_leak_sensor", "gas_leak_sensor"}
@@ -105,22 +104,21 @@ func TestMultipleRooms(t *testing.T) {
 	apartmentStruct := &apartment.Apartment{
 		Rooms: rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
@@ -128,16 +126,16 @@ func TestMultipleRooms(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[rooms[0].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Position)
 		case "gas_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Position)
 		}
 	}
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[1].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Position)
 		}
 	}
 
@@ -180,22 +178,21 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 	apartmentStruct := &apartment.Apartment{
 		Rooms: rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)

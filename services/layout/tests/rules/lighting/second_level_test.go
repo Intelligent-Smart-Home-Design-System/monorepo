@@ -37,7 +37,6 @@ func TestLightingLevel2(t *testing.T) {
 	apartmentStruct := &apartment.Apartment{
 		Rooms: rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"lighting": "2",
@@ -54,8 +53,8 @@ func TestLightingLevel2(t *testing.T) {
 	globalPlacement, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 
-	_, passageHasBulb := globalPlacement.Placements["r3"]["smart_bulb"]
-	_, bathroomHasBulb := globalPlacement.Placements["r4"]["smart_bulb"]
+	passageHasBulb := globalPlacement.HasDeviceInRoom("smart_bulb", "r3")
+	bathroomHasBulb := globalPlacement.HasDeviceInRoom("smart_bulb", "r4")
 	assert.True(t, passageHasBulb)
 	assert.True(t, bathroomHasBulb)
 }

@@ -124,7 +124,7 @@ func TestIsWallBetweenPoints(t *testing.T) {
 		Walls: walls,
 		Rooms:   []Room{room},
 	}
-	apartment.MakeDependency()
+	apartment.Index()
 
 	assert.Equal(t, false, apartment.IsWallBetweenPoints(point.Point{X: 2, Y: 3}, point.Point{X: 3, Y: 2}))
 	assert.Equal(t, true, apartment.IsWallBetweenPoints(point.Point{X: 2, Y: 3}, point.Point{X: 6, Y: 2}))

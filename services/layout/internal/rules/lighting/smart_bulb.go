@@ -2,9 +2,7 @@ package lighting
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
-	"github.com/google/uuid"
 )
 
 type SmartBulbRule struct {

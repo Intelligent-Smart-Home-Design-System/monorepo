@@ -1,0 +1,2279 @@
+{
+  "model": "gpt-oss-120b/latest",
+  "summary": {
+    "total_listings": 32,
+    "type_accuracy": 1.0,
+    "perfect_extraction_rate": 0.21875,
+    "scalar_field_metrics": {
+      "recall": {
+        "description": "Rate of correct values when non-null expected",
+        "values": {
+          "detects_leaks_below": 1.0,
+          "dimmable": 1.0,
+          "door_thickness_min_mm": 0.5,
+          "has_camera": 1.0,
+          "field_of_view_deg": 1.0,
+          "battery_quantity": 1.0,
+          "color_temp_max_k": 1.0,
+          "detection_angle_deg": 0.6666666666666666,
+          "resolution": 1.0,
+          "matter_bridge": 1.0,
+          "has_strobe_light": 1.0,
+          "detection_range_m": 1.0,
+          "has_person_detection": 1.0,
+          "min_detected_water_level_mm": 1.0,
+          "has_light_sensor": 1.0,
+          "cloud_storage": 1.0,
+          "model": 0.65,
+          "has_local_processing": 1.0,
+          "color_temp_min_k": 1.0,
+          "has_audio_alert": 1.0,
+          "brand": 0.8709677419354839,
+          "door_thickness_max_mm": 1.0,
+          "brightness_lm": 1.0,
+          "rechargeable": 0.0,
+          "has_two_way_audio": 0.75,
+          "sensor_type": 1.0,
+          "max_volume_db": 1.0,
+          "max_connected_devices": 1.0,
+          "socket_type": 1.0,
+          "has_night_vision": 1.0,
+          "detects_leaks_above": 1.0,
+          "ptz": 1.0,
+          "rgb_support": 0.3333333333333333,
+          "has_motion_detection": 1.0,
+          "audio_alert_volume_db": 1.0,
+          "battery_type": 1.0,
+          "ip_rating": 1.0,
+          "battery_life_months": 1.0,
+          "lifespan_hours": 1.0,
+          "local_storage": 1.0,
+          "indoor_outdoor": 1.0,
+          "name": 0.7096774193548387,
+          "voltage_max_v": 1.0,
+          "tamper_alert": 1.0,
+          "wattage_w": 1.0,
+          "voltage_min_v": 1.0,
+          "cri": 0.0,
+          "retrigger_interval_s": 1.0,
+          "zigbee_version": 1.0
+        }
+      },
+      "wrong_value_rate": {
+        "description": "Rate of incorrect non-null values when non-null expected",
+        "values": {
+          "detects_leaks_below": 0.0,
+          "dimmable": 0.0,
+          "door_thickness_min_mm": 0.5,
+          "has_camera": 0.0,
+          "field_of_view_deg": 0.0,
+          "battery_quantity": 0.0,
+          "color_temp_max_k": 0.0,
+          "detection_angle_deg": 0.3333333333333333,
+          "resolution": 0.0,
+          "matter_bridge": 0.0,
+          "has_strobe_light": 0.0,
+          "detection_range_m": 0.0,
+          "has_person_detection": 0.0,
+          "min_detected_water_level_mm": 0.0,
+          "has_light_sensor": 0.0,
+          "cloud_storage": 0.0,
+          "model": 0.3,
+          "has_local_processing": 0.0,
+          "color_temp_min_k": 0.0,
+          "has_audio_alert": 0.0,
+          "brand": 0.12903225806451613,
+          "door_thickness_max_mm": 0.0,
+          "brightness_lm": 0.0,
+          "rechargeable": 0.0,
+          "has_two_way_audio": 0.0,
+          "sensor_type": 0.0,
+          "max_volume_db": 0.0,
+          "max_connected_devices": 0.0,
+          "socket_type": 0.0,
+          "has_night_vision": 0.0,
+          "detects_leaks_above": 0.0,
+          "ptz": 0.0,
+          "rgb_support": 0.3333333333333333,
+          "has_motion_detection": 0.0,
+          "audio_alert_volume_db": 0.0,
+          "battery_type": 0.0,
+          "ip_rating": 0.0,
+          "battery_life_months": 0.0,
+          "lifespan_hours": 0.0,
+          "local_storage": 0.0,
+          "indoor_outdoor": 0.0,
+          "name": 0.2903225806451613,
+          "voltage_max_v": 0.0,
+          "tamper_alert": 0.0,
+          "wattage_w": 0.0,
+          "voltage_min_v": 0.0,
+          "cri": 0.0,
+          "retrigger_interval_s": 0.0,
+          "zigbee_version": 0.0
+        }
+      },
+      "miss_rate": {
+        "description": "Rate of null outputs when non-null expected",
+        "values": {
+          "detects_leaks_below": 0.0,
+          "dimmable": 0.0,
+          "door_thickness_min_mm": 0.0,
+          "has_camera": 0.0,
+          "field_of_view_deg": 0.0,
+          "battery_quantity": 0.0,
+          "color_temp_max_k": 0.0,
+          "detection_angle_deg": 0.0,
+          "resolution": 0.0,
+          "matter_bridge": 0.0,
+          "has_strobe_light": 0.0,
+          "detection_range_m": 0.0,
+          "has_person_detection": 0.0,
+          "min_detected_water_level_mm": 0.0,
+          "has_light_sensor": 0.0,
+          "cloud_storage": 0.0,
+          "model": 0.05,
+          "has_local_processing": 0.0,
+          "color_temp_min_k": 0.0,
+          "has_audio_alert": 0.0,
+          "brand": 0.0,
+          "door_thickness_max_mm": 0.0,
+          "brightness_lm": 0.0,
+          "rechargeable": 1.0,
+          "has_two_way_audio": 0.25,
+          "sensor_type": 0.0,
+          "max_volume_db": 0.0,
+          "max_connected_devices": 0.0,
+          "socket_type": 0.0,
+          "has_night_vision": 0.0,
+          "detects_leaks_above": 0.0,
+          "ptz": 0.0,
+          "rgb_support": 0.3333333333333333,
+          "has_motion_detection": 0.0,
+          "audio_alert_volume_db": 0.0,
+          "battery_type": 0.0,
+          "ip_rating": 0.0,
+          "battery_life_months": 0.0,
+          "lifespan_hours": 0.0,
+          "local_storage": 0.0,
+          "indoor_outdoor": 0.0,
+          "name": 0.0,
+          "voltage_max_v": 0.0,
+          "tamper_alert": 0.0,
+          "wattage_w": 0.0,
+          "voltage_min_v": 0.0,
+          "cri": 1.0,
+          "retrigger_interval_s": 0.0,
+          "zigbee_version": 0.0
+        }
+      },
+      "precision": {
+        "description": "Rate of correct values when non-null output produced",
+        "values": {
+          "detects_leaks_below": 1.0,
+          "dimmable": 1.0,
+          "door_thickness_min_mm": 0.5,
+          "has_camera": 1.0,
+          "field_of_view_deg": 1.0,
+          "battery_quantity": 1.0,
+          "color_temp_max_k": 1.0,
+          "detection_angle_deg": 0.6666666666666666,
+          "resolution": 1.0,
+          "matter_bridge": 1.0,
+          "has_strobe_light": 1.0,
+          "detection_range_m": 1.0,
+          "has_person_detection": 1.0,
+          "min_detected_water_level_mm": 1.0,
+          "has_light_sensor": 1.0,
+          "cloud_storage": 1.0,
+          "model": 0.6842105263157895,
+          "has_local_processing": 1.0,
+          "color_temp_min_k": 1.0,
+          "has_audio_alert": 1.0,
+          "brand": 0.8709677419354839,
+          "door_thickness_max_mm": 1.0,
+          "brightness_lm": 1.0,
+          "has_two_way_audio": 0.75,
+          "sensor_type": 1.0,
+          "max_volume_db": 1.0,
+          "max_connected_devices": 1.0,
+          "socket_type": 1.0,
+          "has_night_vision": 0.8,
+          "detects_leaks_above": 1.0,
+          "ptz": 0.5,
+          "rgb_support": 0.5,
+          "has_motion_detection": 1.0,
+          "audio_alert_volume_db": 1.0,
+          "battery_type": 0.9333333333333333,
+          "ip_rating": 1.0,
+          "battery_life_months": 1.0,
+          "lifespan_hours": 1.0,
+          "local_storage": 1.0,
+          "indoor_outdoor": 0.6666666666666666,
+          "name": 0.7096774193548387,
+          "voltage_max_v": 1.0,
+          "tamper_alert": 1.0,
+          "wattage_w": 1.0,
+          "voltage_min_v": 1.0,
+          "retrigger_interval_s": 1.0,
+          "zigbee_version": 1.0
+        }
+      },
+      "hallucination_rate": {
+        "description": "Rate of non-null outputs when null expected",
+        "values": {
+          "dimmable": 0.0,
+          "battery_quantity": 0.0,
+          "matter_bridge": 0.0,
+          "auto_lock": 0.0,
+          "has_strobe_light": 0.0,
+          "has_person_detection": 0.0,
+          "min_detected_water_level_mm": 0.0,
+          "cloud_storage": 0.0,
+          "model": 0.0,
+          "has_local_processing": 0.0,
+          "has_audio_alert": 0.0,
+          "has_two_way_audio": 0.5,
+          "sensor_type": 0.0,
+          "max_volume_db": 0.0,
+          "max_connected_devices": 0.0,
+          "has_night_vision": 0.5,
+          "detects_leaks_above": 0.0,
+          "ptz": 0.3333333333333333,
+          "has_motion_detection": 0.0,
+          "has_ir_blaster": 0.0,
+          "audio_alert_volume_db": 0.0,
+          "battery_type": 0.2,
+          "ip_rating": 0.0,
+          "battery_life_months": 0.0,
+          "local_storage": 0.0,
+          "indoor_outdoor": 0.2,
+          "voltage_max_v": 0.0,
+          "tamper_alert": 0.0,
+          "voltage_min_v": 0.0,
+          "cri": 0.0,
+          "retrigger_interval_s": 0.0,
+          "zigbee_version": 0.0,
+          "has_tamper_detection": 0.0
+        }
+      },
+      "coverage": {
+        "description": "Number of listings where ground truth was non-null",
+        "values": {
+          "detects_leaks_below": 2,
+          "dimmable": 2,
+          "door_thickness_min_mm": 4,
+          "has_camera": 2,
+          "field_of_view_deg": 4,
+          "battery_quantity": 12,
+          "color_temp_max_k": 3,
+          "detection_angle_deg": 3,
+          "resolution": 6,
+          "matter_bridge": 1,
+          "auto_lock": 0,
+          "has_strobe_light": 1,
+          "detection_range_m": 3,
+          "has_person_detection": 2,
+          "min_detected_water_level_mm": 1,
+          "has_light_sensor": 3,
+          "cloud_storage": 3,
+          "model": 20,
+          "has_local_processing": 1,
+          "color_temp_min_k": 3,
+          "has_audio_alert": 2,
+          "brand": 31,
+          "door_thickness_max_mm": 4,
+          "brightness_lm": 3,
+          "rechargeable": 2,
+          "has_two_way_audio": 4,
+          "sensor_type": 2,
+          "max_volume_db": 1,
+          "max_connected_devices": 3,
+          "socket_type": 3,
+          "has_night_vision": 4,
+          "detects_leaks_above": 1,
+          "ptz": 1,
+          "rgb_support": 3,
+          "has_motion_detection": 5,
+          "has_ir_blaster": 0,
+          "audio_alert_volume_db": 1,
+          "battery_type": 14,
+          "ip_rating": 13,
+          "battery_life_months": 10,
+          "lifespan_hours": 3,
+          "local_storage": 5,
+          "indoor_outdoor": 2,
+          "name": 31,
+          "voltage_max_v": 2,
+          "tamper_alert": 1,
+          "wattage_w": 3,
+          "voltage_min_v": 2,
+          "cri": 1,
+          "retrigger_interval_s": 1,
+          "zigbee_version": 2,
+          "has_tamper_detection": 0
+        }
+      }
+    },
+    "set_field_metrics": {
+      "exact_match_rate": {
+        "description": "Rate of exact set matches",
+        "values": {
+          "ecosystem": 0.8709677419354839,
+          "wired_connection": 0.75,
+          "power_source": 0.3684210526315789,
+          "detected_gas": 1.0,
+          "protocol": 0.8709677419354839,
+          "access_methods": 1.0
+        }
+      },
+      "value_recall": {
+        "description": "Rate of value appearing in actual when expected",
+        "values": {
+          "ecosystem_yandex": 0.95,
+          "ecosystem_apple": 1.0,
+          "ecosystem_google": 1.0,
+          "ecosystem_aqara": 1.0,
+          "ecosystem_tuya": 0.9090909090909091,
+          "ecosystem_xiaomi": 1.0,
+          "ecosystem_digma": 1.0,
+          "ecosystem_sber": 1.0,
+          "ecosystem_vk": 1.0,
+          "ecosystem_ekf": 0.75,
+          "wired_connection_ethernet": 1.0,
+          "power_source_battery": 1.0,
+          "power_source_rechargeable_battery": 1.0,
+          "power_source_usb": 0.8571428571428571,
+          "power_source_ac_dc_adapter": 0.6666666666666666,
+          "detected_gas_natural_gas": 1.0,
+          "protocol_zigbee": 1.0,
+          "protocol_wifi": 1.0,
+          "protocol_bluetooth": 1.0,
+          "protocol_ble": 0.5,
+          "protocol_matter-over-wifi": 1.0,
+          "protocol_matter-over-thread": 0.75,
+          "access_methods_keypad": 1.0,
+          "access_methods_fingerprint": 1.0,
+          "access_methods_rfid_card": 1.0,
+          "access_methods_app": 1.0,
+          "access_methods_key": 1.0
+        }
+      },
+      "value_hallucination_rate": {
+        "description": "Rate of value appearing in actual when not expected",
+        "values": {
+          "ecosystem_yandex": 0.0,
+          "ecosystem_apple": 0.047619047619047616,
+          "ecosystem_google": 0.041666666666666664,
+          "ecosystem_aqara": 0.0,
+          "ecosystem_tuya": 0.0,
+          "ecosystem_xiaomi": 0.0,
+          "ecosystem_digma": 0.0,
+          "ecosystem_sber": 0.0,
+          "ecosystem_vk": 0.0,
+          "ecosystem_ekf": 0.0,
+          "wired_connection_ethernet": 0.0,
+          "wired_connection_usb_host": 0.25,
+          "power_source_mains": 0.3684210526315789,
+          "power_source_battery": 0.0,
+          "power_source_rechargeable_battery": 0.058823529411764705,
+          "power_source_usb": 0.16666666666666666,
+          "power_source_poe": 0.0,
+          "power_source_ac_dc_adapter": 0.14285714285714285,
+          "detected_gas_lpg": 0.0,
+          "detected_gas_carbon_monoxide": 0.0,
+          "detected_gas_smoke": 0.0,
+          "protocol_zigbee": 0.0,
+          "protocol_z-wave": 0.0,
+          "protocol_wifi": 0.0,
+          "protocol_bluetooth": 0.07692307692307693,
+          "protocol_ble": 0.0,
+          "protocol_matter-over-wifi": 0.0,
+          "protocol_matter-over-thread": 0.0,
+          "access_methods_face_recognition": 0.0
+        }
+      }
+    },
+    "type_confusion_matrix": {
+      "smart_hub": {
+        "smart_hub": 4
+      },
+      "smart_lamp": {
+        "smart_lamp": 3
+      },
+      "water_leak_sensor": {
+        "water_leak_sensor": 2
+      },
+      "unknown": {
+        "unknown": 1
+      },
+      "gas_leak_sensor": {
+        "gas_leak_sensor": 2
+      },
+      "smart_doorbell": {
+        "smart_doorbell": 2
+      },
+      "smart_lock": {
+        "smart_lock": 4
+      },
+      "door_window_sensor": {
+        "door_window_sensor": 4
+      },
+      "motion_sensor": {
+        "motion_sensor": 3
+      },
+      "smart_camera": {
+        "smart_camera": 4
+      },
+      "smart_siren": {
+        "smart_siren": 3
+      }
+    }
+  },
+  "listings": [
+    {
+      "id": 0,
+      "name": "Центр управления (управление умным домом) Яндекс Хаб YNDX-00510",
+      "expected_type": "smart_hub",
+      "actual_type": "smart_hub",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Центр управления (управление умным домом) Яндекс Хаб YNDX-00510",
+        "brand": "yandex",
+        "model": "YNDX-00510",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "wifi",
+          "bluetooth",
+          "zigbee"
+        ],
+        "max_connected_devices": null,
+        "has_local_processing": null,
+        "has_ir_blaster": null,
+        "wired_connection": [
+          "ethernet"
+        ],
+        "power_source": [
+          "usb",
+          "ac_dc_adapter"
+        ],
+        "matter_bridge": null,
+        "zigbee_version": null
+      },
+      "actual_output": {
+        "name": "Центр управления (управление умным домом) Яндекс Хаб YNDX-00510",
+        "brand": "yandex",
+        "model": "YNDX-00510",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "bluetooth",
+          "zigbee",
+          "wifi"
+        ],
+        "max_connected_devices": null,
+        "has_local_processing": null,
+        "has_ir_blaster": null,
+        "wired_connection": [
+          "usb_host",
+          "ethernet"
+        ],
+        "power_source": [
+          "usb",
+          "ac_dc_adapter",
+          "mains"
+        ],
+        "matter_bridge": null,
+        "zigbee_version": null
+      }
+    },
+    {
+      "id": 1,
+      "name": "Умный хаб EKF Connect, возможность подключения 128 устройств",
+      "expected_type": "smart_hub",
+      "actual_type": "smart_hub",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный хаб EKF Connect, возможность подключения 128 устройств",
+        "brand": "ekf",
+        "model": null,
+        "ecosystem": [
+          "yandex",
+          "ekf",
+          "tuya",
+          "vk",
+          "sber"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "max_connected_devices": 128,
+        "has_local_processing": null,
+        "has_ir_blaster": null,
+        "wired_connection": [],
+        "power_source": [],
+        "matter_bridge": null,
+        "zigbee_version": null
+      },
+      "actual_output": {
+        "name": "Умный хаб EKF Connect, возможность подключения 128 устройств",
+        "brand": "ekf",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "yandex",
+          "vk",
+          "sber"
+        ],
+        "protocol": [
+          "bluetooth",
+          "zigbee"
+        ],
+        "max_connected_devices": 128,
+        "has_local_processing": null,
+        "has_ir_blaster": null,
+        "wired_connection": [],
+        "power_source": [
+          "mains"
+        ],
+        "matter_bridge": null,
+        "zigbee_version": null
+      }
+    },
+    {
+      "id": 2,
+      "name": "Центр умного дома (хаб) Aqara M1S Gen 2 HM1S-G02, Zigbee 3.0",
+      "expected_type": "smart_hub",
+      "actual_type": "smart_hub",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Центр умного дома (хаб) Aqara M1S Gen 2 HM1S-G02, Zigbee 3.0",
+        "brand": "aqara",
+        "model": "HM1S-G02",
+        "ecosystem": [
+          "aqara",
+          "google",
+          "apple",
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee",
+          "wifi",
+          "matter-over-thread"
+        ],
+        "max_connected_devices": 128,
+        "has_local_processing": true,
+        "has_ir_blaster": null,
+        "wired_connection": [],
+        "power_source": [
+          "ac_dc_adapter"
+        ],
+        "matter_bridge": true,
+        "zigbee_version": "zigbee_3.0"
+      },
+      "actual_output": {
+        "name": "Центр умного дома (хаб) Aqara M1S Gen 2 HM1S‑G02, Zigbee 3.0",
+        "brand": "aqara",
+        "model": "HM1S‑G02",
+        "ecosystem": [
+          "aqara",
+          "apple",
+          "google",
+          "yandex"
+        ],
+        "protocol": [
+          "wifi",
+          "zigbee"
+        ],
+        "max_connected_devices": 128,
+        "has_local_processing": true,
+        "has_ir_blaster": null,
+        "wired_connection": [],
+        "power_source": [
+          "ac_dc_adapter",
+          "mains"
+        ],
+        "matter_bridge": true,
+        "zigbee_version": "zigbee_3.0"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Шлюз Tuya Zigbee 3.0 Gateway с BLE5.0",
+      "expected_type": "smart_hub",
+      "actual_type": "smart_hub",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Шлюз Tuya Zigbee 3.0 Gateway с BLE5.0",
+        "brand": "smart-life",
+        "model": null,
+        "ecosystem": [
+          "digma",
+          "tuya"
+        ],
+        "protocol": [
+          "zigbee",
+          "wifi",
+          "bluetooth",
+          "ble"
+        ],
+        "max_connected_devices": 128,
+        "has_local_processing": null,
+        "has_ir_blaster": null,
+        "wired_connection": [],
+        "power_source": [
+          "ac_dc_adapter",
+          "usb"
+        ],
+        "matter_bridge": null,
+        "zigbee_version": "zigbee_3.0"
+      },
+      "actual_output": {
+        "name": "Шлюз Tuya Zigbee 3.0 Gateway с BLE5.0",
+        "brand": "smart life",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "digma"
+        ],
+        "protocol": [
+          "bluetooth",
+          "wifi",
+          "zigbee"
+        ],
+        "max_connected_devices": 128,
+        "has_local_processing": null,
+        "has_ir_blaster": null,
+        "wired_connection": [],
+        "power_source": [
+          "usb"
+        ],
+        "matter_bridge": null,
+        "zigbee_version": "zigbee_3.0"
+      }
+    },
+    {
+      "id": 4,
+      "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+      "expected_type": "smart_lamp",
+      "actual_type": "smart_lamp",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": true,
+      "error": null,
+      "expected_output": {
+        "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+        "brand": "yandex",
+        "model": "YNDX-00553",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "matter-over-wifi"
+        ],
+        "socket_type": "E27",
+        "wattage_w": 11,
+        "brightness_lm": 1300,
+        "color_temp_min_k": 2700,
+        "color_temp_max_k": 6500,
+        "rgb_support": true,
+        "cri": null,
+        "dimmable": null,
+        "voltage_min_v": null,
+        "voltage_max_v": null,
+        "lifespan_hours": 15000
+      },
+      "actual_output": {
+        "name": "Умная лампочка Яндекс Е27, 1300 Лм, RGB, работает с Алисой, Matter over Wi-Fi",
+        "brand": "yandex",
+        "model": "YNDX-00553",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "matter-over-wifi"
+        ],
+        "socket_type": "E27",
+        "wattage_w": 11,
+        "brightness_lm": 1300,
+        "color_temp_min_k": 2700,
+        "color_temp_max_k": 6500,
+        "rgb_support": true,
+        "cri": null,
+        "dimmable": null,
+        "voltage_min_v": null,
+        "voltage_max_v": null,
+        "lifespan_hours": 15000
+      }
+    },
+    {
+      "id": 5,
+      "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+      "expected_type": "water_leak_sensor",
+      "actual_type": "water_leak_sensor",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+        "brand": "aqara",
+        "model": "WL-S02D",
+        "ecosystem": [
+          "apple",
+          "google",
+          "aqara"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR2032",
+        "battery_life_months": 24,
+        "rechargeable": false,
+        "ip_rating": "IP67",
+        "has_audio_alert": null,
+        "audio_alert_volume_db": null,
+        "detects_leaks_above": null,
+        "detects_leaks_below": true,
+        "min_detected_water_level_mm": 0.5
+      },
+      "actual_output": {
+        "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+        "brand": "aqara",
+        "model": "WL-S02D",
+        "ecosystem": [
+          "apple",
+          "google",
+          "aqara"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR2032",
+        "battery_life_months": 24,
+        "rechargeable": null,
+        "ip_rating": "IP67",
+        "has_audio_alert": null,
+        "audio_alert_volume_db": null,
+        "detects_leaks_above": null,
+        "detects_leaks_below": true,
+        "min_detected_water_level_mm": 0.5
+      }
+    },
+    {
+      "id": 6,
+      "name": "Умная лампа WiZ E27 белая 60Вт 806lm Wi-Fi (1шт) [929003018601]",
+      "expected_type": "smart_lamp",
+      "actual_type": "smart_lamp",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная лампа WiZ E27 белая 60Вт 806lm Wi-Fi (1шт) [929003018601]",
+        "brand": "wiz",
+        "model": "929003018601",
+        "ecosystem": [
+          "yandex",
+          "google"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "socket_type": "E27",
+        "wattage_w": 60,
+        "brightness_lm": 806,
+        "color_temp_min_k": 2700,
+        "color_temp_max_k": 6500,
+        "rgb_support": false,
+        "cri": null,
+        "dimmable": true,
+        "voltage_min_v": 200,
+        "voltage_max_v": 240,
+        "lifespan_hours": 15000
+      },
+      "actual_output": {
+        "name": "Умная лампа WiZ E27 белая 60Вт 806lm Wi-Fi (1шт)",
+        "brand": "wiz",
+        "model": null,
+        "ecosystem": [
+          "yandex",
+          "google"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "socket_type": "E27",
+        "wattage_w": 60,
+        "brightness_lm": 806,
+        "color_temp_min_k": 2700,
+        "color_temp_max_k": 6500,
+        "rgb_support": null,
+        "cri": null,
+        "dimmable": true,
+        "voltage_min_v": 200,
+        "voltage_max_v": 240,
+        "lifespan_hours": 15000
+      }
+    },
+    {
+      "id": 7,
+      "name": "Умная лампочка Aqara T2 LB-L02E, E27, 10.5 Вт, CCT, диммируемая",
+      "expected_type": "smart_lamp",
+      "actual_type": "smart_lamp",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная лампочка Aqara T2 LB-L02E, E27, 10.5 Вт, CCT, диммируемая",
+        "brand": "aqara",
+        "model": "LB-L02E",
+        "ecosystem": [
+          "aqara",
+          "apple"
+        ],
+        "protocol": [
+          "zigbee",
+          "matter-over-thread"
+        ],
+        "socket_type": "E27",
+        "wattage_w": 10.5,
+        "brightness_lm": 1100,
+        "color_temp_min_k": 2700,
+        "color_temp_max_k": 6500,
+        "rgb_support": false,
+        "cri": 90,
+        "dimmable": true,
+        "voltage_min_v": 100,
+        "voltage_max_v": 240,
+        "lifespan_hours": 25000
+      },
+      "actual_output": {
+        "name": "Умная лампочка Aqara T2 LB-L02E, E27, 10.5 Вт, CCT, диммируемая",
+        "brand": "aqara",
+        "model": "LB-L02E",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "bluetooth",
+          "zigbee",
+          "matter-over-thread"
+        ],
+        "socket_type": "E27",
+        "wattage_w": 10.5,
+        "brightness_lm": 1100,
+        "color_temp_min_k": 2700,
+        "color_temp_max_k": 6500,
+        "rgb_support": true,
+        "cri": null,
+        "dimmable": true,
+        "voltage_min_v": 100,
+        "voltage_max_v": 240,
+        "lifespan_hours": 25000
+      }
+    },
+    {
+      "id": 8,
+      "name": "Умный датчик протечки воды Zigbee 3.0, совместим с Яндекс Алисой, Марусей, Салют",
+      "expected_type": "water_leak_sensor",
+      "actual_type": "water_leak_sensor",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик протечки воды Zigbee 3.0, совместим с Яндекс Алисой, Марусей, Салют",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "google",
+          "digma",
+          "tuya",
+          "sber",
+          "vk",
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR2032",
+        "battery_life_months": 24,
+        "rechargeable": false,
+        "ip_rating": "IP66",
+        "has_audio_alert": null,
+        "audio_alert_volume_db": null,
+        "detects_leaks_above": true,
+        "detects_leaks_below": true,
+        "min_detected_water_level_mm": null
+      },
+      "actual_output": {
+        "name": "Умный датчик протечки воды Zigbee 3.0, совместим с Яндекс Алисой, Марусей, Салют",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "sber",
+          "yandex",
+          "vk",
+          "digma",
+          "google"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR2032",
+        "battery_life_months": 24,
+        "rechargeable": null,
+        "ip_rating": "IP66",
+        "has_audio_alert": null,
+        "audio_alert_volume_db": null,
+        "detects_leaks_above": true,
+        "detects_leaks_below": true,
+        "min_detected_water_level_mm": null
+      }
+    },
+    {
+      "id": 9,
+      "name": "Электропривод шарового крана Aqara T1, VC-X01D, Zigbee 3.0, для воды",
+      "expected_type": "unknown",
+      "actual_type": "unknown",
+      "type_correct": true,
+      "type_confidence": 0.97,
+      "perfect": true,
+      "error": null,
+      "expected_output": {},
+      "actual_output": {}
+    },
+    {
+      "id": 0,
+      "name": "Умный датчик газа Aqara JT-BZ-03AQ/A, Zigbee 3.0, мощная сирена, белый",
+      "expected_type": "gas_leak_sensor",
+      "actual_type": "gas_leak_sensor",
+      "type_correct": true,
+      "type_confidence": 0.96,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик газа Aqara JT-BZ-03AQ/A, Zigbee 3.0, мощная сирена, белый",
+        "brand": "aqara",
+        "model": "JT-BZ-03AQ/A",
+        "ecosystem": [
+          "aqara",
+          "yandex",
+          "apple",
+          "sber"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "detected_gas": [
+          "natural_gas"
+        ],
+        "has_audio_alert": true,
+        "audio_alert_volume_db": 85,
+        "power_source": "mains",
+        "battery_type": null,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Умный датчик газа Aqara JT-BZ-03AQ/A, Zigbee 3.0, мощная сирена, белый",
+        "brand": "aqara",
+        "model": "JT-BZ-03 AQ/A",
+        "ecosystem": [
+          "sber",
+          "apple",
+          "yandex",
+          "aqara"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "detected_gas": [
+          "natural_gas"
+        ],
+        "has_audio_alert": true,
+        "audio_alert_volume_db": 85,
+        "power_source": [
+          "ac_dc_adapter",
+          "mains"
+        ],
+        "battery_type": null,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 1,
+      "name": "Умный датчик утечки газа EKF Connect, Zigbee, оптический/акустический, белый",
+      "expected_type": "gas_leak_sensor",
+      "actual_type": "gas_leak_sensor",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик утечки газа EKF Connect, Zigbee, оптический/акустический, белый",
+        "brand": "ekf",
+        "model": null,
+        "ecosystem": [
+          "ekf",
+          "yandex",
+          "sber",
+          "vk"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "detected_gas": [
+          "natural_gas"
+        ],
+        "has_audio_alert": true,
+        "audio_alert_volume_db": null,
+        "power_source": "mains",
+        "battery_type": null,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Умный датчик утечки газа EKF Connect, Zigbee, оптический/акустический, белый",
+        "brand": "ekf",
+        "model": null,
+        "ecosystem": [
+          "sber",
+          "yandex",
+          "ekf",
+          "vk"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "detected_gas": [
+          "natural_gas"
+        ],
+        "has_audio_alert": true,
+        "audio_alert_volume_db": null,
+        "power_source": [
+          "mains"
+        ],
+        "battery_type": null,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 2,
+      "name": "Умный дверной звонок Xiaomi Smart Doorbell 3S",
+      "expected_type": "smart_doorbell",
+      "actual_type": "smart_doorbell",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный дверной звонок Xiaomi Smart Doorbell 3S",
+        "brand": "xioami",
+        "model": "3S",
+        "ecosystem": [
+          "xiaomi"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "has_camera": true,
+        "resolution": "2K",
+        "has_two_way_audio": true,
+        "has_night_vision": null,
+        "has_motion_detection": true,
+        "power_source": [
+          "rechargeable_battery"
+        ],
+        "battery_life_months": null,
+        "battery_quantity": null,
+        "ip_rating": "IP65",
+        "local_storage": null,
+        "cloud_storage": null
+      },
+      "actual_output": {
+        "name": "Xiaomi Smart Doorbell 3S",
+        "brand": "xiaomi",
+        "model": "Smart Doorbell 3S",
+        "ecosystem": [
+          "xiaomi"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "has_camera": true,
+        "resolution": "2K",
+        "has_two_way_audio": null,
+        "has_night_vision": true,
+        "has_motion_detection": true,
+        "power_source": [
+          "rechargeable_battery"
+        ],
+        "battery_type": null,
+        "battery_quantity": null,
+        "battery_life_months": null,
+        "ip_rating": "IP65",
+        "local_storage": null,
+        "cloud_storage": null
+      }
+    },
+    {
+      "id": 3,
+      "name": "Умный видеозвонок Aqara G4 SVD-KIT1, распознаёт лица, черный",
+      "expected_type": "smart_doorbell",
+      "actual_type": "smart_doorbell",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный видеозвонок Aqara G4 SVD-KIT1, распознаёт лица, черный",
+        "brand": "aqara",
+        "model": "SVD-KIT1",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "has_camera": true,
+        "resolution": "1080p",
+        "has_two_way_audio": true,
+        "has_night_vision": true,
+        "has_motion_detection": true,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": 4,
+        "battery_quantity": 6,
+        "ip_rating": null,
+        "local_storage": true,
+        "cloud_storage": null
+      },
+      "actual_output": {
+        "name": "Умный видеозвонок Aqara G4 SVD-KIT1, распознаёт лица, черный",
+        "brand": "aqara",
+        "model": "SVD-KIT1",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "has_camera": true,
+        "resolution": "1080p",
+        "has_two_way_audio": true,
+        "has_night_vision": true,
+        "has_motion_detection": true,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter",
+          "usb"
+        ],
+        "battery_type": "AA",
+        "battery_quantity": 6,
+        "battery_life_months": 4,
+        "ip_rating": null,
+        "local_storage": true,
+        "cloud_storage": null
+      }
+    },
+    {
+      "id": 4,
+      "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+      "expected_type": "smart_lock",
+      "actual_type": "smart_lock",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "access_methods": [
+          "app",
+          "rfid_card",
+          "key",
+          "keypad",
+          "fingerprint"
+        ],
+        "auto_lock": null,
+        "tamper_alert": null,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": null,
+        "battery_quantity": 4,
+        "door_thickness_min_mm": 20,
+        "door_thickness_max_mm": 80,
+        "ip_rating": "IP65"
+      },
+      "actual_output": {
+        "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "access_methods": [
+          "fingerprint",
+          "rfid_card",
+          "key",
+          "keypad",
+          "app"
+        ],
+        "auto_lock": null,
+        "tamper_alert": null,
+        "power_source": [
+          "rechargeable_battery",
+          "battery",
+          "usb"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": null,
+        "battery_quantity": 4,
+        "door_thickness_min_mm": 120,
+        "door_thickness_max_mm": 80,
+        "ip_rating": "IP65"
+      }
+    },
+    {
+      "id": 5,
+      "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+      "expected_type": "smart_lock",
+      "actual_type": "smart_lock",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "access_methods": [
+          "app",
+          "rfid_card",
+          "key",
+          "keypad",
+          "fingerprint"
+        ],
+        "auto_lock": null,
+        "tamper_alert": null,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": null,
+        "battery_quantity": 4,
+        "door_thickness_min_mm": 20,
+        "door_thickness_max_mm": 80,
+        "ip_rating": "IP65"
+      },
+      "actual_output": {
+        "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "access_methods": [
+          "fingerprint",
+          "rfid_card",
+          "key",
+          "keypad",
+          "app"
+        ],
+        "auto_lock": null,
+        "tamper_alert": null,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": null,
+        "battery_quantity": 4,
+        "door_thickness_min_mm": 30,
+        "door_thickness_max_mm": 80,
+        "ip_rating": "IP65"
+      }
+    },
+    {
+      "id": 6,
+      "name": "Умный cенсорный электронный замок VARTU X7, врезной, отпечаток пальца, код, карта доступа, ключ, приложение, чёрный",
+      "expected_type": "smart_lock",
+      "actual_type": "smart_lock",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный дверной смарт-замок с приложением Tuya, с Wi-Fi, отпечаток пальца, пароль, карта ключ, защита IP65",
+        "brand": "vartu",
+        "model": "X7",
+        "ecosystem": [
+          "tuya"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "access_methods": [
+          "app",
+          "rfid_card",
+          "key",
+          "keypad",
+          "fingerprint"
+        ],
+        "auto_lock": null,
+        "tamper_alert": null,
+        "power_source": [
+          "battery"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": null,
+        "battery_quantity": 4,
+        "door_thickness_min_mm": 40,
+        "door_thickness_max_mm": 50,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Умный cенсорный электронный замок VARTU X7, врезной, отпечаток пальца, код, карта доступа, ключ, приложение, чёрный",
+        "brand": "vartu",
+        "model": "X7",
+        "ecosystem": [
+          "tuya"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "access_methods": [
+          "fingerprint",
+          "rfid_card",
+          "key",
+          "keypad",
+          "app"
+        ],
+        "auto_lock": null,
+        "tamper_alert": null,
+        "power_source": [
+          "battery"
+        ],
+        "battery_type": "AA",
+        "battery_life_months": null,
+        "battery_quantity": 4,
+        "door_thickness_min_mm": 40,
+        "door_thickness_max_mm": 50,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 7,
+      "name": "Электронный замок Aqara Умный дверной замок D100 (ZNMS20LM), Zigbee 3.0, Bluetooth 5.0, NFC, черный",
+      "expected_type": "smart_lock",
+      "actual_type": "smart_lock",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Электронный замок Aqara Умный дверной замок D100 (ZNMS20LM), Zigbee 3.0, Bluetooth 5.0, NFC, черный",
+        "brand": "aqara",
+        "model": "ZNMS20LM",
+        "ecosystem": [
+          "apple",
+          "aqara",
+          "xiaomi",
+          "vk",
+          "yandex",
+          "google"
+        ],
+        "protocol": [
+          "bluetooth",
+          "zigbee"
+        ],
+        "access_methods": [
+          "app",
+          "rfid_card",
+          "key",
+          "keypad",
+          "fingerprint"
+        ],
+        "auto_lock": null,
+        "tamper_alert": true,
+        "power_source": [
+          "usb",
+          "rechargeable_battery"
+        ],
+        "battery_type": null,
+        "battery_life_months": 12,
+        "battery_quantity": null,
+        "door_thickness_min_mm": 40,
+        "door_thickness_max_mm": 80,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Электронный замок Aqara Умный дверной замок D100 (ZNMS20LM), Zigbee 3.0, Bluetooth 5.0, NFC, черный",
+        "brand": "aqara",
+        "model": "ZNMS20LM",
+        "ecosystem": [
+          "apple",
+          "aqara",
+          "yandex",
+          "vk",
+          "xiaomi",
+          "google"
+        ],
+        "protocol": [
+          "bluetooth",
+          "zigbee"
+        ],
+        "access_methods": [
+          "fingerprint",
+          "rfid_card",
+          "key",
+          "keypad",
+          "app"
+        ],
+        "auto_lock": null,
+        "tamper_alert": true,
+        "power_source": [
+          "rechargeable_battery",
+          "usb"
+        ],
+        "battery_type": "CR2032",
+        "battery_life_months": 12,
+        "battery_quantity": null,
+        "door_thickness_min_mm": 40,
+        "door_thickness_max_mm": 80,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 8,
+      "name": "Умный датчик открытия дверей и окон Aqara Т1 DW-S03D, Zigbee 3.0",
+      "expected_type": "door_window_sensor",
+      "actual_type": "door_window_sensor",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик открытия дверей и окон Aqara Т1 DW-S03D, Zigbee 3.0",
+        "brand": "aqara",
+        "model": "DW-S03D",
+        "ecosystem": [
+          "apple",
+          "aqara",
+          "sber",
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR1632",
+        "battery_life_months": 24,
+        "battery_quantity": 1,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Умный датчик открытия дверей и окон Aqara Т1 DW‑S03D, Zigbee 3.0",
+        "brand": "aqara",
+        "model": "DW‑S03D",
+        "ecosystem": [
+          "sber",
+          "apple",
+          "yandex",
+          "aqara"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR1632",
+        "battery_quantity": 1,
+        "battery_life_months": 24,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 9,
+      "name": "Умный датчик открытия дверей и окон Aqara P2, DW-S02D, Thread",
+      "expected_type": "door_window_sensor",
+      "actual_type": "door_window_sensor",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": true,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик открытия дверей и окон Aqara P2, DW-S02D, Thread",
+        "brand": "aqara",
+        "model": "DW-S02D",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "matter-over-thread",
+          "ble"
+        ],
+        "battery_type": "CR123A",
+        "battery_life_months": 60,
+        "battery_quantity": 1,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Умный датчик открытия дверей и окон Aqara P2, DW-S02D, Thread",
+        "brand": "aqara",
+        "model": "DW-S02D",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "ble",
+          "matter-over-thread"
+        ],
+        "battery_type": "CR123A",
+        "battery_quantity": 1,
+        "battery_life_months": 60,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 0,
+      "name": "Датчик открытия дверей и окон Яндекс YNDX-00526, Zigbee, белый",
+      "expected_type": "door_window_sensor",
+      "actual_type": "door_window_sensor",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": true,
+      "error": null,
+      "expected_output": {
+        "name": "Датчик открытия дверей и окон Яндекс YNDX-00526, Zigbee, белый",
+        "brand": "yandex",
+        "model": "YNDX-00526",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR1632",
+        "battery_quantity": 2,
+        "battery_life_months": null,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Датчик открытия дверей и окон Яндекс YNDX-00526, Zigbee, белый",
+        "brand": "yandex",
+        "model": "YNDX-00526",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": "CR1632",
+        "battery_quantity": 2,
+        "battery_life_months": null,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 1,
+      "name": "Датчик открытия дверей и окон Zigbee 3.0, умный датчик работает с Алисой, Марусей",
+      "expected_type": "door_window_sensor",
+      "actual_type": "door_window_sensor",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": true,
+      "error": null,
+      "expected_output": {
+        "name": "Датчик открытия дверей и окон Zigbee 3.0, умный датчик работает с Алисой, Марусей",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "yandex",
+          "digma",
+          "google",
+          "tuya",
+          "sber",
+          "vk"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": null,
+        "battery_quantity": null,
+        "battery_life_months": null,
+        "ip_rating": null
+      },
+      "actual_output": {
+        "name": "Датчик открытия дверей и окон Zigbee 3.0, умный датчик работает с Алисой, Марусей",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "sber",
+          "yandex",
+          "vk",
+          "digma",
+          "google"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "battery_type": null,
+        "battery_quantity": null,
+        "battery_life_months": null,
+        "ip_rating": null
+      }
+    },
+    {
+      "id": 2,
+      "name": "Умный датчик движения Aqara P1 MS-S02, Zigbee 3.0, угол обзора 170°",
+      "expected_type": "motion_sensor",
+      "actual_type": "motion_sensor",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик движения Aqara P1 MS-S02, Zigbee 3.0, угол обзора 170°",
+        "brand": "aqara",
+        "model": "MS-S02",
+        "ecosystem": [
+          "apple",
+          "aqara",
+          "yandex",
+          "sber"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "sensor_type": "pir",
+        "detection_range_m": 7,
+        "detection_angle_deg": 150,
+        "has_light_sensor": true,
+        "battery_type": "CR2450",
+        "battery_quantity": 2,
+        "retrigger_interval_s": 1,
+        "battery_life_months": 60,
+        "ip_rating": "IP20"
+      },
+      "actual_output": {
+        "name": "Умный датчик движения Aqara P1 MS‑S02, Zigbee 3.0, угол обзора 170°",
+        "brand": "aqara",
+        "model": "MS‑S02",
+        "ecosystem": [
+          "sber",
+          "apple",
+          "yandex",
+          "aqara"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "sensor_type": "pir",
+        "detection_range_m": 7,
+        "detection_angle_deg": 170,
+        "has_light_sensor": true,
+        "retrigger_interval_s": 1,
+        "battery_type": "CR2450",
+        "battery_quantity": 2,
+        "battery_life_months": 60,
+        "ip_rating": "IP20"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Умный датчик движения Aqara P2, ML-S03D, Thread, угол обзора 170°",
+      "expected_type": "motion_sensor",
+      "actual_type": "motion_sensor",
+      "type_correct": true,
+      "type_confidence": 0.97,
+      "perfect": true,
+      "error": null,
+      "expected_output": {
+        "name": "Умный датчик движения Aqara P2, ML-S03D, Thread, угол обзора 170°",
+        "brand": "aqara",
+        "model": "ML-S03D",
+        "ecosystem": [
+          "aqara"
+        ],
+        "protocol": [
+          "matter-over-thread",
+          "bluetooth"
+        ],
+        "sensor_type": "pir",
+        "detection_range_m": 7,
+        "detection_angle_deg": 170,
+        "has_light_sensor": true,
+        "battery_type": "CR2450",
+        "battery_quantity": 2,
+        "retrigger_interval_s": null,
+        "battery_life_months": 24,
+        "ip_rating": "IP20"
+      },
+      "actual_output": {
+        "name": "Умный датчик движения Aqara P2, ML-S03D, Thread, угол обзора 170°",
+        "brand": "aqara",
+        "model": "ML-S03D",
+        "ecosystem": [
+          "aqara"
+        ],
+        "protocol": [
+          "bluetooth",
+          "matter-over-thread"
+        ],
+        "sensor_type": "pir",
+        "detection_range_m": 7,
+        "detection_angle_deg": 170,
+        "has_light_sensor": true,
+        "retrigger_interval_s": null,
+        "battery_type": "CR2450",
+        "battery_quantity": 2,
+        "battery_life_months": 24,
+        "ip_rating": "IP20"
+      }
+    },
+    {
+      "id": 4,
+      "name": "Датчик движения и освещения Яндекс, Zigbee, белый (YNDX-00522)",
+      "expected_type": "motion_sensor",
+      "actual_type": "motion_sensor",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Датчик движения и освещения Яндекс, Zigbee, белый (YNDX-00522)",
+        "brand": "yandex",
+        "model": "YNDX-00522",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "sensor_type": null,
+        "detection_range_m": 7,
+        "detection_angle_deg": 170,
+        "has_light_sensor": true,
+        "battery_type": "CR2450",
+        "battery_quantity": 1,
+        "retrigger_interval_s": null,
+        "battery_life_months": 24,
+        "ip_rating": "IP30"
+      },
+      "actual_output": {
+        "name": "reasoning",
+        "brand": "reasoning",
+        "model": "reasoning",
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "sensor_type": null,
+        "detection_range_m": 7,
+        "detection_angle_deg": 170,
+        "has_light_sensor": true,
+        "retrigger_interval_s": null,
+        "battery_type": "CR2450",
+        "battery_quantity": 1,
+        "battery_life_months": 24,
+        "ip_rating": "IP30"
+      }
+    },
+    {
+      "id": 5,
+      "name": "Умная IP-камера Яндекс, 2K QHD, WiFi, Поворотная, работает с Алисой",
+      "expected_type": "smart_camera",
+      "actual_type": "smart_camera",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная IP-камера Яндекс, 2K QHD, WiFi, Поворотная, работает с Алисой",
+        "brand": "yandex",
+        "model": null,
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "resolution": "2K",
+        "has_night_vision": null,
+        "has_two_way_audio": null,
+        "has_motion_detection": null,
+        "has_person_detection": null,
+        "indoor_outdoor": "indoor",
+        "ptz": null,
+        "local_storage": true,
+        "cloud_storage": null,
+        "power_source": [
+          "usb",
+          "ac_dc_adapter"
+        ],
+        "battery_life_months": null,
+        "ip_rating": "IP20",
+        "field_of_view_deg": 103
+      },
+      "actual_output": {
+        "name": "Умная IP-камера Яндекс",
+        "brand": "yandex",
+        "model": null,
+        "ecosystem": [
+          "yandex"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "resolution": "2K",
+        "has_night_vision": null,
+        "has_two_way_audio": null,
+        "has_motion_detection": null,
+        "has_person_detection": null,
+        "indoor_outdoor": "indoor",
+        "ptz": true,
+        "local_storage": true,
+        "cloud_storage": null,
+        "power_source": [
+          "usb"
+        ],
+        "battery_life_months": null,
+        "ip_rating": "IP20",
+        "field_of_view_deg": 103
+      }
+    },
+    {
+      "id": 6,
+      "name": "Умная камера RokettoMi Wi-Fi 2K 360 c Яндекс Алисой, поддержка карт памяти до 128Гб и облачное хранение",
+      "expected_type": "smart_camera",
+      "actual_type": "smart_camera",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная камера RokettoMi Wi-Fi 2K 360 c Яндекс Алисой, поддержка карт памяти до 128Гб и облачное хранение",
+        "brand": "rokettomi",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "yandex"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "resolution": "2K",
+        "has_night_vision": true,
+        "has_two_way_audio": null,
+        "has_motion_detection": true,
+        "has_person_detection": true,
+        "indoor_outdoor": null,
+        "ptz": null,
+        "local_storage": true,
+        "cloud_storage": true,
+        "power_source": [
+          "ac_dc_adapter"
+        ],
+        "battery_life_months": null,
+        "ip_rating": null,
+        "field_of_view_deg": 102
+      },
+      "actual_output": {
+        "name": "Умная камера RokettoMi Wi-Fi 2K 360 c Яндекс Алисой, поддержка карт памяти до 128Гб и облачное хранение",
+        "brand": "rokettomi",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "yandex"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "resolution": "2K",
+        "has_night_vision": true,
+        "has_two_way_audio": true,
+        "has_motion_detection": true,
+        "has_person_detection": true,
+        "indoor_outdoor": "indoor",
+        "ptz": null,
+        "local_storage": true,
+        "cloud_storage": true,
+        "power_source": [
+          "ac_dc_adapter",
+          "mains"
+        ],
+        "battery_life_months": null,
+        "ip_rating": null,
+        "field_of_view_deg": 102
+      }
+    },
+    {
+      "id": 7,
+      "name": "Умная камера видеонаблюдения EKF Connect M8S, Wi-Fi, беспроводная",
+      "expected_type": "smart_camera",
+      "actual_type": "smart_camera",
+      "type_correct": true,
+      "type_confidence": 0.98,
+      "perfect": true,
+      "error": null,
+      "expected_output": {
+        "name": "Умная камера видеонаблюдения EKF Connect M8S, Wi-Fi, беспроводная",
+        "brand": "ekf",
+        "model": "M8S",
+        "ecosystem": [
+          "ekf",
+          "yandex",
+          "sber",
+          "vk"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "resolution": "1080p",
+        "has_night_vision": true,
+        "has_two_way_audio": true,
+        "has_motion_detection": true,
+        "has_person_detection": null,
+        "indoor_outdoor": null,
+        "ptz": null,
+        "local_storage": true,
+        "cloud_storage": true,
+        "power_source": [
+          "ac_dc_adapter"
+        ],
+        "battery_life_months": null,
+        "ip_rating": "IP20",
+        "field_of_view_deg": 100
+      },
+      "actual_output": {
+        "name": "Умная камера видеонаблюдения EKF Connect M8S, Wi-Fi, беспроводная",
+        "brand": "ekf",
+        "model": "M8S",
+        "ecosystem": [
+          "sber",
+          "yandex",
+          "ekf",
+          "vk"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "resolution": "1080p",
+        "has_night_vision": true,
+        "has_two_way_audio": true,
+        "has_motion_detection": true,
+        "has_person_detection": null,
+        "indoor_outdoor": null,
+        "ptz": null,
+        "local_storage": true,
+        "cloud_storage": true,
+        "power_source": [
+          "ac_dc_adapter"
+        ],
+        "battery_life_months": null,
+        "ip_rating": "IP20",
+        "field_of_view_deg": 100
+      }
+    },
+    {
+      "id": 8,
+      "name": "Умная универсальная камера Aqara G100 CH-C08D, угол обзора 140°, черный",
+      "expected_type": "smart_camera",
+      "actual_type": "smart_camera",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная универсальная камера Aqara G100 CH-C08D, угол обзора 140°, черный",
+        "brand": "aqara",
+        "model": "CH-C08D",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "wifi",
+          "bluetooth",
+          "zigbee"
+        ],
+        "resolution": "2K",
+        "has_night_vision": true,
+        "has_two_way_audio": true,
+        "has_motion_detection": true,
+        "has_person_detection": true,
+        "indoor_outdoor": "both",
+        "ptz": true,
+        "local_storage": true,
+        "cloud_storage": true,
+        "power_source": [
+          "usb",
+          "ac_dc_adapter"
+        ],
+        "battery_life_months": null,
+        "ip_rating": "IP65",
+        "field_of_view_deg": 140
+      },
+      "actual_output": {
+        "name": "Умная универсальная камера Aqara G100 CH-C08D, угол обзора 140°, черный",
+        "brand": "aqara",
+        "model": "CH-C08D",
+        "ecosystem": [
+          "apple",
+          "aqara"
+        ],
+        "protocol": [
+          "bluetooth",
+          "wifi",
+          "zigbee"
+        ],
+        "resolution": "2K",
+        "has_night_vision": true,
+        "has_two_way_audio": true,
+        "has_motion_detection": true,
+        "has_person_detection": true,
+        "indoor_outdoor": "both",
+        "ptz": true,
+        "local_storage": true,
+        "cloud_storage": true,
+        "power_source": [
+          "ac_dc_adapter"
+        ],
+        "battery_life_months": null,
+        "ip_rating": "IP65",
+        "field_of_view_deg": 140
+      }
+    },
+    {
+      "id": 9,
+      "name": "Умная сирена Zigbee EKF Connect подключение через хаб, дальность обнаружения 50м",
+      "expected_type": "smart_siren",
+      "actual_type": "smart_siren",
+      "type_correct": true,
+      "type_confidence": 0.96,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная сирена Zigbee EKF Connect подключение через хаб, дальность обнаружения 50м",
+        "brand": "ekf",
+        "model": null,
+        "ecosystem": [
+          "ekf",
+          "tuya",
+          "sber",
+          "vk",
+          "yandex"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "max_volume_db": null,
+        "has_strobe_light": null,
+        "has_tamper_detection": null,
+        "power_source": [],
+        "battery_type": null,
+        "battery_life_months": null,
+        "battery_quantity": null,
+        "ip_rating": "IP20",
+        "indoor_outdoor": null
+      },
+      "actual_output": {
+        "name": "Умная сирена Zigbee EKF Connect подключение через хаб, дальность обнаружения 50м",
+        "brand": "ekf",
+        "model": null,
+        "ecosystem": [
+          "sber",
+          "yandex",
+          "ekf",
+          "vk"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "max_volume_db": null,
+        "has_strobe_light": null,
+        "has_tamper_detection": null,
+        "power_source": [],
+        "battery_type": null,
+        "battery_life_months": null,
+        "battery_quantity": null,
+        "ip_rating": "IP20",
+        "indoor_outdoor": null
+      }
+    },
+    {
+      "id": 0,
+      "name": "Умная сигнализация для дома беспроводная zigbee",
+      "expected_type": "smart_siren",
+      "actual_type": "smart_siren",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная сигнализация для дома беспроводная zigbee",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "tuya",
+          "yandex",
+          "digma"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "max_volume_db": null,
+        "has_strobe_light": null,
+        "has_tamper_detection": null,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter",
+          "usb"
+        ],
+        "battery_type": "CR123A",
+        "battery_quantity": 2,
+        "battery_life_months": 24,
+        "ip_rating": null,
+        "indoor_outdoor": null
+      },
+      "actual_output": {
+        "name": "Умная сигнализация для дома беспроводная zigbee",
+        "brand": "tuya",
+        "model": null,
+        "ecosystem": [
+          "apple",
+          "tuya",
+          "yandex",
+          "digma",
+          "google"
+        ],
+        "protocol": [
+          "zigbee"
+        ],
+        "max_volume_db": null,
+        "has_strobe_light": null,
+        "has_tamper_detection": null,
+        "power_source": [
+          "usb",
+          "battery",
+          "mains"
+        ],
+        "battery_type": "CR123A",
+        "battery_life_months": 24,
+        "battery_quantity": 2,
+        "ip_rating": null,
+        "indoor_outdoor": null
+      }
+    },
+    {
+      "id": 1,
+      "name": "Умная Wi-Fi сирена для охранных сигнализаций PS-Link WSA01 / порог громкости 80 дБ / приложения Tuya, Smartlife",
+      "expected_type": "smart_siren",
+      "actual_type": "smart_siren",
+      "type_correct": true,
+      "type_confidence": 0.99,
+      "perfect": false,
+      "error": null,
+      "expected_output": {
+        "name": "Умная сирена Zigbee EKF Connect подключение через хаб, дальность обнаружения 50м",
+        "brand": "ps-link",
+        "model": "WSA01",
+        "ecosystem": [
+          "tuya",
+          "yandex",
+          "google"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "max_volume_db": 100,
+        "has_strobe_light": true,
+        "has_tamper_detection": null,
+        "power_source": [
+          "battery",
+          "ac_dc_adapter",
+          "usb"
+        ],
+        "battery_type": "CR123A",
+        "battery_quantity": 2,
+        "battery_life_months": null,
+        "ip_rating": "IP20",
+        "indoor_outdoor": null
+      },
+      "actual_output": {
+        "name": "Умная Wi-Fi сирена для охранных сигнализаций PS-Link WSA01 / порог громкости 80 дБ / приложения Tuya, Smartlife",
+        "brand": "ps‑link",
+        "model": "WSA01",
+        "ecosystem": [
+          "tuya",
+          "google"
+        ],
+        "protocol": [
+          "wifi"
+        ],
+        "max_volume_db": 100,
+        "has_strobe_light": true,
+        "has_tamper_detection": null,
+        "power_source": [
+          "battery",
+          "usb",
+          "ac_dc_adapter"
+        ],
+        "battery_type": "CR123A",
+        "battery_life_months": null,
+        "battery_quantity": 2,
+        "ip_rating": "IP20",
+        "indoor_outdoor": null
+      }
+    }
+  ]
+}

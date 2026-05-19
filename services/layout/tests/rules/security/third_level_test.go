@@ -60,22 +60,21 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		Doors:   []apartment.Door{door},
 		Rooms:   rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "3",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
@@ -84,22 +83,22 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		for _, devicePlacement := range roomPlacement {
 			switch devicePlacement.Device.Type {
 			case "door_sensor":
-				assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+				assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Position)
 			case "window_sensor":
-				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Place)
+				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Position)
 			case "motion_sensor":
 				if roomID == "1" {
-					assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Position)
 				} else {
-					assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Position)
 				}
 			}
 		}
 	}
 
 	livingRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		livingRoomKeys = append(livingRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		livingRoomKeys = append(livingRoomKeys, placement.Device.Type)
 	}
 
 	correctLivingRoomKeys := []string{"window_sensor", "motion_sensor"}
@@ -110,8 +109,8 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 	assert.Equal(t, len(correctLivingRoomKeys), len(livingRoomKeys))
 
 	hallRoomKeys := make([]string, 0, len(globalPlacement.Placements["2"]))
-	for key := range globalPlacement.Placements["2"] {
-		hallRoomKeys = append(hallRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["2"] {
+		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
 	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor", "motion_sensor"}
@@ -196,22 +195,21 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		Doors:   []apartment.Door{door},
 		Rooms:   rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "3",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)

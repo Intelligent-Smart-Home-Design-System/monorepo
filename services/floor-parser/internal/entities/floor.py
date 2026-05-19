@@ -12,6 +12,8 @@ class Wall:
     start: Point
     end: Point
     length: float
+    width: float
+    run_id: str | None = None
     source_entity_ids: list[str] = field(default_factory=list)
 
 
@@ -22,6 +24,8 @@ class Window:
     start: Point
     end: Point
     length: float
+    wall_id: str | None = None
+    support_wall_ids: tuple[str, ...] = ()
     source_entity_ids: list[str] = field(default_factory=list)
 
 
@@ -32,6 +36,10 @@ class Door:
     start: Point
     end: Point
     length: float
+    wall_id: str | None = None
+    support_wall_ids: tuple[str, ...] = ()
+    opens_towards_wall_side: str | None = None
+    swing: str | None = None
     source_entity_ids: list[str] = field(default_factory=list)
 
 

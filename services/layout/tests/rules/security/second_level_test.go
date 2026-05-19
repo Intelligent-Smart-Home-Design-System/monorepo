@@ -38,22 +38,21 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 		Doors: []apartment.Door{door},
 		Rooms: []apartment.Room{room},
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "2",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
@@ -61,15 +60,15 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "smart_lock":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Position)
 		case "smart_doorbell":
-			assert.Equal(t, &point.Point{X: 1, Y: 0}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1, Y: 0}, devicePlacement.Position)
 		}
 	}
 
 	hallRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		hallRoomKeys = append(hallRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
 	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell"}
@@ -127,22 +126,21 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		Doors: []apartment.Door{door},
 		Rooms: rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "2",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules(deviceConfig)
+
+	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)

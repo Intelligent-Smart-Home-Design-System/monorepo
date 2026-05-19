@@ -2,25 +2,35 @@ package security
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 )
 
 type CameraRule struct {
 	track string
+	deviceConfig *configs.Devices
 }
 
-func NewCameraRule() *CameraRule {
+func NewCameraRule(deviceConfig *configs.Devices) *CameraRule {
 	return &CameraRule{
 		track: "security",
+		deviceConfig: deviceConfig,
 	}
 }
 
-func (gl *CameraRule) Type() string {
+func (c *CameraRule) Type() string {
 	return "camera"
 }
 
-func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (c *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	deviceType := c.Type()
+
+	configFilters := c.deviceConfig.GetDeviceFilter(deviceType)
+	if configFilters == nil {
+		configFilters = &filters.CameraFilter{}
+	}
+	cameraFilters := configFilters.(*filters.CameraFilter)
+
 	cameraRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -29,21 +39,15 @@ func (gl *CameraRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []
 	for _, room := range cameraRooms {
 		roomID := room.ID
 
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
+		maxDistance := room.CalculateMaxDistance() * 1.2
+		cameraFilters.Range = maxDistance
 
-		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct)
+		cameraPoint, err := room.GetBestCameraPoint(apartmentStruct, cameraFilters)
 		if err != nil {
 			return err
 		}
 
-		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "camera", "security")
-		placement := device.NewPlacement(newDevice, roomID, cameraPoint)
-
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
+		layout.AddDeviceToLayout(deviceType, c.track, roomID, cameraPoint, cameraFilters)
 	}
 
 	return nil

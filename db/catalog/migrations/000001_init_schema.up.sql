@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE tracked_pages (
     id SERIAL PRIMARY KEY,
     source_name VARCHAR(100) NOT NULL,  -- 'amazon_us', 'sprut_ai', 'wildberries', 'yandex'
-    page_type TEXT NOT NULL, -- 'listing', 'compatibility', 'cloud_integration', ...
+    page_type TEXT NOT NULL, -- 'listing', 'compatibility', 'cloud_integration', 'discovery', ...
     url TEXT NOT NULL,
     url_hash VARCHAR(64) GENERATED ALWAYS AS (encode(digest(url::bytea, 'sha256'), 'hex')) STORED,
 
@@ -22,7 +22,7 @@ CREATE TABLE tracked_pages (
 
 CREATE TABLE page_snapshots (
     id SERIAL PRIMARY KEY,
-    tracked_page INTEGER REFERENCES tracked_pages(id),
+    tracked_page INTEGER REFERENCES tracked_pages(id) ON DELETE CASCADE,
     scraped_at TIMESTAMP DEFAULT NOW(),
     processed BOOLEAN DEFAULT FALSE,
     warc_bundle_archive BYTEA, -- .tar.gz of all .warc of json/html downloaded with page
@@ -33,7 +33,7 @@ CREATE TABLE page_snapshots (
 
 CREATE TABLE parsed_listing_snapshots (
     id SERIAL PRIMARY KEY,
-    page_snapshot_id INTEGER REFERENCES page_snapshots(id),
+    page_snapshot_id INTEGER REFERENCES page_snapshots(id) ON DELETE CASCADE,
     parsed_at TIMESTAMP DEFAULT NOW(),
     processed BOOLEAN DEFAULT FALSE,
 
@@ -62,36 +62,25 @@ CREATE TABLE parsed_listing_snapshots (
     content_hash VARCHAR(64) -- хэш всех полей extracted_. Если ничего не поменялось, меняем только parsed_at в последнем снепшоте
 );
 
-CREATE TABLE yandex_cloud_integrations (
+CREATE TABLE parsed_direct_compatibility_record (
     id SERIAL PRIMARY KEY,
-    
-    -- Bridging
-    -- meaning: devices added to ecosystem_source can be exported to yandex home
-    ecosystem_source TEXT NOT NULL,
-    
-    -- text describing the integration - may contain model numbers, or series, or other fuzzy selectors like 'Умные розетки'
-    description TEXT NOT NULL,
-
-    -- Where we learned this (nullable = rule-based or manual)
-    tracked_page_id INTEGER REFERENCES tracked_pages(id),
-    
-    -- Timestamps
-    discovered_at TIMESTAMP DEFAULT NOW(),
-    last_confirmed_at TIMESTAMP,        -- updated when we re-scrape source and it's still there
-    
-    UNIQUE(ecosystem_source)
+    page_snapshot_id INTEGER REFERENCES page_snapshots(id) ON DELETE CASCADE NOT NULL,
+    ecosystem TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    model TEXT NOT NULL,
+    protocol TEXT NOT NULL
 );
 
 -- Gold layer
 
 CREATE TABLE llm_extracted_listings (
     id SERIAL PRIMARY KEY,
-    parsed_listing_snapshot_id INTEGER REFERENCES parsed_listing_snapshots(id),
+    parsed_listing_snapshot_id INTEGER REFERENCES parsed_listing_snapshots(id) ON DELETE CASCADE,
     extracted_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- identification
-    brand TEXT NOT NULL,           -- "Яндекс" (cleaned up)
-    model TEXT NOT NULL,           -- "YNDX-00558, or e27:8lm, ..."
+    brand TEXT NOT NULL,  -- "yandex" (cleaned up)
+    model TEXT,           -- "YNDX-00558", or null
     
     -- Classification
     category TEXT NOT NULL,        -- 'smart_lamp', 'motion_sensor', 'hub'
@@ -107,16 +96,18 @@ CREATE TABLE llm_extracted_listings (
     llm_model TEXT NOT NULL                  -- 'gpt-4o', 'claude-sonnet'
 );
 
-CREATE TABLE device (
+CREATE TABLE devices (
     id SERIAL PRIMARY KEY,
     
     -- identification
-    brand TEXT NOT NULL,           -- "Яндекс" (cleaned up)
-    model TEXT NOT NULL,           -- "YNDX-00558, or e27:8lm, ..."
+    brand TEXT NOT NULL,           -- "yandex" (cleaned up)
+    model TEXT,           -- "YNDX-00558", or null
     
     -- Classification (assume category is one with highest confidence?)
     category TEXT NOT NULL,        -- 'smart_lamp', 'motion_sensor', 'hub'
 
+    -- device quality (optional)
+    quality FLOAT,
     -- Category-specific attributes(merged from multiple llm extracted ones)
     device_attributes JSONB NOT NULL,
 
@@ -125,8 +116,8 @@ CREATE TABLE device (
 );
 
 CREATE TABLE listing_device_links (
-    llm_extracted_listing_id INTEGER PRIMARY KEY REFERENCES llm_extracted_listings(id),
-    device_id INTEGER REFERENCES device(id),
+    llm_extracted_listing_id INTEGER PRIMARY KEY REFERENCES llm_extracted_listings(id) ON DELETE CASCADE,
+    device_id INTEGER REFERENCES devices(id) ON DELETE CASCADE,
 
     linked_at TIMESTAMP DEFAULT NOW()
 );
@@ -135,28 +126,28 @@ CREATE TABLE direct_compatibility (
     id SERIAL PRIMARY KEY,
     
     -- What device
-    brand TEXT NOT NULL,
-    model TEXT NOT NULL,
+    device_id INTEGER REFERENCES devices(id) ON DELETE CASCADE,
     
     -- Compatible with what
     ecosystem TEXT NOT NULL,
+    -- which protocol
+    protocol TEXT NOT NULL,
     
     -- Where we learned this (nullable = rule-based or manual)
-    tracked_page_id INTEGER REFERENCES tracked_pages(id),
+    tracked_page_id INTEGER REFERENCES tracked_pages(id) ON DELETE CASCADE,
     
     -- Timestamps
     discovered_at TIMESTAMP DEFAULT NOW(),
     last_confirmed_at TIMESTAMP,        -- updated when we re-scrape source and it's still there
     
-    UNIQUE(brand, model, ecosystem)
+    UNIQUE(device_id, ecosystem, protocol)
 );
 
 CREATE TABLE bridge_ecosystem_compatibility (
     id SERIAL PRIMARY KEY,
     
     -- What device
-    brand TEXT NOT NULL,
-    model TEXT NOT NULL,
+    device_id INTEGER REFERENCES devices(id) ON DELETE CASCADE,
     
     -- Bridging
     -- meaning: device added to ecosystem_source can be exported to ecosystem_target
@@ -166,11 +157,11 @@ CREATE TABLE bridge_ecosystem_compatibility (
     protocol TEXT NOT NULL, -- over which protocol
     
     -- Where we learned this (nullable = rule-based or manual)
-    tracked_page_id INTEGER REFERENCES tracked_pages(id),
+    tracked_page_id INTEGER REFERENCES tracked_pages(id) ON DELETE CASCADE,
     
     -- Timestamps
     discovered_at TIMESTAMP DEFAULT NOW(),
     last_confirmed_at TIMESTAMP,        -- updated when we re-scrape source and it's still there
     
-    UNIQUE(brand, model, ecosystem_source, ecosystem_target, protocol)
+    UNIQUE(device_id, ecosystem_source, ecosystem_target, protocol)
 );

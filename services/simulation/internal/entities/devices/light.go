@@ -36,7 +36,7 @@ func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 	}
 
 	lamp.enginePort = engineAPI
-
+	lamp.inStore = *simgo.NewStore[LampInData](engineAPI.GetSimulation())
 	return &lamp, nil
 }
 
@@ -51,20 +51,12 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-func (l *Lamp) HandleOutDTO(out LampOutData) error {
-	dataLamp, err := json.Marshal(out)
-	if err != nil {
-		return err
-	}
-
-	outData := api.EventOutDTO{
-		EntityID: l.ID,
-		Info:     dataLamp,
-	}
-
-	l.enginePort.GetOutChan() <- outData
-
-	return nil
+func (l *Lamp) HandleOutDTO(dto []byte) {
+    outData := api.EventOutDTO{
+        EntityID: l.ID,
+        Payload:  dto,
+    }
+    l.enginePort.GetOutChan() <- outData
 }
 
 func (l *Lamp) GetProcessFunc() func(process simgo.Process) {
@@ -76,12 +68,13 @@ func (l *Lamp) Process(process simgo.Process) {
 		storeElement := l.inStore.Get()
 		event := storeElement.Event
 
-		process.Wait(event)
-		process.Wait(process.Timeout(l.getReactionDelay()))
+        process.Wait(event)
+        process.Wait(process.Timeout(l.getReactionDelay()))
 
 		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
-		err := l.HandleOutDTO(outData)
+		dto, err := json.Marshal(outData)
+        l.HandleOutDTO(dto)
 		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
 	}
 }
@@ -110,10 +103,10 @@ func (l *Lamp) GetReceiversID() []string {
 	return l.Receivers
 }
 
-func (l *Lamp) SetReceivers(actions []api.ActionDTO) {
+func (l *Lamp) SetReceivers(actions []api.EdgeDTO) {
 	receivers := make([]string, len(actions))
 	for i, action := range actions {
-		receivers[i] = action.ID
+		receivers[i] = action.ToID
 	}
 
 	l.Receivers = receivers

@@ -7,19 +7,30 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
+	"github.com/fschuetz04/simgo"
 )
 
 //=====Stubs=====
 type stubEnginePort struct {
-	outChan chan api.EventOutDTO
+	outChan    chan api.EventOutDTO
+	inChan     chan api.EventInDTO
+	simulation *simgo.Simulation
 }
 
 func (s *stubEnginePort) GetOutChan() chan api.EventOutDTO {
 	return s.outChan
 }
 
+func (s *stubEnginePort) GetInChan() chan api.EventInDTO {
+    return s.inChan
+}
+
 func (s *stubEnginePort) UpdateField(x, y int, cell field.Cell) error {
 	return nil
+}
+
+func (s *stubEnginePort) GetSimulation() *simgo.Simulation {
+	return s.simulation
 }
 
 //=====Tests=====

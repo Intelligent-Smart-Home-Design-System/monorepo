@@ -11,6 +11,7 @@ import (
 
 // Переключатели / розетки
 
+// LampSwitcher - стандартный переключатель
 type LampSwitcher struct {
 	enginePort engine.EnginePort
 	inStore    simgo.Store[LampSwitcherInData]
@@ -38,6 +39,8 @@ func NewLampSwitcher(data []byte, engineAPI engine.EnginePort) (*LampSwitcher, e
 
 	lampSwitcher.enginePort = engineAPI
 
+	lampSwitcher.inStore = *simgo.NewStore[LampSwitcherInData](engineAPI.GetSimulation())
+
 	return &lampSwitcher, nil
 }
 
@@ -52,20 +55,20 @@ func (l *LampSwitcher) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-func (l *LampSwitcher) HandleOutDTO(out LampSwitcherOutData) error {
-	dataLamp, err := json.Marshal(out)
-	if err != nil {
-		return err
-	}
-
+func (l *LampSwitcher) HandleOutDTO(dto []byte) {
 	outData := api.EventOutDTO{
 		EntityID: l.ID,
-		Info:     dataLamp,
+		Payload:  dto,
 	}
 
 	l.enginePort.GetOutChan() <- outData
 
-	return nil
+	for _, receiverID := range l.Receivers {
+		l.enginePort.GetInChan() <- api.EventInDTO{
+			EntityID: receiverID,
+			Payload:  dto,
+		}
+	}
 }
 
 func (l *LampSwitcher) GetProcessFunc() func(process simgo.Process) {
@@ -82,8 +85,12 @@ func (l *LampSwitcher) Process(process simgo.Process) {
 
 		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
-		err := l.HandleOutDTO(outData)
-		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+
+		dataLamp, err := json.Marshal(outData)
+		if err != nil {
+			slog.Warn("cannot marshal out data", "error", err, "entity_id", l.ID)
+		}
+		l.HandleOutDTO(dataLamp)
 	}
 }
 
@@ -109,10 +116,10 @@ func (l *LampSwitcher) GetReceiversID() []string {
 	return l.Receivers
 }
 
-func (l *LampSwitcher) SetReceivers(actions []api.ActionDTO) {
+func (l *LampSwitcher) SetReceivers(actions []api.EdgeDTO) {
 	receivers := make([]string, len(actions))
 	for i, action := range actions {
-		receivers[i] = action.ID
+		receivers[i] = action.ToID
 	}
 
 	l.Receivers = receivers

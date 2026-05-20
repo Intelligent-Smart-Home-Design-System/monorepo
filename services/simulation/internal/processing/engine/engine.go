@@ -113,37 +113,31 @@ func (s *SimEngine) GetSimulation() *simgo.Simulation {
 	return s.simulation
 }
 
-// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
-// Если контекст отменен или канал закрыт, то симуляция завершается.
-func (s *SimEngine) Run() error {
-	for event := range s.eventsInChan {
-		s.HandleEvent(event)
-	}
-	return nil
+func (s *SimEngine) InitStep() {
+	s.simulation.RunUntil(0)
 }
 
 func (s *SimEngine) Step() {
-    targetTime := s.simulation.Now() + s.dtSim
+	targetTime := s.simulation.Now() + s.dtSim
 
-    s.simulation.RunUntil(targetTime)
+	s.simulation.RunUntil(targetTime)
 
-    for s.drainInChan() {
-        s.simulation.RunUntil(targetTime)
-    }
+	s.drainInChan()
 }
 
-// drainInChan читает все доступные события из канала, возвращает true если было хоть одно
-func (s *SimEngine) drainInChan() bool {
-    hasEvents := false
-    for {
-        select {
-        case event := <-s.eventsInChan:
-            s.HandleEvent(event)
-            hasEvents = true
-        default:
-            return hasEvents
-        }
-    }
+// drainInChan читает все доступные события из канала
+func (s *SimEngine) drainInChan() {
+	for {
+		select {
+		case event, ok := <-s.eventsInChan:
+			if !ok {
+				return
+			}
+			s.HandleEvent(event)
+		default:
+			return
+		}
+	}
 }
 
 // CollectStep собирает обновления от всех сущностей после тика.

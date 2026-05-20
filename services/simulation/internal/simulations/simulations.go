@@ -47,6 +47,8 @@ func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) er
 
 	eng.InitProcesses()
 
+	eng.InitStep()
+
 	s.mu.Lock()
 	s.IDToEngine[reqID] = eng
 	s.mu.Unlock()

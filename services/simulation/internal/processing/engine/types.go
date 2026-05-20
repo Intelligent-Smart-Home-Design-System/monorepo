@@ -33,9 +33,6 @@ type Engine interface {
 	// GetOutChan возвращает канал для выходящих событий.
 	GetOutChan() chan api.EventOutDTO
 
-	// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
-	Run() error
-
 	// Step продвигает симуляционное время на dtSim вперёд.
 	// Вызывается из Simulations.Tick после отправки всех входящих событий.
 	Step()

@@ -1,0 +1,73 @@
+[taxonomy]
+path = "taxonomy_schema.json"
+
+[extraction]
+
+[extraction.hints]
+model = """
+Extract and output the product model name *exactly as it appears in the text*, but ONLY IF there is a string in the text that uniquely identifies the model, such as 'JT-BZ-03AQ/A' or 'LB-L02E'.
+
+Guidelines:
+- The model name is usually a short string or code with letters and numbers (often with dashes, slashes, or other punctuation).
+It may also just look like a string of numbers (but NOT the articul)
+- Do NOT output generic names, product series, or brand names like 'Smart Sensor' or 'Aqara'.
+- If *no* unique model string is present in the text, leave the output empty.
+- DO NOT transform the model name at all, just get it from the text
+- DO NOT put the shop article number of the listing as the model.
+
+Examples:
+Text: "Model: SO-ME-2"
+Output: SO-ME-2
+
+Text: "WT-A3 sensor is compatible with Zigbee"
+Output: WT-A3
+"""
+
+ecosystem = """\
+Apple HomeKit means apple. Any mention of connectivity to an ecosystem means \
+it should be included.
+If the brand is the same as a known ecosystem (like if brand is aqara and aqara is in the list of ecosystems), then it can connect to that ecosystem.
+If the brand matches a known ecosystem (e.g. brand is \
+aqara), it can connect to that ecosystem. Only output each ecosystem once. \
+
+"""
+
+protocol = """\
+Only include protocols explicitly mentioned. \
+If Matter over Wi-Fi is mentioned, include matter-over-wifi, and DO NOT include wi-fi - matter-over-wifi is considered separately. \
+DO NOT include wi-fi if the device supports Matter-over-wifi - include matter-over-wifi instead.
+'Thread' means matter-over-thread.
+CRITICAL RULE: If 'Thread' is mentioned, INCLUDE 'matter-over-thread'.
+
+If a protocol is mentioned like 'used for initial setup' - DO NOT include it. ONLY include protocols that are actually used in operation.
+
+"""
+
+detects_leaks_below = """\
+If you find a minimum detected water level, then it can detect leaks below.
+"""
+
+[extraction.hint_templates]
+ecosystem = "Include {value} if and only if the device can connect to the {value} ecosystem. If the brand is {value}, then include {value}."
+protocol = "Include {value} IF AND ONLY IF the device explicitly supports the {value} protocol. CRITICAL RULE: DO NOT include protocols not mentioned in the listing."
+power_source = "Include {value} if and only if the device can be powered by {value}."
+access_methods = "Include {value} if and only if the device can be unlocked using {value}."
+
+[yandex_cloud]
+folder = "b1ghdbj0nn88kkalmtlj"
+llm_model = "gpt-oss-120b/latest"
+
+# "qwen3-235b-a22b-fp8/latest"
+# "gpt-oss-120b/latest"
+# "gemma-3-27b-it/latest"
+
+[database]
+host = "catalog-postgresql"
+port = 5432
+user = "catalog"
+name = "smart_home"
+password = "catalog"
+
+[logging]
+level = "INFO"
+format = "json"  # or "console"

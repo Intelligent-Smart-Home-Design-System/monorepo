@@ -1,0 +1,72 @@
+{
+  "devices": [
+    {
+      "device_id": 1,
+      "device_type": "smart_lamp",
+      "brand": "gen",
+      "model": "L-M",
+      "attributes": {},
+      "price": 400,
+      "quality": 0.85,
+      "source_listing_id": 5001,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 2,
+      "device_type": "smart_lamp",
+      "brand": "gen",
+      "model": "L-P",
+      "attributes": {},
+      "price": 1800,
+      "quality": 0.95,
+      "source_listing_id": 5002,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 3,
+      "device_type": "motion_sensor",
+      "brand": "gen",
+      "model": "S-M",
+      "attributes": {},
+      "price": 300,
+      "quality": 0.85,
+      "source_listing_id": 5003,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 4,
+      "device_type": "motion_sensor",
+      "brand": "gen",
+      "model": "S-P",
+      "attributes": {},
+      "price": 500,
+      "quality": 0.95,
+      "source_listing_id": 5004,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    }
+  ]
+}

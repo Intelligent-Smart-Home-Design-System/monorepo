@@ -1,0 +1,14 @@
+{
+  "id": 1,
+  "name": "Датчик протечки воды Water Leak Sensor T1 (WL-S02D)",
+  "in_stock": true,
+  "text": "About this item\n[Notes] An Aqara Hub is required and sold separately. Not compatible with hubs from other brands. Requires a secure 2.4GHz Wi-Fi connection for Hub M2, M1S, E1, M1S Gen2, G2H Pro, and G2H; or 2.4/5GHz Wi-Fi for Camera Hub G3. (Hub M2 also supports wired Ethernet via RJ45.). 2 years battery life: a small battery can power the temperature and humidity sensor for at least two years. Pair the Zigbee Water Leak Sensor with an Aqara Hub before connecting to Apple HomeKit, Google Home, or Alexa. For a stable Zigbee connection, ensure the sensor is placed within 10 meters(33 ft) of the Aqara Hub.\n[Proximity] To ensure a stable connection, keep the Aqara Water Leak Sensor within 400 inches (approximately 10 meters) of the Aqara Zigbee Hub, and place the hub within the same range of your Wi-Fi router. Ensure both are connected to the same local area network (LAN). Zigbee2MQTT and comparable third-party USB dongles are not officially supported by Aqara. Full product functionality may be limited or unavailable.\n[Drip and Leak Detection] Equipped with highly sensitive probes that detect water levels as low as 0.5 mm (approximately 0.02 inch), this water leak detector instantly sends alerts to your phone and triggers the local alarm on the Aqara Hub whenever a leak is detected.\n[Home automation] The water leak detectors for home can control and trigger other Aqara devices when water is detected, allowing you to take prompt action to keep your home safe. ***Requires Aqara Hub, not third-party hub.\n[Wireless & Compact Design] No wiring or screws are required. The small, sleek design allows you to place the Zigbee leak sensor on any flat surface in your kitchen, basement, laundry room, or any area you want to monitor. Recommended placements include near or under toilets, water heaters, washing machines, dishwashers, sinks, fish tanks, sump pumps, or any area prone to leaks.\n[Industry-Leading Quality] Durable IP67 water-proof housing with rust-proof exterior coating. Please remove the battery tab before use. If the device does not work, check the battery level. For any questions, please feel free to contact us. 2. Датчик протечки работает от батареек типа 1xCR2032, что обеспечивает его автономность и возможность установки в любом месте.",
+  "brand": "aqara",
+  "rating": 5.0,
+  "review_count": 7,
+  "price": 2500,
+  "currency": "RUB",
+  "model_number": "WL-S02D",
+  "category": null,
+  "quantity": 1
+}

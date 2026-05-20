@@ -1,0 +1,263 @@
+{
+  "devices": [
+    {
+      "device_id": 1,
+      "device_type": "smart_lamp",
+      "brand": "wf",
+      "model": "L-C",
+      "attributes": {},
+      "price": 250,
+      "quality": 0.7,
+      "source_listing_id": 4001,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 2,
+      "device_type": "smart_lamp",
+      "brand": "wf",
+      "model": "L-M",
+      "attributes": {},
+      "price": 500,
+      "quality": 0.85,
+      "source_listing_id": 4002,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 3,
+      "device_type": "smart_lamp",
+      "brand": "wf",
+      "model": "L-P",
+      "attributes": {},
+      "price": 1200,
+      "quality": 0.95,
+      "source_listing_id": 4003,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 4,
+      "device_type": "smart_lamp",
+      "brand": "zb",
+      "model": "ZL-C",
+      "attributes": {},
+      "price": 150,
+      "quality": 0.75,
+      "source_listing_id": 4004,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 5,
+      "device_type": "smart_lamp",
+      "brand": "zb",
+      "model": "ZL-M",
+      "attributes": {},
+      "price": 350,
+      "quality": 0.88,
+      "source_listing_id": 4005,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 6,
+      "device_type": "motion_sensor",
+      "brand": "wf",
+      "model": "S-C",
+      "attributes": {},
+      "price": 200,
+      "quality": 0.7,
+      "source_listing_id": 4006,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 7,
+      "device_type": "motion_sensor",
+      "brand": "wf",
+      "model": "S-M",
+      "attributes": {},
+      "price": 400,
+      "quality": 0.85,
+      "source_listing_id": 4007,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 8,
+      "device_type": "motion_sensor",
+      "brand": "wf",
+      "model": "S-P",
+      "attributes": {},
+      "price": 900,
+      "quality": 0.95,
+      "source_listing_id": 4008,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 9,
+      "device_type": "motion_sensor",
+      "brand": "zb",
+      "model": "ZS-C",
+      "attributes": {},
+      "price": 120,
+      "quality": 0.75,
+      "source_listing_id": 4009,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 10,
+      "device_type": "motion_sensor",
+      "brand": "zb",
+      "model": "ZS-M",
+      "attributes": {},
+      "price": 280,
+      "quality": 0.88,
+      "source_listing_id": 4010,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 11,
+      "device_type": "smart_plug",
+      "brand": "wf",
+      "model": "P-C",
+      "attributes": {},
+      "price": 200,
+      "quality": 0.7,
+      "source_listing_id": 4011,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 12,
+      "device_type": "smart_plug",
+      "brand": "wf",
+      "model": "P-M",
+      "attributes": {},
+      "price": 450,
+      "quality": 0.85,
+      "source_listing_id": 4012,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 13,
+      "device_type": "smart_plug",
+      "brand": "zb",
+      "model": "ZP-C",
+      "attributes": {},
+      "price": 140,
+      "quality": 0.75,
+      "source_listing_id": 4013,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 14,
+      "device_type": "smart_plug",
+      "brand": "zb",
+      "model": "ZP-M",
+      "attributes": {},
+      "price": 300,
+      "quality": 0.88,
+      "source_listing_id": 4014,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 15,
+      "device_type": "smart_hub",
+      "brand": "yandex",
+      "model": "Y-HUB-B",
+      "attributes": {},
+      "price": 900,
+      "quality": 0.8,
+      "source_listing_id": 4015,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    }
+  ]
+}

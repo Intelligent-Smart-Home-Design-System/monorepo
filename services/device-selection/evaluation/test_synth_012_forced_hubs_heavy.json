@@ -1,0 +1,19 @@
+{
+  "id": "synth_012_forced_hubs_heavy",
+  "description": "Heavy version of synth_010v2 with count=3 per requirement (~47s BF). 3 lamps + 3 sensors + 3 plugs, sensors aqara-only, plugs tuya-only. All solutions E=3 H>=2. Tests heuristic vs brute force under heavy combinatorial load with forced multi-hub topology.",
+  "run_brute_force": true,
+  "catalog": "catalog_forced_multihub.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 18000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 3, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 100,
+    "time_budget_seconds": 300.0
+  }
+}

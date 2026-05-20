@@ -1,0 +1,854 @@
+{
+  "devices": [
+    {
+      "device_id": 1,
+      "device_type": "smart_lamp",
+      "brand": "yandex",
+      "model": "YL-Mid",
+      "attributes": {},
+      "price": 900.0,
+      "quality": 0.83,
+      "source_listing_id": 2001,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 2,
+      "device_type": "smart_lamp",
+      "brand": "yandex",
+      "model": "YL-Prem",
+      "attributes": {},
+      "price": 1500.0,
+      "quality": 0.92,
+      "source_listing_id": 2002,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 3,
+      "device_type": "smart_lamp",
+      "brand": "yandex",
+      "model": "YZL-Prem",
+      "attributes": {},
+      "price": 1000.0,
+      "quality": 0.95,
+      "source_listing_id": 2003,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 4,
+      "device_type": "smart_lamp",
+      "brand": "yandex",
+      "model": "YZL-Ultra",
+      "attributes": {},
+      "price": 1800.0,
+      "quality": 0.98,
+      "source_listing_id": 2004,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 5,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQL-Mid",
+      "attributes": {},
+      "price": 300.0,
+      "quality": 0.87,
+      "source_listing_id": 2005,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 6,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQL-Prem",
+      "attributes": {},
+      "price": 600.0,
+      "quality": 0.95,
+      "source_listing_id": 2006,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 7,
+      "device_type": "smart_lamp",
+      "brand": "tuya",
+      "model": "TYL-Mid",
+      "attributes": {},
+      "price": 250.0,
+      "quality": 0.78,
+      "source_listing_id": 2007,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 8,
+      "device_type": "smart_lamp",
+      "brand": "tuya",
+      "model": "TYL-Prem",
+      "attributes": {},
+      "price": 700.0,
+      "quality": 0.9,
+      "source_listing_id": 2008,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 9,
+      "device_type": "smart_lamp",
+      "brand": "tuya",
+      "model": "TYZL-Prem",
+      "attributes": {},
+      "price": 450.0,
+      "quality": 0.94,
+      "source_listing_id": 2009,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 10,
+      "device_type": "smart_lamp",
+      "brand": "tuya",
+      "model": "TYZL-Ultra",
+      "attributes": {},
+      "price": 800.0,
+      "quality": 0.97,
+      "source_listing_id": 2010,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 11,
+      "device_type": "motion_sensor",
+      "brand": "yandex",
+      "model": "YMS-Mid",
+      "attributes": {},
+      "price": 400.0,
+      "quality": 0.82,
+      "source_listing_id": 2011,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 12,
+      "device_type": "motion_sensor",
+      "brand": "yandex",
+      "model": "YMS-Prem",
+      "attributes": {},
+      "price": 800.0,
+      "quality": 0.91,
+      "source_listing_id": 2012,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 13,
+      "device_type": "motion_sensor",
+      "brand": "yandex",
+      "model": "YZMS-Prem",
+      "attributes": {},
+      "price": 600.0,
+      "quality": 0.94,
+      "source_listing_id": 2013,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 14,
+      "device_type": "motion_sensor",
+      "brand": "yandex",
+      "model": "YZMS-Ultra",
+      "attributes": {},
+      "price": 1000.0,
+      "quality": 0.97,
+      "source_listing_id": 2014,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 15,
+      "device_type": "motion_sensor",
+      "brand": "aqara",
+      "model": "AQMS-Mid",
+      "attributes": {},
+      "price": 180.0,
+      "quality": 0.87,
+      "source_listing_id": 2015,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 16,
+      "device_type": "motion_sensor",
+      "brand": "aqara",
+      "model": "AQMS-Prem",
+      "attributes": {},
+      "price": 350.0,
+      "quality": 0.95,
+      "source_listing_id": 2016,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 17,
+      "device_type": "motion_sensor",
+      "brand": "aqara",
+      "model": "AQMS-Ultra",
+      "attributes": {},
+      "price": 600.0,
+      "quality": 0.97,
+      "source_listing_id": 2017,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 18,
+      "device_type": "motion_sensor",
+      "brand": "tuya",
+      "model": "TYMS-Mid",
+      "attributes": {},
+      "price": 180.0,
+      "quality": 0.78,
+      "source_listing_id": 2018,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 19,
+      "device_type": "motion_sensor",
+      "brand": "tuya",
+      "model": "TYZMS-Prem",
+      "attributes": {},
+      "price": 300.0,
+      "quality": 0.93,
+      "source_listing_id": 2019,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 20,
+      "device_type": "motion_sensor",
+      "brand": "tuya",
+      "model": "TYZMS-Ultra",
+      "attributes": {},
+      "price": 500.0,
+      "quality": 0.96,
+      "source_listing_id": 2020,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 21,
+      "device_type": "smart_plug",
+      "brand": "yandex",
+      "model": "YP-Mid",
+      "attributes": {},
+      "price": 300.0,
+      "quality": 0.82,
+      "source_listing_id": 2021,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 22,
+      "device_type": "smart_plug",
+      "brand": "yandex",
+      "model": "YP-Prem",
+      "attributes": {},
+      "price": 600.0,
+      "quality": 0.91,
+      "source_listing_id": 2022,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 23,
+      "device_type": "smart_plug",
+      "brand": "yandex",
+      "model": "YZP-Prem",
+      "attributes": {},
+      "price": 450.0,
+      "quality": 0.94,
+      "source_listing_id": 2023,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 24,
+      "device_type": "smart_plug",
+      "brand": "aqara",
+      "model": "AQP-Mid",
+      "attributes": {},
+      "price": 130.0,
+      "quality": 0.85,
+      "source_listing_id": 2024,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 25,
+      "device_type": "smart_plug",
+      "brand": "aqara",
+      "model": "AQP-Prem",
+      "attributes": {},
+      "price": 260.0,
+      "quality": 0.95,
+      "source_listing_id": 2025,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 26,
+      "device_type": "smart_plug",
+      "brand": "aqara",
+      "model": "AQP-Ultra",
+      "attributes": {},
+      "price": 450.0,
+      "quality": 0.97,
+      "source_listing_id": 2026,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 27,
+      "device_type": "smart_plug",
+      "brand": "tuya",
+      "model": "TYP-Mid",
+      "attributes": {},
+      "price": 140.0,
+      "quality": 0.76,
+      "source_listing_id": 2027,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 28,
+      "device_type": "smart_plug",
+      "brand": "tuya",
+      "model": "TYP-Prem",
+      "attributes": {},
+      "price": 380.0,
+      "quality": 0.88,
+      "source_listing_id": 2028,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 29,
+      "device_type": "smart_plug",
+      "brand": "tuya",
+      "model": "TYZP-Prem",
+      "attributes": {},
+      "price": 250.0,
+      "quality": 0.93,
+      "source_listing_id": 2029,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 30,
+      "device_type": "smart_plug",
+      "brand": "tuya",
+      "model": "TYZP-Ultra",
+      "attributes": {},
+      "price": 420.0,
+      "quality": 0.97,
+      "source_listing_id": 2030,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 31,
+      "device_type": "smart_hub",
+      "brand": "yandex",
+      "model": "Y-Hub-Basic",
+      "attributes": {},
+      "price": 1200.0,
+      "quality": 0.82,
+      "source_listing_id": 2031,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 32,
+      "device_type": "smart_hub",
+      "brand": "yandex",
+      "model": "Y-Hub-Prem",
+      "attributes": {},
+      "price": 2500.0,
+      "quality": 0.93,
+      "source_listing_id": 2032,
+      "direct_compat": [
+        {
+          "ecosystem": "yandex",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "yandex",
+          "protocol": "zigbee"
+        },
+        {
+          "ecosystem": "yandex",
+          "protocol": "matter"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 33,
+      "device_type": "smart_hub",
+      "brand": "aqara",
+      "model": "AQ-Hub",
+      "attributes": {},
+      "price": 900.0,
+      "quality": 0.85,
+      "source_listing_id": 2033,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 34,
+      "device_type": "smart_hub",
+      "brand": "tuya",
+      "model": "TY-Hub-Prem",
+      "attributes": {},
+      "price": 1200.0,
+      "quality": 0.95,
+      "source_listing_id": 2034,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        },
+        {
+          "ecosystem": "tuya",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 36,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQL-Cheap",
+      "attributes": {},
+      "price": 160.0,
+      "quality": 0.78,
+      "source_listing_id": 2036,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 37,
+      "device_type": "smart_lamp",
+      "brand": "tuya",
+      "model": "TYL-Cheap",
+      "attributes": {},
+      "price": 130.0,
+      "quality": 0.68,
+      "source_listing_id": 2037,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 39,
+      "device_type": "motion_sensor",
+      "brand": "aqara",
+      "model": "AQMS-Cheap",
+      "attributes": {},
+      "price": 90.0,
+      "quality": 0.77,
+      "source_listing_id": 2039,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 40,
+      "device_type": "motion_sensor",
+      "brand": "tuya",
+      "model": "TYMS-Cheap",
+      "attributes": {},
+      "price": 90.0,
+      "quality": 0.68,
+      "source_listing_id": 2040,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 42,
+      "device_type": "smart_plug",
+      "brand": "aqara",
+      "model": "AQP-Cheap",
+      "attributes": {},
+      "price": 80.0,
+      "quality": 0.76,
+      "source_listing_id": 2042,
+      "direct_compat": [
+        {
+          "ecosystem": "aqara",
+          "protocol": "zigbee"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "aqara",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    },
+    {
+      "device_id": 43,
+      "device_type": "smart_plug",
+      "brand": "tuya",
+      "model": "TYP-Cheap",
+      "attributes": {},
+      "price": 80.0,
+      "quality": 0.67,
+      "source_listing_id": 2043,
+      "direct_compat": [
+        {
+          "ecosystem": "tuya",
+          "protocol": "wifi"
+        }
+      ],
+      "bridge_compat": [
+        {
+          "source_ecosystem": "tuya",
+          "target_ecosystem": "yandex",
+          "protocol": "cloud"
+        }
+      ]
+    }
+  ]
+}

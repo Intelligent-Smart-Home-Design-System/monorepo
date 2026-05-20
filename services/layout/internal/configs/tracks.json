@@ -13,7 +13,17 @@
           "devices": [
             "water_leak_sensor",
             "gas_leak_sensor"
-          ]
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ]
+          }
         },
         "2": {
           "name": "Второй уровень",
@@ -25,9 +35,25 @@
           "devices": [
             "water_leak_sensor",
             "gas_leak_sensor",
-            "smart_door_bell",
+            "smart_doorbell",
             "smart_lock"
-          ]
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ]
+          }
         },
         "3": {
           "name": "Третий уровень",
@@ -39,12 +65,39 @@
           "devices": [
             "water_leak_sensor",
             "gas_leak_sensor",
-            "smart_door_bell",
+            "smart_doorbell",
             "smart_lock",
             "door_sensor",
             "window_sensor",
             "motion_sensor"
-          ]
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ],
+            "door_sensor": [
+              "hall"
+            ],
+            "window_sensor": [
+              "living",
+              "bedroom"
+            ],
+            "motion_sensor": [
+              "living",
+              "hall"
+            ]
+          }
         },
         "4": {
           "name": "Четвертый уровень",
@@ -56,13 +109,44 @@
           "devices": [
             "water_leak_sensor",
             "gas_leak_sensor",
-            "smart_door_bell",
+            "smart_doorbell",
             "smart_lock",
             "door_sensor",
             "window_sensor",
             "motion_sensor",
             "camera"
-          ]
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ],
+            "door_sensor": [
+              "hall"
+            ],
+            "window_sensor": [
+              "living",
+              "bedroom"
+            ],
+            "motion_sensor": [
+              "living",
+              "hall"
+            ],
+            "camera": [
+              "living",
+              "hall"
+            ]
+          }
         },
         "5": {
           "name": "Пятый уровень",
@@ -74,14 +158,48 @@
           "devices": [
             "water_leak_sensor",
             "gas_leak_sensor",
-            "smart_door_bell",
+            "smart_doorbell",
             "smart_lock",
             "door_sensor",
             "window_sensor",
             "motion_sensor",
             "camera",
-            "security_alarm"
-          ]
+            "smart_siren"
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ],
+            "door_sensor": [
+              "hall"
+            ],
+            "window_sensor": [
+              "living",
+              "bedroom"
+            ],
+            "motion_sensor": [
+              "living",
+              "hall"
+            ],
+            "camera": [
+              "living",
+              "hall"
+            ],
+            "smart_siren": [
+              "hall"
+            ]
+          }
         }
       }
     },

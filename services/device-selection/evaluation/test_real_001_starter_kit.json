@@ -1,0 +1,20 @@
+{
+  "id": "real_001_starter_kit",
+  "description": "Real catalog test: basic starter smart home. 3 E27 lamps + 2 motion sensors + 3 leak sensors. Realistic setup for a small apartment. Budget 10000. Excludes xiaomi and digma. BF completely infeasible (~5M formula-seconds), heuristic only.",
+  "run_brute_force": false,
+  "catalog": "real_catalog.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 10000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",         "count": 3, "connect_to_main_ecosystem": true,
+        "filters": [{"field": "socket_type", "op": "eq", "value": "E27"}]},
+      {"requirement_id": 2, "device_type": "motion_sensor",      "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "water_leak_sensor",  "count": 3, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": ["xiaomi", "digma"],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

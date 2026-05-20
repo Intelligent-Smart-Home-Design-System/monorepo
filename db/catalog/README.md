@@ -24,6 +24,29 @@
 
 Одно устройство в каталоге связано с 1+ листингами товаров на маркетплейсах - листинги могут отличаться по цене, количеству устройств, url
 
+## Data lineage
+
+Система состоит из нескольких независимых data pipeline'ов, которые сходятся в общий gold слой.
+
+- Все данные в silver и gold слоях должны быть воспроизводимы из page_snapshots.
+- Любая запись в silver слое должна ссылаться на конкретный page_snapshot.
+- Gold слой не содержит "сырого" происхождения данных — только агрегированные результаты.
+
+### Listing pipeline (карточки товаров)
+
+tracked_pages (page_type=listing) → page_snapshots → parsed_listing_snapshots → llm_extracted_listings → devices + listing_device_links
+
+### Discovery pipeline (поиск листингов)
+
+tracked_pages (discovery) → page_snapshots → (парсер в коде) → INSERT в tracked_pages (listing)
+
+* не производит gold-данные напрямую
+* расширяет множество tracked_pages
+
+### Compatibility pipeline (совместимость)
+
+tracked_pages (page_type=compatibility / cloud_integration) → page_snapshots → parsed_direct_compatibility_record → direct_compatibility / bridge_ecosystem_compatibility
+
 ### Бронзовый слой
 
 #### tracked_pages
@@ -33,7 +56,11 @@
 - поиск листингов товаров определенной категории - специальный тип с page_type = discovery. У таких "страниц" url может быть, например, wildberries://discovery/smart_lamp - далее скрейпер для wildberries сможет распарсить этот url и решить, как найти все результаты поиска для умных лампочек
 
 #### page_snapshots
-Результат скачивания всех нужных ресурсов для определенной страницы в определенное время.  
+Результат скачивания всех нужных ресурсов для определенной страницы в определенное время. page_snapshots являются источником истины для всех последующих преобразований. Это позволяет:
+- переиспользовать данные без повторного скрейпинга
+- пересчитывать парсинг при изменении логики
+- дебажить ошибки на исторических данных
+
 У каждого листинга товара есть определенные ресурсы (html, json), которые мы хотим скачать и сохранить, чтобы потом разобрать на поля. 
 Например:
 - detail.json (получаем по api) - здесь рейтинг и цена товара

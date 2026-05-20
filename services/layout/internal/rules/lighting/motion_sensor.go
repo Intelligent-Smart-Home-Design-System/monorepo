@@ -10,58 +10,39 @@ type MotionSensorRule struct {
 }
 
 func NewMotionSensorRule() *MotionSensorRule {
-	return &MotionSensorRule{
-		track: "lighting",
-	}
+	return &MotionSensorRule{track: "lighting"}
 }
 
 func (r *MotionSensorRule) Type() string {
 	return "motion_sensor"
 }
 
-func (r *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
+func (r *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
 
-	for _, room := range devicesRooms {
+	for _, room := range rooms {
 		roomID := room.ID
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
 
-		// Для коридора 2 датчика на концах
 		if room.Name == apartment.RoomPassage {
 			p1, p2, err := corridorEndPoints(room)
 			if err != nil {
 				return err
 			}
 
-			id1 := uuid.NewString()
-			dev1 := device.NewDevice(id1, r.Type(), r.track)
-			placement1 := device.NewPlacement(dev1, roomID, p1)
-			apartmentLayout.Placements[roomID][r.Type()] = placement1
-
-			id2 := uuid.NewString()
-			dev2 := device.NewDevice(id2, r.Type(), r.track)
-			placement2 := device.NewPlacement(dev2, roomID, p2)
-			apartmentLayout.Placements[roomID][r.Type()+"_2"] = placement2
-
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p1, nil)
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p2, nil)
 			continue
 		}
 
-		// В остальных комнатах по 1 датчику в углу рядом с дверью
 		sensorPoint, err := cornerNearDoor(apartmentStruct, room)
 		if err != nil {
 			return err
 		}
 
-		id := uuid.NewString()
-		dev := device.NewDevice(id, r.Type(), r.track)
-		placement := device.NewPlacement(dev, roomID, sensorPoint)
-		apartmentLayout.Placements[roomID][r.Type()] = placement
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, sensorPoint, nil)
 	}
 
 	return nil

@@ -19,7 +19,7 @@ func (r *IlluminationSensorRule) Type() string {
 	return "illumination_sensor"
 }
 
-func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
+func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
 	devicesRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -28,20 +28,12 @@ func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, dev
 	for _, room := range devicesRooms {
 		roomID := room.ID
 
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
-
 		place, err := illuminationPoint(apartmentStruct, room)
 		if err != nil {
 			return err
 		}
 
-		deviceID := uuid.NewString()
-		dev := device.NewDevice(deviceID, r.Type(), r.track)
-		placement := device.NewPlacement(dev, roomID, place)
-		apartmentLayout.Placements[roomID][dev.Type] = placement
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil)
 	}
 
 	return nil
@@ -60,13 +52,11 @@ func illuminationPoint(apartmentStruct *apartment.Apartment, room apartment.Room
 	}
 
 	roomWindows := getRoomWindows(apartmentStruct, room.ID)
-	// Если в комнате есть окна, ставим датчик в ближайший угол от окна
 	if len(roomWindows) > 0 && len(roomWindows[0].Points) > 0 {
 		windowCenter := apartment.GetObjectCenter(roomWindows[0].Points)
 		return cornerNearWindow(room.Area, windowCenter), nil
 	}
 
-	// Если окна нет, берем самый дальний угол от центра (подальше от лампочки)
 	return farCornerFromCenter(room.Area, *roomCenter), nil
 }
 

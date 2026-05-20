@@ -19,19 +19,14 @@ func (r *SmartBulbRule) Type() string {
 	return "smart_bulb"
 }
 
-func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
+func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
 
-	for _, room := range devicesRooms {
+	for _, room := range rooms {
 		roomID := room.ID
-
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
 
 		place, err := room.GetCenter()
 		if err != nil {
@@ -39,10 +34,7 @@ func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms 
 			place = &fallback
 		}
 
-		deviceID := uuid.NewString()
-		dev := device.NewDevice(deviceID, r.Type(), r.track)
-		placement := device.NewPlacement(dev, roomID, place)
-		apartmentLayout.Placements[roomID][dev.Type] = placement
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil)
 	}
 
 	return nil

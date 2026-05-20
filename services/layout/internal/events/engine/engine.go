@@ -31,9 +31,8 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 	if apartmentStruct.Rooms == nil {
 		return nil, fmt.Errorf("nil rooms")
 	}
-	apartmentStruct.Index()
 
-	apartmentStruct.MakeDependency()
+	apartmentStruct.Index()
 
 	res := apartment.NewApartmentResult()
 
@@ -52,8 +51,7 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 				return nil, fmt.Errorf("no info about rooms for device %s", device)
 			}
 
-			err := rule.Apply(apartmentStruct, deviceRooms, res)
-			if err != nil {
+			if err := rule.Apply(apartmentStruct, deviceRooms, res); err != nil {
 				return nil, err
 			}
 		}

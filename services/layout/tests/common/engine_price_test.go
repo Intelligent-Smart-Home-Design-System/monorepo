@@ -22,16 +22,16 @@ func TestCalculateLayoutPrice_DuplicateDeviceTypeKeys(t *testing.T) {
 	e := engine.NewEngine(st, &configs.Tracks{}, devicesConfig)
 
 	layout := apartment.NewApartmentResult()
-	layout.Placements["room-1"] = map[string]*device.Placement{
-		"motion_sensor": {
-			Device: &device.Device{ID: "d1", Type: "motion_sensor", DeviceTrack: "lighting"},
-			RoomID: "room-1",
-			Place:  &point.Point{X: 1, Y: 1},
+	layout.Placements["room-1"] = []*device.Placement{
+		{
+			Device:   &device.Device{ID: "d1", Type: "motion_sensor", Track: "lighting"},
+			Position: &point.Point{X: 1, Y: 1},
+			Filters:  nil,
 		},
-		"motion_sensor_2": {
-			Device: &device.Device{ID: "d2", Type: "motion_sensor", DeviceTrack: "lighting"},
-			RoomID: "room-1",
-			Place:  &point.Point{X: 2, Y: 2},
+		{
+			Device:   &device.Device{ID: "d2", Type: "motion_sensor", Track: "lighting"},
+			Position: &point.Point{X: 2, Y: 2},
+			Filters:  nil,
 		},
 	}
 

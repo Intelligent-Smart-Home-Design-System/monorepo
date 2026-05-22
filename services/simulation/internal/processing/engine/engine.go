@@ -17,6 +17,7 @@ type SimEngine struct {
 	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
 	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
 	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
+	Floor         api.FloorDTO
 }
 
 // NewSimEngine создает SimEngine
@@ -183,4 +184,8 @@ func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
 	s.Field.Cells[x][y].Condition = cell.Condition
 
 	return nil
+}
+
+func (s *SimEngine) GetFloor() api.FloorDTO {
+	return s.Floor
 }

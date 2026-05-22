@@ -56,6 +56,7 @@ type EnginePort interface {
 	GetOutChan() chan api.EventOutDTO
 	GetInChan() chan api.EventInDTO
 	GetSimulation() *simgo.Simulation
+	GetFloor() api.FloorDTO
 }
 
 var (

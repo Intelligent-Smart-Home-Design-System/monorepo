@@ -124,3 +124,31 @@ type LogEventPayload struct {
 	Device  string `json:"device"`
 	Message string `json:"message"`
 }
+
+// api/floor.go
+
+type WallDTO struct {
+	X1 float64 `json:"x1"`
+	Y1 float64 `json:"y1"`
+	X2 float64 `json:"x2"`
+	Y2 float64 `json:"y2"`
+}
+
+type DoorDTO struct {
+	X1       float64 `json:"x1"`
+	Y1       float64 `json:"y1"`
+	X2       float64 `json:"x2"`
+	Y2       float64 `json:"y2"`
+	FromRoom string  `json:"from_room"`
+	ToRoom   string  `json:"to_room"`
+}
+
+type RoomDTO struct {
+	ID    string    `json:"id"`
+	Walls []WallDTO `json:"walls"`
+	Doors []DoorDTO `json:"doors"`
+}
+
+type FloorDTO struct {
+	Rooms []RoomDTO `json:"rooms"`
+}

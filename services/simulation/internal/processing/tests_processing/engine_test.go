@@ -6,7 +6,6 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
@@ -58,22 +57,6 @@ func (s *stubEntityWithProcess) Process(process simgo.Process) {
 
 func (s *stubEntityWithProcess) GetOutCh() chan []byte {
 	return make(chan []byte)
-}
-
-// =====Helper=====
-func newTestField(height, width int) *field.Field {
-	cells := make([][]*field.Cell, height+1)
-	for i := range cells {
-		cells[i] = make([]*field.Cell, width+1)
-		for j := range cells[i] {
-			cells[i][j] = &field.Cell{}
-		}
-	}
-	return &field.Field{
-		Height: height,
-		Width:  width,
-		Cells:  cells,
-	}
 }
 
 // =====Tests=====
@@ -164,36 +147,6 @@ func TestHandleEvent(t *testing.T) {
 
 			if tt.entity.handleCalls != tt.expectCalls {
 				t.Errorf("handle calls = %v, want %v", tt.entity.handleCalls, tt.expectCalls)
-			}
-		})
-	}
-}
-
-// Тест проверки функции UpdateField()
-func TestUpdateField(t *testing.T) {
-	tests := []struct {
-		name      string
-		x, y      int
-		expectErr error
-	}{
-		{"valid update", 0, 0, nil},
-		{"invalid x", -1, 0, engine.ErrorFieldInvalidParameterX},
-		{"invalid y", 0, -1, engine.ErrorFieldInvalidParameterY},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine(1.0)
-			e.SetField(newTestField(1, 1))
-			cell := field.Cell{Condition: true}
-
-			err := e.UpdateField(tt.x, tt.y, cell)
-			if !errors.Is(err, tt.expectErr) {
-				t.Errorf("error = %v, want %v", err, tt.expectErr)
-			}
-
-			if tt.expectErr == nil && !e.Field.Cells[tt.x][tt.y].Condition {
-				t.Errorf("cell not updated")
 			}
 		})
 	}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 )
 
 // =====Stubs=====
@@ -36,7 +35,7 @@ func (s *stubEngine) CheckCircleDependencies() bool {
 	return false
 }
 
-func (s *stubEngine) SetField(simField *field.Field) {
+func (s *stubEngine) SetFloor(floor *api.Floor) {
 }
 
 func (s *stubEngine) GetInChan() chan api.EventInDTO {
@@ -74,23 +73,29 @@ func (s *stubEngine) Stop() {
 func (s *stubEngine) HandleEvent(event api.EventInDTO) {
 }
 
-func (s *stubEngine) UpdateField(x, y int, cell field.Cell) error {
-	return nil
-}
-
 // =====Helper=====
 func newTestSimulations() *Simulations {
 	return NewSimulation()
 }
  
 func validStartPayload() api.SimulationStartPayload {
-	return api.SimulationStartPayload{
-		DtSim: 1.0,
-		Apartment: api.FieldDTO{
-			Width:  1,
-			Height: 1,
-			Cells:  [][]*api.CellDTO{},
+	floorObj := api.Floor{
+		Meta: struct {
+			Units string `json:"units"`
+		}{
+			Units: "meters",
 		},
+		Walls:   []api.Wall{},
+		Doors:   []api.Door{},
+		Windows: []api.Window{},
+		Rooms:   []api.Room{},
+	}
+
+	rawApartment, _ := json.Marshal(floorObj)
+
+	return api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: rawApartment,
 		Devices:   []api.EntityDTO{},
 		Scenarios: []api.ScenarioDTO{},
 	}
@@ -204,17 +209,14 @@ func TestStart_CircleDependencies(t *testing.T) {
 	s := newTestSimulations()
  
 	// Сценарий с циклом: lamp_1 -> lamp_2 -> lamp_1
-	payload := api.SimulationStartPayload{
-		DtSim: 1.0,
-		Apartment: api.FieldDTO{Width: 1, Height: 1, Cells: [][]*api.CellDTO{}},
-		Devices: []api.EntityDTO{
-			{ID: "lamp_1", Type: "lamp_switcher", Info: json.RawMessage(`{"id":"lamp_1","turned_on":false,"delay":0}`)},
-			{ID: "lamp_2", Type: "lamp_switcher", Info: json.RawMessage(`{"id":"lamp_2","turned_on":false,"delay":0}`)},
-		},
-		Scenarios: []api.ScenarioDTO{
-			{EntityID: "lamp_1", Edges: []api.EdgeDTO{{ToID: "lamp_2"}}},
-			{EntityID: "lamp_2", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
-		},
+	payload := validStartPayload()
+	payload.Devices = []api.EntityDTO{
+		{ID: "lamp_1", Type: "lamp_switcher", Info: json.RawMessage(`{"id":"lamp_1","turned_on":false,"delay":0}`)},
+		{ID: "lamp_2", Type: "lamp_switcher", Info: json.RawMessage(`{"id":"lamp_2","turned_on":false,"delay":0}`)},
+	}
+	payload.Scenarios = []api.ScenarioDTO{
+		{EntityID: "lamp_1", Edges: []api.EdgeDTO{{ToID: "lamp_2"}}},
+		{EntityID: "lamp_2", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
 	}
  
 	err := s.Start("sim_cycle", payload)

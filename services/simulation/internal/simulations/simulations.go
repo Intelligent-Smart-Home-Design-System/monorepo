@@ -31,8 +31,11 @@ func NewSimulation() *Simulations {
 func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) error {
 	eng := engine.NewSimEngine(payload.DtSim)
 
-	simField := converter.FieldFromDTO(payload.Apartment)
-	eng.SetField(simField)
+	simField, err := converter.ParseFloor(payload.Apartment)
+	if err != nil {
+		return err
+	}
+	eng.SetFloor(simField)
 
 	entities, err := converter.EntitiesFromDTO(payload.Devices, eng)
 	if err != nil {

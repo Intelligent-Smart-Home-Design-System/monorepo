@@ -137,6 +137,26 @@ func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventInDTO {
 	}
 }
 
+func mockApartmentRaw(t *testing.T) json.RawMessage {
+	t.Helper()
+	floorObj := api.Floor{
+		Meta: struct {
+			Units string `json:"units"`
+		}{
+			Units: "meters",
+		},
+		Walls:   []api.Wall{},
+		Doors:   []api.Door{},
+		Windows: []api.Window{},
+		Rooms:   []api.Room{},
+	}
+	raw, err := json.Marshal(floorObj)
+	if err != nil {
+		t.Fatalf("mockApartmentRaw: %v", err)
+	}
+	return raw
+}
+
 // statesFrom собирает последовательность turn_on из StateChanges для конкретного entityID.
 func statesFrom(steps []api.SimulationStepPayload, entityID string) []bool {
 	var result []bool
@@ -176,7 +196,7 @@ func TestSimulation_Default(t *testing.T) {
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
 		DtSim: 1.0,
-		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "lampSwitcher_1", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_1", "delay":1.0}`)},
 			{ID: "lampSwitcher_2", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_2", "delay":0.3}`)},
@@ -217,7 +237,7 @@ func TestWS_Simulation_UserIntervention(t *testing.T) {
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
 		DtSim: 10.0,
-		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "lampSwitcher_1", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_1","delay":0.0}`)},
 			{ID: "lampSwitcher_2", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_2","delay":0.0}`)},
@@ -261,7 +281,7 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
 		DtSim: 1.0,
-		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "lightSwitchOffSensor_1", Type: "lightSwitchOffSensor", Info: json.RawMessage(`{"id":"lightSwitchOffSensor_1","delay":0.5,"timeout":1.0,"turned_on":false}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.5,"turned_on":false}`)},
@@ -300,7 +320,7 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
 		DtSim: 1.0,
-		Apartment: api.FieldDTO{Width: 2, Height: 2, Cells: [][]*api.CellDTO{}},
+		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "lightSwitchOffSensor_1", Type: "lightSwitchOffSensor", Info: json.RawMessage(`{"id":"lightSwitchOffSensor_1","delay":0.0,"timeout":4.0,"turned_on":false}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turned_on":false}`)},

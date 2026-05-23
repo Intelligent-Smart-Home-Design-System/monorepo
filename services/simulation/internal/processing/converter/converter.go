@@ -3,11 +3,12 @@ package converter
 import (
 	"errors"
 	"strings"
+	"encoding/json"
+	"fmt"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 )
 
@@ -51,23 +52,31 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 	return IDToEntity, nil
 }
 
-// FieldFromDTO парсит данные о плане и возвращает config.FieldDTO, ошибку если данные некорректные.
-func FieldFromDTO(fieldDTO api.FieldDTO) *field.Field {
-	fieldCells := make([][]*field.Cell, fieldDTO.Height)
-
-	for i, cells := range fieldDTO.Cells {
-		fieldCells[i] = make([]*field.Cell, fieldDTO.Width)
-		for j, cell := range cells {
-			fieldCells[i][j] = &field.Cell{
-				Condition:    cell.Condition,
-				IsHiddenWall: false,
-			}
-		}
+// ParseFloor парсит данные о плане.
+func ParseFloor(data []byte) (*api.Floor, error) {
+	var floor api.Floor
+	if err := json.Unmarshal(data, &floor); err != nil {
+		return nil, fmt.Errorf("unmarshal floor json: %w", err)
 	}
 
-	simField := field.NewField(fieldDTO.Width, fieldDTO.Height, fieldCells)
+	floor.Adjacency = make(map[string][]api.RoomEdge)
+	for i := range floor.Doors {
+		door := &floor.Doors[i]
+		if len(door.Rooms) != 2 {
+			continue
+		}
+		aID, bID := door.Rooms[0], door.Rooms[1]
+		floor.Adjacency[aID] = append(floor.Adjacency[aID], api.RoomEdge{
+			NeighborRoomID: bID,
+			Door:           door,
+		})
+		floor.Adjacency[bID] = append(floor.Adjacency[bID], api.RoomEdge{
+			NeighborRoomID: aID,
+			Door:           door,
+		})
+	}
 
-	return simField
+	return &floor, nil
 }
 
 // DependenciesFromDTO парсит данные о зависимостях

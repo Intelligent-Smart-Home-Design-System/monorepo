@@ -5,7 +5,6 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
 	"github.com/fschuetz04/simgo"
 )
@@ -15,6 +14,7 @@ type stubEnginePort struct {
 	outChan    chan api.EventOutDTO
 	inChan     chan api.EventInDTO
 	simulation *simgo.Simulation
+	floor      *api.Floor
 }
 
 func (s *stubEnginePort) GetOutChan() chan api.EventOutDTO {
@@ -25,12 +25,12 @@ func (s *stubEnginePort) GetInChan() chan api.EventInDTO {
     return s.inChan
 }
 
-func (s *stubEnginePort) UpdateField(x, y int, cell field.Cell) error {
-	return nil
-}
-
 func (s *stubEnginePort) GetSimulation() *simgo.Simulation {
 	return s.simulation
+}
+
+func (s *stubEnginePort) GetFloor() *api.Floor {
+	return s.floor
 }
 
 //=====Tests=====
@@ -127,37 +127,122 @@ func TestEntitiesFromDTO_InvalidType(t *testing.T) {
 }
 
 //проверка парсинга поля
-func TestFieldFromDTO(t *testing.T) {
-	fieldDTO := api.FieldDTO{
-		Width:  2,
-		Height: 2,
-		Cells: [][]*api.CellDTO{
-			{
-				{X: 0, Y: 0, Condition: false},
-				{X: 0, Y: 1, Condition: true},
-			},
-			{
-				{X: 1, Y: 0, Condition: true},
-				{X: 1, Y: 1, Condition: false},
-			},
+func TestParseFloor(t *testing.T) {
+	rawJSON := []byte(`{
+		"meta": {
+			"units": "meters",
+			"source": "ChatGPT"
 		},
-	}
-
-	simField := converter.FieldFromDTO(fieldDTO)
-	if simField.Width != 2 || simField.Height != 2 {
-		t.Errorf("expected Width=2, Height=2, got Width=%d, Height=%d", simField.Width, simField.Height)
-	}
-
-	expected := [][]bool{
-		{false, true},
-		{true, false},
-	}
-
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 2; j++ {
-			if simField.Cells[i][j].Condition != expected[i][j] {
-				t.Errorf("cell[%d][%d] expected Condition=%v, got %v", i, j, expected[i][j], simField.Cells[i][j].Condition)
+		"walls": [
+			{
+				"id": "wall_1",
+				"points": [[0.0, 0.0], [0.0, 5.0]],
+				"width": 0.2
 			}
-		}
+		],
+		"doors": [
+			{
+				"id": "door_1",
+				"points": [[2.0, 0.0], [3.0, 0.0]],
+				"width": 0.1,
+				"rooms": ["room_a", "room_b"],
+				"opens_towards_room": "room_b",
+				"swing": "left"
+			}
+		],
+		"windows": [
+			{
+				"id": "window_1",
+				"points": [[0.0, 2.0], [0.0, 3.0]],
+				"width": 0.15
+			}
+		],
+		"rooms": [
+			{
+				"id": "room_a",
+				"name": "Kitchen",
+				"area": [[0.0, 0.0], [5.0, 0.0], [5.0, 5.0], [0.0, 5.0]],
+				"walls": ["wall_1"],
+				"doors": ["door_1"],
+				"windows": ["window_1"]
+			},
+			{
+				"id": "room_b",
+				"name": "Bedroom",
+				"area": [[5.0, 0.0], [10.0, 0.0], [10.0, 5.0], [5.0, 5.0]],
+				"walls": [],
+				"doors": ["door_1"],
+				"windows": []
+			}
+		]
+	}`)
+
+	simFloor, err := converter.ParseFloor(rawJSON)
+	if err != nil {
+		t.Fatalf("ParseFloorJ returned unexpected error: %v", err)
+	}
+
+	if simFloor.Meta.Units != "meters" {
+		t.Errorf("expected units 'meters', got '%s'", simFloor.Meta.Units)
+	}
+
+	if len(simFloor.Walls) != 1 {
+		t.Fatalf("expected 1 wall, got %d", len(simFloor.Walls))
+	}
+	if simFloor.Walls[0].ID != "wall_1" || simFloor.Walls[0].Width != 0.2 {
+		t.Errorf("unexpected wall data: %+v", simFloor.Walls[0])
+	}
+	if simFloor.Walls[0].Points[0][1] != 0.0 || simFloor.Walls[0].Points[1][1] != 5.0 {
+		t.Errorf("unexpected wall points: %v", simFloor.Walls[0].Points)
+	}
+
+	if len(simFloor.Windows) != 1 {
+		t.Fatalf("expected 1 window, got %d", len(simFloor.Windows))
+	}
+	if simFloor.Windows[0].ID != "window_1" || simFloor.Windows[0].Width != 0.15 {
+		t.Errorf("unexpected window data: %+v", simFloor.Windows[0])
+	}
+
+	if len(simFloor.Rooms) != 2 {
+		t.Fatalf("expected 2 rooms, got %d", len(simFloor.Rooms))
+	}
+
+	roomA := simFloor.Rooms[0]
+	if roomA.ID != "room_a" || roomA.Name != "Kitchen" {
+		t.Errorf("unexpected room_a base data: %+v", roomA)
+	}
+	if len(roomA.Area) != 4 || roomA.Walls[0] != "wall_1" || roomA.Doors[0] != "door_1" {
+		t.Errorf("unexpected room_a internal structure: %+v", roomA)
+	}
+
+	roomB := simFloor.Rooms[1]
+	if roomB.ID != "room_b" || roomB.Name != "Bedroom" {
+		t.Errorf("unexpected room_b base data: %+v", roomB)
+	}
+
+	if len(simFloor.Doors) != 1 {
+		t.Fatalf("expected 1 door, got %d", len(simFloor.Doors))
+	}
+	door := simFloor.Doors[0]
+	if door.ID != "door_1" || door.OpensTowardsRoom != "room_b" || door.Swing != "left" {
+		t.Errorf("unexpected door configuration: %+v", door)
+	}
+
+	edgesA, existsA := simFloor.Adjacency["room_a"]
+	if !existsA || len(edgesA) != 1 {
+		t.Fatalf("expected 1 edge for room_a, got exists=%v, count=%d", existsA, len(edgesA))
+	}
+	if edgesA[0].NeighborRoomID != "room_b" {
+		t.Errorf("expected neighbor of room_a to be room_b, got '%s'", edgesA[0].NeighborRoomID)
+	}
+	if edgesA[0].Door.ID != "door_1" {
+		t.Errorf("expected edge to point to door_1, got '%s'", edgesA[0].Door.ID)
+	}
+	edgesB, existsB := simFloor.Adjacency["room_b"]
+	if !existsB || len(edgesB) != 1 {
+		t.Fatalf("expected 1 edge for room_b, got exists=%v, count=%d", existsB, len(edgesB))
+	}
+	if edgesB[0].NeighborRoomID != "room_a" {
+		t.Errorf("expected neighbor of room_b to be room_a, got '%s'", edgesB[0].NeighborRoomID)
 	}
 }

@@ -3,7 +3,6 @@ package engine
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -12,12 +11,11 @@ const maxEventsBuffer = 100
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
 	simulation    *simgo.Simulation          // дискретная симуляция из simgo
-	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
-	Field         *field.Field               // Поле для симуляции
+	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.         
 	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
 	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
 	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
-	Floor         api.FloorDTO
+	Floor         *api.Floor				 // Поле для симуляции
 }
 
 // NewSimEngine создает SimEngine
@@ -96,8 +94,8 @@ func (s *SimEngine) hasCycleDFS(entityID string, color map[string]int) bool {
 }
 
 // SetField устанавливает поле для симуляции.
-func (s *SimEngine) SetField(simField *field.Field) {
-	s.Field = simField
+func (s *SimEngine) SetFloor(floor *api.Floor) {
+	s.Floor = floor
 }
 
 // GetInChan возвращает канал для входящих событий.
@@ -173,19 +171,6 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	}
 }
 
-// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
-func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
-	if x < 0 || x > s.Field.Height {
-		return ErrorFieldInvalidParameterX
-	} else if y < 0 || y > s.Field.Width {
-		return ErrorFieldInvalidParameterY
-	}
-
-	s.Field.Cells[x][y].Condition = cell.Condition
-
-	return nil
-}
-
-func (s *SimEngine) GetFloor() api.FloorDTO {
+func (s *SimEngine) GetFloor() *api.Floor {
 	return s.Floor
 }

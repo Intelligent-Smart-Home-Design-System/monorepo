@@ -29,7 +29,6 @@ func (a *Apartment) IndexWalls() {
 	}
 }
 
-// IndexFurniture создает словарь зависимости ID мебели с его структурой
 func (a *Apartment) IndexFurniture() {
 	a.furnitureByID = make(map[string]*Furniture)
 
@@ -38,7 +37,6 @@ func (a *Apartment) IndexFurniture() {
 	}
 }
 
-// bindRooms устанавливает обратную ссылку на квартиру для каждой комнаты
 func (a *Apartment) bindRooms() {
 	for i := range a.Rooms {
 		a.Rooms[i].apartment = a
@@ -57,7 +55,6 @@ func (a *Apartment) GetRoomsByNames(roomNames []string) ([]Room, error) {
 	return roomsRes, nil
 }
 
-// GetWallByID возвращает стену по ID
 func (a *Apartment) GetWallByID(id string) (*Wall, error) {
 	wall, ok := a.wallsByID[id]
 	if !ok {
@@ -66,7 +63,6 @@ func (a *Apartment) GetWallByID(id string) (*Wall, error) {
 	return wall, nil
 }
 
-// GetFurnitureByID возвращает мебель по ID
 func (a *Apartment) GetFurnitureByID(id string) (*Furniture, error) {
 	f, ok := a.furnitureByID[id]
 	if !ok {

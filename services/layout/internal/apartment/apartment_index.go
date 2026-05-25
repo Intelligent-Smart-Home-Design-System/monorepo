@@ -6,17 +6,21 @@ import "fmt"
 func (a *Apartment) Index() {
 	a.IndexRooms()
 	a.IndexWalls()
+	a.IndexWindows()
+	a.IndexDoors()
 	a.IndexFurniture()
+	a.IndexPlumbing()
+	a.IndexAppliances()
 	a.bindRooms()
 }
 
 // IndexRooms создает словарь зависимости названия комнаты
 // со слайсом структур комнат с таким же названием
 func (a *Apartment) IndexRooms() {
-	a.roomsByName = make(map[string][]Room)
+	a.roomsByName = make(map[string][]*Room)
 
 	for _, room := range a.Rooms {
-		a.roomsByName[room.Name] = append(a.roomsByName[room.Name], room)
+		a.roomsByName[room.Name] = append(a.roomsByName[room.Name], &room)
 	}
 }
 
@@ -29,12 +33,54 @@ func (a *Apartment) IndexWalls() {
 	}
 }
 
+// IndexWindows создает словарь зависимости индекса стены с его структурой
+func (a *Apartment) IndexWindows() {
+	a.windowByID = make(map[string]*Window)
+
+	for i := range a.Windows {
+		a.windowByID[a.Windows[i].ID] = &a.Windows[i]
+	}
+}
+
+// IndexDoors создает словарь зависимости индекса двери с его структурой
+func (a *Apartment) IndexDoors() {
+	a.doorsByID = make(map[string]*Door)
+
+	for i := range a.Doors {
+		a.doorsByID[a.Doors[i].ID] = &a.Doors[i]
+	}
+}
+
 // IndexFurniture создает словарь зависимости ID мебели с его структурой
 func (a *Apartment) IndexFurniture() {
 	a.furnitureByID = make(map[string]*Furniture)
 
 	for i := range a.Furniture {
 		a.furnitureByID[a.Furniture[i].ID] = &a.Furniture[i]
+	}
+}
+
+// IndexPlumbing создает словарь зависимости ID сантехники с его структурой
+func (a *Apartment) IndexPlumbing() {
+	a.plumbingByID = make(map[string]*Plumbing)
+	if a.Plumbing == nil {
+		return
+	}
+
+	for i := range a.Plumbing {
+		a.plumbingByID[a.Plumbing[i].ID] = &a.Plumbing[i]
+	}
+}
+
+// IndexAppliances создает словарь зависимости ID бытовой техники с его структурой
+func (a *Apartment) IndexAppliances() {
+	a.appliancesByID = make(map[string]*Appliances)
+	if a.Appliances == nil {
+		return
+	}
+
+	for i := range a.Appliances {
+		a.appliancesByID[a.Appliances[i].ID] = &a.Appliances[i]
 	}
 }
 
@@ -46,8 +92,8 @@ func (a *Apartment) bindRooms() {
 }
 
 // GetRoomsByNames возвращает все комнаты, имеющие названия из входного слайса.
-func (a *Apartment) GetRoomsByNames(roomNames []string) ([]Room, error) {
-	roomsRes := make([]Room, 0)
+func (a *Apartment) GetRoomsByNames(roomNames []string) ([]*Room, error) {
+	roomsRes := make([]*Room, 0)
 
 	for _, roomName := range roomNames {
 		rooms, _ := a.roomsByName[roomName]
@@ -66,6 +112,24 @@ func (a *Apartment) GetWallByID(id string) (*Wall, error) {
 	return wall, nil
 }
 
+// GetWindowByID возвращает стену по ID
+func (a *Apartment) GetWindowByID(id string) (*Window, error) {
+	window, ok := a.windowByID[id]
+	if !ok {
+		return nil, fmt.Errorf("window with id %s not found", id)
+	}
+	return window, nil
+}
+
+// GetDoorByID возвращает стену по ID
+func (a *Apartment) GetDoorByID(id string) (*Door, error) {
+	door, ok := a.doorsByID[id]
+	if !ok {
+		return nil, fmt.Errorf("door with id %s not found", id)
+	}
+	return door, nil
+}
+
 // GetFurnitureByID возвращает мебель по ID
 func (a *Apartment) GetFurnitureByID(id string) (*Furniture, error) {
 	f, ok := a.furnitureByID[id]
@@ -73,6 +137,24 @@ func (a *Apartment) GetFurnitureByID(id string) (*Furniture, error) {
 		return nil, fmt.Errorf("furniture with id %s not found", id)
 	}
 	return f, nil
+}
+
+// GetPlumbingByID возвращает сантехнику по ID
+func (a *Apartment) GetPlumbingByID(id string) (*Plumbing, error) {
+	p, ok := a.plumbingByID[id]
+	if !ok {
+		return nil, fmt.Errorf("plumbing with id %s not found", id)
+	}
+	return p, nil
+}
+
+// GetAppliancesByID возвращает бытовую технику по ID
+func (a *Apartment) GetAppliancesByID(id string) (*Appliances, error) {
+	app, ok := a.appliancesByID[id]
+	if !ok {
+		return nil, fmt.Errorf("appliance with id %s not found", id)
+	}
+	return app, nil
 }
 
 // GetFrontDoor возвращает входную дверь в квартиру

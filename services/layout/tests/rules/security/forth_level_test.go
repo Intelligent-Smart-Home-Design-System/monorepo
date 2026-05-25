@@ -164,49 +164,6 @@ import (
 // }
 
 func TestForthLevelPriceCalculation(t *testing.T) {
-	rooms := []apartment.Room{
-		{
-			ID:   "1",
-			Name: "bathroom",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
-			},
-		},
-		{
-			ID:   "2",
-			Name: "kitchen",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
-			},
-		},
-		{
-			ID:   "3",
-			Name: "hall",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
-			},
-		},
-		{
-			ID:   "4",
-			Name: "living",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
-			},
-		},
-	}
-
 	windows := []apartment.Window{
 		{
 			ID: "1",
@@ -214,27 +171,102 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 				{X: 0, Y: 1},
 				{X: 0, Y: 2},
 			},
-			Rooms: []string{"2"},
+			Rooms: []string{"1"},
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 0, Y: 1},
-				{X: 0, Y: 2},
+				{X: 5, Y: 0},
+				{X: 5, Y: 2},
 			},
-			Rooms: []string{"4"},
+			Rooms: []string{"1"},
 		},
 	}
 
-	door := apartment.Door{
-		ID:     "1",
-		Points: []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
-		Rooms:  []string{"3"},
+	doors := []apartment.Door{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 1, Y: 0},
+				{X: 3, Y: 0},
+			},
+			Rooms: []string{"1"},
+		},
+	}
+
+	walls := []apartment.Wall{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 0, Y: 0},
+				{X: 5, Y: 0},
+			},
+			Width: 5,
+		},
+		{
+			ID: "2",
+			Points: []point.Point{
+				{X: 5, Y: 0},
+				{X: 5, Y: 2},
+			},
+			Width: 2,
+		},
+		{
+			ID: "3",
+			Points: []point.Point{
+				{X: 5, Y: 2},
+				{X: 3, Y: 2},
+			},
+			Width: 3,
+		},
+		{
+			ID: "4",
+			Points: []point.Point{
+				{X: 3, Y: 2},
+				{X: 3, Y: 5},
+			},
+			Width: 3,
+		},
+		{
+			ID: "5",
+			Points: []point.Point{
+				{X: 3, Y: 5},
+				{X: 0, Y: 5},
+			},
+			Width: 3,
+		},
+		{
+			ID: "6",
+			Points: []point.Point{
+				{X: 0, Y: 5},
+				{X: 0, Y: 0},
+			},
+			Width: 5,
+		},
+	}
+
+	rooms := []apartment.Room{
+		{
+			ID:   "1",
+			Name: "living",
+			Area: []point.Point{
+				{X: 0, Y: 0},
+				{X: 5, Y: 0},
+				{X: 5, Y: 2},
+				{X: 3, Y: 2},
+				{X: 3, Y: 5},
+				{X: 0, Y: 5},
+			},
+			Windows: []string{"1", "2"},
+			Walls: []string{"1", "2", "3", "4", "5", "6"},
+			Doors: []string{"1"},
+		},
 	}
 
 	apartmentStruct := &apartment.Apartment{
 		Windows: windows,
-		Doors:   []apartment.Door{door},
+		Doors:   doors,
+		Walls: walls,
 		Rooms:   rooms,
 	}
 
@@ -242,22 +274,22 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 		"security": "4",
 	}
 
-	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(deviceConfig)
+	storage.LoadAllSecurityRules()
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
+	engine := engine.NewEngine(storage)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
 
 	priceInfo := engine.CalculateLayoutPrice(globalPlacement)
 
-	assert.Equal(t, 55500, priceInfo.MinPrice)
-	assert.Equal(t, 83000, priceInfo.MaxPrice)
+	assert.Equal(t, 13000, priceInfo.MinPrice)
+	assert.Equal(t, 23000, priceInfo.MaxPrice)
 }

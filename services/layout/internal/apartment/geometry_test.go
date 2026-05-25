@@ -18,9 +18,8 @@ func TestGetCenterMethod(t *testing.T) {
 		},
 	}
 
-	center, err := room.GetCenter()
+	center := point.GetCenter(room.Area)
 	
-	assert.NoError(t, err)
 	assert.Equal(t, point.Point{X: 3, Y: 2.5}, *center)
 }
 
@@ -32,7 +31,7 @@ func TestGetObjectCenterMethod(t *testing.T) {
 		},
 	}
 
-	doorCenter := GetObjectCenter(door.Points)
+	doorCenter := point.GetObjectCenter(door.Points)
 
 	assert.Equal(t, point.Point{X: 1.5, Y: 0}, doorCenter)
 }
@@ -49,7 +48,7 @@ func TestGridMethodSize(t *testing.T) {
 	}
 
 	step := 0.5
-	gridPoints, err := room.GenerateGridPoints(step)
+	gridPoints, err := point.GenerateGridPoints(room.Area, step)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int((3 / step) * (3 / step)), len(gridPoints))

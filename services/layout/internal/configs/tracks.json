@@ -23,6 +23,14 @@
             "gas_leak_sensor": [
               "kitchen"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 2,
+            "gas_leak_sensor": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {},
+            "gas_leak_sensor": {}
           }
         },
         "2": {
@@ -53,6 +61,18 @@
             "smart_lock": [
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 2,
+            "gas_leak_sensor": 1,
+            "smart_doorbell": 1,
+            "smart_lock": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {},
+            "gas_leak_sensor": {},
+            "smart_doorbell": {},
+            "smart_lock": {}
           }
         },
         "3": {
@@ -97,6 +117,24 @@
               "living",
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 1,
+            "door_sensor": 1,
+            "window_sensor": 3,
+            "motion_sensor": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {},
+            "gas_leak_sensor": {},
+            "smart_doorbell": {},
+            "smart_lock": {},
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {"angle": 120, "range": 10}
           }
         },
         "4": {
@@ -146,6 +184,26 @@
               "living",
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 2,
+            "door_sensor": 2,
+            "window_sensor": 4,
+            "motion_sensor": 1,
+            "camera": 2
+          },
+          "device_filters": {
+            "water_leak_sensor": {},
+            "gas_leak_sensor": {},
+            "smart_doorbell": {},
+            "smart_lock": {},
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {},
+            "camera": {}
           }
         },
         "5": {
@@ -199,6 +257,28 @@
             "smart_siren": [
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 2,
+            "door_sensor": 2,
+            "window_sensor": 4,
+            "motion_sensor": 2,
+            "camera": 2,
+            "smart_siren": 2
+          },
+          "device_filters": {
+            "water_leak_sensor": {},
+            "gas_leak_sensor": {},
+            "smart_doorbell": {},
+            "smart_lock": {},
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {},
+            "camera": {},
+            "smart_siren": {}
           }
         }
       }
@@ -221,6 +301,12 @@
               "living",
               "kitchen"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 3
+          },
+          "device_filters": {
+            "smart_buld": {}
           }
         },
         "2": {
@@ -240,6 +326,12 @@
               "passage",
               "bathroom"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5
+          },
+          "device_filters": {
+            "smart_buld": {}
           }
         },
         "3": {
@@ -269,6 +361,16 @@
               "living",
               "kitchen"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2
+          },
+          "device_filters": {
+            "smart_buld": {},
+            "motion_sensor": {},
+            "illumination_sensor": {}
           }
         },
         "4": {

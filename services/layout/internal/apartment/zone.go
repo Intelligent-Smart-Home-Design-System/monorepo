@@ -19,6 +19,13 @@ func NewZone(p []point.Point) *Zone {
 type ZonedRoom struct {
 	OrigRoom         *Room
 	NoWindZones      []*Zone             `json:"no_wind_zones"`
+	WetZones         []*Zone             `json:"wet_zones"`
+	GasZones         []*Zone             `json:"gas_zones"`
+	EntryDoorZone    *Zone               `json:"entry_doors_zones"`
+	HighTrafficZones []*Zone             `json:"high_traffic_zones"`
+	WindowZones      []*Zone             `json:"window_zones"`
+	CameraZones      []*Zone             `json:"camera_zones"`
+	SirenZones       []*Zone             `json:"siren_zones"`
 	ACAvailableWalls map[string]struct{} // nil = все стены доступны
 }
 
@@ -32,6 +39,30 @@ func (zr *ZonedRoom) GetFurniture() []*Furniture {
 		return nil
 	}
 	return zr.OrigRoom.GetFurniture()
+}
+
+// GetPlumbing возвращает сантехнику оригинальной комнаты
+func (zr *ZonedRoom) GetPlumbing() []*Plumbing {
+	if zr.OrigRoom == nil {
+		return nil
+	}
+	return zr.OrigRoom.GetPlumbing()
+}
+
+// GetAppliances возвращает бытовую технику оригинальной комнаты
+func (zr *ZonedRoom) GetAppliances() []*Appliances {
+	if zr.OrigRoom == nil {
+		return nil
+	}
+	return zr.OrigRoom.GetAppliances()
+}
+
+// GetWalls возвращает стены оригинальной комнаты
+func (zr *ZonedRoom) GetWalls() []*Wall {
+	if zr.OrigRoom == nil {
+		return nil
+	}
+	return zr.OrigRoom.GetWalls()
 }
 
 // ZonedApartment квартира, обогащённая зонами после обработки правилами.

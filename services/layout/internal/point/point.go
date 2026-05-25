@@ -25,3 +25,12 @@ func Orientation(p, q, r Point) int {
 	}
 	return 2
 }
+
+func PointToSquare(p Point, shift float64) []Point {
+	return []Point{
+		{X: p.X - shift, Y: p.Y - shift},
+		{X: p.X - shift, Y: p.Y + shift},
+		{X: p.X + shift, Y: p.Y + shift},
+		{X: p.X + shift, Y: p.Y - shift},
+	}
+}

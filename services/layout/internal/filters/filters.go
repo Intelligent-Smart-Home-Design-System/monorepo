@@ -51,7 +51,7 @@ type AirConditionerFilter struct {
 }
 
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
-func GetCertainFilter(deviceType string, filters map[string]interface{}) (DeviceFilter, error) {
+func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
 
 	switch deviceType {

@@ -27,22 +27,22 @@ func main() {
 
 	selectedLevels := GetSelectedLevels()
 
-	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
+	err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
 		log.Fatal("failed to load tracks config")
 	}
 
-	devicesConfig, err := configs.LoadDevicesConfig("internal/configs/devices.json")
+	err = configs.LoadDevicesConfig("internal/configs/devices.json")
 	if err != nil {
 		log.Fatal("failed to load devices config")
 	}
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(devicesConfig)
+	storage.LoadAllSecurityRules()
 	storage.LoadAllLightingRules()
-	storage.LoadAllClimateRules(devicesConfig)
+	storage.LoadAllClimateRules()
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	engine := engine.NewEngine(storage)
 
 	layout, err := engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
 	if err != nil {

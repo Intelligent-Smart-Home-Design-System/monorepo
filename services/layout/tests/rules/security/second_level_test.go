@@ -14,6 +14,15 @@ import (
 )
 
 func TestSecondLevelSimpleScript(t *testing.T) {
+	door := apartment.Door{
+		ID: "1",
+		Points: []point.Point{
+			{X: 1, Y: 0},
+			{X: 2, Y: 0},
+		},
+		Rooms: []string{"1"},
+	}
+
 	room := apartment.Room{
 		ID:   "1",
 		Name: "hall",
@@ -23,15 +32,7 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 			{X: 3, Y: 3},
 			{X: 0, Y: 3},
 		},
-	}
-
-	door := apartment.Door{
-		ID: "1",
-		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
-		},
-		Rooms: []string{room.ID},
+		Doors: []string{door.ID},
 	}
 
 	apartmentStruct := &apartment.Apartment{
@@ -43,16 +44,16 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 		"security": "2",
 	}
 
-	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(deviceConfig)
+	storage.LoadAllSecurityRules()
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
+	engine := engine.NewEngine(storage)
 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
@@ -80,6 +81,39 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 }
 
 func TestSecondLevelPriceCalculation(t *testing.T) {
+	door := apartment.Door{
+		ID: "1",
+		Points: []point.Point{
+			{X: 1, Y: 0},
+			{X: 2, Y: 0},
+		},
+		Rooms: []string{"3"},
+	}
+
+	bathroomSink := apartment.Plumbing{
+		ID: "1",
+		Name: apartment.Sink,
+		Points: []point.Point{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+			{X: 1, Y: 1},
+			{X: 0, Y: 1},
+		},
+		Room: "1",
+	}
+
+	kitchenSink := apartment.Plumbing{
+		ID: "2",
+		Name: apartment.Sink,
+		Points: []point.Point{
+			{X: 1, Y: 2},
+			{X: 1, Y: 0},
+			{X: 1, Y: 1},
+			{X: 0, Y: 1},
+		},
+		Room: "2",
+	}
+
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
@@ -90,6 +124,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 				{X: 2, Y: 2},
 				{X: 0, Y: 2},
 			},
+			Plumbing: []string{"1"},
 		},
 		{
 			ID:   "2",
@@ -100,6 +135,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
+			Plumbing: []string{"2"},
 		},
 		{
 			ID:   "3",
@@ -110,43 +146,36 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
+			Doors: []string{"1"},
 		},
 	}
 
-	door := apartment.Door{
-		ID: "1",
-		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
-		},
-		Rooms: []string{"3"},
-	}
-
-	apartmentStruct := &apartment.Apartment{
+	ap := &apartment.Apartment{
 		Doors: []apartment.Door{door},
 		Rooms: rooms,
+		Plumbing: []apartment.Plumbing{kitchenSink, bathroomSink},
 	}
 
 	selectedLevels := map[string]string{
 		"security": "2",
 	}
 
-	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(deviceConfig)
+	storage.LoadAllSecurityRules()
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
 	priceInfo := engine.CalculateLayoutPrice(globalPlacement)
 
-	assert.Equal(t, 31000, priceInfo.MinPrice)
-	assert.Equal(t, 40000, priceInfo.MaxPrice)
+	assert.Equal(t, 29000, priceInfo.MinPrice)
+	assert.Equal(t, 35000, priceInfo.MaxPrice)
 }

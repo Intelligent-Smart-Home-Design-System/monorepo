@@ -4,17 +4,16 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type SmartSirenRule struct {
 	track string
-	deviceConfig *configs.Devices
 }
 
-func NewSmartSirenRule(deviceConfig *configs.Devices) *SmartSirenRule {
+func NewSmartSirenRule() *SmartSirenRule {
 	return &SmartSirenRule{
 		track: "security",
-		deviceConfig: deviceConfig,
 	}
 }
 
@@ -22,30 +21,60 @@ func (ss *SmartSirenRule) Type() string {
 	return "smart_siren"
 }
 
-func (ss *SmartSirenRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
-	deviceType := ss.Type()
+func (ss *SmartSirenRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
+	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
 
-	configFilters := ss.deviceConfig.GetDeviceFilter(deviceType)
+	roomsSet := make(map[string]struct{})
+	for _, r := range rooms {
+		roomsSet[r.Name] = struct{}{}
+	}
+
+	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
+			zr.SirenZones = collectSirenZones(zr.OrigRoom)
+		}
+	}
+
+	return nil
+}
+
+func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	deviceType := ss.Type()
+	
+	err := ss.Transform(zonedAp, deviceRooms)
+	if err != nil {
+		return err
+	}
+	
+	tracksConfig := configs.GetGlobalTracksConfig()
+	configFilters, err := tracksConfig.GetDeviceFilter(ss.track, levelNum, deviceType)
+	if err != nil {
+		return err
+	}
+
 	if configFilters == nil {
 		configFilters = &filters.SmartSirenFilter{}
 	}
 	smartSirenFilters := configFilters.(*filters.SmartSirenFilter)
 
-	hallRooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
+	deviceCnt := 0
+	for _, zr := range zonedAp.ZonedRooms {
+		for _, sirenZone := range zr.SirenZones {
+			zoneCenter := point.GetCenter(sirenZone.Points)
 
-	for _, hallRoom := range hallRooms {
-		roomID := hallRoom.ID
-
-		hallCenter, err := hallRoom.GetCenter()
-		if err != nil {
-			return err
+			if deviceCnt < maxCount {
+				layout.AddDeviceToLayout(deviceType, ss.track, zr.OrigRoom.ID, zoneCenter, smartSirenFilters)
+				deviceCnt++
+			}
 		}
-
-		layout.AddDeviceToLayout(ss.Type(), ss.track, roomID, hallCenter, smartSirenFilters)
 	}
 
 	return nil
+}
+
+func collectSirenZones(room *apartment.Room) []*apartment.Zone {
+	return []*apartment.Zone{apartment.NewZone(room.Area)}
 }

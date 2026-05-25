@@ -21,12 +21,10 @@ const powerMargin float64 = 1.2
 // wattToBTU — коэффициент перевода Вт в BTU/ч.
 const wattToBTU float64 = 3.412
 
-type AirConditioner struct {
-	deviceConfig *configs.Devices
-}
+type AirConditioner struct {}
 
-func NewAirConditionerRule(deviceConfig *configs.Devices) *AirConditioner {
-	return &AirConditioner{deviceConfig: deviceConfig}
+func NewAirConditionerRule() *AirConditioner {
+	return &AirConditioner{}
 }
 
 func (r *AirConditioner) Type() string {
@@ -34,12 +32,10 @@ func (r *AirConditioner) Type() string {
 }
 
 // Transform строит ZonedApartment из Apartment, обогащая комнаты зонами для кондиционера.
-func (r *AirConditioner) Transform(ap *apartment.Apartment, deviceRooms []string) (*apartment.ZonedApartment, error) {
-	zonedAp := apartment.Build(ap)
-
-	rooms, err := ap.GetRoomsByNames(deviceRooms)
+func (r *AirConditioner) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
+	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	roomsSet := make(map[string]struct{})
@@ -53,11 +49,11 @@ func (r *AirConditioner) Transform(ap *apartment.Apartment, deviceRooms []string
 		}
 	}
 
-	return zonedAp, nil
+	return nil
 }
 
-func (ac *AirConditioner) Apply(ap *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
-	zonedAp, err := ac.Transform(ap, deviceRooms)
+func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	err := ac.Transform(zonedAp, deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -67,7 +63,16 @@ func (ac *AirConditioner) Apply(ap *apartment.Apartment, deviceRooms []string, l
 		roomsSet[name] = struct{}{}
 	}
 
-	acFilter, _ := ac.deviceConfig.GetDeviceFilter("air_conditioner").(*filters.AirConditionerFilter)
+	tracksConfig := configs.GetGlobalTracksConfig()
+	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, "air_conditioner")
+	if err != nil {
+		return err
+	}
+
+	if configFilters == nil {
+		configFilters = &filters.AirConditionerFilter{}
+	}
+	acFilter := configFilters.(*filters.AirConditionerFilter)
 
 	var acWidthM float64
 	if acFilter != nil && acFilter.IndoorUnitLengthMM > 0 {
@@ -80,13 +85,13 @@ func (ac *AirConditioner) Apply(ap *apartment.Apartment, deviceRooms []string, l
 		}
 
 		intervals := FindOkWindWallIntervals(zr.OrigRoom, zr.NoWindZones, acWidthM)
-		bestWallID, bestInterval := FindLongestInterval(ap.Walls, intervals, zr.ACAvailableWalls)
+		bestWallID, bestInterval := FindLongestInterval(zonedAp.OrigAp.Walls, intervals, zr.ACAvailableWalls)
 
 		if bestInterval == nil {
 			continue
 		}
 
-		wall, err := ap.GetWallByID(bestWallID)
+		wall, err := zonedAp.OrigAp.GetWallByID(bestWallID)
 		if err != nil {
 			continue
 		}
@@ -156,7 +161,7 @@ func FindOkWindWallIntervals(room *apartment.Room, forbiddenZones []*apartment.Z
 			pFrom := point.MovePointInDirection(startPoint, dir, proj.From)
 			pTo := point.MovePointInDirection(startPoint, dir, proj.To)
 
-			zoneRect := []*point.Point{&zonePoints.From, &zonePoints.To, &pTo, &pFrom}
+			zoneRect := []point.Point{zonePoints.From, zonePoints.To, pTo, pFrom}
 
 			tracker.Block(*proj)
 

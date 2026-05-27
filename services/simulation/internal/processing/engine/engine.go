@@ -1,46 +1,39 @@
 package engine
 
 import (
-	"context"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
-const (
-	maxEventsBuffer = 100
-	simStep         = 1.0
-)
+const maxEventsBuffer = 100
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
-	simulation *simgo.Simulation // дискретная симуляция из simgo
-
-	IDToEntity map[string]entities.Entity // ID сущности <-> структура сущности.
-
-	Field *field.Field // Поле для симуляции
-
-	eventsInChan chan api.EventInDTO // Канал для входящих событий
-
-	eventsOutChan chan api.EventOutDTO // Канал для новых событий
+	simulation    *simgo.Simulation          // дискретная симуляция из simgo
+	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
+	Field         *field.Field               // Поле для симуляции
+	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
+	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
+	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
 }
 
 // NewSimEngine создает SimEngine
-func NewSimEngine() *SimEngine {
+func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
 		simulation:    simgo.NewSimulation(),
 		IDToEntity:    make(map[string]entities.Entity),
 		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
 		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
+		dtSim:         dtSim,
 	}
 }
 
 // InitEntities инициализирует сущности и их зависимости.
 func (s *SimEngine) InitEntities(
 	IDToEntity map[string]entities.Entity,
-	IDToDependencies map[string][]api.ActionDTO,
+	IDToDependencies map[string][]api.EdgeDTO,
 ) {
 	s.IDToEntity = IDToEntity
 
@@ -111,43 +104,68 @@ func (s *SimEngine) GetInChan() chan api.EventInDTO {
 	return s.eventsInChan
 }
 
-// GetOutChan возвращает канал для исходящих событий.
+// GetOutChan возвращает канал для выходящих событий.
 func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
 	return s.eventsOutChan
 }
 
-// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
-// Если контекст отменен или канал закрыт, то симуляция завершается.
-func (s *SimEngine) Run(ctx context.Context) error {
+func (s *SimEngine) GetSimulation() *simgo.Simulation {
+	return s.simulation
+}
+
+func (s *SimEngine) InitStep() {
+	s.simulation.RunUntil(0)
+}
+
+func (s *SimEngine) Step() {
+	targetTime := s.simulation.Now() + s.dtSim
+
+	s.simulation.RunUntil(targetTime)
+
+	s.drainInChan()
+}
+
+// drainInChan читает все доступные события из канала
+func (s *SimEngine) drainInChan() {
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
 		case event, ok := <-s.eventsInChan:
 			if !ok {
-				return nil
+				return
 			}
-
 			s.HandleEvent(event)
-
-			s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+		default:
+			return
 		}
 	}
 }
 
-// HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event api.EventInDTO) {
-	entity := s.IDToEntity[event.EntityID]
-	receiversID := entity.GetReceiversID()
+// CollectStep собирает обновления от всех сущностей после тика.
+func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
+	changes := make([]api.EventOutDTO, 0)
 
-	for _, receiverID := range receiversID {
-		s.eventsInChan <- api.EventInDTO{
-			EntityID: receiverID,
+	for {
+		select {
+		case event := <-s.eventsOutChan:
+			changes = append(changes, event)
+		default:
+			return &api.SimulationStepPayload{
+				Tick:         tick,
+				SimTime:      s.simulation.Now(),
+				StateChanges: changes,
+			}
 		}
 	}
+}
 
+func (s *SimEngine) Stop() {
+	close(s.eventsInChan)
+}
+
+// HandleEvent обрабатывает event по его entityID
+func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
-		err := entityWithProcess.HandleInDTO(event.Info)
+		err := entityWithProcess.HandleInDTO(event.Payload)
 		if err != nil {
 			return
 		}

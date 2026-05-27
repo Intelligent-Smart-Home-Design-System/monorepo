@@ -1,18 +1,17 @@
 package tests_processing
 
 import (
-	"context"
 	"errors"
 	"testing"
 
-	"github.com/fschuetz04/simgo"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
+	"github.com/fschuetz04/simgo"
 )
 
-//=====Stubs=====
+// =====Stubs=====
 type stubEntity struct {
 	id        string
 	receivers []string
@@ -27,11 +26,11 @@ func (s *stubEntity) GetReceiversID() []string {
 	return s.receivers
 }
 
-func (s *stubEntity) SetReceivers(actions []api.ActionDTO) {
+func (s *stubEntity) SetReceivers(actions []api.EdgeDTO) {
 	s.setCalled = true
 	var ids []string
 	for _, a := range actions {
-		ids = append(ids, a.ID)
+		ids = append(ids, a.ToID)
 	}
 	s.receivers = ids
 }
@@ -51,8 +50,7 @@ func (s *stubEntityWithProcess) HandleInDTO(dto []byte) error {
 	return s.handleErr
 }
 
-func (s *stubEntityWithProcess) HandleOutDTO(out any) error {
-	return nil
+func (s *stubEntityWithProcess) HandleOutDTO(dto []byte) {
 }
 
 func (s *stubEntityWithProcess) Process(process simgo.Process) {
@@ -62,7 +60,7 @@ func (s *stubEntityWithProcess) GetOutCh() chan []byte {
 	return make(chan []byte)
 }
 
-//=====Helper=====
+// =====Helper=====
 func newTestField(height, width int) *field.Field {
 	cells := make([][]*field.Cell, height+1)
 	for i := range cells {
@@ -78,8 +76,8 @@ func newTestField(height, width int) *field.Field {
 	}
 }
 
-//=====Tests=====
-//Тест проверки функции CheckCircleDependencies()
+// =====Tests=====
+// Тест проверки функции CheckCircleDependencies()
 func TestCheckCircleDependencies(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -118,7 +116,7 @@ func TestCheckCircleDependencies(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine()
+			e := engine.NewSimEngine(1.0)
 			e.IDToEntity = tt.entities
 			got := e.CheckCircleDependencies()
 			if got != tt.want {
@@ -128,7 +126,7 @@ func TestCheckCircleDependencies(t *testing.T) {
 	}
 }
 
-//Тест проверки функции HandleEvent()
+// Тест проверки функции HandleEvent()
 func TestHandleEvent(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -157,7 +155,7 @@ func TestHandleEvent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine()
+			e := engine.NewSimEngine(1.0)
 			e.IDToEntity["a"] = tt.entity
 			e.IDToEntity["b"] = &stubEntity{id: "b"}
 			event := api.EventInDTO{EntityID: "a"}
@@ -167,22 +165,11 @@ func TestHandleEvent(t *testing.T) {
 			if tt.entity.handleCalls != tt.expectCalls {
 				t.Errorf("handle calls = %v, want %v", tt.entity.handleCalls, tt.expectCalls)
 			}
-
-			if tt.expectEnq {
-				select {
-				case ev := <-e.GetInChan():
-					if ev.EntityID != "b" {
-						t.Errorf("expected 'b' enqueued, got %v", ev.EntityID)
-					}
-				default:
-					t.Errorf("expected event in channel")
-				}
-			}
 		})
 	}
 }
 
-//Тест проверки функции UpdateField()
+// Тест проверки функции UpdateField()
 func TestUpdateField(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -196,7 +183,7 @@ func TestUpdateField(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewSimEngine()
+			e := engine.NewSimEngine(1.0)
 			e.SetField(newTestField(1, 1))
 			cell := field.Cell{Condition: true}
 
@@ -212,30 +199,13 @@ func TestUpdateField(t *testing.T) {
 	}
 }
 
-//Тест корректного поведения функции Run() при отмене контекста
-func TestRun_ContextCancel(t *testing.T) {
-	t.Run("context canceled", func(t *testing.T) {
-		e := engine.NewSimEngine()
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-
-		err := e.Run(ctx)
-		if err == nil {
-			t.Errorf("expected context error, got nil")
-		}
-	})
-}
-
-//Тест корректного поведения функции Run() при закрытии канала
+// Тест корректного поведения функции Run() при закрытии канала
 func TestRun_ChannelClosed(t *testing.T) {
 	t.Run("channel closed", func(t *testing.T) {
-		e := engine.NewSimEngine()
+		e := engine.NewSimEngine(1.0)
 		close(e.GetInChan())
 
-		ctx := context.Background()
-		err := e.Run(ctx)
-		if err != nil {
-			t.Errorf("expected nil error, got %v", err)
-		}
+		e.Step()
+		t.Logf("Closed channel correct working")
 	})
 }

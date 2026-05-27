@@ -37,6 +37,12 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = lampSwitcher
+		case entities.TypeLightSwitchOffSensor:
+			switcher, err := devices.NewLightSwitchOffSensor(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = switcher
 		default:
 			return nil, ErrorInvalidFormat
 		}
@@ -62,4 +68,20 @@ func FieldFromDTO(fieldDTO api.FieldDTO) *field.Field {
 	simField := field.NewField(fieldDTO.Width, fieldDTO.Height, fieldCells)
 
 	return simField
+}
+
+// DependenciesFromDTO парсит данные о зависимостях
+func DependenciesFromDTO(scenarios []api.ScenarioDTO) map[string][]api.EdgeDTO {
+	IDToDependencies := make(map[string][]api.EdgeDTO)
+
+	for _, scenario := range scenarios {
+		for _, edge := range scenario.Edges {
+			IDToDependencies[scenario.EntityID] = append(IDToDependencies[scenario.EntityID], api.EdgeDTO{
+				ToID:   edge.ToID,
+				Action: edge.Action,
+			})
+		}
+	}
+
+	return IDToDependencies
 }

@@ -1,9 +1,13 @@
 package apartment
 
+import "fmt"
+
 // Index создает вспомогающую зависимость в квартире
 func (a *Apartment) Index() {
 	a.IndexRooms()
 	a.IndexWalls()
+	a.IndexFurniture()
+	a.bindRooms()
 }
 
 // IndexRooms создает словарь зависимости названия комнаты
@@ -18,10 +22,24 @@ func (a *Apartment) IndexRooms() {
 
 // IndexWalls создает словарь зависимости индекса стены с его структурой
 func (a *Apartment) IndexWalls() {
-	a.wallsByID = make(map[string]Wall)
+	a.wallsByID = make(map[string]*Wall)
 
-	for _, wall := range a.Walls {
-		a.wallsByID[wall.ID] = wall
+	for i := range a.Walls {
+		a.wallsByID[a.Walls[i].ID] = &a.Walls[i]
+	}
+}
+
+func (a *Apartment) IndexFurniture() {
+	a.furnitureByID = make(map[string]*Furniture)
+
+	for i := range a.Furniture {
+		a.furnitureByID[a.Furniture[i].ID] = &a.Furniture[i]
+	}
+}
+
+func (a *Apartment) bindRooms() {
+	for i := range a.Rooms {
+		a.Rooms[i].apartment = a
 	}
 }
 
@@ -35,6 +53,22 @@ func (a *Apartment) GetRoomsByNames(roomNames []string) ([]Room, error) {
 	}
 
 	return roomsRes, nil
+}
+
+func (a *Apartment) GetWallByID(id string) (*Wall, error) {
+	wall, ok := a.wallsByID[id]
+	if !ok {
+		return nil, fmt.Errorf("wall with id %s not found", id)
+	}
+	return wall, nil
+}
+
+func (a *Apartment) GetFurnitureByID(id string) (*Furniture, error) {
+	f, ok := a.furnitureByID[id]
+	if !ok {
+		return nil, fmt.Errorf("furniture with id %s not found", id)
+	}
+	return f, nil
 }
 
 // GetFrontDoor возвращает входную дверь в квартиру

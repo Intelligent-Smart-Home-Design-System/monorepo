@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="680" height="750" viewBox="0 0 680 750">
+
+<defs>
+  <pattern id="gridMinor" width="10" height="10" patternUnits="userSpaceOnUse">
+    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#ececec" stroke-width="1"/>
+  </pattern>
+  <pattern id="gridMajor" width="70" height="70" patternUnits="userSpaceOnUse">
+    <rect width="70" height="70" fill="url(#gridMinor)"/>
+    <path d="M 70 0 L 0 0 0 70" fill="none" stroke="#cfcfcf" stroke-width="1.5"/>
+  </pattern>
+  <pattern id="hatchBlack" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+    <line x1="0" y1="0" x2="0" y2="14" stroke="#111" stroke-width="5"/>
+  </pattern>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.15"/>
+  </filter>
+</defs>
+        <rect x="0" y="0" width="680" height="750" fill="white"/>
+<rect x="60" y="60" width="560" height="630" fill="url(#gridMajor)"/>
+<line x1="60.00" y1="690.00" x2="60.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="95.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">-3</text>
+<line x1="130.00" y1="690.00" x2="130.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="165.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">-2</text>
+<line x1="200.00" y1="690.00" x2="200.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="235.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">-1</text>
+<line x1="270.00" y1="690.00" x2="270.00" y2="60.00" stroke="#888" stroke-width="2"/>
+<text x="305.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">0</text>
+<line x1="340.00" y1="690.00" x2="340.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="375.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">1</text>
+<line x1="410.00" y1="690.00" x2="410.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="445.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">2</text>
+<line x1="480.00" y1="690.00" x2="480.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="515.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">3</text>
+<line x1="550.00" y1="690.00" x2="550.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="585.00" y="730.00" text-anchor="middle" font-size="16" fill="#666">4</text>
+<line x1="620.00" y1="690.00" x2="620.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<line x1="60.00" y1="690.00" x2="620.00" y2="690.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="661.00" text-anchor="middle" font-size="16" fill="#666">-2</text>
+<line x1="60.00" y1="620.00" x2="620.00" y2="620.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="591.00" text-anchor="middle" font-size="16" fill="#666">-1</text>
+<line x1="60.00" y1="550.00" x2="620.00" y2="550.00" stroke="#888" stroke-width="2"/>
+<text x="21.43" y="521.00" text-anchor="middle" font-size="16" fill="#666">0</text>
+<line x1="60.00" y1="480.00" x2="620.00" y2="480.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="451.00" text-anchor="middle" font-size="16" fill="#666">1</text>
+<line x1="60.00" y1="410.00" x2="620.00" y2="410.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="381.00" text-anchor="middle" font-size="16" fill="#666">2</text>
+<line x1="60.00" y1="340.00" x2="620.00" y2="340.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="311.00" text-anchor="middle" font-size="16" fill="#666">3</text>
+<line x1="60.00" y1="270.00" x2="620.00" y2="270.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="241.00" text-anchor="middle" font-size="16" fill="#666">4</text>
+<line x1="60.00" y1="200.00" x2="620.00" y2="200.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="171.00" text-anchor="middle" font-size="16" fill="#666">5</text>
+<line x1="60.00" y1="130.00" x2="620.00" y2="130.00" stroke="#d0d0d0" stroke-width="1"/>
+<text x="21.43" y="101.00" text-anchor="middle" font-size="16" fill="#666">6</text>
+<line x1="60.00" y1="60.00" x2="620.00" y2="60.00" stroke="#d0d0d0" stroke-width="1"/>
+<polygon points="270.00,130.00 550.00,130.00 550.00,480.00 410.00,480.00 270.00,620.00 130.00,480.00 270.00,410.00" fill="#fafafa" stroke="none"/>
+<polygon points="410.00,200.00 550.00,200.00 550.00,340.00 410.00,340.00" fill="#87bfff" fill-opacity="0.28" stroke="#2b7de9" stroke-width="3" filter="url(#shadow)"/>
+<text x="480.00" y="270.00" text-anchor="middle" dominant-baseline="middle" font-size="18" font-weight="600" fill="#1d5fc6">bed_1</text>
+<line x1="270.00" y1="410.00" x2="270.00" y2="130.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="270.00" y1="130.00" x2="550.00" y2="130.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="550.00" y1="130.00" x2="550.00" y2="480.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="550.00" y1="480.00" x2="410.00" y2="480.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="410.00" y1="480.00" x2="270.00" y2="620.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="270.00" y1="620.00" x2="130.00" y2="480.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="130.00" y1="480.00" x2="270.00" y2="410.00" stroke="#202020" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="270.00" y1="130.00" x2="410.00" y2="130.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="270.00" y1="200.00" x2="270.00" y2="130.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="270.00" y1="410.00" x2="270.00" y2="340.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="130.00" y1="480.00" x2="270.00" y2="410.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="130.00" y1="480.00" x2="172.00" y2="522.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="270.00" y1="620.00" x2="410.00" y2="480.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="550.00" y1="480.00" x2="550.00" y2="340.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<line x1="550.00" y1="200.00" x2="550.00" y2="130.00" stroke="#14db24" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+<circle cx="270.00" cy="130.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="277.00" y="118.00" font-size="15" font-weight="600" fill="#2b7de9">A</text>
+<circle cx="550.00" cy="130.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="557.00" y="118.00" font-size="15" font-weight="600" fill="#2b7de9">B</text>
+<circle cx="550.00" cy="480.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="557.00" y="468.00" font-size="15" font-weight="600" fill="#2b7de9">C</text>
+<circle cx="410.00" cy="480.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="417.00" y="468.00" font-size="15" font-weight="600" fill="#2b7de9">D</text>
+<circle cx="270.00" cy="620.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="277.00" y="608.00" font-size="15" font-weight="600" fill="#2b7de9">E</text>
+<circle cx="130.00" cy="480.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="137.00" y="468.00" font-size="15" font-weight="600" fill="#2b7de9">F</text>
+<circle cx="270.00" cy="410.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="277.00" y="398.00" font-size="15" font-weight="600" fill="#2b7de9">G</text>
+<circle cx="410.00" cy="200.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="417.00" y="192.00" font-size="15" font-weight="600" fill="#2b7de9">bed_1_1</text>
+<circle cx="550.00" cy="200.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="557.00" y="192.00" font-size="15" font-weight="600" fill="#2b7de9">bed_1_2</text>
+<circle cx="550.00" cy="340.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="557.00" y="332.00" font-size="15" font-weight="600" fill="#2b7de9">bed_1_3</text>
+<circle cx="410.00" cy="340.00" r="5.5" fill="#2b7de9" stroke="white" stroke-width="1.5"/>
+<text x="417.00" y="332.00" font-size="15" font-weight="600" fill="#2b7de9">bed_1_4</text>
+<text x="60.00" y="35" font-size="24" font-weight="700" fill="#222">Test case 6 — 5A20ECAE-8068-4873-95AC-CF9CFB1A380F.png</text>
+<line x1="428" y1="50" x2="468" y2="50" stroke="#202020" stroke-width="4.5"/>
+<text x="478" y="55" font-size="16" fill="#444">room border</text>
+<line x1="428" y1="77" x2="468" y2="77" stroke="#111" stroke-width="6"/>
+<text x="478" y="82" font-size="16" fill="#444">black segments</text>
+<rect x="428" y="93" width="40" height="24" fill="#87bfff" fill-opacity="0.28" stroke="#2b7de9" stroke-width="3"/>
+<text x="478" y="111" font-size="16" fill="#444">bed</text>
+</svg>

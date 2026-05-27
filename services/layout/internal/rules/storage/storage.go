@@ -3,6 +3,7 @@ package storage
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/climate"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 )
@@ -43,6 +44,16 @@ func (s *Storage) LoadAllLightingRules() {
 		lighting.NewSmartBulbRule(),
 		lighting.NewMotionSensorRule(),
 		lighting.NewIlluminationSensorRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+}
+
+func (s *Storage) LoadAllClimateRules(deviceConfig *configs.Devices) {
+	storageRules := []rules.Rule{
+		climate.NewAirConditionerRule(deviceConfig),
 	}
 
 	for _, rule := range storageRules {

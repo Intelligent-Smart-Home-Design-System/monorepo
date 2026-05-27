@@ -116,6 +116,22 @@
       "filters": {
         "volume_db": 80
       }
+    },
+    "air_conditioner": {
+      "name": "Кондиционер",
+      "price_range": {
+        "min": 5000,
+        "max": 200000
+      },
+      "tracks": [
+        "climate"
+      ],
+      "filters": {
+        "noise_level_db": 24,
+        "max_noise_level_db": 45,
+        "cooling_power_btu": 9000,
+        "indoor_unit_length_mm": 800
+      }
     }
   }
 }

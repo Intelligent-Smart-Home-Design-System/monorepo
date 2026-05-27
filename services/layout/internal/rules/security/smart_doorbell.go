@@ -1,9 +1,12 @@
 package security
 
 import (
+	"fmt"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type SmartDoorBellRule struct {
@@ -63,6 +66,12 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 		if zr.EntryDoorZone != nil && zr.OrigRoom.Name == apartment.RoomHall {
 			zoneCenter := zr.EntryDoorZone.Points[0]
 
+			// Записать направление
+			_, err := findDoorbellDirection(zr)
+			if err != nil {
+				continue
+			}
+
 			if deviceCnt < maxCount {
 				layout.AddDeviceToLayout(deviceType, sd.track, zr.OrigRoom.ID, &zoneCenter, smartDoorBellFilters)
 				deviceCnt++
@@ -71,4 +80,24 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	}
 
 	return nil
+}
+
+func collectEntryDoorZone(ap *apartment.Apartment, room *apartment.Room) *apartment.Zone {
+	entryDoor := room.GetEntryDoor(ap)
+	if entryDoor == nil {
+		return nil
+	}
+
+	return apartment.NewZone(entryDoor.Points)
+}
+
+func findDoorbellDirection(zr *apartment.ZonedRoom) (*point.Point, error) {
+	if zr.EntryDoorZone == nil {
+		return nil, fmt.Errorf("failed to find entry door zone")
+	}
+
+	return zr.OrigRoom.GetOppositeDirectionToRoom(&point.Segment{
+		From: zr.EntryDoorZone.Points[0],
+		To: zr.EntryDoorZone.Points[1],
+	}), nil
 }

@@ -1,5 +1,7 @@
 package point
 
+import "math"
+
 type Point struct {
 	X float64
 	Y float64
@@ -33,4 +35,18 @@ func PointToSquare(p Point, shift float64) []Point {
 		{X: p.X + shift, Y: p.Y + shift},
 		{X: p.X + shift, Y: p.Y - shift},
 	}
+}
+
+// GetDirectionToPoint возвращает направление от точки p к точке q.
+// Функция нормирует к единичному вектору
+func GetDirectionToPoint(p, q Point) Point {
+	dx := q.X - p.X
+	dy := q.Y - p.Y
+
+	size := math.Sqrt(dx * dx + dy * dy)
+	if size == 0 {
+		return Point{X: 1, Y: 0}
+	}
+
+	return Point{X: dx / size, Y: dy / size}
 }

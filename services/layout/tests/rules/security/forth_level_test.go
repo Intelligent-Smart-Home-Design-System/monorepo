@@ -15,91 +15,163 @@ import (
 
 // TODO: fix
 // func TestForthLevelSimpleScript(t *testing.T) {
-// 	rooms := []apartment.Room{
-// 		{
-// 			ID:   "1",
-// 			Name: "living",
-// 			Area: []point.Point{
-// 				{X: 0, Y: 0},
-// 				{X: 4, Y: 0},
-// 				{X: 4, Y: 4},
-// 				{X: 2, Y: 4},
-// 				{X: 2, Y: 3},
-// 				{X: 0, Y: 3},
-// 			},
-// 		},
-// 		{
-// 			ID:   "2",
-// 			Name: "hall",
-// 			Area: []point.Point{
-// 				{X: 0, Y: 0},
-// 				{X: 3, Y: 0},
-// 				{X: 3, Y: 3},
-// 				{X: 0, Y: 3},
-// 			},
-// 		},
-// 	}
-
-// 	walls := []apartment.Wall{
+// 	windows := []apartment.Window{
 // 		{
 // 			ID: "1",
 // 			Points: []point.Point{
-// 				{X: 0, Y: 0},
-// 				{X: 4, Y: 0},
+// 				{X: 3, Y: 0},
+// 				{X: 5, Y: 0},
 // 			},
+// 			Rooms: []string{"1"},
+// 			Width: 2,
 // 		},
 // 		{
 // 			ID: "2",
 // 			Points: []point.Point{
-// 				{X: 4, Y: 0},
-// 				{X: 4, Y: 4},
+// 				{X: 8, Y: 3},
+// 				{X: 8, Y: 6},
 // 			},
+// 			Rooms: []string{"1"},
+// 			Width: 3,
 // 		},
 // 		{
-// 			ID: "1",
+// 			ID: "3",
 // 			Points: []point.Point{
-// 				{X: 4, Y: 4},
-// 				{X: 2, Y: 4},
+// 				{X: 3, Y: 12},
+// 				{X: 5, Y: 12},
 // 			},
-// 		},
-// 		{
-// 			ID: "1",
-// 			Points: []point.Point{
-// 				{X: 2, Y: 4},
-// 				{X: 2, Y: 3},
-// 			},
-// 		},
-// 		{
-// 			ID: "1",
-// 			Points: []point.Point{
-// 				{X: 2, Y: 3},
-// 				{X: 0, Y: 3},
-// 			},
+// 			Rooms: []string{"2"},
+// 			Width: 2,
 // 		},
 // 	}
 
-// 	window := apartment.Window{
-// 		ID: "1",
-// 		Points: []point.Point{
-// 			{X: 0, Y: 1.2},
-// 			{X: 0, Y: 1.6},
+// 	doors := []apartment.Door{
+// 		{
+// 			ID: "1",
+// 			Points: []point.Point{
+// 				{X: 0, Y: 0},
+// 				{X: 2, Y: 0},
+// 			},
+// 			Rooms: []string{"1"},
+// 			Width: 2,
 // 		},
-// 		Rooms: []string{"1"},
+// 		{
+// 			ID: "2",
+// 			Points: []point.Point{
+// 				{X: 6, Y: 7},
+// 				{X: 8, Y: 7},
+// 			},
+// 			Rooms: []string{"1", "2"},
+// 			Width: 2,
+// 		},
 // 	}
 
-// 	door := apartment.Door{
-// 		ID: "1",
-// 		Points: []point.Point{
-// 			{X: 1, Y: 0},
-// 			{X: 2, Y: 0},
+// 	walls_1 := []apartment.Wall{
+// 		{
+// 			ID: "1",
+// 			Points: []point.Point{
+// 				{X: 0, Y: 0},
+// 				{X: 8, Y: 0},
+// 			},
+// 			Width: 8,
 // 		},
-// 		Rooms: []string{"2"},
+// 		{
+// 			ID: "2",
+// 			Points: []point.Point{
+// 				{X: 8, Y: 0},
+// 				{X: 8, Y: 7},
+// 			},
+// 			Width: 7,
+// 		},
+// 		{
+// 			ID: "3",
+// 			Points: []point.Point{
+// 				{X: 8, Y: 7},
+// 				{X: 0, Y: 7},
+// 			},
+// 			Width: 8,
+// 		},
+// 		{
+// 			ID: "4",
+// 			Points: []point.Point{
+// 				{X: 0, Y: 7},
+// 				{X: 0, Y: 0},
+// 			},
+// 			Width: 7,
+// 		},
 // 	}
+
+// 	walls_2 := []apartment.Wall{
+// 		{
+// 			ID: "5",
+// 			Points: []point.Point{
+// 				{X: 0, Y: 7},
+// 				{X: 6, Y: 7},
+// 			},
+// 			Width: 6,
+// 		},
+// 		{
+// 			ID: "6",
+// 			Points: []point.Point{
+// 				{X: 6, Y: 7},
+// 				{X: 6, Y: 14},
+// 			},
+// 			Width: 7,
+// 		},
+// 		{
+// 			ID: "7",
+// 			Points: []point.Point{
+// 				{X: 6, Y: 14},
+// 				{X: 0, Y: 14},
+// 			},
+// 			Width: 6,
+// 		},
+// 		{
+// 			ID: "8",
+// 			Points: []point.Point{
+// 				{X: 0, Y: 14},
+// 				{X: 0, Y: 7},
+// 			},
+// 			Width: 7,
+// 		},
+// 	}
+
+// 	rooms := []apartment.Room{
+// 		{
+// 			ID:   "1",
+// 			Name: "hall",
+// 			Area: []point.Point{
+// 				{X: 0, Y: 0},
+// 				{X: 8, Y: 0},
+// 				{X: 8, Y: 7},
+// 				{X: 0, Y: 7},
+// 			},
+// 			Walls: []string{"1", "2", "3", "4"},
+// 			Doors: []string{"1", "2"},
+// 			Windows: []string{"1", "2"},
+// 		},
+// 		{
+// 			ID:   "2",
+// 			Name: "living",
+// 			Area: []point.Point{
+// 				{X: 0, Y: 7},
+// 				{X: 6, Y: 7},
+// 				{X: 6, Y: 14},
+// 				{X: 0, Y: 14},
+// 			},
+// 			Walls: []string{"5", "6", "7", "8"},
+// 			Doors: []string{"2"},
+// 			Windows: []string{"3"},
+// 		},
+// 	}
+
+// 	walls := walls_1
+// 	walls = append(walls, walls_2...)
 
 // 	apartmentStruct := &apartment.Apartment{
 // 		Walls:   walls,
-// 		Windows: []apartment.Window{window},
-// 		Doors:   []apartment.Door{door},
+// 		Windows: windows,
+// 		Doors:   doors,
 // 		Rooms:   rooms,
 // 	}
 
@@ -107,16 +179,16 @@ import (
 // 		"security": "4",
 // 	}
 
-// 	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-// 	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+// 	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+// 	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 // 	assert.NoError(t, err1)
 // 	assert.NoError(t, err2)
 
 // 	storage := storage.NewStorage()
-// 	storage.LoadAllSecurityRules(deviceConfig)
+// 	storage.LoadAllSecurityRules()
 
-// 	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
+// 	engine := engine.NewEngine(storage)
 // 	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 // 	assert.NoError(t, err)

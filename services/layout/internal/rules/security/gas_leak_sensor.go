@@ -60,9 +60,26 @@ func (gl *GasLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	}
 	gasLeakSensorFilters := configFilters.(*filters.GasLeakSensorFilter)
 
+	roomsSet := make(map[string]struct{})
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
+	}
+
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+			continue
+		}
+
 		for _, gasZone := range zr.GasZones {
+			if deviceCnt >= maxCount {
+				return nil
+			}
+
+			if len(gasZone.Points) == 0 {
+				continue
+			}
+	
 			zoneCenter := point.GetCenter(gasZone.Points)
 
 			if deviceCnt < maxCount {
@@ -80,7 +97,7 @@ func collectGasZones(appliances []*apartment.Appliances) []*apartment.Zone {
 
 	for _, a := range appliances {
 		switch a.Name {
-		case apartment.Stove:
+		case apartment.Stove, apartment.GasBoiler:
 			zones = append(zones, apartment.NewZone(a.Points))
 		}
 	}

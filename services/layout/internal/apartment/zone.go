@@ -24,7 +24,7 @@ type ZonedRoom struct {
 	EntryDoorZone    *Zone               `json:"entry_doors_zones"`
 	HighTrafficZones []*Zone             `json:"high_traffic_zones"`
 	WindowZones      []*Zone             `json:"window_zones"`
-	CameraZones      []*Zone             `json:"camera_zones"`
+	ViewedZones      []*Zone             `json:"viewed_zones"`
 	SirenZones       []*Zone             `json:"siren_zones"`
 	ACAvailableWalls map[string]struct{} // nil = все стены доступны
 }

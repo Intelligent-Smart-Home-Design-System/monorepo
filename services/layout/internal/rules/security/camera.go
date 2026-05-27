@@ -1,10 +1,18 @@
 package security
 
 import (
+	"fmt"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
+)
+
+const (
+	defaultCameraAngle  = 100
+	defaultCameraRange  = 8
+	minRequiredCoverage = 0.3
 )
 
 type CameraRule struct {
@@ -33,9 +41,9 @@ func (c *CameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
-			zr.CameraZones = collectHighTrafficZones(zonedAp.OrigAp, zr.OrigRoom)
-			
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+			zr.ViewedZones = collectViewedZones(zonedAp.OrigAp, zr.OrigRoom)
+
 		}
 	}
 
@@ -45,10 +53,10 @@ func (c *CameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []
 func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	deviceType := c.Type()
 
-	// err := c.Transform(zonedAp, deviceRooms)
-	// if err != nil {
-	// 	return err
-	// }
+	err := c.Transform(zonedAp, deviceRooms)
+	if err != nil {
+		return err
+	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
 	configFilters, err := tracksConfig.GetDeviceFilter(c.track, levelNum, deviceType)
@@ -57,7 +65,10 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 	}
 
 	if configFilters == nil {
-		configFilters = &filters.CameraFilter{}
+		configFilters = &filters.CameraFilter{
+			Angle: defaultCameraAngle,
+			Range: defaultCameraRange,
+		}
 	}
 	cameraFilters := configFilters.(*filters.CameraFilter)
 
@@ -66,58 +77,120 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 		return err
 	}
 
+	roomsSet := make(map[string]struct{})
+	for _, r := range cameraRooms {
+		roomsSet[r.Name] = struct{}{}
+	}
+
 	deviceCnt := 0
-	for _, room := range cameraRooms {
-		roomID := room.ID
-
-		maxDistance := room.CalculateMaxDistance()
-		cameraFilters.Range = maxDistance
-
-		cameraPoint, err := GetBestCameraPoint(zonedAp.OrigAp, room, cameraFilters.Range, cameraFilters.Angle)
-		if err != nil {
-			return err
+	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok || deviceCnt >= maxCount {
+			continue
 		}
 
-		if deviceCnt < maxCount {
-			layout.AddDeviceToLayout(deviceType, c.track, roomID, cameraPoint, cameraFilters)
-			deviceCnt++
+		// При необходимости можно вовзращать направление камеры, чтобы другим модулям легче было взаимодейстовать
+		bestPoint, _ := findBestCameraPoint(zonedAp.OrigAp, zr, cameraFilters)
+		if bestPoint == nil {
+			continue
 		}
+
+		layout.AddDeviceToLayout(deviceType, c.track, zr.OrigRoom.ID, bestPoint, cameraFilters)
+		deviceCnt++
 	}
 
 	return nil
 }
 
-// GetBestCameraPoint возвращает лучшую по алгоритму точку в комнате для камеры.
-// В прихожей камера ставится напротив входной двери.
-// В остальных комнатах камера ставится в том месте, в котором охватывается наибольшая площадь комнаты
-func GetBestCameraPoint(ap *apartment.Apartment, room *apartment.Room, deviceRange float64, deviceAngle float64) (*point.Point, error) {
+func collectViewedZones(ap *apartment.Apartment, room *apartment.Room) []*apartment.Zone {
+	zones := make([]*apartment.Zone, 0)
+
 	if room.Name == apartment.RoomHall {
 		entryDoor := room.GetEntryDoor(ap)
-		if entryDoor == nil {
-			return nil, nil
+		if entryDoor != nil {
+			zones = append(zones, room.CreateObjectZone(entryDoor.Points, entryDoor.Width))
 		}
-
-		return GetBestHallCameraPoint(room, entryDoor)
 	}
 
-	return room.GetMaxAreaDevicePoint(ap, deviceRange, deviceAngle)
+	for _, dID := range room.Doors {
+		door, err := ap.GetDoorByID(dID)
+		if err != nil {
+			continue
+		}
+
+		zones = append(zones, room.CreateObjectZone(door.Points, door.Width))
+	}
+
+	for _, wID := range room.Windows {
+		window, err := ap.GetWindowByID(wID)
+		if err != nil {
+			continue
+		}
+
+		zones = append(zones, room.CreateObjectZone(window.Points, window.Width))
+	}
+
+	roomCenter := room.Center
+	if roomCenter == nil {
+		roomCenter = point.GetCenter(room.Area)
+	}
+
+	zones = append(zones, apartment.NewZone(point.PointToSquare(*roomCenter, Meter)))
+	return zones
 }
 
+func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filter *filters.CameraFilter) (*point.Point, point.Point) {
+	room := zr.OrigRoom
 
-// GetBestHallCameraPoint возвращает лучшую точку для камеры в прихожей (напротив входной двери)
-func GetBestHallCameraPoint(room *apartment.Room, entryDoor *apartment.Door) (*point.Point, error) {
-	doorCenter := point.GetObjectCenter(entryDoor.Points)
+	if room.Name == apartment.RoomHall {
+		entryDoor := room.GetEntryDoor(ap)
+		if entryDoor != nil {
+			doorCenter := point.GetObjectCenter(entryDoor.Points)
+			bestPoint, Distance := room.GetTheOppositePoint(doorCenter)
+			fmt.Println(bestPoint)
 
-	bestPoint := room.Area[0]
-	maxDist := point.CalculatePointsDistance(doorCenter, bestPoint)
+			direction := point.GetDirectionToPoint(bestPoint, doorCenter)
+			filter.RecommendedRange = Distance
 
-	for _, p := range room.Area[1:] {
-		dist := point.CalculatePointsDistance(doorCenter, p)
-		if dist > maxDist {
-			maxDist = dist
-			bestPoint = p
+			return &bestPoint, direction
 		}
 	}
 
-	return &bestPoint, nil
+	var bestPoint, bestDirection point.Point
+	maxCoverage := 0.0
+
+	for _, corner := range room.Area {
+		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, corner, filter.Range, filter.Angle)
+
+		if maxCoverage < coverage {
+			maxCoverage = coverage
+			bestPoint = corner
+			bestDirection = direction
+		}
+	}
+
+	if maxCoverage < minRequiredCoverage {
+		for _, wID := range room.Walls {
+			if zr.ACAvailableWalls != nil {
+				if _, ok := zr.ACAvailableWalls[wID]; !ok {
+					continue
+				}
+			}
+
+			wall, err := ap.GetWallByID(wID)
+			if err != nil {
+				continue
+			}
+
+			wallCenter := point.GetObjectCenter(wall.Points)
+			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, wallCenter, filter.Range, filter.Angle)
+
+			if maxCoverage < coverage {
+				maxCoverage = coverage
+				bestPoint = wallCenter
+				bestDirection = direction
+			}
+		}
+	}
+
+	return &bestPoint, bestDirection
 }

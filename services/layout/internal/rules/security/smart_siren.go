@@ -7,6 +7,11 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
+const (
+	MetersCoverage = 30
+	CoeffDB        = 1.2
+)
+
 type SmartSirenRule struct {
 	track string
 }
@@ -33,8 +38,11 @@ func (ss *SmartSirenRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
-			zr.SirenZones = collectSirenZones(zr.OrigRoom)
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+			switch zr.OrigRoom.Name {
+			case apartment.RoomHall, apartment.RoomPassage:
+				zr.SirenZones = collectSirenZones(zr.OrigRoom)
+			}
 		}
 	}
 
@@ -43,12 +51,12 @@ func (ss *SmartSirenRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 
 func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	deviceType := ss.Type()
-	
+
 	err := ss.Transform(zonedAp, deviceRooms)
 	if err != nil {
 		return err
 	}
-	
+
 	tracksConfig := configs.GetGlobalTracksConfig()
 	configFilters, err := tracksConfig.GetDeviceFilter(ss.track, levelNum, deviceType)
 	if err != nil {
@@ -66,6 +74,10 @@ func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			zoneCenter := point.GetCenter(sirenZone.Points)
 
 			if deviceCnt < maxCount {
+				if zr.OrigRoom.AreaM2 >= MetersCoverage {
+					smartSirenFilters.VolumeDB *= CoeffDB
+				}
+
 				layout.AddDeviceToLayout(deviceType, ss.track, zr.OrigRoom.ID, zoneCenter, smartSirenFilters)
 				deviceCnt++
 			}

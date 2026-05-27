@@ -4,6 +4,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DoorSensorRule struct {
@@ -65,7 +66,7 @@ func (ds *DoorSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			continue
 		}
 	
-		zoneCenter := zr.EntryDoorZone.Points[1]
+		zoneCenter := point.GetObjectCenter(zr.EntryDoorZone.Points)
 
 		if deviceCnt < maxCount {
 			layout.AddDeviceToLayout(deviceType, ds.track, zr.OrigRoom.ID, &zoneCenter, doorSensorFilters)

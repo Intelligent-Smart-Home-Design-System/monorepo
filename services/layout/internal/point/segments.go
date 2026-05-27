@@ -60,3 +60,11 @@ func onSegment(p, q, r Point) bool {
 	return q.X <= math.Max(p.X, r.X) && q.X >= math.Min(p.X, r.X) &&
 		q.Y <= math.Max(p.Y, r.Y) && q.Y >= math.Min(p.Y, r.Y)
 }
+
+// NormalVectors возвращает два вектора нормали к отрезку s (верхний левый и нижний правый)
+func (s *Segment) NormalVectors() (*Point, *Point) {
+	dx := s.To.X - s.From.X
+	dy := s.To.Y - s.From.Y
+
+	return &Point{X: -dy, Y: dx}, &Point{X: dy, Y: -dx}
+}

@@ -1,100 +1,17 @@
 package apartment
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const baseDeviceAngle = 100
-
-// GetMaxAreadevicePoint возвращает точку для устройства с наибольшей охватываемой площадью комнаты
-func (r *Room) GetMaxAreaDevicePoint(apartment *Apartment, deviceRange float64, deviceAngle float64) (*point.Point, error) {
-	bestDevicePoint := r.Area[0]
-	degreePerDirection := 10
-
-	_, maxAreaCoverage, err := r.GetOptimizedDeviceAreaCoverage(apartment, bestDevicePoint, degreePerDirection, deviceRange, deviceAngle)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range r.Area[1:] {
-		_, areaCoverage, err := r.GetOptimizedDeviceAreaCoverage(apartment, p, degreePerDirection, deviceRange, deviceAngle)
-		if err != nil {
-			return nil, err
-		}
-
-		if areaCoverage > maxAreaCoverage {
-			maxAreaCoverage = areaCoverage
-			bestDevicePoint = p
-		}
-	}
-
-	return &bestDevicePoint, nil
-}
-
-// GetOptimizedDeviceAreaCoverage вычисляет по позиции устройства наилучшее из заданных направление
-// и возвращает наилучшую долю покрытия комнаты
-func (r *Room) GetOptimizedDeviceAreaCoverage(apartment *Apartment, devicePoint point.Point, degreePerDirection int, deviceRange float64, deviceAngle float64) (*point.Point, float64, error) {
-	directionCntFloat := float64(360 / degreePerDirection)
-	directionCntInt := int(directionCntFloat)
-	bestDirection := point.Point{X: 1, Y: 0}
-
-	bestCoverage, err := r.CalculateAreaCoverage(apartment, devicePoint, bestDirection, deviceRange, deviceAngle)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	for i := 1; i < directionCntInt; i++ {
-		angle := 2 * math.Pi * float64(i) / directionCntFloat
-		direction := point.Point{
-			X: math.Cos(angle),
-			Y: math.Sin(angle),
-		}
-
-		coverage, err := r.CalculateAreaCoverage(apartment, devicePoint, direction, deviceRange, deviceAngle)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		if coverage > bestCoverage {
-			bestCoverage = coverage
-			bestDirection = direction
-		}
-	}
-
-	return &bestDirection, bestCoverage, nil
-}
-
-// CalculateAreaCoverage вычисляет охватываемую площадь комнаты по заданной точке для устройства
-func (r *Room) CalculateAreaCoverage(apartment *Apartment, devicePoint point.Point, deviceDirection point.Point, deviceRange float64, deviceAngle float64) (float64, error) {
-	gridPoints, err := point.GenerateGridPoints(r.Area, 0.1)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(gridPoints) == 0 {
-		return 0, nil
-	}
-
-	if deviceAngle <= 0 {
-		deviceAngle = baseDeviceAngle
-	}
-
-	if deviceRange <= 0 {
-		deviceRange = math.MaxInt
-	}
-
-	visiblePoints := 0
-
-	for _, p := range gridPoints {
-		if r.IsPointVisibleOnDevice(apartment, p, devicePoint, deviceRange, deviceAngle, deviceDirection) {
-			visiblePoints++
-		}
-	}
-
-	return float64(visiblePoints) / float64(len(gridPoints)), nil
-}
+const (
+	baseDeviceAngle    = 100
+	doorZoneDepth      = 1.5
+	degreePerDirection = 30
+)
 
 // IsPointVisibleOnDevice проверяет, видна ли точка на устройстве
 func (r *Room) IsPointVisibleOnDevice(apartment *Apartment, p point.Point, devicePoint point.Point, deviceRange, deviceAngle float64, deviceDirection point.Point) bool {
@@ -134,4 +51,139 @@ func (r *Room) GetDeviceOffset(apartment *Apartment, devicePoint point.Point, de
 	}
 
 	return minWallLen * 0.01
+}
+
+func (r *Room) CreateObjectZone(objectPoints []point.Point, objectWidth float64) *Zone {
+	roomCenter := r.Center
+	if roomCenter == nil {
+		roomCenter = point.GetCenter(r.Area)
+	}
+
+	var points []point.Point
+
+	objectCenter := point.GetObjectCenter(objectPoints)
+	halfWidth := objectWidth / 2
+
+	dx := roomCenter.X - objectCenter.X
+	dy := roomCenter.Y - objectCenter.Y
+
+	if objectPoints[0].X == objectPoints[1].X {
+		if dx > 0 {
+			points = []point.Point{
+				{X: objectCenter.X, Y: objectCenter.Y - halfWidth},
+				{X: objectCenter.X, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X + doorZoneDepth, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X + doorZoneDepth, Y: objectCenter.Y - halfWidth},
+			}
+		} else {
+			points = []point.Point{
+				{X: objectCenter.X, Y: objectCenter.Y - halfWidth},
+				{X: objectCenter.X, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X - doorZoneDepth, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X - doorZoneDepth, Y: objectCenter.Y - halfWidth},
+			}
+		}
+	} else {
+		if dy > 0 {
+			points = []point.Point{
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y},
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y + doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y + doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y},
+			}
+		} else {
+			points = []point.Point{
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y},
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y - doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y - doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y},
+			}
+		}
+	}
+
+	return NewZone(points)
+}
+
+func (r *Room) GetTheOppositePoint(p point.Point) (point.Point, float64) {
+	bestPoint := r.Area[0]
+	maxDist := point.CalculatePointsDistance(p, bestPoint)
+
+	for _, corner := range r.Area[1:] {
+		dist := point.CalculatePointsDistance(p, corner)
+		if dist > maxDist {
+			fmt.Println(dist, corner, p)
+			maxDist = dist
+			bestPoint = corner
+		}
+	}
+
+	return bestPoint, maxDist
+}
+
+func FindBestDirectionForDevicePoint(ap *Apartment, zr *ZonedRoom, zones []*Zone, devicePoint point.Point, deviceRange, deviceAngle float64) (point.Point, float64) {
+	var bestDirection point.Point
+	maxCoverage := 0.0
+
+	for i := 0; i < 360; i += degreePerDirection {
+		angle := float64(i) * math.Pi / 180
+		direction := point.Point{
+			X: math.Cos(angle),
+			Y: math.Sin(angle),
+		}
+
+		coverage := calculateDeviceZoneCoverage(ap, zr, zones, devicePoint, deviceRange, deviceAngle, direction)
+		if maxCoverage < coverage {
+			maxCoverage = coverage
+			bestDirection = direction
+		}
+	}
+
+	return bestDirection, maxCoverage
+}
+
+func calculateDeviceZoneCoverage(ap *Apartment, zr *ZonedRoom, zones []*Zone, devicePoint point.Point, deviceRange, deviceAngle float64, direction point.Point) float64 {
+	if len(zones) == 0 {
+		return 1
+	}
+
+	coveredZones := 0
+	for _, zone := range zones {
+		zoneCenter := point.GetCenter(zone.Points)
+		if zr.OrigRoom.IsPointVisibleOnDevice(ap, *zoneCenter, devicePoint, deviceRange, deviceAngle, direction) {
+			coveredZones++
+		}
+
+		for _, p := range zone.Points {
+			if zr.OrigRoom.IsPointVisibleOnDevice(ap, p, devicePoint, deviceRange, deviceAngle, direction) {
+				coveredZones++
+			}
+		}
+	}
+
+	return float64(coveredZones) / float64(len(zones) * 5)
+}
+
+func (r *Room) GetOppositeDirectionToRoom(s *point.Segment) *point.Point {
+	dir1, dir2 := s.NormalVectors()
+
+	roomCenter := r.Center
+	if roomCenter == nil {
+		roomCenter = point.GetCenter(r.Area)
+	}
+	
+	dx := roomCenter.X - (s.From.X + s.From.X) / 2
+	dy := roomCenter.Y - (s.From.Y + s.From.Y) / 2
+
+	if math.Abs(dx) > math.Abs(dy) {
+		if dx > 0 {
+			return dir1
+		} else {
+			return dir2
+		}
+	}
+
+	if dy > 0 {
+		return dir1
+	}
+	return dir2
 }

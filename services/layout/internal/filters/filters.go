@@ -2,14 +2,22 @@ package filters
 
 import (
 	"encoding/json"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DeviceFilter interface{}
 
-type WaterLeakSensorFilter struct{}
+type WaterLeakSensorFilter struct {
+	ProbeType        string  `json:"probe_type,omitempty"`
+	AlarmVolumeDB    float64 `json:"alarm_volume_db,omitempty"`
+	BatteryLifeYears float64 `json:"battery_life_years,omitempty"`
+}
 
 type GasLeakSensorFilter struct {
-	GasType string `json:"gas_type,omitempty"`
+	GasTypes         []string `json:"gas_types,omitempty"`
+	AlarmVolumeDB    float64  `json:"alarm_volume_db,omitempty"`
+	BatteryLifeYears float64  `json:"battery_life_years,omitempty"`
 }
 
 type SmartLockFilter struct {
@@ -17,8 +25,12 @@ type SmartLockFilter struct {
 }
 
 type SmartDoorBellFilter struct {
-	Angle      float64 `json:"angle,omitempty"`
-	Resolution string  `json:"resolution,omitempty"`
+	Resolution  string  `json:"resolution,omitempty"`
+	Angle       float64 `json:"angle,omitempty"`
+	NightVision bool    `json:"night_vision,omitempty"`
+	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
+
+	Direction *point.Point
 }
 
 type DoorSensorFilter struct{}
@@ -28,6 +40,8 @@ type WindowSensorFilter struct{}
 type MotionSensorFilter struct {
 	Angle float64 `json:"angle,omitempty"`
 	Range float64 `json:"range,omitempty"`
+
+	Direction *point.Point
 }
 
 type CameraFilter struct {
@@ -35,6 +49,9 @@ type CameraFilter struct {
 	Range       float64 `json:"range,omitempty"`
 	NightVision bool    `json:"night_vision,omitempty"`
 	Resolution  string  `json:"resolution,omitempty"`
+
+	RecommendedRange float64
+	Direction        *point.Point
 }
 
 type SmartSirenFilter struct {

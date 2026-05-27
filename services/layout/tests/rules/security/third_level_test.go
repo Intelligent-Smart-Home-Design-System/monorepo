@@ -21,6 +21,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			{X: 0, Y: 1.6},
 		},
 		Rooms: []string{"1"},
+		Width: 0.4,
 	}
 
 	doors := []apartment.Door{
@@ -31,6 +32,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 				{X: 3, Y: 0},
 			},
 			Rooms: []string{"1"},
+			Width: 2,
 		},
 		{
 			ID: "2",
@@ -39,6 +41,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 				{X: 12, Y: 4},
 			},
 			Rooms: []string{"1", "2"},
+			Width: 1,
 		},
 	}
 
@@ -122,9 +125,9 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 				{X: 12, Y: 5},
 				{X: 0, Y: 5},
 			},
-			Doors: []string{doors[1].ID},
+			Doors:   []string{doors[1].ID},
 			Windows: []string{window.ID},
-			Walls: []string{"1", "2", "3", "4"},
+			Walls:   []string{"1", "2", "3", "4"},
 		},
 		{
 			ID:   "2",
@@ -147,7 +150,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		Windows: []apartment.Window{window},
 		Doors:   doors,
 		Rooms:   rooms,
-		Walls: walls,
+		Walls:   walls,
 	}
 
 	selectedLevels := map[string]string{
@@ -174,13 +177,13 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			case "door_sensor":
 				if roomID == "1" {
 					assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
-				}  else {
-					assert.Equal(t, &point.Point{X: 3, Y: 0}, devicePlacement.Position)
+				} else {
+					assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
 				}
 			case "window_sensor":
 				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Position)
 			case "motion_sensor":
-				assert.Equal(t, &point.Point{X: 6, Y: 0}, devicePlacement.Position)
+				assert.Equal(t, &point.Point{X: 0, Y: 0}, devicePlacement.Position)
 			}
 		}
 	}
@@ -319,9 +322,9 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 				{X: 12, Y: 5},
 				{X: 0, Y: 5},
 			},
-			Doors: []string{doors[1].ID},
+			Doors:   []string{doors[1].ID},
 			Windows: []string{window.ID},
-			Walls: []string{"1", "2", "3", "4"},
+			Walls:   []string{"1", "2", "3", "4"},
 		},
 		{
 			ID:   "2",
@@ -344,7 +347,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		Windows: []apartment.Window{window},
 		Doors:   doors,
 		Rooms:   rooms,
-		Walls: walls,
+		Walls:   walls,
 	}
 
 	selectedLevels := map[string]string{

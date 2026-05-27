@@ -38,7 +38,7 @@ type Door struct {
 type Window struct {
 	ID     string        `json:"id"`
 	Points []point.Point `json:"points"`
-	Height float64       `json:"height"`
+	Width float64       `json:"width"`
 	Rooms  []string      `json:"rooms"`
 }
 
@@ -77,4 +77,5 @@ type Room struct {
 
 	// back-reference to parent apartment for resolving IDs to objects
 	apartment *Apartment
+	Center    *point.Point
 }

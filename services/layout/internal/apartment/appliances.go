@@ -5,4 +5,5 @@ const (
 	DishWasher string = "dishwasher"
 	Fridge     string = "fridge"
 	Stove      string = "stove"
+	GasBoiler  string = "gas_boiler"
 )

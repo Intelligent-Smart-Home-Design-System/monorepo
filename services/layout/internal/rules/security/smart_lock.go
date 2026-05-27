@@ -4,7 +4,6 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type SmartLockRule struct {
@@ -63,7 +62,7 @@ func (sl *SmartLockRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
 		if zr.EntryDoorZone != nil && zr.OrigRoom.Name == apartment.RoomHall {
-			zoneCenter := point.GetObjectCenter(zr.EntryDoorZone.Points)
+			zoneCenter := zr.EntryDoorZone.Points[1]
 
 			if deviceCnt < maxCount {
 				layout.AddDeviceToLayout(deviceType, sl.track, zr.OrigRoom.ID, &zoneCenter, smartLockFilters)
@@ -73,13 +72,4 @@ func (sl *SmartLockRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 	}
 
 	return nil
-}
-
-func collectEntryDoorZone(ap *apartment.Apartment, room *apartment.Room) *apartment.Zone {
-	entryDoor := room.GetEntryDoor(ap)
-	if entryDoor == nil {
-		return nil
-	}
-
-	return apartment.NewZone(entryDoor.Points)
 }

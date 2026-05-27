@@ -24,14 +24,9 @@ func (wl *WaterLeakSensorRule) Type() string {
 }
 
 func (wl *WaterLeakSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -62,9 +57,26 @@ func (wl *WaterLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum
 	}
 	waterLeakSensorFilters := configFilters.(*filters.WaterLeakSensorFilter)
 
+	roomsSet := make(map[string]struct{})
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
+	}
+
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+			continue
+		}
+
 		for _, wetZone := range zr.WetZones {
+			if deviceCnt >= maxCount {
+				return nil
+			}
+
+			if len(wetZone.Points) == 0 {
+				continue
+			}
+
 			zoneCenter := point.GetCenter(wetZone.Points)
 
 			if deviceCnt < maxCount {

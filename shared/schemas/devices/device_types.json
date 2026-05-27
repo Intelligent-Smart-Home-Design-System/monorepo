@@ -686,6 +686,167 @@
         },
         "required": ["type"]
       }
+    },
+
+    "illumination_sensor": {
+      "description": "Measures ambient light level (illuminance) for smart lighting automation",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "ip_rated",
+        "sensor"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "illumination_sensor"
+          },
+          "measurement_range_lux": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000,
+            "description": "Maximum measurable illuminance in lux"
+          }
+        },
+        "required": ["type"]
+      }
+    },
+
+    "smart_switch": {
+      "description": "Wireless smart button or switch for scene control and device triggering",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "power_source"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_switch"
+          },
+          "number_of_buttons": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8,
+            "description": "Number of physical buttons (1, 2, 4, 6, 8)"
+          }
+        },
+        "required": ["type"]
+      }
+    },
+
+    "curtains": {
+      "description": "Smart curtain or blind control device (motorized roller blinds, drapes)",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "curtains"
+          },
+          "motor_type": {
+            "type": "string",
+            "enum": ["tubular", "chain", "rail"],
+            "description": "Type of motor mechanism"
+          },
+          "max_width_mm": {
+            "type": "integer",
+            "minimum": 500,
+            "maximum": 6000,
+            "description": "Maximum curtain width in millimeters"
+          }
+        },
+        "required": ["type"]
+      }
+    },
+
+    "smart_dimmer": {
+      "description": "Smart dimmer for adjusting brightness of compatible lights",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_dimmer"
+          },
+          "max_power_w": {
+            "type": "number",
+            "minimum": 10,
+            "maximum": 500,
+            "description": "Maximum supported load power in watts"
+          },
+          "dimmer_type": {
+            "type": "string",
+            "enum": ["leading_edge", "trailing_edge", "universal"],
+            "description": "Dimmer technology type"
+          }
+        },
+        "required": ["type"]
+      }
+    },
+
+    "built_in_backlight": {
+      "description": "Built-in backlight or LED strip for ambient and accent lighting (e.g., under-cabinet, alcove)",
+      "traits": [
+        "base",
+        "connectivity",
+        "lighting",
+        "power_source"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "built_in_backlight"
+          },
+          "length_mm": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 5000,
+            "description": "Length of the backlight strip in millimeters"
+          },
+          "led_type": {
+            "type": "string",
+            "enum": ["single_color", "rgb", "rgbw", "cct"],
+            "description": "Type of LED used"
+          }
+        },
+        "required": ["type"]
+      }
+    },
+
+    "decorative_luminaire": {
+      "description": "Decorative luminaire for accent and mood lighting (pendant, chandelier, wall lamp, etc.)",
+      "traits": [
+        "base",
+        "connectivity",
+        "lighting",
+        "power_source"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "decorative_luminaire"
+          },
+          "mounting": {
+            "type": "string",
+            "enum": ["ceiling", "wall", "floor", "table"],
+            "description": "Mounting type"
+          },
+          "bulb_included": {
+            "type": "boolean",
+            "description": "Whether the luminaire comes with integrated light source or requires external bulb"
+          }
+        },
+        "required": ["type"]
+      }
     }
   }
 }

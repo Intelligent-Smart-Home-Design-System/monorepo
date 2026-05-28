@@ -45,7 +45,6 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
-
 	l.inStore.Put(input)
 
 	return nil
@@ -82,7 +81,9 @@ func (l *Lamp) Process(process simgo.Process) {
 		outData := l.HandleEvent(inData)
 		dto, err := json.Marshal(outData)
 		l.HandleOutDTO(dto)
-		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+		if err != nil {
+			slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
+		}
 	}
 }
 

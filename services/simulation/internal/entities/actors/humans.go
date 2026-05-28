@@ -40,7 +40,7 @@ type HumanInData struct {
 		TargetX float64 `json:"x"`
 		TargetY float64 `json:"y"`
 	} `json:"to"`
-	EntityID string          `json:"device_id"`
+	EntityID string          `json:"entityID"`
 	Payload  json.RawMessage `json:"payload"`
 }
 
@@ -49,6 +49,7 @@ type HumanMoveOutData struct {
 		TargetX float64 `json:"x"`
 		TargetY float64 `json:"y"`
 	} `json:"to"`
+	RoomID string `json:"roomID"`
 	Status string `json:"status"`
 }
 
@@ -139,7 +140,12 @@ func (h *Human) Process(process simgo.Process) {
 // HandleEvent реализует логику движения человека.
 // Двигаемся от текущей позиции к цели, проверяя стены и двери.
 func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
-	actionType := strings.Split(inData.Kind, ":")[1]
+	parts := strings.SplitN(inData.Kind, ":", 2)
+	if len(parts) != 2 {
+		slog.Warn("invalid human action kind", "kind", inData.Kind, "human_id", h.ID)
+		return HumanInteractionOutData{Status: "invalid action kind"}
+	}
+	actionType := parts[1]
 
 	switch actionType {
 	case ActionMove:
@@ -182,6 +188,7 @@ func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 				TargetX float64 `json:"x"`
 				TargetY float64 `json:"y"`
 			}{TargetX: h.X, TargetY: h.Y},
+			RoomID: h.RoomID,
 			Status: "No move",
 		}
 	}
@@ -199,6 +206,7 @@ func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 			TargetX float64 `json:"x"`
 			TargetY float64 `json:"y"`
 		}{TargetX: h.X, TargetY: h.Y},
+		RoomID: newRoomID,
 		Status: "moved",
 	}
 }

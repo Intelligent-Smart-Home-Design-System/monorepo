@@ -1,5 +1,5 @@
 {
-  "device_triggers": {
+  "triggers": {
     "motion_sensor": {
       "description": "Датчик движения — срабатывает при обнаружении движения",
       "triggers": ["smart_bulb", "smart_siren", "camera"]

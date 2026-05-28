@@ -67,6 +67,18 @@ type AirConditionerFilter struct {
 	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
 }
 
+type RobotVacuumFilter struct {
+	NoiseLevelDB          float64 `json:"noise_level_db,omitempty"`
+	SuctionPowerPA        float64 `json:"suction_power_pa,omitempty"`
+	NavigationType        string  `json:"navigation_type,omitempty"`
+	RoomMapping           bool    `json:"room_mapping,omitempty"`
+	WetCleaning           bool    `json:"wet_cleaning,omitempty"`
+	CarpetDetection       bool    `json:"carpet_detection,omitempty"`
+	ObstacleAvoidance     bool    `json:"obstacle_avoidance,omitempty"`
+	AutoEmptyStation      bool    `json:"auto_empty_station,omitempty"`
+	VoiceAssistantSupport bool    `json:"voice_assistant_support,omitempty"`
+}
+
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
@@ -92,6 +104,8 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartSirenFilter{}
 	case "air_conditioner":
 		filter = &AirConditionerFilter{}
+	case "robot_vacuum":
+		filter = &RobotVacuumFilter{}
 	}
 
 	if filter == nil {

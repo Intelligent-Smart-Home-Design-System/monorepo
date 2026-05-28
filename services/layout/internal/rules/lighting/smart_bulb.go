@@ -21,7 +21,7 @@ func (r *SmartBulbRule) Type() string {
 
 func (r *SmartBulbRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	ap := zonedAp.OrigAp
-	rooms, err := ap.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomBedroom, apartment.RoomKitchen, apartment.RoomPassage, apartment.RoomBathroom})
+	rooms, err := ap.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
@@ -29,8 +29,8 @@ func (r *SmartBulbRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 	for _, room := range rooms {
 		roomID := room.ID
 
-		place, err := room.GetCenter()
-		if err != nil {
+		place := point.GetCenter(room.Area)
+		if place == nil {
 			fallback := point.Point{X: 0, Y: 0}
 			place = &fallback
 		}

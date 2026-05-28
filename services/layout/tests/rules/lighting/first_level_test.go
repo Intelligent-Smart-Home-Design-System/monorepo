@@ -67,7 +67,7 @@ func TestLightingLevel1(t *testing.T) {
 	st.LoadAllLightingRules()
 
 	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-  err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
@@ -125,7 +125,7 @@ func TestLightingLevel1PriceCalculation(t *testing.T) {
 	assert.NoError(t, err)
 
 	priceInfo := e.CalculateLayoutPrice(layout)
-  devicesConfig := configs.GetGlobalDevicesConfig()
+	devicesConfig := configs.GetGlobalDevicesConfig()
 	bulb := devicesConfig.Devices["smart_bulb"]
 
 	assert.Equal(t, bulb.Price.Min*2, priceInfo.MinPrice)

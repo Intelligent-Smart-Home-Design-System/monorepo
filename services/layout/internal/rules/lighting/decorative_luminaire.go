@@ -2,6 +2,7 @@ package lighting
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DecorativeLuminaireRule struct {
@@ -19,15 +20,16 @@ func (r *DecorativeLuminaireRule) Type() string {
 }
 
 // Ставим декоративный светильник по одному в комнату в центр комнаты
-func (r *DecorativeLuminaireRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+func (r *DecorativeLuminaireRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	apartmentStruct := zonedAp.OrigAp
 	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
 
 	for _, room := range rooms {
-		place, err := room.GetCenter()
-		if err != nil {
+		place := point.GetCenter(room.Area)
+		if place == nil {
 			continue
 		}
 

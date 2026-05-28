@@ -15,11 +15,13 @@ import (
 // Проверяем, что если в комнате два датчика движения
 // (motion_sensor и motion_sensor_2), цена считается за оба устройства.
 func TestCalculateLayoutPrice_DuplicateDeviceTypeKeys(t *testing.T) {
-	devicesConfig, err := configs.LoadDevicesConfig("../../internal/configs/devices.json")
+	err := configs.LoadDevicesConfig("../../internal/configs/devices.json")
 	require.NoError(t, err)
 
+	devicesConfig := configs.GetGlobalDevicesConfig()
+
 	st := storage.NewStorage()
-	e := engine.NewEngine(st, &configs.Tracks{}, devicesConfig)
+	e := engine.NewEngine(st)
 
 	layout := apartment.NewApartmentResult()
 	layout.Placements["room-1"] = []*device.Placement{

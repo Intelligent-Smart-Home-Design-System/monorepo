@@ -52,8 +52,8 @@ func farCornerFromCenter(corners []point.Point, target point.Point) *point.Point
 
 func corridorEndPoints(room apartment.Room) (*point.Point, *point.Point, error) {
 	if len(room.Area) < 2 {
-		center, err := room.GetCenter()
-		if err != nil {
+		center := point.GetCenter(room.Area)
+		if center == nil {
 			fallback := point.Point{X: 0, Y: 0}
 			return &fallback, &fallback, nil
 		}
@@ -94,10 +94,10 @@ func getRoomDoors(apartmentStruct *apartment.Apartment, roomID string) []apartme
 }
 
 func cornerNearDoor(apartmentStruct *apartment.Apartment, room apartment.Room) (*point.Point, error) {
-	center, err := room.GetCenter()
-	if err != nil {
+	center := point.GetCenter(room.Area)
+	if center == nil {
 		fallback := point.Point{X: 0, Y: 0}
-		return &fallback, nil
+		center = &fallback
 	}
 
 	if len(room.Area) == 0 {
@@ -109,7 +109,7 @@ func cornerNearDoor(apartmentStruct *apartment.Apartment, room apartment.Room) (
 		return center, nil
 	}
 
-	doorCenter := apartment.GetObjectCenter(roomDoors[0].Points)
+	doorCenter := point.GetObjectCenter(roomDoors[0].Points)
 	best := room.Area[0]
 	minDist := point.CalculatePointsDistance(best, doorCenter)
 

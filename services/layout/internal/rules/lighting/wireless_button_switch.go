@@ -19,14 +19,15 @@ func (r *WirelessButtonSwitchRule) Type() string {
 }
 
 // Ставим по одному выключателю в каждой нужной комнате в угол рядом с дверью
-func (r *WirelessButtonSwitchRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+func (r *WirelessButtonSwitchRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	apartmentStruct := zonedAp.OrigAp
 	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
 
 	for _, room := range rooms {
-		place, err := cornerNearDoor(apartmentStruct, room)
+		place, err := cornerNearDoor(apartmentStruct, *room)
 		if err != nil {
 			return err
 		}

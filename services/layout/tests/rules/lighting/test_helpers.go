@@ -21,8 +21,8 @@ func placeLightingLevel(apartmentStruct *apartment.Apartment, level string) (*ap
 	st := storage.NewStorage()
 	st.LoadAllLightingRules()
 
-	tracksConfig, err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-	devicesConfig, err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	if err1 != nil {
 		return nil, nil, err1
 	}
@@ -30,7 +30,9 @@ func placeLightingLevel(apartmentStruct *apartment.Apartment, level string) (*ap
 		return nil, nil, err2
 	}
 
-	e := engine.NewEngine(st, tracksConfig, devicesConfig)
+	devicesConfig := configs.GetGlobalDevicesConfig()
+
+	e := engine.NewEngine(st)
 	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	if err != nil {
 		return nil, nil, err
@@ -65,8 +67,8 @@ func calculateExpectedAndActualPrice(layout *apartment.Layout, devicesConfig *co
 
 	st := storage.NewStorage()
 	st.LoadAllLightingRules()
-	tracksConfig, _ := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-	e := engine.NewEngine(st, tracksConfig, devicesConfig)
+	_ = configs.LoadTracksConfig("../../../internal/configs/tracks.json")
+	e := engine.NewEngine(st)
 	actual := e.CalculateLayoutPrice(layout)
 
 	return levelPrice{

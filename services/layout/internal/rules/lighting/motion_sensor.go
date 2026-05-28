@@ -27,7 +27,7 @@ func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum str
 		roomID := room.ID
 
 		if room.Name == apartment.RoomPassage {
-			p1, p2, err := corridorEndPoints(room)
+			p1, p2, err := corridorEndPoints(*room)
 			if err != nil {
 				return err
 			}
@@ -37,7 +37,7 @@ func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum str
 			continue
 		}
 
-		sensorPoint, err := cornerNearDoor(ap, room)
+		sensorPoint, err := cornerNearDoor(ap, *room)
 		if err != nil {
 			return err
 		}

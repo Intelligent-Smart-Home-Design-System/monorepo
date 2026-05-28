@@ -153,7 +153,7 @@ func TestLightingLevel3MotionSensorCount(t *testing.T) {
 	st.LoadAllLightingRules()
 
 	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-  err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
@@ -234,7 +234,7 @@ func TestLightingLevel3PriceCalculation(t *testing.T) {
 	st.LoadAllLightingRules()
 
 	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-  err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
@@ -243,7 +243,7 @@ func TestLightingLevel3PriceCalculation(t *testing.T) {
 	assert.NoError(t, err)
 
 	priceInfo := e.CalculateLayoutPrice(layout)
-  devicesConfig := configs.GetGlobalDevicesConfig()
+	devicesConfig := configs.GetGlobalDevicesConfig()
 
 	expectedMin :=
 		devicesConfig.Devices["smart_bulb"].Price.Min*4 +

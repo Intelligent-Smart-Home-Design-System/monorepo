@@ -19,7 +19,8 @@ func (r *PresenceSensorRule) Type() string {
 }
 
 // Ставим датчик присутствия: 2 на концах коридора, в остальных комнатах 1 у двери
-func (r *PresenceSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
+func (r *PresenceSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	apartmentStruct := zonedAp.OrigAp
 	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
@@ -29,7 +30,7 @@ func (r *PresenceSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 		roomID := room.ID
 
 		if room.Name == apartment.RoomPassage {
-			p1, p2, err := corridorEndPoints(room)
+			p1, p2, err := corridorEndPoints(*room)
 			if err != nil {
 				return err
 			}
@@ -39,7 +40,7 @@ func (r *PresenceSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceR
 			continue
 		}
 
-		place, err := cornerNearDoor(apartmentStruct, room)
+		place, err := cornerNearDoor(apartmentStruct, *room)
 		if err != nil {
 			return err
 		}

@@ -52,11 +52,18 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 }
 
 func (l *Lamp) HandleOutDTO(dto []byte) {
-    outData := api.EventOutDTO{
-        EntityID: l.ID,
-        Payload:  dto,
-    }
-    l.enginePort.GetOutChan() <- outData
+	outData := api.EventOutDTO{
+		EntityID: l.ID,
+		Payload:  dto,
+	}
+	l.enginePort.GetOutChan() <- outData
+
+	for _, receiverID := range l.Receivers {
+		l.enginePort.GetInChan() <- api.EventInDTO{
+			EntityID: receiverID,
+			Payload:  dto,
+		}
+	}
 }
 
 func (l *Lamp) GetProcessFunc() func(process simgo.Process) {
@@ -68,13 +75,13 @@ func (l *Lamp) Process(process simgo.Process) {
 		storeElement := l.inStore.Get()
 		event := storeElement.Event
 
-        process.Wait(event)
-        process.Wait(process.Timeout(l.getReactionDelay()))
+		process.Wait(event)
+		process.Wait(process.Timeout(l.getReactionDelay()))
 
 		inData := storeElement.Item
 		outData := l.HandleEvent(inData)
 		dto, err := json.Marshal(outData)
-        l.HandleOutDTO(dto)
+		l.HandleOutDTO(dto)
 		slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
 	}
 }

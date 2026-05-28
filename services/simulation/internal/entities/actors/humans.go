@@ -6,12 +6,22 @@ import (
 	"log/slog"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
+
+const (
+	ActionMove        string = "move"
+	ActionInteraction string = "interaction"
+)
+
+type HumanActionResult interface {
+	GetStatus() string
+}
 
 type Human struct {
 	enginePort engine.EnginePort
@@ -25,14 +35,34 @@ type Human struct {
 }
 
 type HumanInData struct {
-	TargetX float64 `json:"target_x"`
-	TargetY float64 `json:"target_y"`
+	Kind string `json:"kind"`
+	To   struct {
+		TargetX float64 `json:"x"`
+		TargetY float64 `json:"y"`
+	} `json:"to"`
+	EntityID string          `json:"device_id"`
+	Payload  json.RawMessage `json:"payload"`
 }
 
-type HumanOutData struct {
-	X      float64 `json:"x"`
-	Y      float64 `json:"y"`
-	RoomID string  `json:"room_id"`
+type HumanMoveOutData struct {
+	To struct {
+		TargetX float64 `json:"x"`
+		TargetY float64 `json:"y"`
+	} `json:"to"`
+	Status string `json:"status"`
+}
+
+func (r HumanMoveOutData) GetStatus() string {
+	return r.Status
+}
+
+type HumanInteractionOutData struct {
+	EntityID string `json:"entity_id"`
+	Status   string `json:"status"`
+}
+
+func (r HumanInteractionOutData) GetStatus() string {
+	return r.Status
 }
 
 // segment вспомогательная структура для отрезка
@@ -108,15 +138,52 @@ func (h *Human) Process(process simgo.Process) {
 
 // HandleEvent реализует логику движения человека.
 // Двигаемся от текущей позиции к цели, проверяя стены и двери.
-func (h *Human) HandleEvent(inData HumanInData) HumanOutData {
+func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
+	actionType := strings.Split(inData.Kind, ":")[1]
+
+	switch actionType {
+	case ActionMove:
+		return h.handleMove(inData)
+	case ActionInteraction:
+		return h.HandleInteraction(inData)
+	default:
+		slog.Warn("unknown human action type",
+			"action_type", actionType,
+			"human_id", h.ID,
+		)
+		return HumanInteractionOutData{
+			Status: "unknown action type",
+		}
+	}
+}
+
+func (h *Human) HandleInteraction(inData HumanInData) HumanInteractionOutData {
+	h.enginePort.GetInChan() <- api.EventInDTO{
+		EntityID: inData.EntityID,
+		Payload:  inData.Payload,
+	}
+
+	return HumanInteractionOutData{
+		EntityID: inData.EntityID,
+		Status:   "triggered",
+	}
+}
+
+func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 	floor := h.enginePort.GetFloor()
 
-	dx := inData.TargetX - h.X
-	dy := inData.TargetY - h.Y
+	dx := inData.To.TargetX - h.X
+	dy := inData.To.TargetY - h.Y
 	dist := math.Sqrt(dx*dx + dy*dy)
 
 	if dist == 0 {
-		return HumanOutData{X: h.X, Y: h.Y, RoomID: h.RoomID}
+		return HumanMoveOutData{
+			To: struct {
+				TargetX float64 `json:"x"`
+				TargetY float64 `json:"y"`
+			}{TargetX: h.X, TargetY: h.Y},
+			Status: "No move",
+		}
 	}
 
 	move := segment{h.X, h.Y, h.X + dx, h.Y + dy}
@@ -127,7 +194,13 @@ func (h *Human) HandleEvent(inData HumanInData) HumanOutData {
 	h.Y = newY
 	h.RoomID = newRoomID
 
-	return HumanOutData{X: h.X, Y: h.Y, RoomID: h.RoomID}
+	return HumanMoveOutData{
+		To: struct {
+			TargetX float64 `json:"x"`
+			TargetY float64 `json:"y"`
+		}{TargetX: h.X, TargetY: h.Y},
+		Status: "moved",
+	}
 }
 
 // resolveMovement находит конечную позицию с учётом стен и дверей.
@@ -177,8 +250,9 @@ func (h *Human) resolveMovement(move segment, floor *api.Floor) (float64, float6
 			door.Points[1][0], door.Points[1][1],
 		}
 
-		_, intersects := intersectSegments(move, doorSeg)
-		if intersects {
+		t, intersects := intersectSegments(move, doorSeg)
+		if intersects && t <= closestT {
+			closestT = 1.0
 			newRoomID = edge.NeighborRoomID
 			hitWall = false
 		}
@@ -215,7 +289,6 @@ func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
 		if !doorOnWall(door, wall) {
 			continue
 		}
-
 		t1 := projectOnSegment(door.Points[0], wallStart, wallEnd, wallLenSq)
 		t2 := projectOnSegment(door.Points[1], wallStart, wallEnd, wallLenSq)
 

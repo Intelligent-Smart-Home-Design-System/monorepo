@@ -57,6 +57,13 @@ func (l *Lamp) HandleOutDTO(dto []byte) {
 		Payload:  dto,
 	}
 	l.enginePort.GetOutChan() <- outData
+
+	for _, receiverID := range l.Receivers {
+		l.enginePort.GetInChan() <- api.EventInDTO{
+			EntityID: receiverID,
+			Payload:  dto,
+		}
+	}
 }
 
 func (l *Lamp) GetProcessFunc() func(process simgo.Process) {

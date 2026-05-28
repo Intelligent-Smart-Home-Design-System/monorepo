@@ -66,12 +66,12 @@ func TestLightingLevel2(t *testing.T) {
 	st := storage.NewStorage()
 	st.LoadAllLightingRules()
 
-	tracksConfig, err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-	devicesConfig, err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
-	assert.NoError(t, err1)
-	assert.NoError(t, err2)
+	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
+  err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+  assert.NoError(t, err1)
+  assert.NoError(t, err2)
 
-	e := engine.NewEngine(st, tracksConfig, devicesConfig)
+  e := engine.NewEngine(st)
 	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 
@@ -135,17 +135,17 @@ func TestLightingLevel2PriceCalculation(t *testing.T) {
 
 	st := storage.NewStorage()
 	st.LoadAllLightingRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-	devicesConfig, err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	e := engine.NewEngine(st, tracksConfig, devicesConfig)
+	e := engine.NewEngine(st)
 	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 
 	priceInfo := e.CalculateLayoutPrice(layout)
+  devicesConfig := configs.GetGlobalDevicesConfig()
 	bulb := devicesConfig.Devices["smart_bulb"]
 
 	assert.Equal(t, bulb.Price.Min*4, priceInfo.MinPrice)

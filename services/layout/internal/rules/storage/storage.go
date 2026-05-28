@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/climate"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 )
@@ -20,17 +20,17 @@ func (s *Storage) LoadRule(rule rules.Rule) {
 	s.Rules[rule.Type()] = rule
 }
 
-func (s *Storage) LoadAllSecurityRules(deviceConfig *configs.Devices) {
+func (s *Storage) LoadAllSecurityRules() {
 	storageRules := []rules.Rule{
-		security.NewWaterLeakRule(deviceConfig),
-		security.NewGasLeakRule(deviceConfig),
-		security.NewSmartLockRule(deviceConfig),
-		security.NewSmartDoorBellRule(deviceConfig),
-		security.NewDoorSensorRule(deviceConfig),
-		security.NewWindowSensorRule(deviceConfig),
-		security.NewMotionSensorRule(deviceConfig),
-		security.NewCameraRule(deviceConfig),
-		security.NewSmartSirenRule(deviceConfig),
+		security.NewWaterLeakRule(),
+		security.NewGasLeakRule(),
+		security.NewSmartLockRule(),
+		security.NewSmartDoorBellRule(),
+		security.NewDoorSensorRule(),
+		security.NewWindowSensorRule(),
+		security.NewMotionSensorRule(),
+		security.NewCameraRule(),
+		security.NewSmartSirenRule(),
 	}
 
 	for _, rule := range storageRules {
@@ -49,6 +49,16 @@ func (s *Storage) LoadAllLightingRules() {
 		lighting.NewPresenceSensorRule(),
 		lighting.NewBuiltInBacklightRule(),
 		lighting.NewDecorativeLuminaireRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+}
+
+func (s *Storage) LoadAllClimateRules() {
+	storageRules := []rules.Rule{
+		climate.NewAirConditionerRule(),
 	}
 
 	for _, rule := range storageRules {

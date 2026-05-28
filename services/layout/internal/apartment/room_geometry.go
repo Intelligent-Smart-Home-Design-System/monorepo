@@ -4,195 +4,186 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const baseCameraAngle = 100
+const (
+	baseDeviceAngle    = 100
+	doorZoneDepth      = 1.5
+	degreePerDirection = 30
+)
 
-// GetBestCameraPoint возвращает лучшую по алгоритму точку в комнате для камеры.
-// В прихожей камера ставится напротив входной двери.
-// В остальных комнатах камера ставится в том месте, в котором охватывается наибольшая площадь комнаты
-func (r *Room) GetBestCameraPoint(apartment *Apartment, filters *filters.CameraFilter) (*point.Point, error) {
-	if r.Name == "hall" {
-		frontDoor := apartment.GetFrontDoor()
-		if frontDoor == nil {
-			return nil, fmt.Errorf("no front door in apartment")
-		}
-
-		return r.GetBestHallCameraPoint(frontDoor)
+// IsPointVisibleOnDevice проверяет, видна ли точка на устройстве
+func (r *Room) IsPointVisibleOnDevice(apartment *Apartment, p point.Point, devicePoint point.Point, deviceRange, deviceAngle float64, deviceDirection point.Point) bool {
+	if point.CalculatePointsDistance(devicePoint, p) > deviceRange {
+		return false
 	}
 
-	return r.GetMaxAreaCameraPoint(apartment, filters)
+	vectorDeviceToPoint := point.NewVector(devicePoint, p)
+
+	if vectorDeviceToPoint.X != 0 || vectorDeviceToPoint.Y != 0 {
+		vecLen := math.Sqrt(vectorDeviceToPoint.X*vectorDeviceToPoint.X + vectorDeviceToPoint.Y*vectorDeviceToPoint.Y)
+		vectorDeviceToPoint.X /= vecLen
+		vectorDeviceToPoint.Y /= vecLen
+
+		dotPr := vectorDeviceToPoint.X*deviceDirection.X + vectorDeviceToPoint.Y*deviceDirection.Y
+		angle := math.Acos(dotPr) * (180 / math.Pi)
+
+		if angle > deviceAngle/2 {
+			return false
+		}
+	}
+
+	deviceOffset := r.GetDeviceOffset(apartment, devicePoint, deviceDirection)
+	devicePoint = point.MovePointInDirection(devicePoint, deviceDirection, deviceOffset)
+
+	return !apartment.IsWallBetweenPoints(p, devicePoint)
 }
 
-// GetBestHallCameraPoint возвращает лучшую точку для камеры в прихожей (напротив входной двери)
-func (r *Room) GetBestHallCameraPoint(frontDoor *Door) (*point.Point, error) {
-	doorCenter := GetObjectCenter(frontDoor.Points)
+// GetDeviceOffset определяет сдвиг для устройства
+// (чтобы после корректно использовать проверку стены между точками)
+func (r *Room) GetDeviceOffset(apartment *Apartment, devicePoint point.Point, deviceDirection point.Point) float64 {
+	minWallLen := math.MaxFloat64
 
+	for _, wallID := range r.Walls {
+		wall := apartment.wallsByID[wallID]
+		minWallLen = min(minWallLen, point.CalculatePointsDistance(wall.Points[0], wall.Points[1]))
+	}
+
+	return minWallLen * 0.01
+}
+
+func (r *Room) CreateObjectZone(objectPoints []point.Point, objectWidth float64) *Zone {
+	roomCenter := r.Center
+	if roomCenter == nil {
+		roomCenter = point.GetCenter(r.Area)
+	}
+
+	var points []point.Point
+
+	objectCenter := point.GetObjectCenter(objectPoints)
+	halfWidth := objectWidth / 2
+
+	dx := roomCenter.X - objectCenter.X
+	dy := roomCenter.Y - objectCenter.Y
+
+	if objectPoints[0].X == objectPoints[1].X {
+		if dx > 0 {
+			points = []point.Point{
+				{X: objectCenter.X, Y: objectCenter.Y - halfWidth},
+				{X: objectCenter.X, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X + doorZoneDepth, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X + doorZoneDepth, Y: objectCenter.Y - halfWidth},
+			}
+		} else {
+			points = []point.Point{
+				{X: objectCenter.X, Y: objectCenter.Y - halfWidth},
+				{X: objectCenter.X, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X - doorZoneDepth, Y: objectCenter.Y + halfWidth},
+				{X: objectCenter.X - doorZoneDepth, Y: objectCenter.Y - halfWidth},
+			}
+		}
+	} else {
+		if dy > 0 {
+			points = []point.Point{
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y},
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y + doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y + doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y},
+			}
+		} else {
+			points = []point.Point{
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y},
+				{X: objectCenter.X - halfWidth, Y: objectCenter.Y - doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y - doorZoneDepth},
+				{X: objectCenter.X + halfWidth, Y: objectCenter.Y},
+			}
+		}
+	}
+
+	return NewZone(points)
+}
+
+func (r *Room) GetTheOppositePoint(p point.Point) (point.Point, float64) {
 	bestPoint := r.Area[0]
-	maxDist := CalculatePointsDistance(doorCenter, bestPoint)
+	maxDist := point.CalculatePointsDistance(p, bestPoint)
 
-	for _, p := range r.Area[1:] {
-		dist := CalculatePointsDistance(doorCenter, p)
+	for _, corner := range r.Area[1:] {
+		dist := point.CalculatePointsDistance(p, corner)
 		if dist > maxDist {
+			fmt.Println(dist, corner, p)
 			maxDist = dist
-			bestPoint = p
+			bestPoint = corner
 		}
 	}
 
-	return &bestPoint, nil
+	return bestPoint, maxDist
 }
 
-// GetMaxAreaCameraPoint возвращает точку для камеры с наибольшей охватываемой площадью комнаты
-func (r *Room) GetMaxAreaCameraPoint(apartment *Apartment, filters *filters.CameraFilter) (*point.Point, error) {
-	bestCameraPoint := r.Area[0]
-	degreePerDirection := 10
+func FindBestDirectionForDevicePoint(ap *Apartment, zr *ZonedRoom, zones []*Zone, devicePoint point.Point, deviceRange, deviceAngle float64) (point.Point, float64) {
+	var bestDirection point.Point
+	maxCoverage := 0.0
 
-	_, maxAreaCoverage, err := r.GetOptimizedCameraAreaCoverage(apartment, bestCameraPoint, degreePerDirection, filters)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range r.Area[1:] {
-		_, areaCoverage, err := r.GetOptimizedCameraAreaCoverage(apartment, p, degreePerDirection, filters)
-		if err != nil {
-			return nil, err
-		}
-
-		if areaCoverage > maxAreaCoverage {
-			maxAreaCoverage = areaCoverage
-			bestCameraPoint = p
-		}
-	}
-
-	return &bestCameraPoint, nil
-}
-
-// GetOptimizedCameraAreaCoverage вычисляет по позиции камеры наилучшее из заданных направление
-// и возвращает наилучшую долю покрытия комнаты
-func (r *Room) GetOptimizedCameraAreaCoverage(apartment *Apartment, cameraPoint point.Point, degreePerDirection int, filters *filters.CameraFilter) (*point.Point, float64, error) {
-	directionCntFloat := float64(360 / degreePerDirection)
-	directionCntInt := int(directionCntFloat)
-	bestDirection := point.Point{X: 1, Y: 0}
-
-	bestCoverage, err := r.CalculateAreaCoverage(apartment, cameraPoint, bestDirection, filters)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	for i := 1; i < directionCntInt; i++ {
-		angle := 2 * math.Pi * float64(i) / directionCntFloat
+	for i := 0; i < 360; i += degreePerDirection {
+		angle := float64(i) * math.Pi / 180
 		direction := point.Point{
 			X: math.Cos(angle),
 			Y: math.Sin(angle),
 		}
 
-		coverage, err := r.CalculateAreaCoverage(apartment, cameraPoint, direction, filters)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		if coverage > bestCoverage {
-			bestCoverage = coverage
+		coverage := calculateDeviceZoneCoverage(ap, zr, zones, devicePoint, deviceRange, deviceAngle, direction)
+		if maxCoverage < coverage {
+			maxCoverage = coverage
 			bestDirection = direction
 		}
 	}
 
-	return &bestDirection, bestCoverage, nil
+	return bestDirection, maxCoverage
 }
 
-// CalculateAreaCoverage вычисляет охватываемую площадь комнаты по заданной точке для камеры
-func (r *Room) CalculateAreaCoverage(apartment *Apartment, cameraPoint point.Point, cameraDirection point.Point, filters *filters.CameraFilter) (float64, error) {
-	gridPoints, err := r.GenerateGridPoints(0.1)
-	if err != nil {
-		return 0, err
+func calculateDeviceZoneCoverage(ap *Apartment, zr *ZonedRoom, zones []*Zone, devicePoint point.Point, deviceRange, deviceAngle float64, direction point.Point) float64 {
+	if len(zones) == 0 {
+		return 1
 	}
 
-	if len(gridPoints) == 0 {
-		return 0, nil
-	}
-
-	var cameraAngle float64 = baseCameraAngle
-	var cameraRange float64 = math.MaxInt
-
-	if filters != nil {
-		if filters.Angle != 0 {
-			cameraAngle = float64(filters.Angle)
+	coveredZones := 0
+	for _, zone := range zones {
+		zoneCenter := point.GetCenter(zone.Points)
+		if zr.OrigRoom.IsPointVisibleOnDevice(ap, *zoneCenter, devicePoint, deviceRange, deviceAngle, direction) {
+			coveredZones++
 		}
 
-		if filters.Range != 0 {
-			cameraRange = float64(filters.Range)
+		for _, p := range zone.Points {
+			if zr.OrigRoom.IsPointVisibleOnDevice(ap, p, devicePoint, deviceRange, deviceAngle, direction) {
+				coveredZones++
+			}
 		}
 	}
 
-	visiblePoints := 0
-
-	for _, p := range gridPoints {
-		if CalculatePointsDistance(cameraPoint, p) > cameraRange {
-			continue
-		}
-
-		if r.IsPointVisibleOnCamera(apartment, p, cameraPoint, cameraAngle, cameraDirection) {
-			visiblePoints++
-		}
-	}
-
-	return float64(visiblePoints) / float64(len(gridPoints)), nil
+	return float64(coveredZones) / float64(len(zones) * 5)
 }
 
-// GetCameraViewDirection определяет направление камеры в комнате.
-// По алгоритму камера всегда смотрит в центр комнаты,
-// так как решил, что обычно это оптимальное направление
-func (r *Room) GetCameraToRoomCenterDirection(cameraPoint point.Point) (*point.Point, error) {
-	roomCenter, err := r.GetCenter()
-	if err != nil {
-		return nil, err
+func (r *Room) GetOppositeDirectionToRoom(s *point.Segment) *point.Point {
+	dir1, dir2 := s.NormalVectors()
+
+	roomCenter := r.Center
+	if roomCenter == nil {
+		roomCenter = point.GetCenter(r.Area)
 	}
+	
+	dx := roomCenter.X - (s.From.X + s.From.X) / 2
+	dy := roomCenter.Y - (s.From.Y + s.From.Y) / 2
 
-	diffX := roomCenter.X - cameraPoint.X
-	diffY := roomCenter.Y - cameraPoint.Y
-	vecLen := math.Sqrt(diffX*diffX + diffY*diffY)
-
-	if vecLen == 0 {
-		return nil, fmt.Errorf("Room corner is its center")
-	}
-
-	return &point.Point{X: diffX / vecLen, Y: diffY / vecLen}, nil
-}
-
-// IsPointVisibleOnCamera проверяет, видна ли точка на камере
-func (r *Room) IsPointVisibleOnCamera(apartment *Apartment, p point.Point, cameraPoint point.Point, cameraAngle float64, cameraDirection point.Point) bool {
-	vectorCameraToPoint := point.NewVector(cameraPoint, p)
-
-	if vectorCameraToPoint.X != 0 || vectorCameraToPoint.Y != 0 {
-		vecLen := math.Sqrt(vectorCameraToPoint.X*vectorCameraToPoint.X + vectorCameraToPoint.Y*vectorCameraToPoint.Y)
-		vectorCameraToPoint.X /= vecLen
-		vectorCameraToPoint.Y /= vecLen
-
-		dotPr := vectorCameraToPoint.X*cameraDirection.X + vectorCameraToPoint.Y*cameraDirection.Y
-		angle := math.Acos(dotPr) * (180 / math.Pi)
-
-		if angle > cameraAngle/2 {
-			return false
+	if math.Abs(dx) > math.Abs(dy) {
+		if dx > 0 {
+			return dir1
+		} else {
+			return dir2
 		}
 	}
 
-	cameraOffset := r.GetCameraOffset(apartment, cameraPoint, cameraDirection)
-	cameraPoint = MovePointInDirection(cameraPoint, cameraDirection, cameraOffset)
-
-	return !apartment.IsWallBetweenPoints(p, cameraPoint)
-}
-
-// GetCameraOffset определяет сдвиг для камеры
-// (чтобы после корректно использовать проверку стены между точками)
-func (r *Room) GetCameraOffset(apartment *Apartment, cameraPoint point.Point, cameraDirection point.Point) float64 {
-	minWallLen := math.MaxFloat64
-
-	for _, wallID := range r.Walls {
-		wall := apartment.wallsByID[wallID]
-		minWallLen = min(minWallLen, CalculatePointsDistance(wall.Points[0], wall.Points[1]))
+	if dy > 0 {
+		return dir1
 	}
-
-	return minWallLen * 0.01
+	return dir2
 }

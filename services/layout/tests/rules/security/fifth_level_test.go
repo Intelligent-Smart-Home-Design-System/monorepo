@@ -14,6 +14,52 @@ import (
 )
 
 func TestFifthLevelSimpleScript(t *testing.T) {
+	doors := []apartment.Door{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 0, Y: 0},
+				{X: 1, Y: 0},
+			},
+			Rooms: []string{"1"},
+		},
+	}
+
+	walls := []apartment.Wall{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 0, Y: 0},
+				{X: 3, Y: 0},
+			},
+			Width: 3,
+		},
+		{
+			ID: "2",
+			Points: []point.Point{
+				{X: 3, Y: 0},
+				{X: 3, Y: 3},
+			},
+			Width: 3,
+		},
+		{
+			ID: "3",
+			Points: []point.Point{
+				{X: 3, Y: 3},
+				{X: 0, Y: 3},
+			},
+			Width: 3,
+		},
+		{
+			ID: "4",
+			Points: []point.Point{
+				{X: 0, Y: 3},
+				{X: 0, Y: 0},
+			},
+			Width: 3,
+		},
+	}
+
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
@@ -24,20 +70,14 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
+			Doors: []string{"1"},
+			Walls: []string{"1", "2", "3", "4"},
 		},
 	}
 
-	door := apartment.Door{
-		ID: "1",
-		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
-		},
-		Rooms: []string{"1"},
-	}
-
-	apartmentStruct := &apartment.Apartment{
-		Doors: []apartment.Door{door},
+	ap := &apartment.Apartment{
+		Doors: doors,
+		Walls: walls,
 		Rooms: rooms,
 	}
 
@@ -45,17 +85,17 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 		"security": "5",
 	}
 
-	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(deviceConfig)
+	storage.LoadAllSecurityRules()
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
@@ -87,29 +127,55 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 }
 
 func TestFifthLevelPriceCalculation(t *testing.T) {
-	rooms := []apartment.Room{
+	doors := []apartment.Door{
 		{
-			ID:   "1",
-			Name: "bathroom",
-			Area: []point.Point{
+			ID: "1",
+			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 1, Y: 0},
 			},
+			Rooms: []string{"1"},
 		},
+	}
+
+	walls := []apartment.Wall{
 		{
-			ID:   "2",
-			Name: "kitchen",
-			Area: []point.Point{
+			ID: "1",
+			Points: []point.Point{
 				{X: 0, Y: 0},
 				{X: 3, Y: 0},
+			},
+			Width: 3,
+		},
+		{
+			ID: "2",
+			Points: []point.Point{
+				{X: 3, Y: 0},
+				{X: 3, Y: 3},
+			},
+			Width: 3,
+		},
+		{
+			ID: "3",
+			Points: []point.Point{
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
+			Width: 3,
 		},
 		{
-			ID:   "3",
+			ID: "4",
+			Points: []point.Point{
+				{X: 0, Y: 3},
+				{X: 0, Y: 0},
+			},
+			Width: 3,
+		},
+	}
+
+	rooms := []apartment.Room{
+		{
+			ID:   "1",
 			Name: "hall",
 			Area: []point.Point{
 				{X: 0, Y: 0},
@@ -117,47 +183,14 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
-		},
-		{
-			ID:   "4",
-			Name: "living",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
-			},
+			Doors: []string{"1"},
+			Walls: []string{"1", "2", "3", "4"},
 		},
 	}
 
-	windows := []apartment.Window{
-		{
-			ID: "1",
-			Points: []point.Point{
-				{X: 0, Y: 1},
-				{X: 0, Y: 2},
-			},
-			Rooms: []string{"2"},
-		},
-		{
-			ID: "2",
-			Points: []point.Point{
-				{X: 0, Y: 1},
-				{X: 0, Y: 2},
-			},
-			Rooms: []string{"4"},
-		},
-	}
-
-	door := apartment.Door{
-		ID:     "1",
-		Points: []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
-		Rooms:  []string{"3"},
-	}
-
-	apartmentStruct := &apartment.Apartment{
-		Windows: windows,
-		Doors:   []apartment.Door{door},
+	ap := &apartment.Apartment{
+		Doors:   doors,
+		Walls: walls,
 		Rooms:   rooms,
 	}
 
@@ -165,22 +198,22 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 		"security": "5",
 	}
 
-	trackConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(deviceConfig)
+	storage.LoadAllSecurityRules()
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
 	priceInfo := engine.CalculateLayoutPrice(globalPlacement)
 
-	assert.Equal(t, 58500, priceInfo.MinPrice)
-	assert.Equal(t, 89000, priceInfo.MaxPrice)
+	assert.Equal(t, 41500, priceInfo.MinPrice)
+	assert.Equal(t, 57000, priceInfo.MaxPrice)
 }

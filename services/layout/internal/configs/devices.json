@@ -18,10 +18,7 @@
       },
       "tracks": [
         "security"
-      ],
-      "filters": {
-        "gas_type": "methane"
-      }
+      ]
     },
     "smart_lock": {
       "name": "Умный замок",
@@ -31,14 +28,7 @@
       },
       "tracks": [
         "security"
-      ],
-      "filters": {
-        "unlock_methods": [
-          "fingerprint",
-          "code",
-          "key"
-        ]
-      }
+      ]
     },
     "smart_doorbell": {
       "name": "Умный дверной звонок",
@@ -48,11 +38,7 @@
       },
       "tracks": [
         "security"
-      ],
-      "filters": {
-        "angle": 140,
-        "resolution": "1080p"
-      }
+      ]
     },
     "door_sensor": {
       "name": "Датчик открытия дверей",
@@ -96,13 +82,7 @@
       },
       "tracks": [
         "security"
-      ],
-      "filters": {
-        "angle": 100,
-        "range": 10,
-        "night_vision": true,
-        "resolution": "1080p"
-      }
+      ]
     },
     "smart_siren": {
       "name": "Умная сирена",
@@ -112,10 +92,17 @@
       },
       "tracks": [
         "security"
-      ],
-      "filters": {
-        "volume_db": 80
-      }
+      ]
+    },
+    "air_conditioner": {
+      "name": "Кондиционер",
+      "price_range": {
+        "min": 5000,
+        "max": 200000
+      },
+      "tracks": [
+        "climate"
+      ]
     }
   }
 }

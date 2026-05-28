@@ -9,35 +9,33 @@ import (
 )
 
 type Engine struct {
-	storage       *storage.Storage
-	tracksConfig  *configs.Tracks
-	devicesConfig *configs.Devices
+	storage *storage.Storage
 }
 
-func NewEngine(st *storage.Storage, tracksConfig *configs.Tracks, deviceConfig *configs.Devices) *Engine {
+func NewEngine(st *storage.Storage) *Engine {
 	return &Engine{
-		storage:       st,
-		tracksConfig:  tracksConfig,
-		devicesConfig: deviceConfig,
+		storage: st,
 	}
 }
 
 // PlaceDevices расставляет устройства по выбранному уровню в каждом треке
-func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLevels map[string]string) (*apartment.Layout, error) {
-	if apartmentStruct == nil {
+func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string]string) (*apartment.Layout, error) {
+	if ap == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
 
-	if apartmentStruct.Rooms == nil {
+	if ap.Rooms == nil {
 		return nil, fmt.Errorf("nil rooms")
 	}
-	apartmentStruct.Index()
 
+	zonedAp := apartment.Build(ap)
+
+	tracksConfig := configs.GetGlobalTracksConfig()
 	res := apartment.NewApartmentResult()
 
-	for track, level := range selectedLevels {
-		trackConfig := e.tracksConfig.Tracks[track]
-		levelInfo, _ := trackConfig.Levels[level]
+	for trackName, levelNum := range selectedLevels {
+		trackConfig := tracksConfig.Tracks[trackName]
+		levelInfo, _ := trackConfig.Levels[levelNum]
 
 		for _, device := range levelInfo.Devices {
 			rule, ok := e.storage.Rules[device]
@@ -50,7 +48,12 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 				return nil, fmt.Errorf("no info about rooms for device %s", device)
 			}
 
-			err := rule.Apply(apartmentStruct, deviceRooms, res)
+			maxCount, ok := levelInfo.MaxDeviceCounts[device]
+			if !ok {
+				return nil, fmt.Errorf("no info about max count for device %s", device)
+			}
+
+			err := rule.Apply(zonedAp, levelNum, deviceRooms, maxCount, res)
 			if err != nil {
 				return nil, err
 			}
@@ -61,11 +64,12 @@ func (e *Engine) PlaceDevices(apartmentStruct *apartment.Apartment, selectedLeve
 }
 
 func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.Layout) *PriceInfo {
-	priceInfo := &PriceInfo{}
+	devicesConfig := configs.GetGlobalDevicesConfig()
 
+	priceInfo := &PriceInfo{}
 	for _, roomPlacements := range apartmentLayout.Placements {
 		for _, placement := range roomPlacements {
-			device := e.devicesConfig.Devices[placement.Device.Type]
+			device := devicesConfig.Devices[placement.Device.Type]
 
 			priceInfo.MinPrice += device.Price.Min
 			priceInfo.MaxPrice += device.Price.Max

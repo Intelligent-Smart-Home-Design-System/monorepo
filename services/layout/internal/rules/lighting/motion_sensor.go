@@ -19,8 +19,9 @@ func (r *MotionSensorRule) Type() string {
 	return "motion_sensor"
 }
 
-func (r *MotionSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames([]string{apartment.RoomPassage, apartment.RoomBathroom})
+func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	ap := zonedAp.OrigAp
+	devicesRooms, err := ap.GetRoomsByNames([]string{apartment.RoomPassage, apartment.RoomBathroom})
 	if err != nil {
 		return err
 	}

@@ -19,8 +19,11 @@ func (r *IlluminationSensorRule) Type() string {
 	return "illumination_sensor"
 }
 
-func (r *IlluminationSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomKitchen})
+
+
+func (r *IlluminationSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	ap := zonedAp.OrigAp
+	devicesRooms, err := ap.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomKitchen})
 	if err != nil {
 		return err
 	}

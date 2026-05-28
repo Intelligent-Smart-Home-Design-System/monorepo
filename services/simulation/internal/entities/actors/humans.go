@@ -2,10 +2,13 @@ package actors
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"math"
+	"sort"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
@@ -17,7 +20,7 @@ type Human struct {
 	ID        string   `json:"id"`
 	X         float64  `json:"x"`
 	Y         float64  `json:"y"`
-	RoomID    string   `json:"room_id"`
+	RoomID    string   `json:"roomID"`
 	Receivers []string `json:"receivers"`
 }
 
@@ -45,6 +48,21 @@ func NewHuman(data []byte, engineAPI engine.EnginePort) (*Human, error) {
 
 	human.enginePort = engineAPI
 	human.inStore = *simgo.NewStore[HumanInData](engineAPI.GetSimulation())
+
+	floor := engineAPI.GetFloor()
+	if _, ok := floor.Adjacency[human.RoomID]; !ok {
+		return nil, fmt.Errorf("human %s has invalid initial room_id %s", human.ID, human.RoomID)
+	}
+
+	for _, room := range floor.Rooms {
+		if room.ID == human.RoomID {
+			if !field.PointInRoom(human.X, human.Y, room) {
+				return nil, fmt.Errorf("human %s is not inside room %s", human.ID, human.RoomID)
+			}
+			break
+		}
+	}
+
 	return &human, nil
 }
 
@@ -113,9 +131,8 @@ func (h *Human) HandleEvent(inData HumanInData) HumanOutData {
 }
 
 // resolveMovement находит конечную позицию с учётом стен и дверей.
-// Ищем ближайшее пересечение — с дверью или стеной.
-func (h *Human) resolveMovement(move segment, floor api.FloorDTO) (float64, float64, string) {
-	currentRoom := h.findRoom(floor)
+func (h *Human) resolveMovement(move segment, floor *api.Floor) (float64, float64, string) {
+	currentRoom := findRoomByID(floor, h.RoomID)
 	if currentRoom == nil {
 		return h.X, h.Y, h.RoomID
 	}
@@ -124,29 +141,46 @@ func (h *Human) resolveMovement(move segment, floor api.FloorDTO) (float64, floa
 	hitWall := false
 	newRoomID := h.RoomID
 
-	for _, wall := range currentRoom.Walls {
-		if h.wallHasDoor(wall, currentRoom.Doors) {
-			continue
-		}
-		wallSeg := segment{wall.X1, wall.Y1, wall.X2, wall.Y2}
-		t, intersects := intersectSegments(move, wallSeg)
-		if intersects && t < closestT {
-			closestT = t
-			hitWall = true
+	var roomDoors []*api.Door
+	for _, edge := range floor.Adjacency[h.RoomID] {
+		if edge.Door != nil {
+			roomDoors = append(roomDoors, edge.Door)
 		}
 	}
 
-	for _, door := range currentRoom.Doors {
-		doorSeg := segment{door.X1, door.Y1, door.X2, door.Y2}
-		t, intersects := intersectSegments(move, doorSeg)
-		if intersects && t < closestT {
-			closestT = t
-			hitWall = false
-			if h.RoomID == door.FromRoom {
-				newRoomID = door.ToRoom
-			} else {
-				newRoomID = door.FromRoom
+	for _, wallID := range currentRoom.Walls {
+		wall := findWallByID(floor, wallID)
+		if wall == nil {
+			continue
+		}
+
+		parts := splitWallByDoors(wall, roomDoors)
+
+		for _, part := range parts {
+			t, intersects := intersectSegments(move, part)
+			if intersects && t < closestT {
+				closestT = t
+				hitWall = true
 			}
+		}
+	}
+
+	// проверяем двери текущей комнаты через граф смежности
+	for _, edge := range floor.Adjacency[h.RoomID] {
+		if edge.Door == nil {
+			continue
+		}
+
+		door := edge.Door
+		doorSeg := segment{
+			door.Points[0][0], door.Points[0][1],
+			door.Points[1][0], door.Points[1][1],
+		}
+
+		_, intersects := intersectSegments(move, doorSeg)
+		if intersects {
+			newRoomID = edge.NeighborRoomID
+			hitWall = false
 		}
 	}
 
@@ -162,26 +196,117 @@ func (h *Human) resolveMovement(move segment, floor api.FloorDTO) (float64, floa
 		newRoomID
 }
 
-func (h *Human) findRoom(floor api.FloorDTO) *api.RoomDTO {
+// splitWallByDoors разбивает стену на части исключая дверные проёмы.
+func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
+	wallStart := wall.Points[0]
+	wallEnd := wall.Points[1]
+
+	wallDX := wallEnd[0] - wallStart[0]
+	wallDY := wallEnd[1] - wallStart[1]
+	wallLenSq := wallDX*wallDX + wallDY*wallDY
+
+	type interval struct {
+		t1 float64
+		t2 float64
+	}
+	var gaps []interval
+
+	for _, door := range doors {
+		if !doorOnWall(door, wall) {
+			continue
+		}
+
+		t1 := projectOnSegment(door.Points[0], wallStart, wallEnd, wallLenSq)
+		t2 := projectOnSegment(door.Points[1], wallStart, wallEnd, wallLenSq)
+
+		if t1 > t2 {
+			t1, t2 = t2, t1
+		}
+
+		if t2 > 0 && t1 < 1 {
+			gaps = append(gaps, interval{
+				math.Max(0, t1),
+				math.Min(1, t2),
+			})
+		}
+	}
+
+	if len(gaps) == 0 {
+		return []segment{{wallStart[0], wallStart[1], wallEnd[0], wallEnd[1]}}
+	}
+
+	sort.Slice(gaps, func(i, j int) bool {
+		return gaps[i].t1 < gaps[j].t1
+	})
+
+	var segments []segment
+	prev := 0.0
+
+	for _, gap := range gaps {
+		if gap.t1 > prev+1e-10 {
+			segments = append(segments, segment{
+				wallStart[0] + prev*wallDX,
+				wallStart[1] + prev*wallDY,
+				wallStart[0] + gap.t1*wallDX,
+				wallStart[1] + gap.t1*wallDY,
+			})
+		}
+		if gap.t2 > prev {
+			prev = gap.t2
+		}
+	}
+
+	if prev < 1.0-1e-10 {
+		segments = append(segments, segment{
+			wallStart[0] + prev*wallDX,
+			wallStart[1] + prev*wallDY,
+			wallEnd[0],
+			wallEnd[1],
+		})
+	}
+
+	return segments
+}
+
+// projectOnSegment проецирует точку p на отрезок и возвращает параметр t ∈ [0..1].
+func projectOnSegment(p [2]float64, start, end [2]float64, lenSq float64) float64 {
+	dx := end[0] - start[0]
+	dy := end[1] - start[1]
+	t := ((p[0]-start[0])*dx + (p[1]-start[1])*dy) / lenSq
+	return math.Max(0, math.Min(1, t))
+}
+
+// findRoomByID находит комнату по ID.
+func findRoomByID(floor *api.Floor, roomID string) *api.Room {
 	for i, room := range floor.Rooms {
-		if room.ID == h.RoomID {
+		if room.ID == roomID {
 			return &floor.Rooms[i]
 		}
 	}
 	return nil
 }
 
-// wallHasDoor проверяет является ли стена дверным проёмом.
-func (h *Human) wallHasDoor(wall api.WallDTO, doors []api.DoorDTO) bool {
-	for _, door := range doors {
-		if segmentsCollinearAndOverlap(
-			segment{wall.X1, wall.Y1, wall.X2, wall.Y2},
-			segment{door.X1, door.Y1, door.X2, door.Y2},
-		) {
-			return true
+// findWallByID находит стену по ID.
+func findWallByID(floor *api.Floor, wallID string) *api.Wall {
+	for i, wall := range floor.Walls {
+		if wall.ID == wallID {
+			return &floor.Walls[i]
 		}
 	}
-	return false
+	return nil
+}
+
+// doorOnWall проверяет что дверь лежит на стене (коллинеарна и перекрывается).
+func doorOnWall(door *api.Door, wall *api.Wall) bool {
+	wallSeg := segment{
+		wall.Points[0][0], wall.Points[0][1],
+		wall.Points[1][0], wall.Points[1][1],
+	}
+	doorSeg := segment{
+		door.Points[0][0], door.Points[0][1],
+		door.Points[1][0], door.Points[1][1],
+	}
+	return segmentsCollinearAndOverlap(wallSeg, doorSeg)
 }
 
 // intersectSegments находит параметр t пересечения отрезков [0..1].

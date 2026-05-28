@@ -1,13 +1,14 @@
 package converter
 
 import (
-	"errors"
-	"strings"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/actors"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 )
@@ -44,6 +45,12 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 				return nil, err
 			}
 			IDToEntity[entityDTO.ID] = switcher
+		case entities.TypeHuman:
+			human, err := actors.NewHuman(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = human
 		default:
 			return nil, ErrorInvalidFormat
 		}

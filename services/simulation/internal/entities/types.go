@@ -40,4 +40,5 @@ const (
 	TypeLamp                 = "lamp"
 	TypeLampSwitcher         = "lampSwitcher"
 	TypeLightSwitchOffSensor = "lightSwitchOffSensor"
+	TypeHuman                = "human"
 )

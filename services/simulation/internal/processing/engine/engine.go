@@ -11,11 +11,11 @@ const maxEventsBuffer = 100
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
 	simulation    *simgo.Simulation          // дискретная симуляция из simgo
-	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.         
+	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
 	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
 	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
 	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
-	Floor         *api.Floor				 // Поле для симуляции
+	Floor         *api.Floor                 // Поле для симуляции
 }
 
 // NewSimEngine создает SimEngine
@@ -93,7 +93,7 @@ func (s *SimEngine) hasCycleDFS(entityID string, color map[string]int) bool {
 	return false
 }
 
-// SetField устанавливает поле для симуляции.
+// SetFloor устанавливает поле для симуляции.
 func (s *SimEngine) SetFloor(floor *api.Floor) {
 	s.Floor = floor
 }

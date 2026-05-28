@@ -20,6 +20,14 @@ func (s *Storage) LoadRule(rule rules.Rule) {
 	s.Rules[rule.Type()] = rule
 }
 
+func (s *Storage) LoadAllRules() {
+	s.LoadAllSecurityRules()
+	s.LoadAllLightingRules()
+	s.LoadAllClimateRules()
+
+	// TODO: добавить оставшиеся треки
+}
+
 func (s *Storage) LoadAllSecurityRules() {
 	storageRules := []rules.Rule{
 		security.NewWaterLeakRule(),

@@ -11,12 +11,9 @@ import (
 
 type Layout struct {
 	Placements map[string][]*device.Placement `json:"placements"`
-	// roomID -> deviceType -> devicePlacement
-	// То есть по roomID получаем мапу между
-	// типом устройства и его расстановкой.
 }
 
-func NewApartmentResult() *Layout {
+func NewLayout() *Layout {
 	return &Layout{Placements: make(map[string][]*device.Placement)}
 }
 

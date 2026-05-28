@@ -80,12 +80,18 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 			continue
 		}
 
-		bestPoint, _ := findBestMotionPoint(zonedAp.OrigAp, zr, motionSensorFilters)
+		bestPoint, direction := findBestMotionPoint(zonedAp.OrigAp, zr, motionSensorFilters)
 		if bestPoint == nil {
 			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, motionSensorFilters)
+		deviceFilter := &filters.MotionSensorFilter{
+			Angle: motionSensorFilters.Angle,
+			Range: motionSensorFilters.Range,
+			Direction: &direction,
+		}
+
+		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, deviceFilter)
 		deviceCnt++
 	}
 

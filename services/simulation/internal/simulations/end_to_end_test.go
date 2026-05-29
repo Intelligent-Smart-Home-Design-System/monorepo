@@ -569,8 +569,7 @@ func TestHuman_BlockedByWall(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	// пытаемся пройти через стену x=5 (не через дверь y=2..3)
-	// цель (7.5, 4.0) — в room_2, но путь через стену (не дверь)
+	// пытаемся пройти через стену x=5
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
 		humanMoveInput(t, "human_1", 7.5, 4.0),
 	}))
@@ -616,7 +615,6 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 	var steps []api.SimulationStepPayload
 
 	// двигаемся через дверь (5,2)-(5,3) в room_2
-	// путь (2.5,2.5) → (7.5,2.5) пересекает дверь
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
 		humanMoveInput(t, "human_1", 7.5, 2.5),
 	}))

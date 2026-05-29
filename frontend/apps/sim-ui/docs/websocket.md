@@ -1,23 +1,45 @@
 ## WebSocket Protocol (Simulation UI)
 
-Документ описывает двунаправленный WebSocket протокол между UI и бэкендом для запуска и визуализации симуляций квартиры.
+Документ описывает протокол взаимодействия между UI и backend для запуска и выполнения симуляции квартиры в режиме lockstep.
 
-## Connection
+---
 
-- Endpoint: `/ws/simulation`
-- Transport: WebSocket (JSON messages)
-- Encoding: UTF-8 JSON
+# Connection
 
-## Design notes (important)
+* Endpoint: `/ws/simulation`
+* Protocol: WebSocket
+* Encoding: UTF-8 JSON
 
-- Бэкенд **не получает** план квартиры из других модулей. UI уже имеет план квартиры, устройства и их позиции, полученные на предыдущих шагах пайплайна, и передаёт всё необходимое в `simulation:start`.
-- UI управляет симуляцией в режиме **lockstep**: каждый "тик" UI — это сообщение `simulation:tick`. Это обеспечивает детерминированность симуляции.
-- **Pause / resume** — забота UI. Если UI перестаёт слать тики, бэкенд естественным образом перестаёт продвигать симуляцию.
-- Все входящие события и исходящие изменения состояний используют единый конверт (`kind`, `entityId`, `payload`). Поле `payload` специфично для каждой сущности и парсится бэкендом на основе `kind`.
+---
 
-## Message Envelope
+# Design principles
 
-Каждое сообщение использует общий конверт:
+### 1. UI is the source of truth for simulation control
+
+UI управляет временем симуляции через `simulation:tick`. Backend не продвигает симуляцию самостоятельно.
+
+### 2. Lockstep execution
+
+Каждый `tick` — атомарный шаг симуляции. Backend обязан обработать входные события и вернуть результат до следующего tick.
+
+### 3. Backpressure через протокол
+
+UI обязан ждать `simulation:step` перед отправкой следующего `tick`.
+
+### 4. Stateless backend per session
+
+Backend не хранит UI state квартиры. Все данные приходят в `simulation:start`.
+
+### 5. Unified event model
+
+Все события используют единый контейнер:
+**entityId + payload (внутри payload находится kind)**
+
+---
+
+# Message Envelope
+
+Все сообщения оборачиваются в стандартный WebSocket envelope:
 
 ```json
 {
@@ -28,45 +50,63 @@
 }
 ```
 
-Поля:
-- `type`: название сообщения (см. ниже)
-- `ts`: ISO timestamp (время клиента или сервера)
-- `reqId`: опциональный ID запроса для сопоставления ответов. Клиент генерирует его сам и передаёт в `simulation:start`. Все последующие сообщения в рамках этой сессии (тики, события, ошибки) содержат тот же `reqId`
-- `payload`: данные специфичные для типа сообщения
+### Fields
 
-## Unified event envelope
+* `type` — тип сообщения
+* `ts` — timestamp события
+* `reqId` — ID симуляционной сессии (обязателен для simulation lifecycle)
+* `payload` — тело сообщения
 
-Все входящие события (client → server внутри `simulation:tick`) и все изменения состояний (server → client внутри `simulation:step`) используют единую структуру:
+---
+
+# Unified Event Model
+
+Все входные и выходные события используют единый формат:
 
 ```json
 {
-  "kind": "string",
   "entityId": "string",
   "payload": {}
 }
 ```
 
-Поля:
-- `kind`: описывает природу события (например `human:move`, `human:interaction`, `device:trigger`)
-- `entityId`: стабильный уникальный ID сущности над которой выполняется действие
-- `payload`: данные специфичные для сущности и типа события, парсятся бэкендом или UI на основе `kind`
+## Payload contract
 
-### Known `kind` values
+`payload` всегда содержит:
 
-| kind | направление | форма payload |
-|---|---|---|
-| `human:move` | input | `{ "x": 0.60, "y": 0.78 }` — целевые координаты движения |
-| `human:interaction` | input | `{ "device_id": "lamp_hall", "payload": { ... } }` — взаимодействие с устройством |
-| `device:trigger` | input | устройство-специфичный патч, например `{ "turn_on": true }` |
-| `human:move` | state change | `{ "x": 0.60, "y": 0.78, "roomId": "hall", "status": "moved" }` — новая позиция и комната |
-| `human:interaction` | state change | `{ "entity_id": "lamp_hall", "status": "triggered" }` — подтверждение взаимодействия |
-| `device:state` | state change | устройство-специфичный патч, например `{ "turn_on": true }` |
+* `kind` — тип команды или события
+* дополнительные поля, специфичные для типа события
 
-## Client -> Server
+---
 
-### `hello`
+## Why kind is inside payload
 
-Первоначальный handshake. Клиент сообщает свои возможности. Должен быть первым сообщением после установки соединения.
+* routing выполняется по `entityId`
+* `kind` используется внутри entity для выбора команды
+* payload остаётся self-contained domain object
+
+---
+
+# Known kinds
+
+| kind                | direction | description                    |
+| ------------------- | --------- | ------------------------------ |
+| `human:move`        | input     | перемещение человека           |
+| `human:interaction` | input     | взаимодействие с устройствами  |
+| `device:trigger`    | input     | управление устройством         |
+| `human:move`        | state     | обновление позиции человека    |
+| `human:interaction` | state     | подтверждение взаимодействия   |
+| `device:state`      | state     | изменение состояния устройства |
+
+---
+
+# Client → Server
+
+---
+
+## `hello`
+
+Handshake после установления соединения.
 
 ```json
 {
@@ -75,18 +115,16 @@
   "payload": {
     "client": "sim-ui",
     "version": "1.0.0",
-    "features": ["multiscenario", "floor-v1"]
+    "features": ["multiscenario"]
   }
 }
 ```
 
-### `simulation:start`
+---
 
-Запуск сессии симуляции. UI передаёт все необходимые данные: план квартиры, устройства с их ID/типами/позициями и граф сценариев (смежность устройств).
+## `simulation:start`
 
-Важно:
-- `dtSim` — количество **симуляционного времени** продвигаемого каждым `simulation:tick`. UI контролирует реальную скорость частотой отправки тиков
-- `devices[].id` должен быть стабильным и уникальным в рамках сессии. Сценарии ссылаются на устройства по этим ID
+Инициализация симуляции.
 
 ```json
 {
@@ -97,7 +135,7 @@
     "dtSim": 1.0,
     "apartment": {
       "id": "apt_1",
-      "floor": { "...": "ui floor plan payload (existing UI format)" }
+      "floor": {}
     },
     "devices": [
       {
@@ -106,14 +144,19 @@
         "roomId": "hall",
         "x": 0.52,
         "y": 0.78,
-        "state": { "turned_on": false }
+        "state": {
+          "turned_on": false
+        }
       }
     ],
     "scenarios": [
       {
-        "id": "motion_light_hall",
+        "id": "motion_light",
         "edges": [
-          { "to": "lamp_hall", "action": "turn_on" }
+          {
+            "to": "lamp_hall",
+            "action": "turn_on"
+          }
         ]
       }
     ]
@@ -121,11 +164,11 @@
 }
 ```
 
-### `simulation:tick`
+---
 
-Продвигает симуляцию на один lockstep тик. UI должен дождаться соответствующего ответа `simulation:step` перед отправкой следующего тика — это обеспечивает детерминированность и backpressure.
+## `simulation:tick`
 
-Все входящие события собранные с предыдущего тика передаются вместе. Бэкенд применяет их атомарно перед продвижением симуляционного времени.
+Продвижение симуляции на один шаг.
 
 ```json
 {
@@ -136,28 +179,32 @@
     "tick": 1,
     "inputs": [
       {
-        "kind": "human:move",
         "entityId": "player_1",
-        "payload": { "x": 0.60, "y": 0.78 }
+        "payload": {
+          "kind": "human:move",
+          "to": {
+            "x": 0.60,
+            "y": 0.78
+          }
+        }
       },
       {
-        "kind": "device:trigger",
         "entityId": "lamp_hall",
-        "payload": { "turn_on": true }
-      },
-      {
-        "kind": "human:interaction",
-        "entityId": "player_1",
-        "payload": { "device_id": "lamp_hall", "payload": { "turn_on": true } }
+        "payload": {
+          "kind": "device:trigger",
+          "turn_on": true
+        }
       }
     ]
   }
 }
 ```
 
-### `simulation:stop`
+---
 
-Останавливает текущую сессию симуляции. Бэкенд освобождает все ресурсы связанные с `reqId`.
+## `simulation:stop`
+
+Остановка симуляции.
 
 ```json
 {
@@ -167,11 +214,13 @@
 }
 ```
 
-## Server -> Client
+---
 
-### `hello:ack`
+# Server → Client
 
-Подтверждение handshake. Сервер сообщает свою версию.
+---
+
+## `hello:ack`
 
 ```json
 {
@@ -184,9 +233,9 @@
 }
 ```
 
-### `simulation:started`
+---
 
-Подтверждение успешного запуска симуляции. Сервер возвращает эффективные параметры сессии.
+## `simulation:started`
 
 ```json
 {
@@ -200,26 +249,11 @@
 }
 ```
 
-### `simulation:status`
+---
 
-Текущее состояние симуляции. Может быть запрошено клиентом или отправлено сервером по своей инициативе.
+## `simulation:step`
 
-```json
-{
-  "type": "simulation:status",
-  "ts": "2026-02-18T12:00:00.000Z",
-  "reqId": "run-001",
-  "payload": {
-    "state": "running",
-    "dtSim": 1.0,
-    "tick": 1
-  }
-}
-```
-
-### `simulation:step`
-
-Один lockstep апдейт для визуализации. Все изменения состояний за тик передаются в одном сообщении. Каждое изменение использует единый конверт события.
+Основной кадр симуляции.
 
 ```json
 {
@@ -231,28 +265,48 @@
     "simTime": 1.0,
     "stateChanges": [
       {
-        "kind": "device:state",
         "entityId": "lamp_hall",
-        "payload": { "turn_on": true }
+        "payload": {
+          "kind": "device:state",
+          "turn_on": true
+        }
       },
       {
-        "kind": "human:move",
         "entityId": "player_1",
-        "payload": { "x": 0.60, "y": 0.78, "roomId": "hall", "status": "moved" }
-      },
-      {
-        "kind": "human:interaction",
-        "entityId": "player_1",
-        "payload": { "entity_id": "lamp_hall", "status": "triggered" }
+        "payload": {
+          "kind": "human:move",
+          "to": {
+            "x": 0.60,
+            "y": 0.78
+          }
+          "roomId": "hall",
+          "status": "moved"
+        }
       }
     ]
   }
 }
 ```
 
-### `log:event`
+---
 
-Лог событий симуляции для отображения в консоли UI. Отправляется бэкендом при значимых событиях внутри симуляции.
+## `simulation:status`
+
+```json
+{
+  "type": "simulation:status",
+  "ts": "2026-02-18T12:00:00.000Z",
+  "reqId": "run-001",
+  "payload": {
+    "state": "running",
+    "tick": 1
+  }
+}
+```
+
+---
+
+## `log:event`
 
 ```json
 {
@@ -261,15 +315,14 @@
   "reqId": "run-001",
   "payload": {
     "level": "INFO",
-    "device": "hub",
-    "message": "Rule matched"
+    "message": "Rule triggered"
   }
 }
 ```
 
-### `error`
+---
 
-Ошибка обработки запроса. Содержит `reqId` запроса который вызвал ошибку.
+## `error`
 
 ```json
 {
@@ -278,7 +331,17 @@
   "reqId": "run-001",
   "payload": {
     "code": "INVALID_REQUEST",
-    "message": "Scenario not found"
+    "message": "Invalid scenario"
   }
 }
 ```
+
+---
+
+# Summary
+
+* routing: `entityId`
+* command dispatch: `payload.kind`
+* payload: domain data only
+* system is lockstep and deterministic
+* UI fully controls simulation progression

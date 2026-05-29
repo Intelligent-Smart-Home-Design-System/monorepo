@@ -28,7 +28,6 @@ type ZonedRoom struct {
 	SirenZones       []*Zone             `json:"siren_zones"`
 	CleaningZones    []*Zone             `json:"cleaning_zones"`
 	RestrictedZones  []*Zone             `json:"restricted_zones"`
-	ChargingZones    []*Zone             `json:"charging_zones"`
 	ACAvailableWalls map[string]struct{} // nil = все стены доступны
 }
 

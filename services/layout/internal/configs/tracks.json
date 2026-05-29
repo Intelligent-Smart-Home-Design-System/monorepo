@@ -796,8 +796,8 @@
           "name": "Четвертый уровень",
           "description": "Автономная станция",
           "price_range": {
-            "min": 60000,
-            "max": 75000
+            "min": 55000,
+            "max": 65000
           },
           "devices": [
             "robot_vacuum"
@@ -832,8 +832,8 @@
           "name": "Пятый уровень",
           "description": "Продвинутый робот-пылесос",
           "price_range": {
-            "min": 80000,
-            "max": 100000
+            "min": 70000,
+            "max": 80000
           },
           "devices": [
             "robot_vacuum"

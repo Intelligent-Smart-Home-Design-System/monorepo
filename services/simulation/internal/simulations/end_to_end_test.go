@@ -2,6 +2,7 @@ package simulations
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -127,7 +128,9 @@ func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []
 func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventInDTO {
 	t.Helper()
 
-	payload, err := json.Marshal(map[string]bool{"turn_on": turnOn})
+	deviceName := strings.Split(entityID, "_")[0]
+
+	payload, err := json.Marshal(map[string]any{"kind": fmt.Sprintf("%s:state", deviceName), "turn_on": turnOn})
 	if err != nil {
 		t.Fatalf("inputEvent: %v", err)
 	}
@@ -449,7 +452,6 @@ func humanInteractionInput(t *testing.T, EntityID string, devicePayload any) api
 
 	return api.EventInDTO{
 		EntityID: EntityID,
-		Kind:     "human:interaction",
 		Payload:  payload,
 	}
 }

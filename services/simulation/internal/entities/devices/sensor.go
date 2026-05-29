@@ -23,11 +23,13 @@ type LightSwitchOffSensor struct {
 }
 
 type LightSwitchOffSensorInData struct {
-	TurnOn bool `json:"turn_on"`
+	Kind   string `json:"kind"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 type LightSwitchOffSensorOutData struct {
-	TurnOn bool `json:"turn_on"`
+	Kind   string `json:"kind"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewLightSwitchOffSensor(data []byte, engineAPI engine.EnginePort) (*LightSwitchOffSensor, error) {
@@ -114,6 +116,7 @@ func (l *LightSwitchOffSensor) HandleEvent(inData LightSwitchOffSensorInData) Li
 	l.TurnedOn = inData.TurnOn
 
 	out := LightSwitchOffSensorOutData{
+		Kind:   inData.Kind,
 		TurnOn: l.TurnedOn,
 	}
 

@@ -15,14 +15,12 @@ type SimulationService interface {
 
 // EventInDTO структура для входящих событий от клиента в simulation:tick
 type EventInDTO struct {
-	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityId"`
 	Payload  json.RawMessage `json:"payload"`
 }
 
 // EventOutDTO структура для обработанных событий симуляции
 type EventOutDTO struct {
-	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityId"`
 	Payload  json.RawMessage `json:"payload"`
 }

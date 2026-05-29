@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"math"
 	"sort"
-	"strings"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
@@ -15,8 +14,8 @@ import (
 )
 
 const (
-	ActionMove        string = "move"
-	ActionInteraction string = "interaction"
+	ActionMove        string = "human:move"
+	ActionInteraction string = "human:interaction"
 )
 
 type HumanActionResult interface {
@@ -40,11 +39,12 @@ type HumanInData struct {
 		TargetX float64 `json:"x"`
 		TargetY float64 `json:"y"`
 	} `json:"to"`
-	Payload json.RawMessage `json:"payload"`
+	DevicePayload json.RawMessage `json:"device_payload"`
 }
 
 type HumanMoveOutData struct {
-	To struct {
+	Kind string `json:"kind"`
+	To   struct {
 		TargetX float64 `json:"x"`
 		TargetY float64 `json:"y"`
 	} `json:"to"`
@@ -57,6 +57,7 @@ func (r HumanMoveOutData) GetStatus() string {
 }
 
 type HumanInteractionOutData struct {
+	Kind     string `json:"kind"`
 	EntityID string `json:"entity_id"`
 	Status   string `json:"status"`
 }
@@ -139,21 +140,14 @@ func (h *Human) Process(process simgo.Process) {
 // HandleEvent реализует логику движения человека.
 // Двигаемся от текущей позиции к цели, проверяя стены и двери.
 func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
-	parts := strings.SplitN(inData.Kind, ":", 2)
-	if len(parts) != 2 {
-		slog.Warn("invalid human action kind", "kind", inData.Kind, "human_id", h.ID)
-		return HumanInteractionOutData{Status: "invalid action kind"}
-	}
-	actionType := parts[1]
-
-	switch actionType {
+	switch inData.Kind {
 	case ActionMove:
 		return h.handleMove(inData)
 	case ActionInteraction:
 		return h.HandleInteraction(inData)
 	default:
 		slog.Warn("unknown human action type",
-			"action_type", actionType,
+			"action_type", inData.Kind,
 			"human_id", h.ID,
 		)
 		return HumanInteractionOutData{
@@ -165,10 +159,11 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 func (h *Human) HandleInteraction(inData HumanInData) HumanInteractionOutData {
 	h.enginePort.GetInChan() <- api.EventInDTO{
 		EntityID: h.ID,
-		Payload:  inData.Payload,
+		Payload:  inData.DevicePayload,
 	}
 
 	return HumanInteractionOutData{
+		Kind:     inData.Kind,
 		EntityID: h.ID,
 		Status:   "triggered",
 	}
@@ -183,6 +178,7 @@ func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 
 	if dist == 0 {
 		return HumanMoveOutData{
+			Kind: inData.Kind,
 			To: struct {
 				TargetX float64 `json:"x"`
 				TargetY float64 `json:"y"`

@@ -22,11 +22,13 @@ type Lamp struct {
 
 // TODO: решить какие структуры использовать (SH-37, вопрос 1 фев 15:06)
 type LampInData struct {
-	TurnOn bool `json:"turn_on"`
+	Kind   string `json:"kind"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 type LampOutData struct {
-	TurnOn bool `json:"turn_on"`
+	Kind   string `json:"kind"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
@@ -93,6 +95,7 @@ func (l *Lamp) HandleEvent(inData LampInData) LampOutData {
 	l.TurnedOn = inData.TurnOn
 
 	out := LampOutData{
+		Kind:   inData.Kind,
 		TurnOn: l.TurnedOn,
 	}
 

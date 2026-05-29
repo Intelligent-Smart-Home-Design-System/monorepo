@@ -172,7 +172,8 @@ func statesFrom(steps []api.SimulationStepPayload, entityID string) []bool {
 			}
 
 			var out struct {
-				TurnOn bool `json:"turn_on"`
+				Kind   string `json:"kind"`
+				TurnOn bool   `json:"turn_on"`
 			}
 			_ = json.Unmarshal(change.Payload, &out)
 			result = append(result, out.TurnOn)
@@ -508,7 +509,7 @@ func humanRoomFrom(steps []api.SimulationStepPayload, humanID string) (roomID st
 	return "", false
 }
 
-// ===== Tests =====
+// ===== Tests for human =====
 
 // TestHuman_NormalMove проверяет нормальное движение внутри комнаты.
 func TestHuman_NormalMove(t *testing.T) {
@@ -670,7 +671,7 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 
 	// человек взаимодействует с лампой — включает её
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
-		humanInteractionInput(t, "lamp_1", map[string]bool{"turn_on": true}),
+		humanInteractionInput(t, "lamp_1", map[string]any{"kind": "lamp:state", "turn_on": true}),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -689,12 +690,13 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 	for _, step := range steps {
 		for _, change := range step.StateChanges {
 			var out struct {
-				TurnOn bool `json:"turn_on"`
+				Kind   string `json:"kind"`
+				TurnOn bool   `json:"turn_on"`
 			}
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
-			if out.TurnOn == true {
+			if out.TurnOn == true && out.Kind == "lamp:state" {
 				interactionFound = true
 			}
 		}
@@ -734,7 +736,7 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 
 	// тик 1: взаимодействие с лампой
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
-		humanInteractionInput(t, "lamp_1", map[string]bool{"turn_on": true}),
+		humanInteractionInput(t, "lamp_1", map[string]any{"kind": "lamp:state", "turn_on": true}),
 	}))
 
 	// тик 2: движение

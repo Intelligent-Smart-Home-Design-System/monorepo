@@ -12,6 +12,7 @@ dependencies = [
     "protobuf>=6.33.6",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
+    "prometheus-client>=0.23.1",
     "pymoo>=0.6.1.6",
     "structlog>=25.5.0",
     "temporalio>=1.27.1",

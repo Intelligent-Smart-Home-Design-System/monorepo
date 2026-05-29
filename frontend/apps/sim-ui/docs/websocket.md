@@ -191,7 +191,7 @@ Handshake после установления соединения.
       {
         "entityId": "lamp_hall",
         "payload": {
-          "kind": "device:trigger",
+          "kind": "device:state",
           "turn_on": true
         }
       }

@@ -31,14 +31,20 @@ type EntityWithProcess interface {
 
 	// GetProcessFunc возвращает функция процесс
 	GetProcessFunc() func(process simgo.Process)
-
-	// Process реализует функцию процесса устройства.
-	Process(process simgo.Process)
 }
 
 const (
-	TypeLamp                 = "lamp"
-	TypeLampSwitcher         = "lampSwitcher"
-	TypeLightSwitchOffSensor = "lightSwitchOffSensor"
-	TypeHuman                = "human"
+	TypeLamp                = "lamp"
+	TypeSmartDimmer         = "smartDimmer"
+	TypeLampSwitcher        = "lampSwitcher"
+	TypeSensorWithUpdate    = "sensorWithUpdate"
+	TypeSensorWithoutUpdate = "sensorWithoutUpdate"
+	TypeSiren               = "siren"
+	TypeWindow              = "window"
+	TypeDoor                = "door"
+	TypeSmartLock           = "smartLock"
+	TypeSmartDoorbell       = "smartDoorbell"
+	TypeSmartCurtains       = "smartCurtains"
+
+	TypeHuman = "human"
 )

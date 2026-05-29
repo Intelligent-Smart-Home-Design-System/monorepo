@@ -279,9 +279,9 @@ func TestWS_Simulation_UserIntervention(t *testing.T) {
 	}
 }
 
-// ===== Tests for LightSwitchOffSensor =====
+// ===== Tests for SensorWithUpdate =====
 // Обычный сценарий: сенсор получил сигнал, потом завершил таймаут и выключился.
-func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
+func TestSimulation_SensorWithUpdate_NoInterruption(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
 
@@ -291,22 +291,22 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "lightSwitchOffSensor_1", Type: "lightSwitchOffSensor", Info: json.RawMessage(`{"id":"lightSwitchOffSensor_1","delay":0.5,"timeout":1.0,"turned_on":false}`)},
+			{ID: "sensorWithUpdate_1", Type: "sensorWithUpdate", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.5,"timeout":1.0,"turned_on":false}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.5,"turned_on":false}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
-			{EntityID: "lightSwitchOffSensor_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+			{EntityID: "sensorWithUpdate_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
 		},
 	})
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", false)}))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
 	steps = append(steps, tick(t, conn, reqID, 4, nil))
 
-	got := statesFrom(steps, "lightSwitchOffSensor_1")
+	got := statesFrom(steps, "sensorWithUpdate_1")
 	want := []bool{true, false}
 
 	if len(got) < len(want) {
@@ -320,7 +320,7 @@ func TestSimulation_LightSwitchOffSensor_NoInterruption(t *testing.T) {
 }
 
 // Сценарий с 2 прерываниями: каждое новое срабатывание продлевает время работы сенсора.
-func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
+func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
 
@@ -330,26 +330,26 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "lightSwitchOffSensor_1", Type: "lightSwitchOffSensor", Info: json.RawMessage(`{"id":"lightSwitchOffSensor_1","delay":0.0,"timeout":4.0,"turned_on":false}`)},
+			{ID: "sensorWithUpdate_1", Type: "sensorWithUpdate", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0,"timeout":4.0,"turned_on":false}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turned_on":false}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
-			{EntityID: "lightSwitchOffSensor_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+			{EntityID: "sensorWithUpdate_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
 		},
 	})
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lightSwitchOffSensor_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", false)}))
 	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{
-		inputEvent(t, "lightSwitchOffSensor_1", true),
-		inputEvent(t, "lightSwitchOffSensor_1", false),
+		inputEvent(t, "sensorWithUpdate_1", true),
+		inputEvent(t, "sensorWithUpdate_1", false),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 4, nil))
 	steps = append(steps, tick(t, conn, reqID, 5, []api.EventInDTO{
-		inputEvent(t, "lightSwitchOffSensor_1", true),
-		inputEvent(t, "lightSwitchOffSensor_1", false),
+		inputEvent(t, "sensorWithUpdate_1", true),
+		inputEvent(t, "sensorWithUpdate_1", false),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 6, nil))
 	steps = append(steps, tick(t, conn, reqID, 7, nil))
@@ -357,7 +357,7 @@ func TestSimulation_LightSwitchOffSensor_TwoInterruptions(t *testing.T) {
 	steps = append(steps, tick(t, conn, reqID, 9, nil))
 	steps = append(steps, tick(t, conn, reqID, 10, nil))
 
-	got := statesFrom(steps, "lightSwitchOffSensor_1")
+	got := statesFrom(steps, "sensorWithUpdate_1")
 	want := []bool{true, false}
 
 	if len(got) < len(want) {

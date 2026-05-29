@@ -2,31 +2,18 @@ package devices
 
 import (
 	"encoding/json"
-	"log/slog"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
 
 // Lamp реализует интерфейс entities.EntityWithProcess.
 type Lamp struct {
-	enginePort engine.EnginePort
-	inStore    simgo.Store[LampInData]
-
-	ID        string   `json:"id"`
-	TurnedOn  bool     `json:"turned_on"`
-	Delay     float64  `json:"delay"`
-	Receivers []string `json:"receivers"`
+	BaseDevice[LampData]
+	TurnedOn bool `json:"turned_on"`
 }
 
-// TODO: решить какие структуры использовать (SH-37, вопрос 1 фев 15:06)
-type LampInData struct {
-	Kind   string `json:"kind"`
-	TurnOn bool   `json:"turn_on"`
-}
-
-type LampOutData struct {
+type LampData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
@@ -38,87 +25,89 @@ func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 	}
 
 	lamp.enginePort = engineAPI
-	lamp.inStore = *simgo.NewStore[LampInData](engineAPI.GetSimulation())
+	lamp.inStore = *simgo.NewStore[LampData](engineAPI.GetSimulation())
+	lamp.handler = lamp.HandleEvent
+
 	return &lamp, nil
 }
 
 func (l *Lamp) HandleInDTO(dto []byte) error {
-	input := LampInData{}
+	input := LampData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
-	l.inStore.Put(input)
+	l.Put(input)
 
 	return nil
 }
 
-func (l *Lamp) HandleOutDTO(dto []byte) {
-	outData := api.EventOutDTO{
-		EntityID: l.ID,
-		Payload:  dto,
-	}
-	l.enginePort.GetOutChan() <- outData
-
-	for _, receiverID := range l.Receivers {
-		l.enginePort.GetInChan() <- api.EventInDTO{
-			EntityID: receiverID,
-			Payload:  dto,
-		}
-	}
-}
-
-func (l *Lamp) GetProcessFunc() func(process simgo.Process) {
-	return l.Process
-}
-
-func (l *Lamp) Process(process simgo.Process) {
-	for {
-		storeElement := l.inStore.Get()
-		event := storeElement.Event
-
-		process.Wait(event)
-		process.Wait(process.Timeout(l.getReactionDelay()))
-
-		inData := storeElement.Item
-		outData := l.HandleEvent(inData)
-		dto, err := json.Marshal(outData)
-		l.HandleOutDTO(dto)
-		if err != nil {
-			slog.Warn("error in event handle", "error", err, "entity_id", l.ID)
-		}
-	}
-}
-
 // HandleEvent реализует бизнес-логику устройства.
 // Возвращает обработанные данные.
-func (l *Lamp) HandleEvent(inData LampInData) LampOutData {
+func (l *Lamp) HandleEvent(inData LampData) LampData {
 	l.TurnedOn = inData.TurnOn
 
-	out := LampOutData{
+	return LampData{
 		Kind:   inData.Kind,
 		TurnOn: l.TurnedOn,
 	}
-
-	return out
 }
 
-func (l *Lamp) GetID() string {
-	return l.ID
+// SmartDimmer (Декоративный светильник — используется для акцентного освещения и сцен)
+// реализует интерфейс entities.EntityWithProcess.
+type SmartDimmer struct {
+	BaseDevice[DimmerData]
+	Brightness int `json:"brightness"` // 0-100
 }
 
-func (l *Lamp) getReactionDelay() float64 {
-	return l.Delay
+type DimmerData struct {
+	Kind       string `json:"kind"`
+	Brightness int    `json:"brightness"`
 }
 
-func (l *Lamp) GetReceiversID() []string {
-	return l.Receivers
-}
+func NewSmartDimmer(data []byte, engineAPI engine.EnginePort) (*SmartDimmer, error) {
+	var dimmer SmartDimmer
 
-func (l *Lamp) SetReceivers(actions []api.EdgeDTO) {
-	receivers := make([]string, len(actions))
-	for i, action := range actions {
-		receivers[i] = action.ToID
+	if err := json.Unmarshal(data, &dimmer); err != nil {
+		return nil, err
 	}
 
-	l.Receivers = receivers
+	dimmer.enginePort = engineAPI
+	dimmer.inStore = *simgo.NewStore[DimmerData](engineAPI.GetSimulation())
+	dimmer.handler = dimmer.HandleEvent
+
+	return &dimmer, nil
+}
+
+func (d *SmartDimmer) HandleInDTO(dto []byte) error {
+	input := DimmerData{}
+
+	if err := json.Unmarshal(dto, &input); err != nil {
+		return err
+	}
+
+	d.Put(input)
+
+	return nil
+}
+
+// HandleEvent реализует бизнес-логику диммера.
+func (d *SmartDimmer) HandleEvent(inData DimmerData) DimmerData {
+	brightness := inData.Brightness
+
+	if brightness < 0 {
+		brightness = 0
+	}
+
+	if brightness > 100 {
+		brightness = 100
+	}
+
+	d.Brightness = brightness
+
+	out := DimmerData{
+		Kind:       inData.Kind,
+		Brightness: d.Brightness,
+	}
+
+	return out
 }

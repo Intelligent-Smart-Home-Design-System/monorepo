@@ -39,18 +39,66 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = lampSwitcher
-		case entities.TypeLightSwitchOffSensor:
-			switcher, err := devices.NewLightSwitchOffSensor(entityDTO.Info, engineAPI)
+		case entities.TypeSensorWithUpdate:
+			sensor, err := devices.NewSensorWithUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
-			IDToEntity[entityDTO.ID] = switcher
+			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeHuman:
 			human, err := actors.NewHuman(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
 			IDToEntity[entityDTO.ID] = human
+		case entities.TypeSmartDimmer:
+			dimmer, err := devices.NewSmartDimmer(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = dimmer
+		case entities.TypeSensorWithoutUpdate:
+			sensor, err := devices.NewSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeSiren:
+			siren, err := devices.NewSiren(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = siren
+		case entities.TypeWindow:
+			window, err := devices.NewWindow(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = window
+		case entities.TypeDoor:
+			door, err := devices.NewDoor(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = door
+		case entities.TypeSmartLock:
+			lock, err := devices.NewSmartLock(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = lock
+		case entities.TypeSmartDoorbell:
+			doorbell, err := devices.NewSmartDoorbell(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = doorbell
+		case entities.TypeSmartCurtains:
+			curtains, err := devices.NewSmartCurtains(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = curtains
 		default:
 			return nil, ErrorInvalidFormat
 		}

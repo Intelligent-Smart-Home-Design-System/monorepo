@@ -2,144 +2,159 @@ package devices
 
 import (
 	"encoding/json"
+	"log/slog"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
 )
 
 // Датчики
 
-// LightSwitchOffSensor - сенсор-переключатель
-type LightSwitchOffSensor struct {
-	enginePort engine.EnginePort
-	inStore    simgo.Store[LightSwitchOffSensorInData]
-
-	ID        string   `json:"id"`
-	TurnedOn  bool     `json:"turned_on"`
-	Delay     float64  `json:"delay"`
-	Timeout   float64  `json:"timeout"`
-	Receivers []string `json:"receivers"`
+// SensorWithUpdate - сенсор-переключатель с функцией обновления последнего действия.
+// Позволяет обновлять действие до истечения таймаута, старое действие игнорируется.
+type SensorWithUpdate struct {
+	BaseDevice[SensorWithUpdateData]
+	TurnedOn bool    `json:"turned_on"`
+	Timeout  float64 `json:"timeout"`
 }
 
-type LightSwitchOffSensorInData struct {
+type SensorWithUpdateData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
-type LightSwitchOffSensorOutData struct {
-	Kind   string `json:"kind"`
-	TurnOn bool   `json:"turn_on"`
-}
-
-func NewLightSwitchOffSensor(data []byte, engineAPI engine.EnginePort) (*LightSwitchOffSensor, error) {
-	var switcher LightSwitchOffSensor
+func NewSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithUpdate, error) {
+	var switcher SensorWithUpdate
 	if err := json.Unmarshal(data, &switcher); err != nil {
 		return nil, err
 	}
+
 	switcher.enginePort = engineAPI
-	switcher.inStore = *simgo.NewStore[LightSwitchOffSensorInData](engineAPI.GetSimulation())
+	switcher.inStore = *simgo.NewStore[SensorWithUpdateData](engineAPI.GetSimulation())
 	return &switcher, nil
 }
 
-func (l *LightSwitchOffSensor) HandleInDTO(dto []byte) error {
-	input := LightSwitchOffSensorInData{}
+func (s *SensorWithUpdate) HandleInDTO(dto []byte) error {
+	input := SensorWithUpdateData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
-	l.inStore.Put(input)
+
+	s.Put(input)
 	return nil
 }
 
-func (l *LightSwitchOffSensor) HandleOutDTO(dto []byte) {
-	outData := api.EventOutDTO{
-		EntityID: l.ID,
-		Payload:  dto,
-	}
-
-	l.enginePort.GetOutChan() <- outData
-
-	for _, receiverID := range l.Receivers {
-		l.enginePort.GetInChan() <- api.EventInDTO{
-			EntityID: receiverID,
-			Payload:  dto,
-		}
-	}
+func (s *SensorWithUpdate) GetProcessFunc() func(process simgo.Process) {
+	return s.Process
 }
 
-func (l *LightSwitchOffSensor) GetProcessFunc() func(process simgo.Process) {
-	return l.Process
-}
-
-func (l *LightSwitchOffSensor) Process(process simgo.Process) {
+func (s *SensorWithUpdate) Process(process simgo.Process) {
 	for {
-		el := l.inStore.Get()
+		el := s.inStore.Get()
 		process.Wait(el.Event)
-		process.Wait(process.Timeout(l.getReactionDelay()))
+		process.Wait(process.Timeout(s.Delay))
 
 		inData := el.Item
 		if !inData.TurnOn {
 			continue
 		}
 
-		outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: true})
-		dataLamp, _ := json.Marshal(outData)
-		l.HandleOutDTO(dataLamp)
+		outData, err := s.HandleEvent(SensorWithUpdateData{TurnOn: true})
+		if err != nil {
+			slog.Warn("handler error", "id", s.ID, "err", err)
+			continue
+		}
 
-		for l.TurnedOn {
-			timeoutEv := process.Timeout(l.Timeout)
-			el2 := l.inStore.Get()
+		dataLamp, _ := json.Marshal(outData)
+		s.HandleOutDTO(dataLamp)
+
+		for s.TurnedOn {
+			timeoutEv := process.Timeout(s.Timeout)
+			el2 := s.inStore.Get()
 
 			process.Wait(process.AnyOf(timeoutEv, el2.Event))
 
 			if timeoutEv.Processed() && !el2.Event.Processed() {
-				outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: false})
+				outData, err := s.HandleEvent(SensorWithUpdateData{TurnOn: false})
+				if err != nil {
+					slog.Warn("handler error", "id", s.ID, "err", err)
+					continue
+				}
+
 				dto, _ := json.Marshal(outData)
-				l.HandleOutDTO(dto)
+				s.HandleOutDTO(dto)
 				break
 			}
 
-			process.Wait(process.Timeout(l.getReactionDelay()))
+			process.Wait(process.Timeout(s.Delay))
 			nextData := el2.Item
 
 			if !nextData.TurnOn {
-				outData := l.HandleEvent(LightSwitchOffSensorInData{TurnOn: false})
+				outData, err := s.HandleEvent(SensorWithUpdateData{TurnOn: false})
+				if err != nil {
+					slog.Warn("handler error", "id", s.ID, "err", err)
+					continue
+				}
+
 				dto, _ := json.Marshal(outData)
-				l.HandleOutDTO(dto)
+				s.HandleOutDTO(dto)
 				break
 			}
 		}
 	}
 }
 
-func (l *LightSwitchOffSensor) HandleEvent(inData LightSwitchOffSensorInData) LightSwitchOffSensorOutData {
-	l.TurnedOn = inData.TurnOn
+func (s *SensorWithUpdate) HandleEvent(inData SensorWithUpdateData) (SensorWithUpdateData, error) {
+	s.TurnedOn = inData.TurnOn
 
-	out := LightSwitchOffSensorOutData{
+	return SensorWithUpdateData{
 		Kind:   inData.Kind,
-		TurnOn: l.TurnedOn,
+		TurnOn: s.TurnedOn,
+	}, nil
+}
+
+// SensorWithoutUpdate - датчик окна (фиксирует открытие/закрытие окна)
+// реализует интерфейс entities.EntityWithProcess.
+type SensorWithoutUpdate struct {
+	BaseDevice[SensorWithoutUpdateData]
+	TurnedOn bool `json:"turned_on"`
+}
+
+type SensorWithoutUpdateData struct {
+	Kind   string `json:"kind"`
+	Opened bool   `json:"opened"`
+}
+
+func NewSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithoutUpdate, error) {
+	var sensor SensorWithoutUpdate
+
+	if err := json.Unmarshal(data, &sensor); err != nil {
+		return nil, err
 	}
 
-	return out
+	sensor.enginePort = engineAPI
+	sensor.inStore = *simgo.NewStore[SensorWithoutUpdateData](engineAPI.GetSimulation())
+	sensor.handler = sensor.HandleEvent
+
+	return &sensor, nil
 }
 
-func (l *LightSwitchOffSensor) GetID() string {
-	return l.ID
-}
-
-func (l *LightSwitchOffSensor) getReactionDelay() float64 {
-	return l.Delay
-}
-
-func (l *LightSwitchOffSensor) GetReceiversID() []string {
-	return l.Receivers
-}
-
-func (l *LightSwitchOffSensor) SetReceivers(actions []api.EdgeDTO) {
-	receivers := make([]string, len(actions))
-	for i, action := range actions {
-		receivers[i] = action.ToID
+func (s *SensorWithoutUpdate) HandleInDTO(dto []byte) error {
+	input := SensorWithoutUpdateData{}
+	if err := json.Unmarshal(dto, &input); err != nil {
+		return err
 	}
 
-	l.Receivers = receivers
+	s.Put(input)
+	return nil
+}
+
+// HandleEvent реализует бизнес-логику устройства.
+func (s *SensorWithoutUpdate) HandleEvent(inData SensorWithoutUpdateData) SensorWithoutUpdateData {
+	s.TurnedOn = inData.Opened
+
+	return SensorWithoutUpdateData{
+		Kind:   inData.Kind,
+		Opened: s.TurnedOn,
+	}
 }

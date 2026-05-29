@@ -31,7 +31,7 @@ type EventOutDTO struct {
 type EntityDTO struct {
 	ID   string          `json:"id"`
 	Type string          `json:"type"`
-	Info json.RawMessage `json:"info"` // парсится позже в converter (метод engine)
+	Info json.RawMessage `json:"info"`
 }
 
 // ScenarioDTO структура для сценария (приходит от UI в simulation:start), описывает устройство (EntityID) и
@@ -117,10 +117,10 @@ type Floor struct {
 	Meta struct {
 		Units string `json:"units"`
 	} `json:"meta"`
-	Walls         []Wall   `json:"walls"`
-	Doors         []Door   `json:"doors"`
-	Windows       []Window `json:"windows"`
-	Rooms         []Room   `json:"rooms"`
+	Walls   []Wall   `json:"walls"`
+	Doors   []Door   `json:"doors"`
+	Windows []Window `json:"windows"`
+	Rooms   []Room   `json:"rooms"`
 	// Граф смежности: roomID → список соседних комнат.
 	Adjacency map[string][]RoomEdge
 }
@@ -145,7 +145,7 @@ type Window struct {
 	Points [2][2]float64 `json:"points"`
 	Width  float64       `json:"width"`
 }
- 
+
 type Room struct {
 	ID      string       `json:"id"`
 	Name    string       `json:"name"`

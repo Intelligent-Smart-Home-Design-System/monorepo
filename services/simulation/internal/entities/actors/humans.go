@@ -40,8 +40,7 @@ type HumanInData struct {
 		TargetX float64 `json:"x"`
 		TargetY float64 `json:"y"`
 	} `json:"to"`
-	EntityID string          `json:"entityID"`
-	Payload  json.RawMessage `json:"payload"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 type HumanMoveOutData struct {
@@ -165,12 +164,12 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 
 func (h *Human) HandleInteraction(inData HumanInData) HumanInteractionOutData {
 	h.enginePort.GetInChan() <- api.EventInDTO{
-		EntityID: inData.EntityID,
+		EntityID: h.ID,
 		Payload:  inData.Payload,
 	}
 
 	return HumanInteractionOutData{
-		EntityID: inData.EntityID,
+		EntityID: h.ID,
 		Status:   "triggered",
 	}
 }

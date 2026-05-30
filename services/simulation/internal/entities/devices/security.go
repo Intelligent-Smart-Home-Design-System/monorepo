@@ -13,12 +13,12 @@ import (
 // Активируется по сигналу тревоги и генерирует звуковое/световое оповещение.
 type Siren struct {
 	BaseDevice[SirenData]
-	Active bool `json:"active"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type SirenData struct {
 	Kind   string `json:"kind"`
-	Active bool   `json:"active"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewSiren(data []byte, engineAPI engine.EnginePort) (*Siren, error) {
@@ -48,10 +48,10 @@ func (s *Siren) HandleInDTO(dto []byte) error {
 
 // HandleEvent — бизнес-логика сирены.
 func (s *Siren) HandleEvent(inData SirenData) SirenData {
-	s.Active = inData.Active
+	s.TurnOn = inData.TurnOn
 
 	return SirenData{
 		Kind:   inData.Kind,
-		Active: s.Active,
+		TurnOn: s.TurnOn,
 	}
 }

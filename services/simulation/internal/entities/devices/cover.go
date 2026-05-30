@@ -12,12 +12,12 @@ import (
 // Window реализует интерфейс entities.EntityWithProcess.
 type Window struct {
 	BaseDevice[WindowData]
-	Opened bool `json:"opened"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type WindowData struct {
 	Kind   string `json:"kind"`
-	Opened bool   `json:"opened"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewWindow(data []byte, engineAPI engine.EnginePort) (*Window, error) {
@@ -48,11 +48,11 @@ func (w *Window) HandleInDTO(dto []byte) error {
 
 // HandleEvent реализует бизнес-логику окна.
 func (w *Window) HandleEvent(inData WindowData) WindowData {
-	w.Opened = inData.Opened
+	w.TurnOn = inData.TurnOn
 
 	return WindowData{
 		Kind:   inData.Kind,
-		Opened: w.Opened,
+		TurnOn: w.TurnOn,
 	}
 }
 
@@ -60,12 +60,12 @@ func (w *Window) HandleEvent(inData WindowData) WindowData {
 // Получает команды от датчика/логики и меняет состояние двери.
 type Door struct {
 	BaseDevice[DoorData]
-	Opened bool `json:"opened"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type DoorData struct {
 	Kind   string `json:"kind"`
-	Opened bool   `json:"opened"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewDoor(data []byte, engineAPI engine.EnginePort) (*Door, error) {
@@ -96,11 +96,11 @@ func (d *Door) HandleInDTO(dto []byte) error {
 
 // HandleEvent — бизнес-логика двери.
 func (d *Door) HandleEvent(inData DoorData) DoorData {
-	d.Opened = inData.Opened
+	d.TurnOn = inData.TurnOn
 
 	return DoorData{
 		Kind:   inData.Kind,
-		Opened: d.Opened,
+		TurnOn: d.TurnOn,
 	}
 }
 
@@ -108,12 +108,12 @@ func (d *Door) HandleEvent(inData DoorData) DoorData {
 // Управляет состоянием "заблокирован / разблокирован".
 type SmartLock struct {
 	BaseDevice[LockData]
-	Locked bool `json:"locked"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type LockData struct {
 	Kind   string `json:"kind"`
-	Locked bool   `json:"locked"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewSmartLock(data []byte, engineAPI engine.EnginePort) (*SmartLock, error) {
@@ -144,11 +144,11 @@ func (l *SmartLock) HandleInDTO(dto []byte) error {
 
 // HandleEvent — бизнес-логика замка.
 func (l *SmartLock) HandleEvent(inData LockData) LockData {
-	l.Locked = inData.Locked
+	l.TurnOn = inData.TurnOn
 
 	return LockData{
 		Kind:   inData.Kind,
-		Locked: l.Locked,
+		TurnOn: l.TurnOn,
 	}
 }
 
@@ -156,12 +156,12 @@ func (l *SmartLock) HandleEvent(inData LockData) LockData {
 // Получает событие нажатия и генерирует сигнал/уведомление.
 type SmartDoorbell struct {
 	BaseDevice[DoorbellData]
-	Ringing bool `json:"ringing"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type DoorbellData struct {
-	Kind string `json:"kind"`
-	Ring bool   `json:"ring"`
+	Kind   string `json:"kind"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewSmartDoorbell(data []byte, engineAPI engine.EnginePort) (*SmartDoorbell, error) {
@@ -192,11 +192,11 @@ func (d *SmartDoorbell) HandleInDTO(dto []byte) error {
 
 // HandleEvent — бизнес-логика дверного звонка.
 func (d *SmartDoorbell) HandleEvent(inData DoorbellData) DoorbellData {
-	d.Ringing = inData.Ring
+	d.TurnOn = inData.TurnOn
 
 	return DoorbellData{
-		Kind: inData.Kind,
-		Ring: d.Ringing,
+		Kind:   inData.Kind,
+		TurnOn: d.TurnOn,
 	}
 }
 
@@ -204,12 +204,12 @@ func (d *SmartDoorbell) HandleEvent(inData DoorbellData) DoorbellData {
 // Управляет положением штор: 0 = закрыты, 100 = открыты.
 type SmartCurtains struct {
 	BaseDevice[CurtainsData]
-	Position int `json:"position"` // 0-100
+	Percents int `json:"percents"`
 }
 
 type CurtainsData struct {
 	Kind     string `json:"kind"`
-	Position int    `json:"position"`
+	Percents int    `json:"percents"`
 }
 
 func NewSmartCurtains(data []byte, engineAPI engine.EnginePort) (*SmartCurtains, error) {
@@ -239,7 +239,7 @@ func (c *SmartCurtains) HandleInDTO(dto []byte) error {
 
 // HandleEvent — бизнес-логика штор.
 func (c *SmartCurtains) HandleEvent(inData CurtainsData) CurtainsData {
-	pos := inData.Position
+	pos := inData.Percents
 
 	if pos < 0 {
 		pos = 0
@@ -248,10 +248,10 @@ func (c *SmartCurtains) HandleEvent(inData CurtainsData) CurtainsData {
 		pos = 100
 	}
 
-	c.Position = pos
+	c.Percents = pos
 
 	return CurtainsData{
 		Kind:     inData.Kind,
-		Position: c.Position,
+		Percents: c.Percents,
 	}
 }

@@ -206,22 +206,22 @@ func TestSimulation_Default(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "lampSwitcher_1", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_1", "delay":1.0}`)},
-			{ID: "lampSwitcher_2", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_2", "delay":0.3}`)},
+			{ID: "switcher_1", Type: "switcher", Info: json.RawMessage(`{"id":"switcher_1", "delay":1.0}`)},
+			{ID: "switcher_2", Type: "switcher", Info: json.RawMessage(`{"id":"switcher_2", "delay":0.3}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1", "delay":0.5}`)},
 			{ID: "lamp_2", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_2", "delay":1.0}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
-			{EntityID: "lampSwitcher_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
-			{EntityID: "lampSwitcher_2", Edges: []api.EdgeDTO{{ToID: "lamp_1"}, {ToID: "lamp_2"}}},
+			{EntityID: "switcher_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+			{EntityID: "switcher_2", Edges: []api.EdgeDTO{{ToID: "lamp_1"}, {ToID: "lamp_2"}}},
 		},
 	})
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lampSwitcher_2", true)}))
-	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "switcher_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "switcher_2", true)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "switcher_1", false)}))
 	steps = append(steps, tick(t, conn, reqID, 4, nil))
 	steps = append(steps, tick(t, conn, reqID, 5, nil))
 	steps = append(steps, tick(t, conn, reqID, 6, nil))
@@ -247,22 +247,22 @@ func TestWS_Simulation_UserIntervention(t *testing.T) {
 		DtSim:     10.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "lampSwitcher_1", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_1","delay":0.0}`)},
-			{ID: "lampSwitcher_2", Type: "lampSwitcher", Info: json.RawMessage(`{"id":"lampSwitcher_2","delay":0.0}`)},
+			{ID: "switcher_1", Type: "switcher", Info: json.RawMessage(`{"id":"switcher_1","delay":0.0}`)},
+			{ID: "switcher_2", Type: "switcher", Info: json.RawMessage(`{"id":"switcher_2","delay":0.0}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
 			{ID: "lamp_2", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_2","delay":0.0}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
-			{EntityID: "lampSwitcher_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
-			{EntityID: "lampSwitcher_2", Edges: []api.EdgeDTO{{ToID: "lamp_2"}}},
+			{EntityID: "switcher_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+			{EntityID: "switcher_2", Edges: []api.EdgeDTO{{ToID: "lamp_2"}}},
 		},
 	})
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "lampSwitcher_1", false)}))
-	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "lampSwitcher_2", true)}))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "switcher_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "switcher_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "switcher_2", true)}))
 	steps = append(steps, tick(t, conn, reqID, 4, nil))
 	steps = append(steps, tick(t, conn, reqID, 5, nil))
 	steps = append(steps, tick(t, conn, reqID, 6, nil))
@@ -291,8 +291,8 @@ func TestSimulation_SensorWithUpdate_NoInterruption(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "sensorWithUpdate_1", Type: "sensorWithUpdate", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.5,"timeout":1.0,"turned_on":false}`)},
-			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.5,"turned_on":false}`)},
+			{ID: "sensorWithUpdate_1", Type: "sensorWithUpdate", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.5,"timeout":1.0,"turn_on":false}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.5,"turn_on":false}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
 			{EntityID: "sensorWithUpdate_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
@@ -330,8 +330,8 @@ func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "sensorWithUpdate_1", Type: "sensorWithUpdate", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0,"timeout":4.0,"turned_on":false}`)},
-			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turned_on":false}`)},
+			{ID: "sensorWithUpdate_1", Type: "sensorWithUpdate", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0,"timeout":4.0,"turn_on":false}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turn_on":false}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
 			{EntityID: "sensorWithUpdate_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
@@ -367,6 +367,306 @@ func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("sensor state mismatch at index %d: got=%v want=%v (full: %v)", i, got[i], want[i], got)
 		}
+	}
+}
+
+// ===== Device interaction helpers =====
+
+func boolEvent(t *testing.T, entityID string, field string, value bool) api.EventInDTO {
+	t.Helper()
+	payload, err := json.Marshal(map[string]bool{field: value})
+	if err != nil {
+		t.Fatalf("boolEvent: %v", err)
+	}
+	return api.EventInDTO{EntityID: entityID, Payload: payload}
+}
+
+func intEvent(t *testing.T, entityID string, field string, value int) api.EventInDTO {
+	t.Helper()
+	payload, err := json.Marshal(map[string]int{field: value})
+	if err != nil {
+		t.Fatalf("intEvent: %v", err)
+	}
+	return api.EventInDTO{EntityID: entityID, Payload: payload}
+}
+
+func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field string) (bool, bool) {
+	for i := len(steps) - 1; i >= 0; i-- {
+		for _, change := range steps[i].StateChanges {
+			if change.EntityID != entityID {
+				continue
+			}
+			var out map[string]any
+			if err := json.Unmarshal(change.Payload, &out); err != nil {
+				continue
+			}
+			if v, ok := out[field]; ok {
+				if b, ok := v.(bool); ok {
+					return b, true
+				}
+			}
+		}
+	}
+	return false, false
+}
+
+func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field string) (int, bool) {
+	for i := len(steps) - 1; i >= 0; i-- {
+		for _, change := range steps[i].StateChanges {
+			if change.EntityID != entityID {
+				continue
+			}
+			var out map[string]any
+			if err := json.Unmarshal(change.Payload, &out); err != nil {
+				continue
+			}
+			if v, ok := out[field]; ok {
+				if f, ok := v.(float64); ok {
+					return int(f), true
+				}
+			}
+		}
+	}
+	return 0, false
+}
+
+// ===== Individual device tests =====
+
+// TestDevice_MotionSensor_TriggersBulbAndSiren проверяет что датчик движения тригерит лампу и сирену.
+func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-motion"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "sensorWithUpdate_1", Type: "motion_sensor", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "siren_1", Type: "smart_siren", Info: json.RawMessage(`{"id":"siren_1","delay":0.0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "sensorWithUpdate_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}, {ToID: "siren_1"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithUpdate_1", "turn_on", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	bulbState, bulbFound := lastBoolStateOf(steps, "lamp_1", "turn_on")
+	sirenState, sirenFound := lastBoolStateOf(steps, "siren_1", "turn_on")
+
+	if !bulbFound || !bulbState {
+		t.Fatal("lamp_1 should be ON after motion sensor trigger")
+	}
+	if !sirenFound || !sirenState {
+		t.Fatal("siren_1 should be active after motion sensor trigger")
+	}
+}
+
+// TestDevice_SmartDimmer_TriggersSmartLamp проверяет что умный диммер выставляет свет умной лампе.
+func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-presence"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "smartLamp_1", Type: "smart_bulb", Info: json.RawMessage(`{"id":"smartLamp_1","delay":0.0}`)},
+			{ID: "smartDimmer_1", Type: "smart_dimmer", Info: json.RawMessage(`{"id":"smartDimmer_1","delay":0.0,"percents":0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "smartDimmer_1", Edges: []api.EdgeDTO{{ToID: "smartLamp_1"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{intEvent(t, "smartDimmer_1", "percents", 60)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	smartLampState, smartLampFound := lastIntStateOf(steps, "smartLamp_1", "percents")
+	if smartLampState != 60 || !smartLampFound {
+		t.Fatal("smartLamp_1 should be 60 percents after smartDimmer_1 trigger")
+	}
+}
+
+// TestDevice_SensorWithIntStatus_TriggersCurtains проверяет умные шторы.
+func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-illumination"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "sensorWithIntStatus_1", Type: "illumination_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
+			{ID: "smartCurtains_1", Type: "curtains", Info: json.RawMessage(`{"id":"smartCurtains_1","delay":0.0,"percents":0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "sensorWithIntStatus_1", Edges: []api.EdgeDTO{{ToID: "smartCurtains_1"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{intEvent(t, "sensorWithIntStatus_1", "percents", 80)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	smartCurtainsState, smartCurtainsFound := lastIntStateOf(steps, "smartCurtains_1", "percents")
+	if smartCurtainsState != 80 || !smartCurtainsFound {
+		t.Fatal("smartCurtains_1 should be 80% after sensorWithIntStatus_1 trigger")
+	}
+}
+
+// TestDevice_DoorSensor_TriggersBulbLockSiren проверяет датчик двери.
+func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-door-sensor"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "sensorWithoutUpdate_1", Type: "door_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "smart_bulb", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "smartLock_1", Type: "smart_lock", Info: json.RawMessage(`{"id":"smartLock_1","delay":0.0}`)},
+			{ID: "siren_1", Type: "smart_siren", Info: json.RawMessage(`{"id":"siren_1","delay":0.0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "sensorWithoutUpdate_1", Edges: []api.EdgeDTO{
+				{ToID: "lamp_1"},
+				{ToID: "smartLock_1"},
+				{ToID: "siren_1"},
+			}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	state, found := lastBoolStateOf(steps, "lamp_1", "turn_on")
+	if !found || !state {
+		t.Fatal("lamp_1 should be ON after door sensor trigger")
+	}
+	state, found = lastBoolStateOf(steps, "smartLock_1", "turn_on")
+	if !found || !state {
+		t.Fatal("smartLock_1 should be ON after door sensor trigger")
+	}
+	state, found = lastBoolStateOf(steps, "siren_1", "turn_on")
+	if !found || !state {
+		t.Fatal("siren_1 should be ON after door sensor trigger")
+	}
+}
+
+// TestDevice_WindowSensor_TriggersWindow проверяет датчик окна.
+func TestDevice_WindowSensor_TriggersWindow(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-window-sensor"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "sensorWithoutUpdate_1", Type: "window_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
+			{ID: "window_1", Type: "window", Info: json.RawMessage(`{"id":"window_1","delay":0.0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "sensorWithoutUpdate_1", Edges: []api.EdgeDTO{{ToID: "window_1"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	state, found := lastBoolStateOf(steps, "window_1", "turn_on")
+	if !found || !state {
+		t.Fatal("window_1 should be active after window sensor trigger")
+	}
+}
+
+// TestDevice_Doorbell_TriggersLock проверяет умный дверной звонок.
+func TestDevice_Doorbell_TriggersLock(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-doorbell"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "smartDoorbell_1", Type: "smart_doorbell", Info: json.RawMessage(`{"id":"smartDoorbell_1","delay":0.0}`)},
+			{ID: "smartLock_1", Type: "smart_lock", Info: json.RawMessage(`{"id":"smartLock_1","delay":0.0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{EntityID: "smartDoorbell_1", Edges: []api.EdgeDTO{{ToID: "smartLock_1"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "smartDoorbell_1", "turn_on", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	lockState, lockFound := lastBoolStateOf(steps, "smartLock_1", "turn_on")
+	if !lockFound || !lockState {
+		t.Fatal("lock_1 should have received state change after doorbell trigger")
+	}
+}
+
+// ===== Chain trigger test =====
+
+// TestDevice_ChainTrigger проверяет длинную цепочку тригеров:
+// motion_sensor -> smart_lock -> smart_lamp
+func TestDevice_ChainTrigger(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-chain"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "sensorWithoutUpdate_1", Type: "door_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
+			{ID: "smartLock_1", Type: "smart_lock", Info: json.RawMessage(`{"id":"smartLock_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "smart_bulb", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			// door_sensor → lock, camera
+			{EntityID: "sensorWithoutUpdate_1", Edges: []api.EdgeDTO{{ToID: "smartLock_1"}}},
+			// lock → bulb
+			{EntityID: "smartLock_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 4, nil))
+
+	// уровень 1: door_sensor тригерит lock и camera
+	state, found := lastBoolStateOf(steps, "smartLock_1", "turn_on")
+	if !found || !state {
+		t.Fatal("smartLock_1 should have received state change (chain level 1)")
+	}
+
+	// уровень 2: lock тригерит lamp
+	state, found = lastBoolStateOf(steps, "lamp_1", "turn_on")
+	if !found || !state {
+		t.Fatal("lamp_1 should have received state change (chain level 2 via lock)")
 	}
 }
 
@@ -661,7 +961,7 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 			{
 				ID:   "lamp_1",
 				Type: "lamp",
-				Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turned_on":false}`),
+				Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turn_on":false}`),
 			},
 		},
 		Scenarios: []api.ScenarioDTO{},
@@ -726,7 +1026,7 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 			{
 				ID:   "lamp_1",
 				Type: "lamp",
-				Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turned_on":false}`),
+				Info: json.RawMessage(`{"id":"lamp_1","delay":0.0,"turn_on":false}`),
 			},
 		},
 		Scenarios: []api.ScenarioDTO{},

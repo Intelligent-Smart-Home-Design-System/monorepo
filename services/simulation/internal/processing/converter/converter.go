@@ -30,17 +30,27 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			if err != nil {
 				return nil, err
 			}
-
 			IDToEntity[entityDTO.ID] = lamp
-		case entities.TypeLampSwitcher:
-			lampSwitcher, err := devices.NewLampSwitcher(entityDTO.Info, engineAPI)
+		case entities.TypeSmartLamp:
+			smartLamp, err := devices.NewSmartLamp(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
-
-			IDToEntity[entityDTO.ID] = lampSwitcher
+			IDToEntity[entityDTO.ID] = smartLamp
+		case entities.TypeSwitcher:
+			Switcher, err := devices.NewSwitcher(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = Switcher
 		case entities.TypeSensorWithUpdate:
 			sensor, err := devices.NewSensorWithUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeSensorWithIntStatus:
+			sensor, err := devices.NewSensorWithIntStatus(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
@@ -141,8 +151,7 @@ func DependenciesFromDTO(scenarios []api.ScenarioDTO) map[string][]api.EdgeDTO {
 	for _, scenario := range scenarios {
 		for _, edge := range scenario.Edges {
 			IDToDependencies[scenario.EntityID] = append(IDToDependencies[scenario.EntityID], api.EdgeDTO{
-				ToID:   edge.ToID,
-				Action: edge.Action,
+				ToID: edge.ToID,
 			})
 		}
 	}

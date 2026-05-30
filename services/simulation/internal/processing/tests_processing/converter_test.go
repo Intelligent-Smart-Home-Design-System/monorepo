@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
 	"github.com/fschuetz04/simgo"
 )
 
-//=====Stubs=====
+// =====Stubs=====
 type stubEnginePort struct {
 	outChan    chan api.EventOutDTO
 	inChan     chan api.EventInDTO
@@ -22,7 +22,7 @@ func (s *stubEnginePort) GetOutChan() chan api.EventOutDTO {
 }
 
 func (s *stubEnginePort) GetInChan() chan api.EventInDTO {
-    return s.inChan
+	return s.inChan
 }
 
 func (s *stubEnginePort) GetSimulation() *simgo.Simulation {
@@ -33,12 +33,12 @@ func (s *stubEnginePort) GetFloor() *api.Floor {
 	return s.floor
 }
 
-//=====Tests=====
-//проверка парсинга лампы
+// =====Tests=====
+// проверка парсинга лампы
 func TestEntitiesFromDTO_Lamp(t *testing.T) {
 	engineStub := &stubEnginePort{}
 
-	lampJSON := []byte(`{"id":"lamp_1","turned_on":false,"delay":1.0,"receivers":[]}`)
+	lampJSON := []byte(`{"id":"lamp_1","turn_on":false,"delay":1.0,"receivers":[]}`)
 
 	entitiesDTO := []api.EntityDTO{
 		{
@@ -70,15 +70,15 @@ func TestEntitiesFromDTO_Lamp(t *testing.T) {
 	}
 }
 
-//проверка парсинга переключателя
-func TestEntitiesFromDTO_LampSwitcher(t *testing.T) {
+// проверка парсинга переключателя
+func TestEntitiesFromDTO_Switcher(t *testing.T) {
 	engineStub := &stubEnginePort{}
 
-	switcherJSON := []byte(`{"id":"lampSwitcher_1","turned_on":true,"delay":0.5,"receivers":["lamp_1"]}`)
+	switcherJSON := []byte(`{"id":"switcher_1","turn_on":true,"delay":0.5,"receivers":["lamp_1"]}`)
 
 	entitiesDTO := []api.EntityDTO{
 		{
-			ID:   "lampSwitcher_1",
+			ID:   "switcher_1",
 			Info: switcherJSON,
 		},
 	}
@@ -88,9 +88,9 @@ func TestEntitiesFromDTO_LampSwitcher(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	switcherEntity, ok := entitiesMap["lampSwitcher_1"].(*devices.LampSwitcher)
+	switcherEntity, ok := entitiesMap["switcher_1"].(*devices.Switcher)
 	if !ok {
-		t.Fatalf("expected *LampSwitcher type, got %T", entitiesMap["lampSwitcher_1"])
+		t.Fatalf("expected *Switcher type, got %T", entitiesMap["switcher_1"])
 	}
 
 	if switcherEntity.TurnedOn != true {
@@ -106,7 +106,7 @@ func TestEntitiesFromDTO_LampSwitcher(t *testing.T) {
 	}
 }
 
-//проверка парсинга неизвестного устройства
+// проверка парсинга неизвестного устройства
 func TestEntitiesFromDTO_InvalidType(t *testing.T) {
 	engineStub := &stubEnginePort{}
 
@@ -126,7 +126,7 @@ func TestEntitiesFromDTO_InvalidType(t *testing.T) {
 	}
 }
 
-//проверка парсинга поля
+// проверка парсинга поля
 func TestParseFloor(t *testing.T) {
 	rawJSON := []byte(`{
 		"meta": {

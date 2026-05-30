@@ -35,10 +35,12 @@ type EntityWithProcess interface {
 
 const (
 	TypeLamp                = "lamp"
+	TypeSmartLamp           = "smartLamp"
 	TypeSmartDimmer         = "smartDimmer"
-	TypeLampSwitcher        = "lampSwitcher"
+	TypeSwitcher            = "switcher"
 	TypeSensorWithUpdate    = "sensorWithUpdate"
 	TypeSensorWithoutUpdate = "sensorWithoutUpdate"
+	TypeSensorWithIntStatus = "sensorWithIntStatus"
 	TypeSiren               = "siren"
 	TypeWindow              = "window"
 	TypeDoor                = "door"

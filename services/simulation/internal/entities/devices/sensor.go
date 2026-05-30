@@ -14,7 +14,7 @@ import (
 // Позволяет обновлять действие до истечения таймаута, старое действие игнорируется.
 type SensorWithUpdate struct {
 	BaseDevice[SensorWithUpdateData]
-	TurnedOn bool    `json:"turned_on"`
+	TurnedOn bool    `json:"turn_on"`
 	Timeout  float64 `json:"timeout"`
 }
 
@@ -117,12 +117,12 @@ func (s *SensorWithUpdate) HandleEvent(inData SensorWithUpdateData) (SensorWithU
 // реализует интерфейс entities.EntityWithProcess.
 type SensorWithoutUpdate struct {
 	BaseDevice[SensorWithoutUpdateData]
-	TurnedOn bool `json:"turned_on"`
+	TurnedOn bool `json:"turn_on"`
 }
 
 type SensorWithoutUpdateData struct {
-	Kind   string `json:"kind"`
-	Opened bool   `json:"opened"`
+	Kind     string `json:"kind"`
+	TurnedOn bool   `json:"turn_on"`
 }
 
 func NewSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithoutUpdate, error) {
@@ -151,10 +151,56 @@ func (s *SensorWithoutUpdate) HandleInDTO(dto []byte) error {
 
 // HandleEvent реализует бизнес-логику устройства.
 func (s *SensorWithoutUpdate) HandleEvent(inData SensorWithoutUpdateData) SensorWithoutUpdateData {
-	s.TurnedOn = inData.Opened
+	s.TurnedOn = inData.TurnedOn
 
 	return SensorWithoutUpdateData{
-		Kind:   inData.Kind,
-		Opened: s.TurnedOn,
+		Kind:     inData.Kind,
+		TurnedOn: s.TurnedOn,
+	}
+}
+
+// SensorWithIntStatus - датчик окна (фиксирует открытие/закрытие окна)
+// реализует интерфейс entities.EntityWithProcess.
+type SensorWithIntStatus struct {
+	BaseDevice[SensorWithIntStatusData]
+	Percents int `json:"percents"`
+}
+
+type SensorWithIntStatusData struct {
+	Kind     string `json:"kind"`
+	Percents int    `json:"percents"`
+}
+
+func NewSensorWithIntStatus(data []byte, engineAPI engine.EnginePort) (*SensorWithIntStatus, error) {
+	var sensor SensorWithIntStatus
+
+	if err := json.Unmarshal(data, &sensor); err != nil {
+		return nil, err
+	}
+
+	sensor.enginePort = engineAPI
+	sensor.inStore = *simgo.NewStore[SensorWithIntStatusData](engineAPI.GetSimulation())
+	sensor.handler = sensor.HandleEvent
+
+	return &sensor, nil
+}
+
+func (s *SensorWithIntStatus) HandleInDTO(dto []byte) error {
+	input := SensorWithIntStatusData{}
+	if err := json.Unmarshal(dto, &input); err != nil {
+		return err
+	}
+
+	s.Put(input)
+	return nil
+}
+
+// HandleEvent реализует бизнес-логику устройства.
+func (s *SensorWithIntStatus) HandleEvent(inData SensorWithIntStatusData) SensorWithIntStatusData {
+	s.Percents = inData.Percents
+
+	return SensorWithIntStatusData{
+		Kind:     inData.Kind,
+		Percents: s.Percents,
 	}
 }

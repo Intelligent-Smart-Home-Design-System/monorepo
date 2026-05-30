@@ -1,0 +1,67 @@
+{
+  "lighting": {
+    "brightness_lm": { "weight": 0.6 },
+    "cri": { "weight": 0.2 },
+    "lifespan_hours": { "weight": 0.2 },
+    "rgb_support": { "bonus": 0.1 },
+    "dimmable": { "bonus": 0.1 }
+  },
+  "camera": {
+    "resolution": {
+      "weight": 0.5,
+      "scale": { "720p": 0.25, "1080p": 0.5, "2K": 0.75, "4K": 1.0 }
+    },
+    "field_of_view_deg": { "weight": 0.5 },
+    "has_night_vision": { "bonus": 0.1 },
+    "has_two_way_audio": { "bonus": 0.05 },
+    "has_person_detection": { "bonus": 0.1 },
+    "local_storage": { "bonus": 0.05 },
+    "ptz": { "bonus": 0.05 }
+  },
+  "lock": {
+    "access_methods": { "weight": 1.0, "count_max": 5 },
+    "auto_lock": { "bonus": 0.2 },
+    "tamper_alert": { "bonus": 0.2 }
+  },
+  "siren": {
+    "max_volume_db": { "weight": 1.0 },
+    "has_strobe_light": { "bonus": 0.2 },
+    "has_tamper_detection": { "bonus": 0.2 }
+  },
+  "hub": {
+    "max_connected_devices": { "weight": 1.0 },
+    "has_local_processing": { "bonus": 0.25 },
+    "matter_bridge": { "bonus": 0.2 },
+    "has_ir_blaster": { "bonus": 0.1 }
+  },
+  "motion_detection": {
+    "detection_range_m": { "weight": 0.5 },
+    "detection_angle_deg": { "weight": 0.5 }
+  },
+  "leak_detection": {
+    "min_detected_water_level_mm": { "weight": 1.0, "inverse": true },
+    "detects_leaks_above": { "bonus": 0.2 },
+    "detects_leaks_below": { "bonus": 0.2 }
+  },
+  "gas_detection": {
+    "detected_gas": { "weight": 1.0, "count_max": 3 }
+  },
+  "audio_alert": {
+    "audio_alert_volume_db": { "weight": 1.0 },
+    "has_audio_alert": { "bonus": 0.2 }
+  },
+  "battery_operated": {
+    "battery_life_months": { "weight": 1.0 },
+    "rechargeable": { "bonus": 0.15 }
+  },
+  "ip_rated": {
+    "ip_rating": {
+      "weight": 1.0,
+      "scale": {
+        "IP20": 0.1, "IP24": 0.25, "IP30": 0.2, "IP40": 0.3, "IP41": 0.3,
+        "IP44": 0.4, "IP54": 0.5, "IP64": 0.6, "IP65": 0.7, "IP66": 0.85,
+        "IP67": 1.0, "IPX5": 0.6
+      }
+    }
+  }
+}

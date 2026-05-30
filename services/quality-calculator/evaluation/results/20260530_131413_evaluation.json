@@ -1,0 +1,530 @@
+{
+  "timestamp": "20260530_131413",
+  "catalog": "evaluation/catalog.json",
+  "strategies": [
+    {
+      "summary": {
+        "strategy": "full",
+        "weights": {
+          "reputation": 0.3,
+          "specs": 0.4,
+          "ecosystem": 0.3
+        },
+        "reputation_mode": "bayesian",
+        "total_devices": 791,
+        "scored_devices": 791,
+        "weighted_spearman": 0.4147239373067057,
+        "weighted_kendall": 0.29946415113954566,
+        "weighted_precision_at_10": 0.19591836734693877,
+        "weighted_specs_coverage": 0.8826530612244898,
+        "weighted_discrimination": 0.13074732765417751,
+        "categories_considered": [
+          "door_window_sensor",
+          "gas_leak_sensor",
+          "motion_sensor",
+          "smart_camera",
+          "smart_hub",
+          "smart_lamp",
+          "smart_lock",
+          "water_leak_sensor"
+        ]
+      },
+      "per_category": [
+        {
+          "category": "door_window_sensor",
+          "n": 36,
+          "n_scored": 36,
+          "specs_coverage": 0.2777777777777778,
+          "spearman": 0.450341456285057,
+          "kendall": 0.3616041657039835,
+          "precision_at_10": 0.4,
+          "discrimination": 0.1487175030262047
+        },
+        {
+          "category": "gas_leak_sensor",
+          "n": 73,
+          "n_scored": 73,
+          "specs_coverage": 0.9726027397260274,
+          "spearman": 0.36651007886901277,
+          "kendall": 0.27548128897405966,
+          "precision_at_10": 0.6,
+          "discrimination": 0.10123005916344413
+        },
+        {
+          "category": "motion_sensor",
+          "n": 21,
+          "n_scored": 21,
+          "specs_coverage": 0.8095238095238095,
+          "spearman": 0.5103896103896104,
+          "kendall": 0.38095238095238093,
+          "precision_at_10": 0.7,
+          "discrimination": 0.11915513537281675
+        },
+        {
+          "category": "smart_camera",
+          "n": 147,
+          "n_scored": 147,
+          "specs_coverage": 1.0,
+          "spearman": 0.5699573086960573,
+          "kendall": 0.39684630507425445,
+          "precision_at_10": 0.1,
+          "discrimination": 0.11714506591874961
+        },
+        {
+          "category": "smart_doorbell",
+          "n": 5,
+          "n_scored": 5,
+          "specs_coverage": 0.8,
+          "spearman": 0.09999999999999998,
+          "kendall": 0.0,
+          "precision_at_10": null,
+          "discrimination": 0.0993929977412896
+        },
+        {
+          "category": "smart_hub",
+          "n": 59,
+          "n_scored": 59,
+          "specs_coverage": 0.6949152542372882,
+          "spearman": 0.3297873895288886,
+          "kendall": 0.25753586118949345,
+          "precision_at_10": 0.4,
+          "discrimination": 0.14237869714785137
+        },
+        {
+          "category": "smart_lamp",
+          "n": 294,
+          "n_scored": 294,
+          "specs_coverage": 0.9625850340136054,
+          "spearman": 0.3954357465205645,
+          "kendall": 0.28651786820017544,
+          "precision_at_10": 0.1,
+          "discrimination": 0.13093259899577792
+        },
+        {
+          "category": "smart_lock",
+          "n": 26,
+          "n_scored": 26,
+          "specs_coverage": 1.0,
+          "spearman": 0.3811153148109802,
+          "kendall": 0.27244712614795025,
+          "precision_at_10": 0.5,
+          "discrimination": 0.17967799184609715
+        },
+        {
+          "category": "smart_siren",
+          "n": 2,
+          "n_scored": 2,
+          "specs_coverage": 1.0,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": null,
+          "discrimination": 0.07700392847121502
+        },
+        {
+          "category": "water_leak_sensor",
+          "n": 128,
+          "n_scored": 128,
+          "specs_coverage": 0.7578125,
+          "spearman": 0.3285122564368687,
+          "kendall": 0.22500866598562677,
+          "precision_at_10": 0.0,
+          "discrimination": 0.14432455387214507
+        }
+      ],
+      "description": "Полная модель: характеристики + Байесовская репутация + сетевая топология протоколов."
+    },
+    {
+      "summary": {
+        "strategy": "reputation_bayes",
+        "weights": {
+          "reputation": 1.0,
+          "specs": 0.0,
+          "ecosystem": 0.0
+        },
+        "reputation_mode": "bayesian",
+        "total_devices": 791,
+        "scored_devices": 791,
+        "weighted_spearman": 0.9999942886169562,
+        "weighted_kendall": 0.9998425589066665,
+        "weighted_precision_at_10": 1.0,
+        "weighted_specs_coverage": 0.8826530612244898,
+        "weighted_discrimination": 0.1254308486007259,
+        "categories_considered": [
+          "door_window_sensor",
+          "gas_leak_sensor",
+          "motion_sensor",
+          "smart_camera",
+          "smart_hub",
+          "smart_lamp",
+          "smart_lock",
+          "water_leak_sensor"
+        ]
+      },
+      "per_category": [
+        {
+          "category": "door_window_sensor",
+          "n": 36,
+          "n_scored": 36,
+          "specs_coverage": 0.2777777777777778,
+          "spearman": 1.0,
+          "kendall": 1.0,
+          "precision_at_10": 1.0,
+          "discrimination": 0.10101329611523174
+        },
+        {
+          "category": "gas_leak_sensor",
+          "n": 73,
+          "n_scored": 73,
+          "specs_coverage": 0.9726027397260274,
+          "spearman": 0.9999999999999999,
+          "kendall": 1.0,
+          "precision_at_10": 1.0,
+          "discrimination": 0.12708607482633208
+        },
+        {
+          "category": "motion_sensor",
+          "n": 21,
+          "n_scored": 21,
+          "specs_coverage": 0.8095238095238095,
+          "spearman": 1.0,
+          "kendall": 1.0,
+          "precision_at_10": 1.0,
+          "discrimination": 0.10273177025169779
+        },
+        {
+          "category": "smart_camera",
+          "n": 147,
+          "n_scored": 147,
+          "specs_coverage": 1.0,
+          "spearman": 0.9999773312024635,
+          "kendall": 0.999439461839365,
+          "precision_at_10": 1.0,
+          "discrimination": 0.13064158042742852
+        },
+        {
+          "category": "smart_doorbell",
+          "n": 5,
+          "n_scored": 5,
+          "specs_coverage": 0.8,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": null,
+          "discrimination": 0.11587318499117906
+        },
+        {
+          "category": "smart_hub",
+          "n": 59,
+          "n_scored": 59,
+          "specs_coverage": 0.6949152542372882,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": 1.0,
+          "discrimination": 0.1276330494072502
+        },
+        {
+          "category": "smart_lamp",
+          "n": 294,
+          "n_scored": 294,
+          "specs_coverage": 0.9625850340136054,
+          "spearman": 0.9999961040439846,
+          "kendall": 0.9998604261647617,
+          "precision_at_10": 1.0,
+          "discrimination": 0.1360203158757615
+        },
+        {
+          "category": "smart_lock",
+          "n": 26,
+          "n_scored": 26,
+          "specs_coverage": 1.0,
+          "spearman": 1.0000000000000002,
+          "kendall": 1.0,
+          "precision_at_10": 1.0,
+          "discrimination": 0.07072629540374967
+        },
+        {
+          "category": "smart_siren",
+          "n": 2,
+          "n_scored": 2,
+          "specs_coverage": 1.0,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": null,
+          "discrimination": 0.06795296167202719
+        },
+        {
+          "category": "water_leak_sensor",
+          "n": 128,
+          "n_scored": 128,
+          "specs_coverage": 0.7578125,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": 1.0,
+          "discrimination": 0.11486825952641981
+        }
+      ],
+      "description": "Рейтинг + число отзывов через Байесовское сглаживание. Подавляет накрутку у товаров с малым числом отзывов."
+    },
+    {
+      "summary": {
+        "strategy": "reputation_only",
+        "weights": {
+          "reputation": 1.0,
+          "specs": 0.0,
+          "ecosystem": 0.0
+        },
+        "reputation_mode": "mean",
+        "total_devices": 791,
+        "scored_devices": 791,
+        "weighted_spearman": 0.47280615556045213,
+        "weighted_kendall": 0.3836084004401471,
+        "weighted_precision_at_10": 0.1389030612244898,
+        "weighted_specs_coverage": 0.8826530612244898,
+        "weighted_discrimination": 0.1724839847111032,
+        "categories_considered": [
+          "door_window_sensor",
+          "gas_leak_sensor",
+          "motion_sensor",
+          "smart_camera",
+          "smart_hub",
+          "smart_lamp",
+          "smart_lock",
+          "water_leak_sensor"
+        ]
+      },
+      "per_category": [
+        {
+          "category": "door_window_sensor",
+          "n": 36,
+          "n_scored": 36,
+          "specs_coverage": 0.2777777777777778,
+          "spearman": 0.4579950045046956,
+          "kendall": 0.358148086199843,
+          "precision_at_10": 0.5,
+          "discrimination": 0.15360711809730282
+        },
+        {
+          "category": "gas_leak_sensor",
+          "n": 73,
+          "n_scored": 73,
+          "specs_coverage": 0.9726027397260274,
+          "spearman": 0.5937296248595995,
+          "kendall": 0.4696272954408664,
+          "precision_at_10": 0.1,
+          "discrimination": 0.16388940858339293
+        },
+        {
+          "category": "motion_sensor",
+          "n": 21,
+          "n_scored": 21,
+          "specs_coverage": 0.8095238095238095,
+          "spearman": 0.6307638776127091,
+          "kendall": 0.4413674147523748,
+          "precision_at_10": 0.7,
+          "discrimination": 0.24444188451401266
+        },
+        {
+          "category": "smart_camera",
+          "n": 147,
+          "n_scored": 147,
+          "specs_coverage": 1.0,
+          "spearman": 0.4430188554477199,
+          "kendall": 0.37405255810419197,
+          "precision_at_10": 0.2,
+          "discrimination": 0.1252001633765487
+        },
+        {
+          "category": "smart_doorbell",
+          "n": 5,
+          "n_scored": 5,
+          "specs_coverage": 0.8,
+          "spearman": 0.09999999999999998,
+          "kendall": 0.0,
+          "precision_at_10": null,
+          "discrimination": 0.1501461121707785
+        },
+        {
+          "category": "smart_hub",
+          "n": 59,
+          "n_scored": 59,
+          "specs_coverage": 0.6949152542372882,
+          "spearman": 0.34056573156086,
+          "kendall": 0.28214779399998047,
+          "precision_at_10": 0.1,
+          "discrimination": 0.1841301406841305
+        },
+        {
+          "category": "smart_lamp",
+          "n": 294,
+          "n_scored": 294,
+          "specs_coverage": 0.9625850340136054,
+          "spearman": 0.5376624228462363,
+          "kendall": 0.43423360631494234,
+          "precision_at_10": 0.0,
+          "discrimination": 0.181031733499451
+        },
+        {
+          "category": "smart_lock",
+          "n": 26,
+          "n_scored": 26,
+          "specs_coverage": 1.0,
+          "spearman": 0.8987341212850635,
+          "kendall": 0.8020719816249743,
+          "precision_at_10": 0.8,
+          "discrimination": 0.2710886456209765
+        },
+        {
+          "category": "smart_siren",
+          "n": 2,
+          "n_scored": 2,
+          "specs_coverage": 1.0,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": null,
+          "discrimination": 0.3771000464067858
+        },
+        {
+          "category": "water_leak_sensor",
+          "n": 128,
+          "n_scored": 128,
+          "specs_coverage": 0.7578125,
+          "spearman": 0.24177275288669622,
+          "kendall": 0.18869647577140933,
+          "precision_at_10": 0.1,
+          "discrimination": 0.18016128600718523
+        }
+      ],
+      "description": "Только средний рейтинг (без поправки на число отзывов). Базовая линия маркетплейса."
+    },
+    {
+      "summary": {
+        "strategy": "specs_only",
+        "weights": {
+          "reputation": 0.0,
+          "specs": 1.0,
+          "ecosystem": 0.0
+        },
+        "reputation_mode": "bayesian",
+        "total_devices": 791,
+        "scored_devices": 698,
+        "weighted_spearman": 0.10776716959824982,
+        "weighted_kendall": 0.07318596393656182,
+        "weighted_precision_at_10": 0.15293367346938777,
+        "weighted_specs_coverage": 0.8826530612244898,
+        "weighted_discrimination": 0.2256905657515053,
+        "categories_considered": [
+          "door_window_sensor",
+          "gas_leak_sensor",
+          "motion_sensor",
+          "smart_camera",
+          "smart_hub",
+          "smart_lamp",
+          "smart_lock",
+          "water_leak_sensor"
+        ]
+      },
+      "per_category": [
+        {
+          "category": "door_window_sensor",
+          "n": 36,
+          "n_scored": 10,
+          "specs_coverage": 0.2777777777777778,
+          "spearman": -0.25930372530182266,
+          "kendall": -0.18856180831641267,
+          "precision_at_10": 1.0,
+          "discrimination": 0.0867360497909222
+        },
+        {
+          "category": "gas_leak_sensor",
+          "n": 73,
+          "n_scored": 71,
+          "specs_coverage": 0.9726027397260274,
+          "spearman": 0.09923411081534565,
+          "kendall": 0.06725027596683776,
+          "precision_at_10": 0.2,
+          "discrimination": 0.14892779599024175
+        },
+        {
+          "category": "motion_sensor",
+          "n": 21,
+          "n_scored": 17,
+          "specs_coverage": 0.8095238095238095,
+          "spearman": 0.20147480961283704,
+          "kendall": 0.12640191299589795,
+          "precision_at_10": 0.7,
+          "discrimination": 0.10912407569853146
+        },
+        {
+          "category": "smart_camera",
+          "n": 147,
+          "n_scored": 147,
+          "specs_coverage": 1.0,
+          "spearman": 0.2610834776245438,
+          "kendall": 0.1807369314831964,
+          "precision_at_10": 0.1,
+          "discrimination": 0.2448795829320736
+        },
+        {
+          "category": "smart_doorbell",
+          "n": 5,
+          "n_scored": 4,
+          "specs_coverage": 0.8,
+          "spearman": -0.7378647873726218,
+          "kendall": -0.5477225575051661,
+          "precision_at_10": null,
+          "discrimination": 0.2334657362441007
+        },
+        {
+          "category": "smart_hub",
+          "n": 59,
+          "n_scored": 41,
+          "specs_coverage": 0.6949152542372882,
+          "spearman": 0.24222054788860242,
+          "kendall": 0.15276681865965785,
+          "precision_at_10": 0.5,
+          "discrimination": 0.19475720134467364
+        },
+        {
+          "category": "smart_lamp",
+          "n": 294,
+          "n_scored": 283,
+          "specs_coverage": 0.9625850340136054,
+          "spearman": -0.024740949670821032,
+          "kendall": -0.017139188070052318,
+          "precision_at_10": 0.0,
+          "discrimination": 0.2385246786201667
+        },
+        {
+          "category": "smart_lock",
+          "n": 26,
+          "n_scored": 26,
+          "specs_coverage": 1.0,
+          "spearman": 0.2624698576731098,
+          "kendall": 0.19841026835864517,
+          "precision_at_10": 0.4,
+          "discrimination": 0.34275830443847516
+        },
+        {
+          "category": "smart_siren",
+          "n": 2,
+          "n_scored": 2,
+          "specs_coverage": 1.0,
+          "spearman": 0.9999999999999998,
+          "kendall": 1.0,
+          "precision_at_10": null,
+          "discrimination": 0.1414213562373095
+        },
+        {
+          "category": "water_leak_sensor",
+          "n": 128,
+          "n_scored": 97,
+          "specs_coverage": 0.7578125,
+          "spearman": 0.23538026056241182,
+          "kendall": 0.16328901244908772,
+          "precision_at_10": 0.0,
+          "discrimination": 0.2666377035911736
+        }
+      ],
+      "description": "Только технические характеристики N(S). Проверяет гипотезу: предсказывают ли объективные спеки воспринимаемое пользователями качество."
+    }
+  ]
+}

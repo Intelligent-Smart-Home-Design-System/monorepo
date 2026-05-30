@@ -1,0 +1,6 @@
+{
+  "name": "reputation_bayes",
+  "description": "Рейтинг + число отзывов через Байесовское сглаживание. Подавляет накрутку у товаров с малым числом отзывов.",
+  "weights": { "reputation": 1.0, "specs": 0.0, "ecosystem": 0.0 },
+  "reputation_mode": "bayesian"
+}

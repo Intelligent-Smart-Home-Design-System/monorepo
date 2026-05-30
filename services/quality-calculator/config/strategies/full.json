@@ -1,0 +1,6 @@
+{
+  "name": "full",
+  "description": "Полная модель: характеристики + Байесовская репутация + сетевая топология протоколов.",
+  "weights": { "reputation": 0.3, "specs": 0.4, "ecosystem": 0.3 },
+  "reputation_mode": "bayesian"
+}

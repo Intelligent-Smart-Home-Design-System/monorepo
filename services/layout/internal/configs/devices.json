@@ -103,6 +103,86 @@
       "tracks": [
         "climate"
       ]
+    },
+    "temperature_sensor": {
+      "name": "Датчик температуры",
+      "price_range": {
+        "min": 900,
+        "max": 2250
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "smart_radiator_actuator": {
+      "name": "Умный радиаторный терморегулятор",
+      "price_range": {
+        "min": 3600,
+        "max": 7200
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "humidity_sensor": {
+      "name": "Датчик влажности",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "smart_humidifier": {
+      "name": "Умный увлажнитель",
+      "price_range": {
+        "min": 5400,
+        "max": 13500
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "co2_sensor": {
+      "name": "Датчик CO2",
+      "price_range": {
+        "min": 4500,
+        "max": 13500
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "air_purifier": {
+      "name": "Очиститель воздуха",
+      "price_range": {
+        "min": 9000,
+        "max": 27000
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "floor_temperature_sensor": {
+      "name": "Датчик температуры пола",
+      "price_range": {
+        "min": 0,
+        "max": 1800
+      },
+      "tracks": [
+        "climate"
+      ]
+    },
+    "smart_floor_thermostat": {
+      "name": "Умный термостат тёплого пола",
+      "price_range": {
+        "min": 4500,
+        "max": 10800
+      },
+      "tracks": [
+        "climate"
+      ]
     }
   }
 }

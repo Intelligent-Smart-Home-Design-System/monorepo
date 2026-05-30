@@ -67,6 +67,40 @@ type AirConditionerFilter struct {
 	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
 }
 
+type TemperatureRange struct {
+	Min float64 `json:"min,omitempty"`
+	Max float64 `json:"max,omitempty"`
+}
+
+type TemperatureSensorFilter struct {
+	TemperatureRange TemperatureRange `json:"temperature_range,omitempty"`
+	BatteryLifeYears float64          `json:"battery_life_years,omitempty"`
+}
+
+type SmartRadiatorActuatorFilter struct{}
+
+type HumiditySensorFilter struct{}
+
+type SmartHumidifierFilter struct {
+	TankVolumeLiters float64 `json:"tank_volume_liters,omitempty"`
+	ServicedAreaM2   float64 `json:"serviced_area_m2,omitempty"`
+}
+
+type CO2SensorFilter struct{}
+
+type AirPurifierFilter struct {
+	ServicedAreaM2 float64 `json:"serviced_area_m2,omitempty"`
+	HepaFilter     bool    `json:"hepa_filter,omitempty"`
+}
+
+type SmartFloorThermostatFilter struct {
+	MaxLoadKW float64 `json:"max_load_kw,omitempty"`
+}
+
+type FloorTemperatureSensorFilter struct {
+	CableLength float64 `json:"cable_length,omitempty"`
+}
+
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
@@ -92,6 +126,22 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartSirenFilter{}
 	case "air_conditioner":
 		filter = &AirConditionerFilter{}
+	case "temperature_sensor":
+		filter = &TemperatureSensorFilter{}
+	case "smart_radiator_actuator":
+		filter = &SmartRadiatorActuatorFilter{}
+	case "humidity_sensor":
+		filter = &HumiditySensorFilter{}
+	case "smart_humidifier":
+		filter = &SmartHumidifierFilter{}
+	case "co2_sensor":
+		filter = &CO2SensorFilter{}
+	case "air_purifier":
+		filter = &AirPurifierFilter{}
+	case "smart_floor_thermostat":
+		filter = &SmartFloorThermostatFilter{}
+	case "floor_temperature_sensor":
+		filter = &FloorTemperatureSensorFilter{}
 	}
 
 	if filter == nil {

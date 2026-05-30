@@ -2,7 +2,7 @@
   "schema_version": "0.1.0",
   "meta": {
     "source": "dxf",
-    "source_ref": "door_and_window.dxf",
+    "source_ref": "room_with_door_and_window.dxf",
     "units": "mm"
   },
   "walls": [
@@ -77,7 +77,9 @@
         ]
       ],
       "width": 900.0,
-      "rooms": []
+      "rooms": [
+        "room_1"
+      ]
     }
   ],
   "windows": [
@@ -94,9 +96,45 @@
         ]
       ],
       "width": 1200.0,
-      "rooms": []
+      "room": "room_1"
     }
   ],
-  "rooms": [],
+  "rooms": [
+    {
+      "id": "room_1",
+      "name": "Room 1",
+      "area": [
+        [
+          5976.5625,
+          23.4375
+        ],
+        [
+          5976.5625,
+          3984.375
+        ],
+        [
+          23.4375,
+          3984.375
+        ],
+        [
+          23.4375,
+          23.4375
+        ]
+      ],
+      "area_m2": 23.579956,
+      "windows": [
+        "91"
+      ],
+      "doors": [
+        "92"
+      ],
+      "walls": [
+        "8D",
+        "8E",
+        "8F",
+        "90"
+      ]
+    }
+  ],
   "warnings": []
 }

@@ -13,6 +13,7 @@ class Wall:
     end: Point
     length: float
     width: float
+    geometry_role: str = "centerline"
     run_id: str | None = None
     source_entity_ids: list[str] = field(default_factory=list)
 
@@ -25,6 +26,7 @@ class Window:
     end: Point
     length: float
     wall_id: str | None = None
+    room: str | None = None
     support_wall_ids: tuple[str, ...] = ()
     source_entity_ids: list[str] = field(default_factory=list)
 
@@ -37,10 +39,24 @@ class Door:
     end: Point
     length: float
     wall_id: str | None = None
+    rooms: tuple[str, ...] = ()
     support_wall_ids: tuple[str, ...] = ()
     opens_towards_wall_side: str | None = None
+    opens_towards_room: str | None = None
     swing: str | None = None
+    hinge_side: str | None = None
     source_entity_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class Room:
+    id: str
+    name: str
+    area: list[Point]
+    area_m2: float
+    windows: tuple[str, ...] = ()
+    doors: tuple[str, ...] = ()
+    walls: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -56,4 +72,5 @@ class FloorPlan:
     walls: list[Wall] = field(default_factory=list)
     doors: list[Door] = field(default_factory=list)
     windows: list[Window] = field(default_factory=list)
+    rooms: list[Room] = field(default_factory=list)
     metadata: FloorMetadata = field(default_factory=lambda: FloorMetadata(parsed_entity_count=0, supported_attributes=[]))

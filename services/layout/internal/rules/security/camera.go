@@ -99,7 +99,7 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 				Range: cameraFilters.Range,
 				NightVision: cameraFilters.NightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRange: distance,
+				RecommendedRangeM: distance,
 				Direction: &direction,
 			}
 		} else {
@@ -108,12 +108,12 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 				Range: cameraFilters.Range,
 				NightVision: cameraFilters.NightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRange: cameraFilters.Range,
+				RecommendedRangeM: cameraFilters.Range,
 				Direction: &direction,
 			}
 		}
 
-		layout.AddDeviceToLayout(deviceType, c.track, zr.OrigRoom.ID, bestPoint, deviceFilter)
+		layout.AddDeviceToLayout(deviceType, c.track, zr.OrigRoom.ID, bestPoint, &direction, deviceFilter)
 		deviceCnt++
 	}
 
@@ -167,7 +167,7 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 			bestPoint, distance := room.GetTheOppositePoint(doorCenter)
 
 			direction := point.GetDirectionToPoint(bestPoint, doorCenter)
-			filter.RecommendedRange = distance
+			filter.RecommendedRangeM = distance
 
 			return &bestPoint, direction, distance
 		}

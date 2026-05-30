@@ -6,4 +6,5 @@ const (
 	Fridge     string = "fridge"
 	Stove      string = "stove"
 	GasBoiler  string = "gas_boiler"
+	TV         string = "tv"
 )

@@ -34,7 +34,7 @@ func (al *Layout) HasDeviceInRoom(deviceType, roomID string) bool {
 }
 
 // AddDeviceToLayout добавляет устройство в расстановку
-func (al *Layout) AddDeviceToLayout(deviceType, deviceTrack, roomID string, position *point.Point, filters filters.DeviceFilter) {
+func (al *Layout) AddDeviceToLayout(deviceType, deviceTrack, roomID string, position *point.Point, direction *point.Point, filters filters.DeviceFilter) {
 	_, ok := al.Placements[roomID]
 	if !ok {
 		al.Placements[roomID] = make([]*device.Placement, 0)
@@ -42,7 +42,7 @@ func (al *Layout) AddDeviceToLayout(deviceType, deviceTrack, roomID string, posi
 
 	deviceID := uuid.NewString()
 	newDevice := device.NewDevice(deviceID, deviceType, deviceTrack)
-	placement := device.NewPlacement(newDevice, position, filters)
+	placement := device.NewPlacement(newDevice, position, direction, filters)
 
 	al.Placements[roomID] = append(al.Placements[roomID], placement)
 }

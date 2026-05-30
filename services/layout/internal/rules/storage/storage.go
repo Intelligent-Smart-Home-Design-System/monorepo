@@ -4,6 +4,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/climate"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/media"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 )
 
@@ -24,6 +25,7 @@ func (s *Storage) LoadAllRules() {
 	s.LoadAllSecurityRules()
 	s.LoadAllLightingRules()
 	s.LoadAllClimateRules()
+	s.LoadAllMediaRules()
 
 	// TODO: добавить оставшиеся треки
 }
@@ -61,6 +63,16 @@ func (s *Storage) LoadAllLightingRules() {
 func (s *Storage) LoadAllClimateRules() {
 	storageRules := []rules.Rule{
 		climate.NewAirConditionerRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+}
+
+func (s *Storage) LoadAllMediaRules() {
+	storageRules := []rules.Rule{
+		media.NewSmartTVRule(),
 	}
 
 	for _, rule := range storageRules {

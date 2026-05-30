@@ -91,7 +91,7 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 			Direction: &direction,
 		}
 
-		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, deviceFilter)
+		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, &direction, deviceFilter)
 		deviceCnt++
 	}
 

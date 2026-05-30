@@ -46,7 +46,7 @@ type Furniture struct {
 	ID     string        `json:"id"`
 	Name   string        `json:"name"`
 	Points []point.Point `json:"points"`
-	Rooms  []string      `json:"rooms"`
+	Room  string      `json:"room"`
 }
 
 type Plumbing struct {

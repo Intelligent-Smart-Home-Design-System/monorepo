@@ -103,6 +103,16 @@
       "tracks": [
         "climate"
       ]
+    },
+    "smart_tv": {
+      "name": "Умный телевизор",
+      "price_range": {
+        "min": 20000,
+        "max": 500000
+      },
+      "tracks": [
+        "media"
+      ]
     }
   }
 }

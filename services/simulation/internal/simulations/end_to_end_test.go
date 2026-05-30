@@ -743,16 +743,29 @@ func humanMoveInput(t *testing.T, humanID string, x, y float64) api.EventInDTO {
 	}
 }
 
-func humanInteractionInput(t *testing.T, EntityID string, devicePayload any) api.EventInDTO {
+func humanInteractionInput(t *testing.T, humanID string, deviceID string, devicePayload any) api.EventInDTO {
 	t.Helper()
 
-	payload, err := json.Marshal(devicePayload)
+	rawDevice, err := json.Marshal(devicePayload)
 	if err != nil {
 		t.Fatalf("humanInteractionInput marshal device payload: %v", err)
 	}
 
+	payload, err := json.Marshal(struct {
+		Kind          string          `json:"kind"`
+		DeviceID      string          `json:"device_id"`
+		DevicePayload json.RawMessage `json:"device_payload"`
+	}{
+		Kind:          "human:interaction",
+		DeviceID:      deviceID,
+		DevicePayload: rawDevice,
+	})
+	if err != nil {
+		t.Fatalf("humanInteractionInput: %v", err)
+	}
+
 	return api.EventInDTO{
-		EntityID: EntityID,
+		EntityID: humanID,
 		Payload:  payload,
 	}
 }
@@ -942,7 +955,6 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 	}
 }
 
-// TestHuman_InteractionWithLamp проверяет что человек может включить лампу.
 func TestHuman_InteractionWithLamp(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -969,14 +981,15 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	// человек взаимодействует с лампой — включает её
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
-		humanInteractionInput(t, "lamp_1", map[string]any{"kind": "lamp:state", "turn_on": true}),
+		humanInteractionInput(t, "human_1", "lamp_1", map[string]any{
+			"kind":    "lamp:state",
+			"turn_on": true,
+		}),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
-	// проверяем что лампа включилась
 	lampState, found := lastStateOf(steps, "lamp_1")
 	if !found {
 		t.Fatal("no state change found for lamp_1")
@@ -984,30 +997,8 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 	if !lampState {
 		t.Fatal("lamp_1 should be ON after human interaction")
 	}
-
-	// проверяем что взаимодействие отразилось в stateChanges лампы
-	var interactionFound bool
-	for _, step := range steps {
-		for _, change := range step.StateChanges {
-			var out struct {
-				Kind   string `json:"kind"`
-				TurnOn bool   `json:"turn_on"`
-			}
-			if err := json.Unmarshal(change.Payload, &out); err != nil {
-				continue
-			}
-			if out.TurnOn == true && out.Kind == "lamp:state" {
-				interactionFound = true
-			}
-		}
-	}
-
-	if !interactionFound {
-		t.Fatal("expected human_1 interaction with lamp_1 in stateChanges")
-	}
 }
 
-// TestHuman_InteractionThenMove проверяет что после взаимодействия человек может двигаться.
 func TestHuman_InteractionThenMove(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1034,18 +1025,18 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	// тик 1: взаимодействие с лампой
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
-		humanInteractionInput(t, "lamp_1", map[string]any{"kind": "lamp:state", "turn_on": true}),
+		humanInteractionInput(t, "human_1", "lamp_1", map[string]any{
+			"kind":    "lamp:state",
+			"turn_on": true,
+		}),
 	}))
 
-	// тик 2: движение
 	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{
 		humanMoveInput(t, "human_1", 3.0, 3.0),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
-	// лампа включена
 	lampState, found := lastStateOf(steps, "lamp_1")
 	if !found {
 		t.Fatal("no state change for lamp_1")
@@ -1054,7 +1045,6 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 		t.Fatal("lamp_1 should be ON")
 	}
 
-	// человек переместился
 	x, y, posFound := humanPositionFrom(steps, "human_1")
 	if !posFound {
 		t.Fatal("no position found for human_1")

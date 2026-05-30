@@ -39,6 +39,7 @@ type HumanInData struct {
 		TargetX float64 `json:"x"`
 		TargetY float64 `json:"y"`
 	} `json:"to"`
+	DeviceID      string          `json:"device_id"`
 	DevicePayload json.RawMessage `json:"device_payload"`
 }
 
@@ -158,7 +159,7 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 
 func (h *Human) HandleInteraction(inData HumanInData) HumanInteractionOutData {
 	h.enginePort.GetInChan() <- api.EventInDTO{
-		EntityID: h.ID,
+		EntityID: inData.DeviceID,
 		Payload:  inData.DevicePayload,
 	}
 

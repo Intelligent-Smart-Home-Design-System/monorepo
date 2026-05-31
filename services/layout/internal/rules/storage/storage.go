@@ -73,6 +73,8 @@ func (s *Storage) LoadAllClimateRules() {
 func (s *Storage) LoadAllMediaRules() {
 	storageRules := []rules.Rule{
 		media.NewSmartTVRule(),
+		media.NewSmartSpeakerRule(),
+		media.NewSubwooferRule(),
 	}
 
 	for _, rule := range storageRules {

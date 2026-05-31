@@ -12,7 +12,7 @@ import (
 const (
 	wallOffset      = 0.5
 	maxDistanceToTV = 4
-	testPointOffset = 0.1
+	testPointOffset = 1
 )
 
 type SubwooferRule struct {
@@ -138,10 +138,15 @@ func calculateTVDirection(ap *apartment.Apartment, room *apartment.Room, tvCente
 		Y: wall.Points[1].Y - wall.Points[0].Y,
 	})
 
-	testPoint := point.MovePointInDirection(*tvCenter, wallVector, testPointOffset)
-	if point.IsPointInPolygon(testPoint, room.Area) {
-		return &wallVector
+	perp := point.Point{
+		X: -wallVector.Y,
+		Y: wallVector.X,
 	}
 
-	return &point.Point{X: wallVector.X, Y: wallVector.Y}
+	testPoint := point.MovePointInDirection(*tvCenter, perp, testPointOffset)
+	if point.IsPointInPolygon(testPoint, room.Area) {
+		return &perp
+	}
+
+	return &point.Point{X: -perp.X, Y: -perp.Y}
 }

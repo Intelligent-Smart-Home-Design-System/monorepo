@@ -10,7 +10,10 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const defaultTVWidth = 1.5
+const (
+	defaultTVWidth = 1.5
+	sector         = 0.7
+)
 
 type SmartTVRule struct {
 	track string
@@ -25,26 +28,6 @@ func NewSmartTVRule() *SmartTVRule {
 func (stv *SmartTVRule) Type() string {
 	return "smart_tv"
 }
-
-// func (c *SmartTVRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-// 	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	roomsSet := make(map[string]struct{})
-// 	for _, r := range rooms {
-// 		roomsSet[r.Name] = struct{}{}
-// 	}
-
-// 	for _, zr := range zonedAp.ZonedRooms {
-// 		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
-// 			zr.TVZones = collectTVZones(zonedAp.OrigAp, zr)
-// 		}
-// 	}
-
-// 	return nil
-// }
 
 func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	deviceType := stv.Type()
@@ -84,10 +67,10 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 		}
 
 		deviceFilter := &filters.SmartTVFilter{
-			Resolution: smartTVFilters.Resolution,
-			Width: smartTVFilters.Width,
+			Resolution:     smartTVFilters.Resolution,
+			Width:          smartTVFilters.Width,
 			RefreshRatehHZ: smartTVFilters.RefreshRatehHZ,
-			MaxWidthM: maxWidth,
+			MaxWidthM:      maxWidth,
 		}
 
 		layout.AddDeviceToLayout(deviceType, stv.track, zr.OrigRoom.ID, bestPoint, nil, deviceFilter)
@@ -107,79 +90,87 @@ func findBestTVPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, tvWidth f
 				continue
 			}
 		}
-	
+
 		wall, err := ap.GetWallByID(wallID)
-        if err != nil {
-            continue
-        }
-	
-        wallSegment := point.Segment{From: wall.Points[0], To: wall.Points[1]}
-        tracker := geometry.NewWallIntervalTracker(wallSegment.Length())
+		if err != nil {
+			continue
+		}
+
+		wallSegment := point.Segment{From: wall.Points[0], To: wall.Points[1]}
+		tracker := geometry.NewWallIntervalTracker(wallSegment.Length())
 		for _, windowID := range room.Windows {
-            window, err := ap.GetWindowByID(windowID)
-            if err != nil {
-                continue
-            }
+			window, err := ap.GetWindowByID(windowID)
+			if err != nil {
+				continue
+			}
 
-            if isWindowOnWall(window, wall) {
-                windowInterval, _ := geometry.ProjectPolygonToSegment(wallSegment, window.Points)
-                if windowInterval != nil {
-                    tracker.Block(*windowInterval)
-                }
-            }
-        }
-        
-        for _, dID := range room.Doors {
-            door, err := ap.GetDoorByID(dID)
-            if err != nil {
-                continue
-            }
+			if isWindowOnWall(window, wall) {
+				windowInterval, _ := geometry.ProjectPolygonToSegment(wallSegment, window.Points)
+				if windowInterval != nil {
+					tracker.Block(*windowInterval)
+				}
+			}
+		}
 
-            if isDoorOnWall(door, wall) {
-                doorInterval, _ := geometry.ProjectPolygonToSegment(wallSegment, door.Points)
-                if doorInterval != nil {
-                    tracker.Block(*doorInterval)
-                }
-            }
-        }
-        
-        free := tracker.FreeIntervals(tvWidth)
-        if len(free) > 0 {
-            intervals[wall.ID] = free
-        }
-    }
-	
+		for _, dID := range room.Doors {
+			door, err := ap.GetDoorByID(dID)
+			if err != nil {
+				continue
+			}
+
+			if isDoorOnWall(door, wall) {
+				doorInterval, _ := geometry.ProjectPolygonToSegment(wallSegment, door.Points)
+				if doorInterval != nil {
+					tracker.Block(*doorInterval)
+				}
+			}
+		}
+
+		free := tracker.FreeIntervals(tvWidth)
+		if len(free) > 0 {
+			intervals[wall.ID] = free
+		}
+	}
+
 	var bestPoint point.Point
-	tvFurnitures := getTVFurnitureInRoom(ap, room)
-	for _, furniture := range tvFurnitures {
+	targetFurnitures := getTVFurnitureInRoom(ap, room)
+	for _, furniture := range targetFurnitures {
 		if furniture != nil {
 			for wID, freeIntervals := range intervals {
 				wall, _ := ap.GetWallByID(wID)
-				
+
 				for _, iv := range freeIntervals {
 					if iv.Length() >= tvWidth {
 						bestPoint = getPointOnWall(wall, iv)
-						return &bestPoint, iv.Length()
+						if isWallInFrontOfFurniture(room, furniture, bestPoint) {
+							listPos := point.GetObjectCenter(furniture.Points)
+							zr.ListeningPosition = &listPos
+							zr.TVPosition = &bestPoint
+
+							return &bestPoint, iv.Length()
+						}
 					}
 				}
 			}
 		}
 	}
 
-    var maxSize float64
-    for wID, freeIntervals := range intervals {
-        for _, iv := range freeIntervals {
-            if iv.Length() > maxSize {
+	var maxSize float64
+	for wID, freeIntervals := range intervals {
+		for _, iv := range freeIntervals {
+			if iv.Length() > maxSize {
 				wall, err := ap.GetWallByID(wID)
 				if err != nil {
 					break
 				}
 
-                maxSize = iv.Length()
-                bestPoint = getPointOnWall(wall, iv)
-            }
-        }
-    }
+				maxSize = iv.Length()
+				bestPoint = getPointOnWall(wall, iv)
+			}
+		}
+	}
+	zr.ListeningPosition = nil
+	zr.TVPosition = &bestPoint
 
 	return &bestPoint, maxSize
 }
@@ -222,9 +213,53 @@ func getTVFurnitureInRoom(ap *apartment.Apartment, room *apartment.Room) []*apar
 	return result
 }
 
+func isWallInFrontOfFurniture(room *apartment.Room, furniture *apartment.Furniture, tvCenter point.Point) bool {
+	if len(furniture.Points) < 3 {
+		return false
+	}
+
+	furnitureCenter := point.GetObjectCenter(furniture.Points)
+
+	var bestP1, bestP2 point.Point
+	maxDistance := -1.0
+
+	n := len(furniture.Points)
+	for i := range n {
+		p1 := furniture.Points[i]
+		p2 := furniture.Points[(i+1)%n]
+		distance := point.CalculatePointsDistance(p1, p2)
+
+		if distance > maxDistance {
+			maxDistance = distance
+			bestP1 = p1
+			bestP2 = p2
+		}
+	}
+
+	backVector := point.Point{X: bestP2.X - bestP1.X, Y: bestP2.Y - bestP1.Y}
+	furnitureForward := point.Normalize(point.Point{X: -backVector.Y, Y: backVector.X})
+	testPoint := point.Point{
+		X: furnitureCenter.X + furnitureForward.X*testPointOffset,
+		Y: furnitureCenter.Y + furnitureForward.Y*testPointOffset,
+	}
+
+	if !point.IsPointInPolygon(testPoint, room.Area) {
+		furnitureForward.X = -furnitureForward.X
+		furnitureForward.Y = -furnitureForward.Y
+	}
+
+	directionToTV := point.Normalize(point.Point{
+		X: tvCenter.X - furnitureCenter.X,
+		Y: tvCenter.Y - furnitureCenter.Y,
+	})
+	dotProduct := directionToTV.X*furnitureForward.X + directionToTV.Y*furnitureForward.Y
+
+	return dotProduct > sector
+}
+
 func getPointOnWall(wall *apartment.Wall, iv point.Interval) point.Point {
 	wallSegment := point.Segment{From: wall.Points[0], To: wall.Points[1]}
 	direction := wallSegment.Direction()
 
-	return point.MovePointInDirection(wallSegment.From, direction, (iv.From + iv.To) / 2)
+	return point.MovePointInDirection(wallSegment.From, direction, (iv.From+iv.To)/2)
 }

@@ -79,6 +79,8 @@ type SmartSpeaker struct{}
 
 type Subwoofer struct{}
 
+type CeilingSpeakers struct{}
+
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
@@ -116,6 +118,8 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartSpeaker{}
 	case "sub_woofer":
 		filter = &Subwoofer{}
+	case "ceiling_speakers":
+		filter = &CeilingSpeakers{}
 	}
 
 	if filter == nil {

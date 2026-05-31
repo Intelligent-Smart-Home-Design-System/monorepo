@@ -1,16 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MotionSensor",
-  "description": "A smart home motion or presence sensor",
+  "title": "SmartCamera",
+  "description": "A smart home surveillance camera",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "Product name as it appears in the listing, e.g. 'Aqara Motion Sensor P1'"
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Camera Hub G3'"
     },
     "brand": {
       "type": "string",
-      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'sonoff'"
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'hikvision'"
     },
     "model": {
       "type": "string",
@@ -66,7 +66,7 @@
         "AAA",
         "18650"
       ],
-      "description": "Battery type required."
+      "description": "Type of battery required"
     },
     "battery_quantity": {
       "type": "integer",
@@ -78,7 +78,7 @@
       "type": "number",
       "minimum": 1,
       "maximum": 300,
-      "description": "Expected battery life in months as stated by manufacturer."
+      "description": "Expected battery life in months if battery-powered."
     },
     "rechargeable": {
       "type": "boolean",
@@ -87,7 +87,7 @@
     "ip_rating": {
       "type": "string",
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-      "description": "Ingress protection rating, relevant for outdoor installation."
+      "description": "Ingress protection rating, relevant for outdoor cameras, e.g. 'IP66'."
     },
     "power_source": {
       "type": "array",
@@ -103,41 +103,63 @@
         ]
       },
       "uniqueItems": true,
-      "description": "Power sources supported by the device"
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
     },
-    "detection_range_m": {
-      "type": "number",
-      "minimum": 0.5,
-      "maximum": 30,
-      "description": "Maximum detection range in meters, e.g. 7."
-    },
-    "detection_angle_deg": {
-      "type": "number",
-      "minimum": 10,
-      "maximum": 360,
-      "description": "Horizontal detection angle in degrees, e.g. 100. Indicates the value at the maximum detection range."
-    },
-    "type": {
-      "const": "motion_sensor"
-    },
-    "sensor_type": {
+    "resolution": {
       "type": "string",
       "enum": [
-        "pir",
-        "radar",
-        "microwave"
+        "720p",
+        "1080p",
+        "2K",
+        "4K"
       ],
-      "description": "Detection technology. pir = passive infrared, detects movement only. radar/microwave = can detect stationary presence."
+      "description": "Video resolution, e.g. '1080p'."
     },
-    "has_light_sensor": {
+    "has_night_vision": {
       "type": "boolean",
-      "description": "Whether the device also includes an ambient light sensor reporting lux values."
+      "description": "Whether the camera supports night vision or infrared recording in low light."
     },
-    "retrigger_interval_s": {
+    "has_two_way_audio": {
+      "type": "boolean",
+      "description": "Whether the camera has a microphone and speaker for two-way communication."
+    },
+    "has_motion_detection": {
+      "type": "boolean",
+      "description": "Whether the camera can detect motion and send alerts."
+    },
+    "has_person_detection": {
+      "type": "boolean",
+      "description": "Whether the camera uses AI to distinguish people from general motion."
+    },
+    "local_storage": {
+      "type": "boolean",
+      "description": "Whether the camera supports local video storage, e.g. via microSD card."
+    },
+    "cloud_storage": {
+      "type": "boolean",
+      "description": "Whether the camera supports cloud video storage."
+    },
+    "field_of_view_deg": {
       "type": "integer",
-      "minimum": 1,
-      "maximum": 3600,
-      "description": "Minimum interval in seconds between consecutive motion detection events (blind time)."
+      "minimum": 60,
+      "maximum": 360,
+      "description": "Horizontal field of view in degrees, e.g. 130."
+    },
+    "ptz": {
+      "type": "boolean",
+      "description": "Whether the camera supports pan, tilt, and zoom (motorized rotation)."
+    },
+    "indoor_outdoor": {
+      "type": "string",
+      "enum": [
+        "indoor",
+        "outdoor",
+        "both"
+      ],
+      "description": "Whether the camera is designed for indoor use, outdoor use, or both."
+    },
+    "type": {
+      "const": "smart_camera"
     }
   },
   "required": [
@@ -146,8 +168,7 @@
     "model",
     "ecosystem",
     "protocol",
-    "type",
-    "sensor_type"
+    "type"
   ],
   "additionalProperties": false
 }

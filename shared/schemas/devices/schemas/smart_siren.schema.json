@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WaterLeakSensor",
-  "description": "A smart home water leak detection sensor",
+  "title": "SmartSiren",
+  "description": "A smart home siren or security alarm",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Presence Sensor FP2'"
     },
     "brand": {
       "type": "string",
-      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'tuya', 'sonoff'"
     },
     "model": {
       "type": "string",
-      "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
+      "description": "Model identifier as stated by the manufacturer."
     },
     "ecosystem": {
       "type": "array",
@@ -35,7 +35,7 @@
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge) - may be multiple."
+      "description": "Smart home ecosystems this device can connect to through any connection path."
     },
     "protocol": {
       "type": "array",
@@ -78,7 +78,7 @@
       "type": "number",
       "minimum": 1,
       "maximum": 300,
-      "description": "Expected battery life in months as stated by manufacturer."
+      "description": "Expected battery life in months."
     },
     "rechargeable": {
       "type": "boolean",
@@ -87,7 +87,7 @@
     "ip_rating": {
       "type": "string",
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-      "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
+      "description": "Ingress protection rating, relevant for outdoor installation."
     },
     "power_source": {
       "type": "array",
@@ -103,34 +103,33 @@
         ]
       },
       "uniqueItems": true,
-      "description": "Power sources supported by the device"
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
     },
-    "detects_leaks_above": {
-      "type": "boolean",
-      "description": "Whether the sensor can detect water dripping from above via contacts on top."
-    },
-    "detects_leaks_below": {
-      "type": "boolean",
-      "description": "Whether the sensor detects water on the floor via bottom contacts."
-    },
-    "min_detected_water_level_mm": {
-      "type": "number",
-      "minimum": 0.1,
-      "maximum": 10,
-      "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
-    },
-    "has_audio_alert": {
-      "type": "boolean",
-      "description": "Whether the sensor emits an audible alarm when a leak is detected."
-    },
-    "audio_alert_volume_db": {
+    "max_volume_db": {
       "type": "integer",
-      "minimum": 60,
-      "maximum": 120,
-      "description": "Volume of the audible alert in decibels, e.g. 85."
+      "minimum": 80,
+      "maximum": 130,
+      "description": "Maximum siren volume in decibels, e.g. 110."
+    },
+    "has_strobe_light": {
+      "type": "boolean",
+      "description": "Whether the alarm includes a flashing strobe light."
+    },
+    "has_tamper_detection": {
+      "type": "boolean",
+      "description": "Whether the alarm triggers if someone tries to remove it from the wall."
+    },
+    "indoor_outdoor": {
+      "type": "string",
+      "enum": [
+        "indoor",
+        "outdoor",
+        "both"
+      ],
+      "description": "Whether the alarm is designed for indoor or outdoor use."
     },
     "type": {
-      "const": "water_leak_sensor"
+      "const": "smart_siren"
     }
   },
   "required": [

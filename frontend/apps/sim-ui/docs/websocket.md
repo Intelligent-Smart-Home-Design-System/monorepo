@@ -304,21 +304,24 @@ Handshake после установления соединения.
 }
 ```
 
+
 ---
 
-## `log:event`
+## `error`
 
 ```json
 {
-  "type": "log:event",
+  "type": "error",
   "ts": "2026-02-18T12:00:00.000Z",
   "reqId": "run-001",
   "payload": {
-    "level": "INFO",
-    "message": "Rule triggered"
+    "code": "INVALID_REQUEST",
+    "message": "Invalid scenario"
   }
 }
 ```
+
+---
 
 
 # Summary

@@ -12,6 +12,7 @@ const (
 	PageTypeListing
 	PageTypeDiscovery
 	PageTypeCompatibility
+	PageTypeCategory
 )
 
 var pageTypes = map[string]PageType{
@@ -19,6 +20,7 @@ var pageTypes = map[string]PageType{
 	"listing":       PageTypeListing,
 	"discovery":     PageTypeDiscovery,
 	"compatibility": PageTypeCompatibility,
+	"category":      PageTypeCategory,
 }
 
 func (t PageType) String() string {

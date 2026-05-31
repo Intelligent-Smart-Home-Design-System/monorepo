@@ -22,6 +22,7 @@ max_pages = 5
 url_template = "https://catalog.wb.ru/catalog/electronic15/search?appType=1&curr=rub&dest=-1257786&query={query}&page={page}"
 
 [wildberries]
+category_url = "https://www.wildberries.ru/catalog/elektronika/umnyy-dom"
 brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
 smart_home_device_markers = ["Алиса", "Маруся", "Экосистема умного дома", "Zigbee", "умный дом"]
 

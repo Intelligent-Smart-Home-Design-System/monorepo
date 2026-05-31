@@ -1134,3 +1134,55 @@ func TestObserver_Sensor_And_Camera(t *testing.T) {
 		t.Fatal("camera should be OFF")
 	}
 }
+
+func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-camera-other-room"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorTwoRooms(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "human_1",
+				Type: "human",
+				Info: json.RawMessage(`{
+					"id":"human_1",
+					"x":1.0,
+					"y":1.0,
+					"roomID":"room_1"
+				}`),
+			},
+			{
+				ID:   "camera_1",
+				Type: "camera",
+				Info: json.RawMessage(`{
+					"id":"camera_1",
+					"delay":0.0,
+					"x":6.0,
+					"y":1.0,
+					"radius":100.0,
+					"turn_on":false
+				}`),
+			},
+		},
+	})
+
+	steps := []api.SimulationStepPayload{
+		tick(t, conn, reqID, 1, []api.EventInDTO{
+			humanMoveInput(t, "human_1", 1.0, 1.0),
+		}),
+		tick(t, conn, reqID, 2, nil),
+	}
+
+	cameraState, cameraFound := lastBoolStateOf(
+		steps,
+		"camera_1",
+		"turn_on",
+	)
+
+	if cameraFound && cameraState {
+		t.Fatal("camera should not trigger for human in another room")
+	}
+}

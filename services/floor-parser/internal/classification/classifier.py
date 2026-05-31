@@ -14,6 +14,7 @@ class ClassifiedEntities:
     windows: list[Window] = field(default_factory=list)
     doors: list[Door] = field(default_factory=list)
     texts: list[TextEntity] = field(default_factory=list)
+    entities: list[NormalizedEntity] = field(default_factory=list)
 
 
 class SemanticClassifier:
@@ -25,4 +26,4 @@ class SemanticClassifier:
         walls = self._wall_detector.detect(entities, units=units)
         doors, windows = self._opening_detector.detect(entities, walls, units=units)
         texts = [entity for entity in entities if isinstance(entity, TextEntity)]
-        return ClassifiedEntities(walls=walls, windows=windows, doors=doors, texts=texts)
+        return ClassifiedEntities(walls=walls, windows=windows, doors=doors, texts=texts, entities=entities)

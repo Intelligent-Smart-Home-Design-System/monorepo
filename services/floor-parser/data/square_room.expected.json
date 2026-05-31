@@ -65,6 +65,7 @@
   ],
   "doors": [],
   "windows": [],
+  "furniture": [],
   "rooms": [
     {
       "id": "room_1",
@@ -95,7 +96,8 @@
         "8C",
         "8D",
         "8E"
-      ]
+      ],
+      "furniture": []
     }
   ],
   "warnings": []

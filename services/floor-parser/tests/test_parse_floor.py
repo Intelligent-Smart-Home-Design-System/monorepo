@@ -195,6 +195,28 @@ class ParseFloorIntegrationTest(unittest.TestCase):
                 if room_id is not None:
                     self.assertIn(room_id, room_ids)
 
+    def test_furniture_contracts_are_consistent(self):
+        for dxf_filename in (
+            "apartment_first_floor_insert_blocks.dxf",
+            "apartment_second_floor_insert_blocks.dxf",
+            "one_bedroom_apartment.dxf",
+        ):
+            parsed_plan = self._parse_named_dxf(dxf_filename)
+            room_ids = {room["id"] for room in parsed_plan["rooms"]}
+            furniture_ids = {item["id"] for item in parsed_plan["furniture"]}
+
+            self.assertTrue(parsed_plan["furniture"])
+
+            for item in parsed_plan["furniture"]:
+                self.assertTrue(item["category"])
+                self.assertGreaterEqual(len(item["points"]), 4)
+                room_id = item.get("room")
+                if room_id is not None:
+                    self.assertIn(room_id, room_ids)
+
+            for room in parsed_plan["rooms"]:
+                self.assertTrue(set(room["furniture"]).issubset(furniture_ids))
+
     def _assert_floor_summary_matches_expected(self, dxf_filename: str, json_filename: str) -> None:
         service_dir = Path(__file__).resolve().parents[1]
         data_dir = service_dir / "data"
@@ -210,6 +232,7 @@ class ParseFloorIntegrationTest(unittest.TestCase):
         self.assertEqual(len(result["walls"]), len(expected["walls"]))
         self.assertEqual(len(result["doors"]), len(expected["doors"]))
         self.assertEqual(len(result["windows"]), len(expected["windows"]))
+        self.assertEqual(len(result["furniture"]), len(expected["furniture"]))
         self.assertEqual(len(result["rooms"]), len(expected["rooms"]))
         self.assertEqual(len(result["warnings"]), len(expected["warnings"]))
 
@@ -221,7 +244,6 @@ class ParseFloorIntegrationTest(unittest.TestCase):
         floor_plan = topology_builder.build_floor(
             source_file=dxf_path.name,
             classified_entities=classified_entities,
-            parsed_entity_count=len(raw_plan.entities),
             units=raw_plan.metadata.units,
         )
 

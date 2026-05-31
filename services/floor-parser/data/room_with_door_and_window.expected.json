@@ -99,6 +99,7 @@
       "room": "room_1"
     }
   ],
+  "furniture": [],
   "rooms": [
     {
       "id": "room_1",
@@ -133,7 +134,8 @@
         "8E",
         "8F",
         "90"
-      ]
+      ],
+      "furniture": []
     }
   ],
   "warnings": []

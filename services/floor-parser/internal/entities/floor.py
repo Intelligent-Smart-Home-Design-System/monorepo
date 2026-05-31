@@ -49,6 +49,18 @@ class Door:
 
 
 @dataclass(frozen=True)
+class Furniture:
+    id: str
+    layer: str
+    category: str
+    points: list[Point]
+    room: str | None = None
+    rotation: float | None = None
+    source_block_name: str | None = None
+    source_entity_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class Room:
     id: str
     name: str
@@ -57,14 +69,7 @@ class Room:
     windows: tuple[str, ...] = ()
     doors: tuple[str, ...] = ()
     walls: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class FloorMetadata:
-    parsed_entity_count: int
-    supported_attributes: list[str]
-
-
+    furniture: tuple[str, ...] = ()
 @dataclass(frozen=True)
 class FloorPlan:
     schema_version: str
@@ -73,4 +78,4 @@ class FloorPlan:
     doors: list[Door] = field(default_factory=list)
     windows: list[Window] = field(default_factory=list)
     rooms: list[Room] = field(default_factory=list)
-    metadata: FloorMetadata = field(default_factory=lambda: FloorMetadata(parsed_entity_count=0, supported_attributes=[]))
+    furniture: list[Furniture] = field(default_factory=list)

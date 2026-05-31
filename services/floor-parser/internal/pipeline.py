@@ -43,7 +43,6 @@ async def parse_dxf_floor(file: UploadFile) -> dict[str, object]:
         floor_plan = topology_builder.build_floor(
             source_file=file.filename or raw_plan.metadata.source_file,
             classified_entities=classified_entities,
-            parsed_entity_count=len(raw_plan.entities),
             units=raw_plan.metadata.units,
         )
         return exporter.export(

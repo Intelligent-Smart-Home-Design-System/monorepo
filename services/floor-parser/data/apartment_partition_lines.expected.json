@@ -93,6 +93,7 @@
   ],
   "doors": [],
   "windows": [],
+  "furniture": [],
   "rooms": [
     {
       "id": "room_1",
@@ -123,7 +124,8 @@
         "8D",
         "8F",
         "90"
-      ]
+      ],
+      "furniture": []
     },
     {
       "id": "room_2",
@@ -155,7 +157,8 @@
         "8E",
         "8F",
         "90"
-      ]
+      ],
+      "furniture": []
     },
     {
       "id": "room_3",
@@ -186,7 +189,8 @@
         "8C",
         "8F",
         "90"
-      ]
+      ],
+      "furniture": []
     }
   ],
   "warnings": []

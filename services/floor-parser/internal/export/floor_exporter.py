@@ -16,9 +16,11 @@ class FloorExporter:
         sorted_doors = sorted(floor_plan.doors, key=lambda door: door.id)
         sorted_windows = sorted(floor_plan.windows, key=lambda window: window.id)
         sorted_rooms = sorted(floor_plan.rooms, key=lambda room: room.id)
+        sorted_furniture = sorted(floor_plan.furniture, key=lambda item: item.id)
         linear_scale = self._linear_scale_to_mm(units)
         export_walls = self._select_export_walls(floor_plan.walls)
         export_wall_ids = {wall.id for wall in export_walls}
+        export_furniture_ids = {item.id for item in sorted_furniture}
 
         return {
             "schema_version": floor_plan.schema_version,
@@ -30,7 +32,8 @@ class FloorExporter:
             "walls": [self._export_wall(wall, linear_scale) for wall in export_walls],
             "doors": [self._export_door(door, linear_scale) for door in sorted_doors],
             "windows": [self._export_window(window, linear_scale) for window in sorted_windows],
-            "rooms": [self._export_room(room, linear_scale, export_wall_ids) for room in sorted_rooms],
+            "furniture": [self._export_furniture(item, linear_scale) for item in sorted_furniture],
+            "rooms": [self._export_room(room, linear_scale, export_wall_ids, export_furniture_ids) for room in sorted_rooms],
             "warnings": [warning.to_dict() for warning in (warnings or [])]
         }
 
@@ -206,6 +209,7 @@ class FloorExporter:
         room,
         linear_scale: float | None,
         export_wall_ids: set[str],
+        export_furniture_ids: set[str],
     ) -> dict[str, object]:
         return {
             "id": room.id,
@@ -215,7 +219,24 @@ class FloorExporter:
             "windows": list(room.windows),
             "doors": list(room.doors),
             "walls": [wall_id for wall_id in room.walls if wall_id in export_wall_ids],
+            "furniture": [item_id for item_id in room.furniture if item_id in export_furniture_ids],
         }
+
+    def _export_furniture(self, item, linear_scale: float | None) -> dict[str, object]:
+        payload = {
+            "id": item.id,
+            "category": item.category,
+            "points": [self._point_to_list(point, linear_scale) for point in item.points],
+        }
+        if item.room is not None:
+            payload["room"] = item.room
+        if item.rotation is not None:
+            payload["rotation"] = item.rotation
+        if item.source_block_name is not None:
+            payload["source_block_name"] = item.source_block_name
+        if item.layer:
+            payload["layer"] = item.layer
+        return payload
 
     def _segment_points(self, start, end, linear_scale: float | None) -> list[list[float]]:
         return [

@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WaterLeakSensor",
-  "description": "A smart home water leak detection sensor",
+  "title": "SmartDoorbell",
+  "description": "A smart home doorbell",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Video Doorbell G4'"
     },
     "brand": {
       "type": "string",
-      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'ring', 'tuya'"
     },
     "model": {
       "type": "string",
-      "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
+      "description": "Model identifier as stated by the manufacturer."
     },
     "ecosystem": {
       "type": "array",
@@ -35,7 +35,7 @@
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge) - may be multiple."
+      "description": "Smart home ecosystems this device can connect to through any connection path."
     },
     "protocol": {
       "type": "array",
@@ -87,7 +87,7 @@
     "ip_rating": {
       "type": "string",
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-      "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
+      "description": "Ingress protection rating for outdoor use, e.g. 'IP65'."
     },
     "power_source": {
       "type": "array",
@@ -103,34 +103,67 @@
         ]
       },
       "uniqueItems": true,
-      "description": "Power sources supported by the device"
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
     },
-    "detects_leaks_above": {
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "720p",
+        "1080p",
+        "2K",
+        "4K"
+      ],
+      "description": "Video resolution if a camera is present."
+    },
+    "has_night_vision": {
       "type": "boolean",
-      "description": "Whether the sensor can detect water dripping from above via contacts on top."
+      "description": "Whether the camera supports night vision or infrared recording in low light."
     },
-    "detects_leaks_below": {
+    "has_two_way_audio": {
       "type": "boolean",
-      "description": "Whether the sensor detects water on the floor via bottom contacts."
+      "description": "Whether the doorbell supports two-way audio communication with the visitor."
     },
-    "min_detected_water_level_mm": {
-      "type": "number",
-      "minimum": 0.1,
-      "maximum": 10,
-      "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
-    },
-    "has_audio_alert": {
+    "has_motion_detection": {
       "type": "boolean",
-      "description": "Whether the sensor emits an audible alarm when a leak is detected."
+      "description": "Whether the doorbell can detect motion and trigger alerts without the button being pressed."
     },
-    "audio_alert_volume_db": {
+    "has_person_detection": {
+      "type": "boolean",
+      "description": "Uses AI to distinguish people from general motion"
+    },
+    "local_storage": {
+      "type": "boolean",
+      "description": "Whether the device supports local video storage, e.g. via microSD card."
+    },
+    "cloud_storage": {
+      "type": "boolean",
+      "description": "Whether the device supports cloud video storage."
+    },
+    "field_of_view_deg": {
       "type": "integer",
       "minimum": 60,
-      "maximum": 120,
-      "description": "Volume of the audible alert in decibels, e.g. 85."
+      "maximum": 360,
+      "description": "Horizontal field of view in degrees"
+    },
+    "ptz": {
+      "type": "boolean",
+      "description": "Supports pan, tilt, and zoom"
+    },
+    "indoor_outdoor": {
+      "type": "string",
+      "enum": [
+        "indoor",
+        "outdoor",
+        "both"
+      ],
+      "description": "Intended usage environment"
     },
     "type": {
-      "const": "water_leak_sensor"
+      "const": "smart_doorbell"
+    },
+    "has_camera": {
+      "type": "boolean",
+      "description": "Whether the doorbell includes a built-in camera for video."
     }
   },
   "required": [

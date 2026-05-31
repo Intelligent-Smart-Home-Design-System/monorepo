@@ -320,23 +320,6 @@ Handshake после установления соединения.
 }
 ```
 
----
-
-## `error`
-
-```json
-{
-  "type": "error",
-  "ts": "2026-02-18T12:00:00.000Z",
-  "reqId": "run-001",
-  "payload": {
-    "code": "INVALID_REQUEST",
-    "message": "Invalid scenario"
-  }
-}
-```
-
----
 
 # Summary
 

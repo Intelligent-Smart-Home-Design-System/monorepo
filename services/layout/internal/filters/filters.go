@@ -75,13 +75,16 @@ type SmartTVFilter struct {
 	MaxWidthM float64 `json:"max_width_m,omitempty"`
 }
 
-type SmartSpeaker struct {}
+type SmartSpeaker struct{}
+
+type Subwoofer struct{}
 
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
 
 	switch deviceType {
+
 	// Security-устройства
 	case "water_leak_sensor":
 		filter = &WaterLeakSensorFilter{}
@@ -109,6 +112,10 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	// Media-устройства
 	case "smart_tv":
 		filter = &SmartTVFilter{}
+	case "smart_speaker":
+		filter = &SmartSpeaker{}
+	case "sub_woofer":
+		filter = &Subwoofer{}
 	}
 
 	if filter == nil {

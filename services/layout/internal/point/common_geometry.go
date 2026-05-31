@@ -9,6 +9,11 @@ func (p *Point) VecProduct(vector Point) float64 {
 	return p.X*vector.Y - p.Y*vector.X
 }
 
+// DotProduct - скалярное произведение
+func (p *Point) DotProduct(vector Point) float64 {
+	return p.X*vector.X + p.Y*vector.Y
+}
+
 // TODO x1, y1, x2, y2 float64 переместить в сегмент
 // IsInInterval проверяет, находится ли точка на отрезке
 func (p *Point) IsInInterval(x1, y1, x2, y2 float64) bool {

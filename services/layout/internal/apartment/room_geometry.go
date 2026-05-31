@@ -12,6 +12,15 @@ const (
 	degreePerDirection = 30
 )
 
+func (r *Room) GetRoomSizes() (float64, float64) {
+	p1, p2 := point.GetBoundaries(r.Area)
+	
+	length := p2.X - p1.X
+	width := p2.Y - p1.Y
+	
+	return length, width
+}
+
 // IsPointInRoom проверяет, находится ли точка в комнате
 func (r *Room) IsPointInRoom(targetPoint point.Point) bool {
 	return point.IsPointInPolygon(targetPoint, r.Area)

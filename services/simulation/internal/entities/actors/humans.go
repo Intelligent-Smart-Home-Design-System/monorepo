@@ -114,6 +114,12 @@ func (h *Human) HandleOutDTO(dto []byte) {
 		Payload:  dto,
 	}
 	h.enginePort.GetOutChan() <- outData
+
+	movePayload, _ := json.Marshal(map[string]any{
+		"kind": "human:move",
+		"to":   map[string]float64{"x": h.X, "y": h.Y},
+	})
+	h.enginePort.NotifyObservers(h.RoomID, "human:move", movePayload)
 }
 
 func (h *Human) GetProcessFunc() func(process simgo.Process) {

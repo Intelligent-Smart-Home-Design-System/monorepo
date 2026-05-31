@@ -2,7 +2,6 @@ package devices
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 	"github.com/fschuetz04/simgo"
@@ -46,8 +45,6 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 // Возвращает обработанные данные.
 func (l *Lamp) HandleEvent(inData LampData) LampData {
 	l.TurnedOn = inData.TurnOn
-
-	log.Println(l.TurnedOn)
 
 	return LampData{
 		Kind:   inData.Kind,

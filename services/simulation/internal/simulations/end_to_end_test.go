@@ -3,7 +3,6 @@ package simulations
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -813,7 +812,6 @@ func humanRoomFrom(steps []api.SimulationStepPayload, humanID string) (roomID st
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
-			log.Println("Changes: ", out.To.X, out.To.Y, out.RoomID, out.Status)
 			if out.RoomID != "" {
 				return out.RoomID, true
 			}
@@ -1051,5 +1049,88 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 	}
 	if x != 3.0 || y != 3.0 {
 		t.Fatalf("expected position (3.0, 3.0), got (%.2f, %.2f)", x, y)
+	}
+}
+
+func TestObserver_Sensor_And_Camera(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-observers"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorTwoRooms(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "human_1",
+				Type: "human",
+				Info: json.RawMessage(`{"id":"human_1","x":1.0,"y":1.0,"roomID":"room_1"}`),
+			},
+			{
+				ID:   "radiusMoveSensorWithoutUpdate_1",
+				Type: "lamp_with",
+				Info: json.RawMessage(`{"id":"radiusMoveSensorWithoutUpdate_1","delay":0.0,"x":3.0,"y":3.0,"radius":2.0,"turn_on":false}`),
+			},
+			{
+				ID:   "camera_1",
+				Type: "camera",
+				Info: json.RawMessage(`{"id":"camera_1","delay":0.0,"x":0.0,"y":0.0,"radius":5.0,"turn_on":false}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	// тик 1: человек (1,1)
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		humanMoveInput(t, "human_1", 1.0, 1.0),
+	}))
+
+	steps = append(steps, tick(t, conn, reqID, 3, nil))
+
+	// лампа должна быть OFF (дальность ~2.8 > 2)
+	lampState, _ := lastBoolStateOf(steps, "radiusMoveSensorWithoutUpdate_1", "turn_on")
+	if lampState {
+		t.Fatal("radiusMoveSensorWithoutUpdate should be OFF")
+	}
+
+	// камера должна быть ON (дальность ~1.4 < 5)
+	cameraState, _ := lastBoolStateOf(steps, "camera_1", "turn_on")
+	if !cameraState {
+		t.Fatal("camera should be ON")
+	}
+
+	steps = nil
+
+	// тик 3: человек в лампе
+	steps = append(steps, tick(t, conn, reqID, 4, []api.EventInDTO{
+		humanMoveInput(t, "human_1", 3.0, 3.0),
+	}))
+
+	steps = append(steps, tick(t, conn, reqID, 6, nil))
+
+	lampState, _ = lastBoolStateOf(steps, "radiusMoveSensorWithoutUpdate_1", "turn_on")
+	if !lampState {
+		t.Fatal("lamp should be ON")
+	}
+
+	steps = nil
+
+	// тик 5: человек далеко
+	steps = append(steps, tick(t, conn, reqID, 7, []api.EventInDTO{
+		humanMoveInput(t, "human_1", 10.0, 10.0),
+	}))
+
+	steps = append(steps, tick(t, conn, reqID, 9, nil))
+
+	lampState, _ = lastBoolStateOf(steps, "radiusMoveSensorWithoutUpdate_1", "turn_on")
+	if lampState {
+		t.Fatal("lamp should be OFF")
+	}
+
+	cameraState, _ = lastBoolStateOf(steps, "camera_1", "turn_on")
+	if cameraState {
+		t.Fatal("camera should be OFF")
 	}
 }

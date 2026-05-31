@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -12,6 +13,7 @@ const maxEventsBuffer = 100
 type SimEngine struct {
 	simulation    *simgo.Simulation          // дискретная симуляция из simgo
 	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
+	roomObservers map[string][]string        // roomID → []entityID (entity с логикой entities.Observer)
 	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
 	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
 	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
@@ -23,6 +25,7 @@ func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
 		simulation:    simgo.NewSimulation(),
 		IDToEntity:    make(map[string]entities.Entity),
+		roomObservers: make(map[string][]string),
 		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
 		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
 		dtSim:         dtSim,
@@ -47,7 +50,22 @@ func (s *SimEngine) InitProcesses() {
 		if entityWithProcess, ok := entity.(entities.EntityWithProcess); ok {
 			s.simulation.ProcessReflect(entityWithProcess.GetProcessFunc())
 		}
+
+		if observer, ok := entity.(entities.Observer); ok {
+			x, y := observer.GetPosition()
+			for _, room := range s.Floor.Rooms {
+				if field.PointInRoom(x, y, room) {
+					s.roomObservers[room.ID] = append(s.roomObservers[room.ID], observer.GetID())
+					break
+				}
+			}
+		}
 	}
+}
+
+// GetRoomObservers возвращает ID observers в комнате.
+func (s *SimEngine) GetRoomObservers(roomID string) []string {
+	return s.roomObservers[roomID]
 }
 
 // CheckCircleDependencies проверяет наличие циклических зависимостей среди сущностей.
@@ -119,9 +137,9 @@ func (s *SimEngine) InitStep() {
 func (s *SimEngine) Step() {
 	targetTime := s.simulation.Now() + s.dtSim
 
-	s.simulation.RunUntil(targetTime)
-
 	s.drainInChan()
+
+	s.simulation.RunUntil(targetTime)
 }
 
 // drainInChan читает все доступные события из канала
@@ -167,6 +185,27 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 		err := entityWithProcess.HandleInDTO(event.Payload)
 		if err != nil {
 			return
+		}
+	}
+}
+
+func (s *SimEngine) NotifyObservers(roomID string, kind string, payload []byte) {
+	for _, observerID := range s.roomObservers[roomID] {
+		entity := s.IDToEntity[observerID]
+		observer, ok := entity.(entities.Observer)
+		if !ok {
+			continue
+		}
+
+		// проверяем что observer слушает этот kind
+		for _, k := range observer.GetObservedKinds() {
+			if k == kind {
+				s.eventsInChan <- api.EventInDTO{
+					EntityID: observerID,
+					Payload:  payload,
+				}
+				break
+			}
 		}
 	}
 }

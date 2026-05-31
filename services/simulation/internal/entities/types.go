@@ -33,20 +33,29 @@ type EntityWithProcess interface {
 	GetProcessFunc() func(process simgo.Process)
 }
 
+type Observer interface {
+	Entity
+	GetPosition() (x, y float64)
+	GetObservedKinds() []string // ["human:move"], ["fire:spread"] и тд
+}
+
 const (
-	TypeLamp                = "lamp"
-	TypeSmartLamp           = "smartLamp"
-	TypeSmartDimmer         = "smartDimmer"
-	TypeSwitcher            = "switcher"
-	TypeSensorWithUpdate    = "sensorWithUpdate"
-	TypeSensorWithoutUpdate = "sensorWithoutUpdate"
-	TypeSensorWithIntStatus = "sensorWithIntStatus"
-	TypeSiren               = "siren"
-	TypeWindow              = "window"
-	TypeDoor                = "door"
-	TypeSmartLock           = "smartLock"
-	TypeSmartDoorbell       = "smartDoorbell"
-	TypeSmartCurtains       = "smartCurtains"
+	TypeLamp                          = "lamp"
+	TypeSmartLamp                     = "smartLamp"
+	TypeSmartDimmer                   = "smartDimmer"
+	TypeSwitcher                      = "switcher"
+	TypeSensorWithUpdate              = "sensorWithUpdate"
+	TypeSensorWithoutUpdate           = "sensorWithoutUpdate"
+	TypeSensorWithIntStatus           = "sensorWithIntStatus"
+	TypeRadiusMoveSensorWithUpdate    = "radiusMoveSensorWithUpdate"
+	TypeRadiusMoveSensorWithoutUpdate = "radiusMoveSensorWithoutUpdate"
+	TypeSiren                         = "siren"
+	TypeWindow                        = "window"
+	TypeDoor                          = "door"
+	TypeSmartLock                     = "smartLock"
+	TypeSmartDoorbell                 = "smartDoorbell"
+	TypeSmartCurtains                 = "smartCurtains"
+	TypeCamera                        = "camera"
 
 	TypeHuman = "human"
 )

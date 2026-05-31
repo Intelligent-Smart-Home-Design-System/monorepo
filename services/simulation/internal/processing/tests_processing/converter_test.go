@@ -33,6 +33,14 @@ func (s *stubEnginePort) GetFloor() *api.Floor {
 	return s.floor
 }
 
+func (s *stubEnginePort) GetRoomObservers(roomID string) []string {
+	return nil
+}
+
+func (s *stubEnginePort) NotifyObservers(roomID string, kind string, payload []byte) {
+	return
+}
+
 // =====Tests=====
 // проверка парсинга лампы
 func TestEntitiesFromDTO_Lamp(t *testing.T) {

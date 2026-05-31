@@ -52,6 +52,8 @@ type EnginePort interface {
 	GetInChan() chan api.EventInDTO
 	GetSimulation() *simgo.Simulation
 	GetFloor() *api.Floor
+	GetRoomObservers(roomID string) []string
+	NotifyObservers(roomID string, kind string, payload []byte)
 }
 
 var (

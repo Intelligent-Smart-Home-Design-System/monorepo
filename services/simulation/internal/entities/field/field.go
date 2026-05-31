@@ -72,3 +72,11 @@ func pointInPolygon(x, y float64, polygon [][2]float64) bool {
 	}
 	return inside
 }
+
+// IsInRadius проверяет что точка с координатами (xPoint, yPoint) попадает в
+// окружность с центром в точке (xCenter, yCenter) и радиусом radius
+func IsInRadius(xCenter, yCenter, xPoint, yPoint, radius float64) bool {
+	dx := xPoint - xCenter
+	dy := yPoint - yCenter
+	return dx*dx+dy*dy <= radius*radius
+}

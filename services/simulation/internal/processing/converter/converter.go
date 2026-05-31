@@ -23,8 +23,8 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 	IDToEntity := make(map[string]entities.Entity)
 
 	for _, entityDTO := range entitiesData {
-		entityType := strings.Split(entityDTO.ID, "_")[0]
-		switch entityType {
+		entityClass := strings.Split(entityDTO.ID, "_")[0]
+		switch entityClass {
 		case entities.TypeLamp:
 			lamp, err := devices.NewLamp(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -51,6 +51,18 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeSensorWithIntStatus:
 			sensor, err := devices.NewSensorWithIntStatus(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeRadiusMoveSensorWithoutUpdate:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeRadiusMoveSensorWithUpdate:
+			sensor, err := devices.NewRadiusSensorWithUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
@@ -109,6 +121,12 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 				return nil, err
 			}
 			IDToEntity[entityDTO.ID] = curtains
+		case entities.TypeCamera:
+			camera, err := devices.NewCamera(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			IDToEntity[entityDTO.ID] = camera
 		default:
 			return nil, ErrorInvalidFormat
 		}

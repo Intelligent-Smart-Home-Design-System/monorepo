@@ -53,6 +53,14 @@ func (s *Storage) LoadAllLightingRules() {
 func (s *Storage) LoadAllClimateRules() {
 	storageRules := []rules.Rule{
 		climate.NewAirConditionerRule(),
+		climate.NewTemperatureSensorRule(),
+		climate.NewSmartRadiatorActuatorRule(),
+		climate.NewHumiditySensorRule(),
+		climate.NewSmartHumidifierRule(),
+		climate.NewCO2SensorRule(),
+		climate.NewAirPurifierRule(),
+		climate.NewSmartFloorThermostatRule(),
+		climate.NewFloorTemperatureSensorRule(),
 	}
 
 	for _, rule := range storageRules {

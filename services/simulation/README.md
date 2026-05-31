@@ -102,17 +102,25 @@ type Cell struct {
 ### EventInDTO / EventOutDTO
 ```go
 type EventInDTO struct {
-    EntityID string          `json:"entityID"`
-    Info     json.RawMessage `json:"info"`
+    Kind     string          `json:"kind"`
+    EntityID string          `json:"entityId"`
+    Trigger  string          `json:"trigger,omitempty"`
+    Payload  json.RawMessage `json:"payload"`
 }
 ```
+
+Если `trigger` заполнен, событие пришло от `entityId`, но должно быть применено к устройству
+с id из `trigger`. Например, человек `resident` вошел в зону `motion_sensor_hall`.
+Новый контракт дублирует тип события внутри `payload.kind`; верхний `kind` пока остается
+для обратной совместимости. Если фронт уже знает, какие устройства затронуты действием
+человека, он передает их id в `payload.devices_payload`.
 
 ### EntityDTO
 ```go
 type EntityDTO struct {
-    ID        string          `json:"id"`
-    Receivers []string        `json:"receivers"` // те, кого данная сущность тригерит
-    Info      json.RawMessage `json:"info"`
+    ID   string          `json:"id"`
+    Type string          `json:"type"`
+    Info json.RawMessage `json:"info"`
 }
 ```
 

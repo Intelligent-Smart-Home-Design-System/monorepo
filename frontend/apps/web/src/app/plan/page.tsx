@@ -440,6 +440,15 @@ function PlanPageContent() {
                       <Typography variant="body2" color="text.secondary">
                         Сейчас выбрано устройств в наборе: {bundleTotalListings}
                       </Typography>
+
+                      <Button
+                        variant="outlined"
+                        disabled={!selectedBundle.listings.length}
+                        onClick={() => openSimulation(selectedBundle)}
+                        sx={{ fontWeight: 900, borderRadius: 3 }}
+                      >
+                        Открыть в симуляции
+                      </Button>
                     </Stack>
                   )}
                 </CardContent>
@@ -557,4 +566,31 @@ function loadUploadedPlan(): UploadedPlanState | null {
   } catch {
     return null;
   }
+}
+
+type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
+
+function openSimulation(bundle: SimulationBundle) {
+  const devices = bundle.listings.map((listing, index) => {
+    const type = listing.device_attributes?.device_type;
+    return {
+      id: makeSimulationDeviceId(listing, index),
+      name: listing.name,
+      type: typeof type === "string" ? type : listing.name,
+    };
+  });
+
+  localStorage.setItem("simulation-devices", JSON.stringify(devices));
+
+  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
+  const url = new URL(simUrl, window.location.origin);
+  url.searchParams.set("devices", JSON.stringify(devices));
+  window.location.href = url.toString();
+}
+
+function makeSimulationDeviceId(listing: ApiHomePlan["bundles"][number]["listings"][number], index: number) {
+  const rawType = listing.device_attributes?.device_type;
+  const type = typeof rawType === "string" && rawType.trim() ? rawType : listing.name;
+  const safeType = type.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, "_").replace(/^_+|_+$/g, "");
+  return `${safeType || "device"}_${listing.id}_${index + 1}`;
 }

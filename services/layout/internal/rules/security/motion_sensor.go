@@ -128,35 +128,35 @@ func findBestMotionPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 	var bestPoint, bestDirection point.Point
 	maxCoverage := 0.0
 
-	for _, corner := range room.Area {
-		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, corner, filter.Range, filter.Angle)
+	for _, wID := range room.Walls {
+		if zr.ACAvailableWalls != nil {
+			if _, ok := zr.ACAvailableWalls[wID]; !ok {
+				continue
+			}
+		}
+
+		wall, err := ap.GetWallByID(wID)
+		if err != nil {
+			continue
+		}
+
+		wallCenter := point.GetObjectCenter(wall.Points)
+		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, wallCenter, filter.Range, filter.Angle)
 
 		if maxCoverage < coverage {
 			maxCoverage = coverage
-			bestPoint = corner
+			bestPoint = wallCenter
 			bestDirection = direction
 		}
 	}
 
 	if maxCoverage < minRequiredCoverage {
-		for _, wID := range room.Walls {
-			if zr.ACAvailableWalls != nil {
-				if _, ok := zr.ACAvailableWalls[wID]; !ok {
-					continue
-				}
-			}
-
-			wall, err := ap.GetWallByID(wID)
-			if err != nil {
-				continue
-			}
-
-			wallCenter := point.GetObjectCenter(wall.Points)
-			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, wallCenter, filter.Range, filter.Angle)
+		for _, corner := range room.Area {
+			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, corner, filter.Range, filter.Angle)
 
 			if maxCoverage < coverage {
 				maxCoverage = coverage
-				bestPoint = wallCenter
+				bestPoint = corner
 				bestDirection = direction
 			}
 		}

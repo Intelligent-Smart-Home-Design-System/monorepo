@@ -78,3 +78,112 @@ func TestIsSegmentIntersectPolygon(t *testing.T) {
 		assert.Equal(t, tc.expected, actual)
 	}
 } 
+
+func TestFreeIntervals(t *testing.T) {
+	t.Run("стена без блокировок", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		intervals := tracker.FreeIntervals(2)
+
+		assert.Equal(t, 1, len(intervals))
+		assert.Equal(t, 0.0, intervals[0].From)
+		assert.Equal(t, 20.0, intervals[0].To)
+	})
+
+	t.Run("один заблокированный интервал посередине", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 7.5, To: 13.5})
+		intervals := tracker.FreeIntervals(2)
+
+		assert.Equal(t, 2, len(intervals))
+		assert.Equal(t, 0.0, intervals[0].From)
+		assert.Equal(t, 7.5, intervals[0].To)
+		assert.Equal(t, 13.5, intervals[1].From)
+		assert.Equal(t, 20.0, intervals[1].To)
+	})
+
+	t.Run("один заблокированный интервал вначале", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 0.0, To: 13.5})
+		intervals := tracker.FreeIntervals(5)
+
+		assert.Equal(t, 1, len(intervals))
+		assert.Equal(t, 13.5, intervals[0].From)
+		assert.Equal(t, 20.0, intervals[0].To)
+	})
+
+	t.Run("проверка минимальной длины", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 2.0, To: 13.5})
+		intervals := tracker.FreeIntervals(5)
+
+		assert.Equal(t, 1, len(intervals))
+		assert.Equal(t, 13.5, intervals[0].From)
+		assert.Equal(t, 20.0, intervals[0].To)
+	})
+
+	t.Run("два перекрывающихся заблокированных интервала", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 2.0, To: 13.5})
+		tracker.Block(point.Interval{From: 15, To: 17})
+		intervals := tracker.FreeIntervals(1)
+
+		assert.Equal(t, 3, len(intervals))
+		assert.Equal(t, 0.0, intervals[0].From)
+		assert.Equal(t, 2.0, intervals[0].To)
+		assert.Equal(t, 13.5, intervals[1].From)
+		assert.Equal(t, 15.0, intervals[1].To)
+		assert.Equal(t, 17.0, intervals[2].From)
+		assert.Equal(t, 20.0, intervals[2].To)
+	})
+
+	t.Run("защищенная область всередине заблокированной", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 2.0, To: 13.5})
+		tracker.Protect(point.Interval{From: 10, To: 12})
+		intervals := tracker.FreeIntervals(1)
+
+		assert.Equal(t, 3, len(intervals))
+		assert.Equal(t, 0.0, intervals[0].From)
+		assert.Equal(t, 2.0, intervals[0].To)
+		assert.Equal(t, 10.0, intervals[1].From)
+		assert.Equal(t, 12.0, intervals[1].To)
+		assert.Equal(t, 13.5, intervals[2].From)
+		assert.Equal(t, 20.0, intervals[2].To)
+	})
+
+	t.Run("защищенная область пересекает заблокированную", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 2.0, To: 10})
+		tracker.Protect(point.Interval{From: -2, To: 5})
+		intervals := tracker.FreeIntervals(1)
+
+		assert.Equal(t, 2, len(intervals))
+		assert.Equal(t, 0.0, intervals[0].From)
+		assert.Equal(t, 5.0, intervals[0].To)
+		assert.Equal(t, 10.0, intervals[1].From)
+		assert.Equal(t, 20.0, intervals[1].To)
+	})
+
+	t.Run("защищенная область перекрывает заблокированную", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 2.0, To: 10})
+		tracker.Protect(point.Interval{From: -2, To: 5})
+		tracker.Protect(point.Interval{From: 3, To: 10})
+		intervals := tracker.FreeIntervals(1)
+
+		assert.Equal(t, 1, len(intervals))
+		assert.Equal(t, 0.0, intervals[0].From)
+		assert.Equal(t, 20.0, intervals[0].To)
+	})
+
+	t.Run("защищенная область не пересекает заблокированную", func(t *testing.T) {
+		tracker := NewWallIntervalTracker(20.0)
+		tracker.Block(point.Interval{From: 2.0, To: 10})
+		tracker.Protect(point.Interval{From: 15, To: 17})
+		intervals := tracker.FreeIntervals(2.5)
+
+		assert.Equal(t, 1, len(intervals))
+		assert.Equal(t, 10.0, intervals[0].From)
+		assert.Equal(t, 20.0, intervals[0].To)
+	})
+}

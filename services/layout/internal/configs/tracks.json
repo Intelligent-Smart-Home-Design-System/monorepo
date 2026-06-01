@@ -688,7 +688,8 @@
           "name":"Первый уровень",
           "description": "Базовый набор c умной колонкой",
           "price_range": {
-            
+            "min": 5000,
+            "max": 50000
           },
           "devices": [
             "smart_speaker"
@@ -711,11 +712,12 @@
           "name":"Второй уровень",
           "description": "Набор для просмотра контента",
           "price_range": {
-            
+            "min": 25000,
+            "max": 550000
           },
           "devices": [
-            "smart_speaker",
-            "smart_tv"
+            "smart_tv",
+            "smart_speaker"
           ],
           "device_rooms": {
             "smart_speaker": [
@@ -741,11 +743,12 @@
           "name":"Третий уровень",
           "description": "Продвинутый набор для просмотра контента",
           "price_range": {
-            
+            "min": 32000,
+            "max": 580000
           },
           "devices": [
-            "smart_speaker",
             "smart_tv",
+            "smart_speaker",
             "subwoofer"
           ],
           "device_rooms": {

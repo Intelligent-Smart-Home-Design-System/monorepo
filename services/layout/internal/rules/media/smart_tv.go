@@ -61,7 +61,7 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 			continue
 		}
 
-		bestPoint, maxWidth := findBestTVPoint(zonedAp.OrigAp, zr, smartTVFilters.Width)
+		bestPoint, direction, maxWidth := findBestTVPoint(zonedAp.OrigAp, zr, smartTVFilters.Width)
 		if bestPoint == nil {
 			continue
 		}
@@ -73,14 +73,14 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 			MaxWidthM:      maxWidth,
 		}
 
-		layout.AddDeviceToLayout(deviceType, stv.track, zr.OrigRoom.ID, bestPoint, nil, deviceFilter)
+		layout.AddDeviceToLayout(deviceType, stv.track, zr.OrigRoom.ID, bestPoint, direction, deviceFilter)
 		deviceCnt++
 	}
 
 	return nil
 }
 
-func findBestTVPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, tvWidth float64) (*point.Point, float64) {
+func findBestTVPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, tvWidth float64) (*point.Point, *point.Point, float64) {
 	room := zr.OrigRoom
 	intervals := make(map[string][]point.Interval)
 
@@ -146,8 +146,9 @@ func findBestTVPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, tvWidth f
 							listPos := point.GetObjectCenter(furniture.Points)
 							zr.ListeningPosition = &listPos
 							zr.TVPosition = &bestPoint
+							direction := wall.Direction()
 
-							return &bestPoint, iv.Length()
+							return &bestPoint,  &direction, iv.Length()
 						}
 					}
 				}
@@ -156,6 +157,8 @@ func findBestTVPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, tvWidth f
 	}
 
 	var maxSize float64
+	var direction point.Point
+
 	for wID, freeIntervals := range intervals {
 		for _, iv := range freeIntervals {
 			if iv.Length() > maxSize {
@@ -166,13 +169,14 @@ func findBestTVPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, tvWidth f
 
 				maxSize = iv.Length()
 				bestPoint = getPointOnWall(wall, iv)
+				direction = wall.Direction()
 			}
 		}
 	}
 	zr.ListeningPosition = nil
 	zr.TVPosition = &bestPoint
 
-	return &bestPoint, maxSize
+	return &bestPoint, &direction, maxSize
 }
 
 func isWindowOnWall(window *apartment.Window, wall *apartment.Wall) bool {

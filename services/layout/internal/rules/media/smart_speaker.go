@@ -109,7 +109,7 @@ func findTVPosition(ap *apartment.Apartment, room *apartment.Room, layout *apart
 	}
 
 	for _, placement := range layout.Placements[room.ID] {
-		if strings.ToLower(placement.Device.Type) == apartment.TV {
+		if strings.ToLower(placement.Device.Type) == apartment.SmartTV {
 			tvFilter := placement.Filters.(*filters.SmartTVFilter)
 			return placement.Position, placement.Direction, tvFilter.Width
 		}
@@ -124,7 +124,6 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 
 	if nearestWall != nil {
 		wallCenter := point.GetObjectCenter(nearestWall.Points)
-
 		if tvPosition.X < wallCenter.X {
 			res := point.MovePointInDirectionPlusOffset(*tvPosition, *direction, totalShift)
 			if !isBlockedPoint(ap, room, res) {

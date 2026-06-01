@@ -108,7 +108,7 @@ func findBestSubwooferPoint(ap *apartment.Apartment, room *apartment.Room, layou
 
 		tvToCornerVector := point.Point{X: p.X - tvCenter.X, Y: p.Y - tvCenter.Y}
 		distance := math.Sqrt(tvToCornerVector.X*tvToCornerVector.X + tvToCornerVector.Y*tvToCornerVector.Y)
-		if distance > maxDistanceToTV || distance == 0 {
+		if distance == 0 {
 			continue
 		}
 

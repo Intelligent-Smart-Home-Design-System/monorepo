@@ -12,13 +12,13 @@ import (
 )
 
 func TestLoadTracksConfig(t *testing.T) {
-	_, err := configs.LoadTracksConfig(GetTracksPath())
+	err := configs.LoadTracksConfig(GetTracksPath())
 
 	assert.NoError(t, err)
 }
 
 func TestLoadDevicesConfig(t *testing.T) {
-	_, err := configs.LoadTracksConfig(GetDevicesPath())
+	err := configs.LoadTracksConfig(GetDevicesPath())
 
 	assert.NoError(t, err)
 }
@@ -42,16 +42,16 @@ func TestLaunch(t *testing.T) {
 		"security": "1",
 	}
 
-	trackConfig, err1 := configs.LoadTracksConfig(GetTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(GetDevicesPath())
+	err1 := configs.LoadTracksConfig(GetTracksPath())
+	err2 := configs.LoadDevicesConfig(GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules(deviceConfig)
+	storage.LoadAllSecurityRules()
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
+	engine := engine.NewEngine(storage)
 	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.NoError(t, err)
@@ -63,13 +63,13 @@ func TestNilApartment(t *testing.T) {
 	}
 
 	storage := storage.NewStorage()
-	trackConfig, err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(GetDevicesPath())
+	err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
+	err2 := configs.LoadDevicesConfig(GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
+	engine := engine.NewEngine(storage)
 	_, err := engine.PlaceDevices(nil, selectedLevels)
 
 	assert.Error(t, err)
@@ -85,13 +85,13 @@ func TestNilRoomsStruct(t *testing.T) {
 	}
 
 	storage := storage.NewStorage()
-	trackConfig, err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
-	deviceConfig, err2 := configs.LoadDevicesConfig(GetDevicesPath())
+	err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
+	err2 := configs.LoadDevicesConfig(GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, trackConfig, deviceConfig)
+	engine := engine.NewEngine(storage)
 	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
 
 	assert.Error(t, err)

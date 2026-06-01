@@ -2,14 +2,22 @@ package filters
 
 import (
 	"encoding/json"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DeviceFilter interface{}
 
-type WaterLeakSensorFilter struct{}
+type WaterLeakSensorFilter struct {
+	ProbeType        string  `json:"probe_type,omitempty"`
+	AlarmVolumeDB    float64 `json:"alarm_volume_db,omitempty"`
+	BatteryLifeYears float64 `json:"battery_life_years,omitempty"`
+}
 
 type GasLeakSensorFilter struct {
-	GasType string `json:"gas_type,omitempty"`
+	GasTypes         []string `json:"gas_types,omitempty"`
+	AlarmVolumeDB    float64  `json:"alarm_volume_db,omitempty"`
+	BatteryLifeYears float64  `json:"battery_life_years,omitempty"`
 }
 
 type SmartLockFilter struct {
@@ -17,8 +25,12 @@ type SmartLockFilter struct {
 }
 
 type SmartDoorBellFilter struct {
-	Angle      float64 `json:"angle,omitempty"`
-	Resolution string `json:"resolution,omitempty"`
+	Resolution  string  `json:"resolution,omitempty"`
+	Angle       float64 `json:"angle,omitempty"`
+	NightVision bool    `json:"night_vision,omitempty"`
+	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
+
+	Direction *point.Point
 }
 
 type DoorSensorFilter struct{}
@@ -28,21 +40,35 @@ type WindowSensorFilter struct{}
 type MotionSensorFilter struct {
 	Angle float64 `json:"angle,omitempty"`
 	Range float64 `json:"range,omitempty"`
+
+	Direction *point.Point
 }
 
 type CameraFilter struct {
-	Angle       float64    `json:"angle,omitempty"`
-	Range       float64    `json:"range,omitempty"`
-	NightVision bool   `json:"night_vision,omitempty"`
-	Resolution  string `json:"resolution,omitempty"`
+	Angle       float64 `json:"angle,omitempty"`
+	Range       float64 `json:"range,omitempty"`
+	NightVision bool    `json:"night_vision,omitempty"`
+	Resolution  string  `json:"resolution,omitempty"`
+
+	RecommendedRange float64
+	Direction        *point.Point
 }
 
 type SmartSirenFilter struct {
 	VolumeDB float64 `json:"volume_db,omitempty"`
 }
 
+type AirConditionerFilter struct {
+	NoiseLevelDB       float64 `json:"noise_level_db,omitempty"`
+	MaxNoiseLevelDB    float64 `json:"max_noise_level_db,omitempty"`
+	CoolingPowerBTU    float64 `json:"cooling_power_btu,omitempty"`
+	CoolingPowerWatts  float64 `json:"cooling_power_watts,omitempty"`
+	IndoorUnitLengthMM float64 `json:"indoor_unit_length_mm,omitempty"`
+	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
+}
+
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
-func GetCertainFilter(deviceType string, filters map[string]interface{}) (DeviceFilter, error) {
+func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
 
 	switch deviceType {
@@ -64,6 +90,8 @@ func GetCertainFilter(deviceType string, filters map[string]interface{}) (Device
 		filter = &CameraFilter{}
 	case "smart_siren":
 		filter = &SmartSirenFilter{}
+	case "air_conditioner":
+		filter = &AirConditionerFilter{}
 	}
 
 	if filter == nil {

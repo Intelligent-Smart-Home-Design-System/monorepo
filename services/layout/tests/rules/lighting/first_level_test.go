@@ -44,12 +44,12 @@ func TestLightingLevel1(t *testing.T) {
 
 	st := storage.NewStorage()
 	st.LoadAllLightingRules()
-	tracksConfig, err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-	devicesConfig, err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	e := engine.NewEngine(st, tracksConfig, devicesConfig)
+	e := engine.NewEngine(st)
 	globalPlacement, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 

@@ -4,17 +4,16 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type GasLeakSensorRule struct {
 	track string
-	deviceConfig *configs.Devices
 }
 
-func NewGasLeakRule(deviceConfig *configs.Devices) *GasLeakSensorRule {
+func NewGasLeakRule() *GasLeakSensorRule {
 	return &GasLeakSensorRule{
 		track: "security",
-		deviceConfig: deviceConfig,
 	}
 }
 
@@ -22,30 +21,86 @@ func (gl *GasLeakSensorRule) Type() string {
 	return "gas_leak_sensor"
 }
 
-func (gl *GasLeakSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, layout *apartment.Layout) error {
-	deviceType := gl.Type()
+func (gl *GasLeakSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
+	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
 
-	configFilters := gl.deviceConfig.GetDeviceFilter(deviceType)
+	roomsSet := make(map[string]struct{})
+	for _, r := range rooms {
+		roomsSet[r.Name] = struct{}{}
+	}
+
+	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+			zr.GasZones = collectGasZones(zr.GetAppliances())
+		}
+	}
+
+	return nil
+}
+
+func (gl *GasLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	deviceType := gl.Type()
+	
+	err := gl.Transform(zonedAp, deviceRooms)
+	if err != nil {
+		return err
+	}
+
+	tracksConfig := configs.GetGlobalTracksConfig()
+	configFilters, err := tracksConfig.GetDeviceFilter(gl.track, levelNum, deviceType)
+	if err != nil {
+		return err
+	}
+
 	if configFilters == nil {
 		configFilters = &filters.GasLeakSensorFilter{}
 	}
 	gasLeakSensorFilters := configFilters.(*filters.GasLeakSensorFilter)
 
-	kitchens, err := apartmentStruct.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
+	roomsSet := make(map[string]struct{})
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
-	for _, kitchen := range kitchens {
-		kitchenID := kitchen.ID
-
-		kitchenCenter, err := kitchen.GetCenter()
-		if err != nil {
-			return err
+	deviceCnt := 0
+	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, gl.track, kitchenID, kitchenCenter, gasLeakSensorFilters)
+		for _, gasZone := range zr.GasZones {
+			if deviceCnt >= maxCount {
+				return nil
+			}
+
+			if len(gasZone.Points) == 0 {
+				continue
+			}
+	
+			zoneCenter := point.GetCenter(gasZone.Points)
+
+			if deviceCnt < maxCount {
+				layout.AddDeviceToLayout(deviceType, gl.track, zr.OrigRoom.ID, zoneCenter, gasLeakSensorFilters)
+				deviceCnt++
+			}
+		}
 	}
 
 	return nil
+}
+
+func collectGasZones(appliances []*apartment.Appliances) []*apartment.Zone {
+	zones := make([]*apartment.Zone, 0)
+
+	for _, a := range appliances {
+		switch a.Name {
+		case apartment.Stove, apartment.GasBoiler:
+			zones = append(zones, apartment.NewZone(a.Points))
+		}
+	}
+
+	return zones
 }

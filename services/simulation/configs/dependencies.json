@@ -1,0 +1,93 @@
+{
+  "triggers": {
+    "motion_sensor": {
+      "description": "Датчик движения — срабатывает при обнаружении движения",
+      "triggers": ["smart_bulb", "smart_siren", "camera"]
+    },
+    "presence_sensor": {
+      "description": "Датчик присутствия — фиксирует нахождение человека в помещении",
+      "triggers": ["smart_bulb", "smart_dimmer", "built_in_backlight"]
+    },
+    "illumination_sensor": {
+      "description": "Датчик освещённости — реагирует на изменение уровня света",
+      "triggers": ["smart_bulb", "curtains", "smart_dimmer"]
+    },
+    "water_leak_sensor": {
+      "description": "Датчик протечки воды — обнаруживает воду в неположенных местах",
+      "triggers": ["smart_siren"]
+    },
+    "gas_leak_sensor": {
+      "description": "Датчик утечки газа — обнаруживает опасные газы",
+      "triggers": ["smart_siren"]
+    },
+    "door_sensor": {
+      "description": "Датчик двери — фиксирует открытие/закрытие двери",
+      "triggers": ["smart_bulb", "smart_lock", "camera", "smart_siren"]
+    },
+    "window_sensor": {
+      "description": "Датчик окна — фиксирует открытие/закрытие окна",
+      "triggers": ["smart_siren", "curtains", "camera"]
+    },
+    "smart_doorbell": {
+      "description": "Умный дверной звонок — срабатывает при нажатии кнопки",
+      "triggers": ["smart_lock", "camera"]
+    },
+    "wireless_button_switch": {
+      "description": "Беспроводная кнопка управления устройствами",
+      "triggers": [
+        "smart_bulb",
+        "curtains",
+        "built_in_backlight",
+        "decorative_luminaire",
+        "smart_lock",
+        "smart_siren",
+        "smart_doorbell",
+        "camera"
+      ]
+    },
+    "smart_lock": {
+      "description": "Умный замок — управляет доступом в помещение",
+      "triggers": ["smart_bulb", "camera"]
+    },
+    "camera": {
+      "description": "Камера наблюдения — фиксирует движение и активность",
+      "triggers": ["smart_siren"]
+    },
+    "smart_bulb": {
+      "description": "Умная лампа — управляемое освещение",
+      "triggers": []
+    },
+    "smart_dimmer": {
+      "description": "Умный диммер — регулирует яркость света",
+      "triggers": ["smart_bulb"]
+    },
+    "curtains": {
+      "description": "Умные шторы — автоматическое управление светом через окна",
+      "triggers": []
+    },
+    "built_in_backlight": {
+      "description": "Встроенная подсветка помещений",
+      "triggers": []
+    },
+    "decorative_luminaire": {
+      "description": "Декоративный светильник — используется для акцентного освещения и сцен",
+      "triggers": ["smart_dimmer", "smart_bulb"]
+    },
+    "smart_siren": {
+      "description": "Сирена — аварийное звуковое оповещение",
+      "triggers": []
+    },
+    "human": {
+      "description": "Человек — активный субъект, вызывающий срабатывание сенсоров",
+      "triggers": [
+        "motion_sensor",
+        "presence_sensor",
+        "illumination_sensor",
+        "door_sensor",
+        "window_sensor",
+        "camera",
+        "wireless_button_switch"
+      ]
+    }
+  }
+}

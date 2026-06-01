@@ -10,6 +10,7 @@ import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import { Alert, Box, Button, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { api } from "./lib/api";
+import { useAuth } from "./lib/auth-context";
 import type { ApiPlanSummary } from "./lib/types";
 
 const steps = [
@@ -19,12 +20,25 @@ const steps = [
 ];
 
 export default function Home() {
+  const auth = useAuth();
   const [plans, setPlans] = useState<ApiPlanSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (auth.loading) {
+      return;
+    }
+
+    if (!auth.isAuthenticated) {
+      setPlans([]);
+      setError("");
+      setLoading(false);
+      return;
+    }
+
     let active = true;
+    setLoading(true);
 
     api
       .listPlans()
@@ -43,7 +57,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [auth.isAuthenticated, auth.loading]);
 
   const sortedPlans = useMemo(
     () =>
@@ -123,6 +137,37 @@ export default function Home() {
                 Сервис работает с реальным backend API: можно создать план, следить за его
                 статусом и просматривать готовые наборы устройств.
               </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+                {auth.isAuthenticated ? (
+                  <>
+                    <Chip
+                      label={`Выполнен вход: ${auth.user?.email ?? "пользователь"}`}
+                      color="success"
+                      sx={{ width: "fit-content", fontWeight: 700 }}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={auth.logout}
+                      sx={{ width: "fit-content", borderRadius: 3, fontWeight: 700 }}
+                    >
+                      Выйти
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login">
+                      <Button variant="outlined" sx={{ borderRadius: 3, fontWeight: 700 }}>
+                        Войти
+                      </Button>
+                    </Link>
+                    <Link href="/register">
+                      <Button variant="contained" sx={{ borderRadius: 3, fontWeight: 700 }}>
+                        Регистрация
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </Stack>
             </Stack>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="stretch">
@@ -143,23 +188,30 @@ export default function Home() {
                     Начните с выбора экосистемы и требований, после чего frontend отправит
                     реальный запрос на создание нового плана.
                   </Typography>
-                  <Link href="/settings">
-                    <Button
-                      variant="contained"
-                      endIcon={<ArrowForwardRoundedIcon />}
-                      sx={{
-                        width: "fit-content",
-                        px: 2.5,
-                        py: 1.2,
-                        borderRadius: 3,
-                        fontWeight: 800,
-                        background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                        boxShadow: "0 14px 30px rgba(34,197,94,0.25)",
-                      }}
-                    >
-                      Подобрать новый умный дом
-                    </Button>
-                  </Link>
+                  {auth.isAuthenticated ? (
+                    <Link href="/settings">
+                      <Button
+                        variant="contained"
+                        endIcon={<ArrowForwardRoundedIcon />}
+                        sx={{
+                          width: "fit-content",
+                          px: 2.5,
+                          py: 1.2,
+                          borderRadius: 3,
+                          fontWeight: 800,
+                          background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                          boxShadow: "0 14px 30px rgba(34,197,94,0.25)",
+                        }}
+                      >
+                        Подобрать новый умный дом
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Alert severity="info" sx={{ maxWidth: 520 }}>
+                      Перед созданием плана войдите или зарегистрируйтесь, чтобы frontend мог
+                      отправлять JWT-токен в backend-запросы.
+                    </Alert>
+                  )}
                 </Stack>
               </Box>
 
@@ -191,6 +243,10 @@ export default function Home() {
                 <Box sx={{ py: 5, display: "grid", placeItems: "center" }}>
                   <CircularProgress />
                 </Box>
+              ) : !auth.isAuthenticated ? (
+                <Alert severity="info">
+                  Войдите в аккаунт, чтобы видеть список своих планов и отправлять авторизованные запросы в backend.
+                </Alert>
               ) : error ? (
                 <Alert severity="error">{error}</Alert>
               ) : sortedPlans.length === 0 ? (

@@ -166,3 +166,35 @@ export type ApiErrorResponse = {
     code?: string | null;
     details?: string | null;
 };
+
+export type AuthTokens = {
+    access_token: string;
+    refresh_token: string;
+    token_type?: string;
+};
+
+export type AuthUser = {
+    id?: string | number;
+    email: string;
+    name?: string | null;
+};
+
+export type LoginRequest = {
+    email: string;
+    password: string;
+};
+
+export type RegisterRequest = {
+    email: string;
+    password: string;
+    name?: string;
+};
+
+export type RefreshTokenRequest = {
+    refresh_token: string;
+};
+
+export type AuthResponse = AuthTokens & {
+    user?: AuthUser | null;
+    message?: string;
+};

@@ -21,6 +21,7 @@ import {
   Typography,
 } from "@mui/material";
 import { api } from "../lib/api";
+import { useAuth } from "../lib/auth-context";
 import type {
   ApiCreatePlanRequest,
   ApiDeviceType,
@@ -44,6 +45,7 @@ type UploadedPlanState = {
 };
 
 export default function SettingsPage() {
+  const auth = useAuth();
   const router = useRouter();
 
   const [budget, setBudget] = useState("500000");
@@ -62,6 +64,15 @@ export default function SettingsPage() {
   const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
+    if (auth.loading) {
+      return;
+    }
+
+    if (!auth.isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     let active = true;
 
     Promise.all([api.listEcosystems(), api.listPresets(), api.listDeviceTypes()])
@@ -85,7 +96,7 @@ export default function SettingsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [auth.isAuthenticated, auth.loading]);
 
   const canSubmit =
     Number(budget) > 0 &&
@@ -159,6 +170,17 @@ export default function SettingsPage() {
               <Box sx={{ py: 8, display: "grid", placeItems: "center" }}>
                 <CircularProgress />
               </Box>
+            ) : !auth.isAuthenticated ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => router.push("/login?next=/settings")}>
+                    Войти
+                  </Button>
+                }
+              >
+                Для создания плана нужно войти в аккаунт и получить JWT-токены.
+              </Alert>
             ) : (
               <>
                 {error && <Alert severity="error">{error}</Alert>}

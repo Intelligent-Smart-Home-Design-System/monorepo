@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import { api } from "../lib/api";
+import { useAuth } from "../lib/auth-context";
 import type { ApiHomePlan, ApiPlanStatus } from "../lib/types";
 
 type UploadedPlanState = {
@@ -45,6 +46,7 @@ export default function PlanPage() {
 }
 
 function PlanPageContent() {
+  const auth = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -60,6 +62,13 @@ function PlanPageContent() {
   const invalidPlanId = !Number.isFinite(planId) || planId <= 0;
 
   useEffect(() => {
+    if (auth.loading || !auth.isAuthenticated) {
+      if (!auth.loading) {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (invalidPlanId) {
       return;
     }
@@ -104,7 +113,7 @@ function PlanPageContent() {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [invalidPlanId, planId]);
+  }, [auth.isAuthenticated, auth.loading, invalidPlanId, planId]);
 
   const selectedBundle = useMemo(
     () => plan?.bundles.find((bundle) => bundle.id === selectedBundleId) ?? plan?.bundles[0] ?? null,
@@ -176,7 +185,18 @@ function PlanPageContent() {
           </Stack>
         </Box>
 
-        {invalidPlanId ? (
+        {!auth.isAuthenticated ? (
+          <Alert
+            severity="warning"
+            action={
+              <Button color="inherit" size="small" onClick={() => router.push(`/login?next=/plan?id=${planId}`)}>
+                Войти
+              </Button>
+            }
+          >
+            Для просмотра плана нужен вход в аккаунт.
+          </Alert>
+        ) : invalidPlanId ? (
           <Alert severity="error">Не передан корректный plan_id.</Alert>
         ) : error ? (
           <Alert severity="error">{error}</Alert>

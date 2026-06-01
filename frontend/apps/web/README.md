@@ -9,7 +9,8 @@
 - Загрузка плана квартиры в форматах DXF и PNG.
 - Интерактивная страница плана с устройствами, карточкой устройства, аналогами и маркетплейсами.
 - Страницы аналитики и сценариев для демонстрации пользовательского флоу.
-- Основной UI в `apps/web` уже подключён к backend API для загрузки справочников, создания плана и просмотра результатов.
+- Основной UI в `apps/web` подключён к backend API для загрузки справочников, создания плана и просмотра результатов.
+- Добавлены страницы регистрации и входа, хранение `access_token`/`refresh_token` и отправка JWT во frontend-запросах.
 
 ## Текущее сетевое взаимодействие
 
@@ -31,18 +32,20 @@
 
 ## Токены, auth и регистрация
 
-На текущий момент в `apps/web` не реализованы:
+В `apps/web` реализованы:
 
-- токены доступа;
-- заголовок `Authorization`;
-- cookie/session auth;
-- login/registration flows;
-- отдельные запросы на регистрацию, логин или обновление токена.
+- страницы `/login` и `/register`;
+- сохранение `access_token` и `refresh_token` в `localStorage`;
+- добавление заголовка `Authorization: Bearer <access_token>` во все запросы к backend;
+- попытка обновления access token через refresh endpoint при ответе `401`.
 
-Во frontend есть `localStorage`, но он используется только для локального UI-состояния:
+Пути auth endpoints можно переопределить переменными окружения:
 
-- `planner-uploaded-plan` — превью загруженного пользователем плана;
-- данные для demo-страниц аналитики и сценариев.
+- `NEXT_PUBLIC_AUTH_LOGIN_PATH`, по умолчанию `/api/v1/auth/login`;
+- `NEXT_PUBLIC_AUTH_REGISTER_PATH`, по умолчанию `/api/v1/auth/register`;
+- `NEXT_PUBLIC_AUTH_REFRESH_PATH`, по умолчанию `/api/v1/auth/refresh`.
+
+Frontend ожидает от backend поля `access_token` и `refresh_token`. Также поддерживаются camelCase-поля `accessToken`/`refreshToken` и вложенный объект `tokens`.
 
 ## Запуск
 

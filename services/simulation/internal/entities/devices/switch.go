@@ -12,7 +12,7 @@ import (
 // Switcher - стандартный переключатель с функцией вкл/выкл
 type Switcher struct {
 	BaseDevice[SwitcherData]
-	TurnedOn bool `json:"turn_on"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type SwitcherData struct {
@@ -45,11 +45,11 @@ func (l *Switcher) HandleInDTO(dto []byte) error {
 }
 
 func (l *Switcher) HandleEvent(inData SwitcherData) SwitcherData {
-	l.TurnedOn = inData.TurnOn
+	l.TurnOn = inData.TurnOn
 
 	out := SwitcherData{
 		Kind:   inData.Kind,
-		TurnOn: l.TurnedOn,
+		TurnOn: l.TurnOn,
 	}
 
 	return out

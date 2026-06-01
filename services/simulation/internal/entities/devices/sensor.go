@@ -15,8 +15,8 @@ import (
 // Позволяет обновлять действие до истечения таймаута, старое действие игнорируется.
 type SensorWithUpdate struct {
 	BaseDevice[SensorWithUpdateData]
-	TurnedOn bool    `json:"turn_on"`
-	Timeout  float64 `json:"timeout"`
+	TurnOn  bool    `json:"turn_on"`
+	Timeout float64 `json:"timeout"`
 }
 
 type SensorWithUpdateData struct {
@@ -32,6 +32,7 @@ func NewSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithU
 
 	switcher.enginePort = engineAPI
 	switcher.inStore = *simgo.NewStore[SensorWithUpdateData](engineAPI.GetSimulation())
+
 	return &switcher, nil
 }
 
@@ -42,6 +43,7 @@ func (s *SensorWithUpdate) HandleInDTO(dto []byte) error {
 	}
 
 	s.Put(input)
+
 	return nil
 }
 
@@ -69,7 +71,7 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 		dataLamp, _ := json.Marshal(outData)
 		s.HandleOutDTO(dataLamp)
 
-		for s.TurnedOn {
+		for s.TurnOn {
 			timeoutEv := process.Timeout(s.Timeout)
 			el2 := s.inStore.Get()
 
@@ -84,10 +86,12 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 
 				dto, _ := json.Marshal(outData)
 				s.HandleOutDTO(dto)
+
 				break
 			}
 
 			process.Wait(process.Timeout(s.Delay))
+
 			nextData := el2.Item
 
 			if !nextData.TurnOn {
@@ -99,6 +103,7 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 
 				dto, _ := json.Marshal(outData)
 				s.HandleOutDTO(dto)
+
 				break
 			}
 		}
@@ -106,11 +111,11 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 }
 
 func (s *SensorWithUpdate) HandleEvent(inData SensorWithUpdateData) (SensorWithUpdateData, error) {
-	s.TurnedOn = inData.TurnOn
+	s.TurnOn = inData.TurnOn
 
 	return SensorWithUpdateData{
 		Kind:   inData.Kind,
-		TurnOn: s.TurnedOn,
+		TurnOn: s.TurnOn,
 	}, nil
 }
 
@@ -118,12 +123,12 @@ func (s *SensorWithUpdate) HandleEvent(inData SensorWithUpdateData) (SensorWithU
 // реализует интерфейс entities.EntityWithProcess.
 type SensorWithoutUpdate struct {
 	BaseDevice[SensorWithoutUpdateData]
-	TurnedOn bool `json:"turn_on"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type SensorWithoutUpdateData struct {
-	Kind     string `json:"kind"`
-	TurnedOn bool   `json:"turn_on"`
+	Kind   string `json:"kind"`
+	TurnOn bool   `json:"turn_on"`
 }
 
 func NewSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithoutUpdate, error) {
@@ -147,16 +152,17 @@ func (s *SensorWithoutUpdate) HandleInDTO(dto []byte) error {
 	}
 
 	s.Put(input)
+
 	return nil
 }
 
 // HandleEvent реализует бизнес-логику устройства.
 func (s *SensorWithoutUpdate) HandleEvent(inData SensorWithoutUpdateData) SensorWithoutUpdateData {
-	s.TurnedOn = inData.TurnedOn
+	s.TurnOn = inData.TurnOn
 
 	return SensorWithoutUpdateData{
-		Kind:     inData.Kind,
-		TurnedOn: s.TurnedOn,
+		Kind:   inData.Kind,
+		TurnOn: s.TurnOn,
 	}
 }
 
@@ -193,6 +199,7 @@ func (s *SensorWithIntStatus) HandleInDTO(dto []byte) error {
 	}
 
 	s.Put(input)
+
 	return nil
 }
 
@@ -211,11 +218,11 @@ func (s *SensorWithIntStatus) HandleEvent(inData SensorWithIntStatusData) Sensor
 // Активируется когда объект входит в радиус, сбрасывается по таймауту или когда объект покидает радиус.
 type RadiusMoveSensorWithUpdate struct {
 	BaseDevice[RadiusSensorData]
-	TurnedOn bool    `json:"turned_on"`
-	Timeout  float64 `json:"timeout"`
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
-	Radius   float64 `json:"radius"`
+	TurnOn  bool    `json:"turn_on"`
+	Timeout float64 `json:"timeout"`
+	X       float64 `json:"x"`
+	Y       float64 `json:"y"`
+	Radius  float64 `json:"radius"`
 }
 
 type RadiusSensorData struct {
@@ -228,8 +235,10 @@ func NewRadiusSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*Radiu
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, err
 	}
+
 	s.enginePort = engineAPI
 	s.inStore = *simgo.NewStore[RadiusSensorData](engineAPI.GetSimulation())
+
 	return &s, nil
 }
 
@@ -248,10 +257,12 @@ func (s *RadiusMoveSensorWithUpdate) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &move); err != nil {
 		return err
 	}
+
 	s.Put(RadiusSensorData{
 		Kind:   move.Kind,
 		TurnOn: field.IsInRadius(s.X, s.Y, move.To.X, move.To.Y, s.Radius),
 	})
+
 	return nil
 }
 
@@ -275,7 +286,7 @@ func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 		dto, _ := json.Marshal(outData)
 		s.HandleOutDTO(dto)
 
-		for s.TurnedOn {
+		for s.TurnOn {
 			timeoutEv := process.Timeout(s.Timeout)
 			el2 := s.inStore.Get()
 
@@ -286,10 +297,12 @@ func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 
 				dto, _ := json.Marshal(outData)
 				s.HandleOutDTO(dto)
+
 				break
 			}
 
 			process.Wait(process.Timeout(s.Delay))
+
 			nextData := el2.Item
 
 			if !nextData.TurnOn {
@@ -297,6 +310,7 @@ func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 
 				dto, _ := json.Marshal(outData)
 				s.HandleOutDTO(dto)
+
 				break
 			}
 		}
@@ -304,10 +318,11 @@ func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 }
 
 func (s *RadiusMoveSensorWithUpdate) HandleEvent(inData RadiusSensorData) RadiusSensorData {
-	s.TurnedOn = inData.TurnOn
+	s.TurnOn = inData.TurnOn
+
 	return RadiusSensorData{
 		Kind:   inData.Kind,
-		TurnOn: s.TurnedOn,
+		TurnOn: s.TurnOn,
 	}
 }
 
@@ -319,10 +334,10 @@ func (s *RadiusMoveSensorWithUpdate) GetObservedKinds() []string {
 // Просто фиксирует факт попадания в радиус без сброса по таймауту.
 type RadiusMoveSensorWithoutUpdate struct {
 	BaseDevice[RadiusSensorData]
-	TurnedOn bool    `json:"turned_on"`
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
-	Radius   float64 `json:"radius"`
+	TurnOn bool    `json:"turn_on"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Radius float64 `json:"radius"`
 }
 
 func NewRadiusSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*RadiusMoveSensorWithoutUpdate, error) {
@@ -330,9 +345,11 @@ func NewRadiusSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*Ra
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, err
 	}
+
 	s.enginePort = engineAPI
 	s.inStore = *simgo.NewStore[RadiusSensorData](engineAPI.GetSimulation())
 	s.handler = s.HandleEvent
+
 	return &s, nil
 }
 
@@ -356,14 +373,16 @@ func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
 		Kind:   move.Kind,
 		TurnOn: field.IsInRadius(s.X, s.Y, move.To.X, move.To.Y, s.Radius),
 	})
+
 	return nil
 }
 
 func (s *RadiusMoveSensorWithoutUpdate) HandleEvent(inData RadiusSensorData) RadiusSensorData {
-	s.TurnedOn = inData.TurnOn
+	s.TurnOn = inData.TurnOn
+
 	return RadiusSensorData{
 		Kind:   inData.Kind,
-		TurnOn: s.TurnedOn,
+		TurnOn: s.TurnOn,
 	}
 }
 

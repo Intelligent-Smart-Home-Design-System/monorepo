@@ -65,8 +65,8 @@ func TestEntitiesFromDTO_Lamp(t *testing.T) {
 		t.Fatalf("expected *Lamp type, got %T", entitiesMap["lamp_1"])
 	}
 
-	if lampEntity.TurnedOn != false {
-		t.Errorf("expected TurnedOn false, got %v", lampEntity.TurnedOn)
+	if lampEntity.TurnOn != false {
+		t.Errorf("expected TurnOn false, got %v", lampEntity.TurnOn)
 	}
 
 	if lampEntity.Delay != 1.0 {
@@ -101,8 +101,8 @@ func TestEntitiesFromDTO_Switcher(t *testing.T) {
 		t.Fatalf("expected *Switcher type, got %T", entitiesMap["switcher_1"])
 	}
 
-	if switcherEntity.TurnedOn != true {
-		t.Errorf("expected TurnedOn true, got %v", switcherEntity.TurnedOn)
+	if switcherEntity.TurnOn != true {
+		t.Errorf("expected TurnOn true, got %v", switcherEntity.TurnOn)
 	}
 
 	if switcherEntity.Delay != 0.5 {
@@ -129,6 +129,7 @@ func TestEntitiesFromDTO_InvalidType(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid entity type, got nil")
 	}
+
 	if err != converter.ErrorInvalidFormat {
 		t.Fatalf("expected ErrorInvalidFormat, got %v", err)
 	}
@@ -197,9 +198,11 @@ func TestParseFloor(t *testing.T) {
 	if len(simFloor.Walls) != 1 {
 		t.Fatalf("expected 1 wall, got %d", len(simFloor.Walls))
 	}
+
 	if simFloor.Walls[0].ID != "wall_1" || simFloor.Walls[0].Width != 0.2 {
 		t.Errorf("unexpected wall data: %+v", simFloor.Walls[0])
 	}
+
 	if simFloor.Walls[0].Points[0][1] != 0.0 || simFloor.Walls[0].Points[1][1] != 5.0 {
 		t.Errorf("unexpected wall points: %v", simFloor.Walls[0].Points)
 	}
@@ -207,6 +210,7 @@ func TestParseFloor(t *testing.T) {
 	if len(simFloor.Windows) != 1 {
 		t.Fatalf("expected 1 window, got %d", len(simFloor.Windows))
 	}
+
 	if simFloor.Windows[0].ID != "window_1" || simFloor.Windows[0].Width != 0.15 {
 		t.Errorf("unexpected window data: %+v", simFloor.Windows[0])
 	}
@@ -219,6 +223,7 @@ func TestParseFloor(t *testing.T) {
 	if roomA.ID != "room_a" || roomA.Name != "Kitchen" {
 		t.Errorf("unexpected room_a base data: %+v", roomA)
 	}
+
 	if len(roomA.Area) != 4 || roomA.Walls[0] != "wall_1" || roomA.Doors[0] != "door_1" {
 		t.Errorf("unexpected room_a internal structure: %+v", roomA)
 	}
@@ -231,6 +236,7 @@ func TestParseFloor(t *testing.T) {
 	if len(simFloor.Doors) != 1 {
 		t.Fatalf("expected 1 door, got %d", len(simFloor.Doors))
 	}
+
 	door := simFloor.Doors[0]
 	if door.ID != "door_1" || door.OpensTowardsRoom != "room_b" || door.Swing != "left" {
 		t.Errorf("unexpected door configuration: %+v", door)
@@ -240,16 +246,20 @@ func TestParseFloor(t *testing.T) {
 	if !existsA || len(edgesA) != 1 {
 		t.Fatalf("expected 1 edge for room_a, got exists=%v, count=%d", existsA, len(edgesA))
 	}
+
 	if edgesA[0].NeighborRoomID != "room_b" {
 		t.Errorf("expected neighbor of room_a to be room_b, got '%s'", edgesA[0].NeighborRoomID)
 	}
+
 	if edgesA[0].Door.ID != "door_1" {
 		t.Errorf("expected edge to point to door_1, got '%s'", edgesA[0].Door.ID)
 	}
+
 	edgesB, existsB := simFloor.Adjacency["room_b"]
 	if !existsB || len(edgesB) != 1 {
 		t.Fatalf("expected 1 edge for room_b, got exists=%v, count=%d", existsB, len(edgesB))
 	}
+
 	if edgesB[0].NeighborRoomID != "room_a" {
 		t.Errorf("expected neighbor of room_b to be room_a, got '%s'", edgesB[0].NeighborRoomID)
 	}

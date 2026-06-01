@@ -44,6 +44,7 @@ func (s *Siren) HandleInDTO(dto []byte) error {
 	}
 
 	s.Put(input)
+
 	return nil
 }
 
@@ -76,9 +77,11 @@ func NewCamera(data []byte, engineAPI engine.EnginePort) (*Camera, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, err
 	}
+
 	c.enginePort = engineAPI
 	c.inStore = *simgo.NewStore[CameraData](engineAPI.GetSimulation())
 	c.handler = c.HandleEvent
+
 	return &c, nil
 }
 
@@ -108,6 +111,7 @@ func (c *Camera) HandleInDTO(dto []byte) error {
 
 func (c *Camera) HandleEvent(inData CameraData) CameraData {
 	c.TurnOn = inData.TurnOn
+
 	return CameraData{
 		Kind:   inData.Kind,
 		TurnOn: c.TurnOn,

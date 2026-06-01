@@ -56,6 +56,11 @@ const (
 	TypeSmartDoorbell                 = "smartDoorbell"
 	TypeSmartCurtains                 = "smartCurtains"
 	TypeCamera                        = "camera"
+	TypeAirConditioner                = "airConditioner"
+	TypeThermostat                    = "thermostat"
+	TypeSmartFloor                    = "smartFloor"
+	TypeTV                            = "tv"
+	TypeSubwoofer                     = "subwoofer"
 
 	TypeHuman = "human"
 )

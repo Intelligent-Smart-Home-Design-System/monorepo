@@ -91,6 +91,7 @@ func NewHuman(data []byte, engineAPI engine.EnginePort) (*Human, error) {
 			if !field.PointInRoom(human.X, human.Y, room) {
 				return nil, fmt.Errorf("human %s is not inside room %s", human.ID, human.RoomID)
 			}
+
 			break
 		}
 	}
@@ -105,6 +106,7 @@ func (h *Human) HandleInDTO(dto []byte) error {
 	}
 
 	h.inStore.Put(input)
+
 	return nil
 }
 
@@ -144,7 +146,7 @@ func (h *Human) Process(process simgo.Process) {
 	}
 }
 
-// HandleEvent реализует логику движения человека.
+// HandleEvent реализует роутинг событий человека.
 // Двигаемся от текущей позиции к цели, проверяя стены и двери.
 func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 	switch inData.Kind {
@@ -157,6 +159,7 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 			"action_type", inData.Kind,
 			"human_id", h.ID,
 		)
+
 		return HumanInteractionOutData{
 			Status: "unknown action type",
 		}
@@ -270,6 +273,7 @@ func (h *Human) resolveMovement(move segment, floor *api.Floor) (float64, float6
 
 	if hitWall {
 		stopT := math.Max(0, closestT-0.001)
+
 		return h.X + (move.x2-h.X)*stopT,
 			h.Y + (move.y2-h.Y)*stopT,
 			h.RoomID
@@ -293,12 +297,14 @@ func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
 		t1 float64
 		t2 float64
 	}
+
 	var gaps []interval
 
 	for _, door := range doors {
 		if !doorOnWall(door, wall) {
 			continue
 		}
+
 		t1 := projectOnSegment(door.Points[0], wallStart, wallEnd, wallLenSq)
 		t2 := projectOnSegment(door.Points[1], wallStart, wallEnd, wallLenSq)
 
@@ -323,6 +329,7 @@ func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
 	})
 
 	var segments []segment
+
 	prev := 0.0
 
 	for _, gap := range gaps {
@@ -334,6 +341,7 @@ func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
 				wallStart[1] + gap.t1*wallDY,
 			})
 		}
+
 		if gap.t2 > prev {
 			prev = gap.t2
 		}
@@ -356,6 +364,7 @@ func projectOnSegment(p [2]float64, start, end [2]float64, lenSq float64) float6
 	dx := end[0] - start[0]
 	dy := end[1] - start[1]
 	t := ((p[0]-start[0])*dx + (p[1]-start[1])*dy) / lenSq
+
 	return math.Max(0, math.Min(1, t))
 }
 
@@ -366,6 +375,7 @@ func findRoomByID(floor *api.Floor, roomID string) *api.Room {
 			return &floor.Rooms[i]
 		}
 	}
+
 	return nil
 }
 
@@ -376,6 +386,7 @@ func findWallByID(floor *api.Floor, wallID string) *api.Wall {
 			return &floor.Walls[i]
 		}
 	}
+
 	return nil
 }
 
@@ -389,6 +400,7 @@ func doorOnWall(door *api.Door, wall *api.Wall) bool {
 		door.Points[0][0], door.Points[0][1],
 		door.Points[1][0], door.Points[1][1],
 	}
+
 	return segmentsCollinearAndOverlap(wallSeg, doorSeg)
 }
 
@@ -447,5 +459,6 @@ func (h *Human) SetReceivers(actions []api.EdgeDTO) {
 	for i, action := range actions {
 		receivers[i] = action.ToID
 	}
+
 	h.Receivers = receivers
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/client/ws"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/gorilla/websocket"
 )
 
@@ -84,10 +85,12 @@ func recvStep(t *testing.T, conn *websocket.Conn) api.SimulationStepPayload {
 
 func newSimServer(t *testing.T) *httptest.Server {
 	t.Helper()
+
 	simService := NewSimulation()
 	manager := ws.NewManager(simService)
 	server := httptest.NewServer(http.HandlerFunc(manager.ServeWS))
 	t.Cleanup(server.Close)
+
 	return server
 }
 
@@ -100,6 +103,7 @@ func startSim(t *testing.T, conn *websocket.Conn, reqID string, payload api.Simu
 	}
 
 	sendMsg(t, conn, api.Message{Type: "simulation:start", Ts: time.Now(), ReqID: reqID, Payload: raw})
+
 	msg := recvMsg(t, conn)
 	if msg.Type != "simulation:started" {
 		t.Fatalf("startSim: expected simulation:started, got %q", msg.Type)
@@ -142,6 +146,7 @@ func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventInDTO {
 
 func mockApartmentRaw(t *testing.T) json.RawMessage {
 	t.Helper()
+
 	floorObj := api.Floor{
 		Meta: struct {
 			Units string `json:"units"`
@@ -153,19 +158,21 @@ func mockApartmentRaw(t *testing.T) json.RawMessage {
 		Windows: []api.Window{},
 		Rooms:   []api.Room{},
 	}
+
 	raw, err := json.Marshal(floorObj)
 	if err != nil {
 		t.Fatalf("mockApartmentRaw: %v", err)
 	}
+
 	return raw
 }
 
 // statesFrom собирает последовательность turn_on из StateChanges для конкретного entityID.
 func statesFrom(steps []api.SimulationStepPayload, entityID string) []bool {
 	var result []bool
+
 	for _, step := range steps {
 		for _, change := range step.StateChanges {
-
 			if change.EntityID != entityID {
 				continue
 			}
@@ -174,6 +181,7 @@ func statesFrom(steps []api.SimulationStepPayload, entityID string) []bool {
 				Kind   string `json:"kind"`
 				TurnOn bool   `json:"turn_on"`
 			}
+
 			_ = json.Unmarshal(change.Payload, &out)
 			result = append(result, out.TurnOn)
 		}
@@ -230,6 +238,7 @@ func TestSimulation_Default(t *testing.T) {
 	for _, s := range steps {
 		total += len(s.StateChanges)
 	}
+
 	if total != 7 {
 		t.Fatalf("expected 7 total state changes, got %d", total)
 	}
@@ -273,6 +282,7 @@ func TestWS_Simulation_UserIntervention(t *testing.T) {
 	if lamp1State != false {
 		t.Fatalf("lamp_1 expected OFF, got ON")
 	}
+
 	if lamp2State != true {
 		t.Fatalf("lamp_2 expected ON, got OFF")
 	}
@@ -311,6 +321,7 @@ func TestSimulation_SensorWithUpdate_NoInterruption(t *testing.T) {
 	if len(got) < len(want) {
 		t.Fatalf("not enough state changes for sensor: got %v, want %v", got, want)
 	}
+
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("sensor state mismatch at index %d: got=%v want=%v (full: %v)", i, got[i], want[i], got)
@@ -362,6 +373,7 @@ func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 	if len(got) < len(want) {
 		t.Fatalf("not enough state changes for sensor: got %v, want %v", got, want)
 	}
+
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("sensor state mismatch at index %d: got=%v want=%v (full: %v)", i, got[i], want[i], got)
@@ -373,19 +385,23 @@ func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 
 func boolEvent(t *testing.T, entityID string, field string, value bool) api.EventInDTO {
 	t.Helper()
+
 	payload, err := json.Marshal(map[string]bool{field: value})
 	if err != nil {
 		t.Fatalf("boolEvent: %v", err)
 	}
+
 	return api.EventInDTO{EntityID: entityID, Payload: payload}
 }
 
 func intEvent(t *testing.T, entityID string, field string, value int) api.EventInDTO {
 	t.Helper()
+
 	payload, err := json.Marshal(map[string]int{field: value})
 	if err != nil {
 		t.Fatalf("intEvent: %v", err)
 	}
+
 	return api.EventInDTO{EntityID: entityID, Payload: payload}
 }
 
@@ -395,10 +411,12 @@ func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field s
 			if change.EntityID != entityID {
 				continue
 			}
+
 			var out map[string]any
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+
 			if v, ok := out[field]; ok {
 				if b, ok := v.(bool); ok {
 					return b, true
@@ -406,6 +424,7 @@ func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field s
 			}
 		}
 	}
+
 	return false, false
 }
 
@@ -415,10 +434,12 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 			if change.EntityID != entityID {
 				continue
 			}
+
 			var out map[string]any
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+
 			if v, ok := out[field]; ok {
 				if f, ok := v.(float64); ok {
 					return int(f), true
@@ -426,6 +447,7 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 			}
 		}
 	}
+
 	return 0, false
 }
 
@@ -435,6 +457,7 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-motion"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -451,6 +474,7 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithUpdate_1", "turn_on", true)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -461,6 +485,7 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 	if !bulbFound || !bulbState {
 		t.Fatal("lamp_1 should be ON after motion sensor trigger")
 	}
+
 	if !sirenFound || !sirenState {
 		t.Fatal("siren_1 should be active after motion sensor trigger")
 	}
@@ -470,6 +495,7 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-presence"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -485,6 +511,7 @@ func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{intEvent(t, "smartDimmer_1", "percents", 60)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -499,6 +526,7 @@ func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
 func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-illumination"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -514,6 +542,7 @@ func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{intEvent(t, "sensorWithIntStatus_1", "percents", 80)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -528,6 +557,7 @@ func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-door-sensor"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -549,6 +579,7 @@ func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -557,10 +588,12 @@ func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
 	if !found || !state {
 		t.Fatal("lamp_1 should be ON after door sensor trigger")
 	}
+
 	state, found = lastBoolStateOf(steps, "smartLock_1", "turn_on")
 	if !found || !state {
 		t.Fatal("smartLock_1 should be ON after door sensor trigger")
 	}
+
 	state, found = lastBoolStateOf(steps, "siren_1", "turn_on")
 	if !found || !state {
 		t.Fatal("siren_1 should be ON after door sensor trigger")
@@ -571,6 +604,7 @@ func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
 func TestDevice_WindowSensor_TriggersWindow(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-window-sensor"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -586,6 +620,7 @@ func TestDevice_WindowSensor_TriggersWindow(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -600,6 +635,7 @@ func TestDevice_WindowSensor_TriggersWindow(t *testing.T) {
 func TestDevice_Doorbell_TriggersLock(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-doorbell"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -615,13 +651,159 @@ func TestDevice_Doorbell_TriggersLock(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "smartDoorbell_1", "turn_on", true)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
 	lockState, lockFound := lastBoolStateOf(steps, "smartLock_1", "turn_on")
 	if !lockFound || !lockState {
 		t.Fatal("lock_1 should have received state change after doorbell trigger")
+	}
+}
+
+func TestDevice_AirConditioner(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-ac"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Devices: []api.EntityDTO{
+			{ID: "airConditioner_1", Type: "airConditioner", Info: json.RawMessage(`{"id":"airConditioner_1", "turn_on":false,"temperature":20, "delay":0.0}`)},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		boolEvent(t, "airConditioner_1", "turn_on", true),
+	}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{
+		intEvent(t, "airConditioner_1", "temperature", 25),
+	}))
+	steps = append(steps, tick(t, conn, reqID, 2, nil))
+
+	on, found := lastBoolStateOf(steps, "airConditioner_1", "turn_on")
+	if !found || !on {
+		t.Fatal("AirConditioner should be turned on")
+	}
+
+	temp, found := lastIntStateOf(steps, "airConditioner_1", "temperature")
+	if !found || temp != 25 {
+		t.Fatal("AirConditioner temperature should be 25")
+	}
+}
+
+func TestDevice_Thermostat(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-thermo"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Devices: []api.EntityDTO{
+			{ID: "thermostat_1", Type: "thermostat", Info: json.RawMessage(`{"id":"thermostat_1", "turn_on":false,"temperature":0}`)},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		boolEvent(t, "thermostat_1", "turn_on", true),
+		intEvent(t, "thermostat_1", "temperature", 75),
+	}))
+
+	on, found := lastBoolStateOf(steps, "thermostat_1", "turn_on")
+	if !found || !on {
+		t.Fatal("Thermostat should be turned on")
+	}
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		intEvent(t, "thermostat_1", "temperature", 75),
+	}))
+
+	temperature, found := lastIntStateOf(steps, "thermostat_1", "temperature")
+	if !found || temperature != 75 {
+		t.Fatal("Thermostat temperature should be 75")
+	}
+}
+
+func TestDevice_SmartFloor(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-floor"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Devices: []api.EntityDTO{
+			{ID: "smartFloor_1", Type: entities.TypeSmartFloor, Info: json.RawMessage(`{"id":"smartFloor_1", "turn_on":false}`)},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		boolEvent(t, "smartFloor_1", "turn_on", true),
+	}))
+
+	on, found := lastBoolStateOf(steps, "smartFloor_1", "turn_on")
+	if !found || !on {
+		t.Fatal("SmartFloor should be turned on")
+	}
+}
+
+func TestDevice_TV(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-tv"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Devices: []api.EntityDTO{
+			{ID: "tv_1", Type: entities.TypeTV, Info: json.RawMessage(`{"id":"tv_1", "turn_on":false}`)},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		boolEvent(t, "tv_1", "turn_on", true),
+	}))
+
+	on, found := lastBoolStateOf(steps, "tv_1", "turn_on")
+	if !found || !on {
+		t.Fatal("TV should be turned on")
+	}
+}
+
+func TestDevice_Subwoofer(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-sub"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim: 1.0,
+		Devices: []api.EntityDTO{
+			{ID: "subwoofer_1", Type: entities.TypeSubwoofer, Info: json.RawMessage(`{"id":"subwoofer_1", "turn_on":false}`)},
+		},
+	})
+
+	var steps []api.SimulationStepPayload
+
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+		boolEvent(t, "subwoofer_1", "turn_on", true),
+	}))
+
+	on, found := lastBoolStateOf(steps, "subwoofer_1", "turn_on")
+	if !found || !on {
+		t.Fatal("Subwoofer should be turned on")
 	}
 }
 
@@ -632,6 +814,7 @@ func TestDevice_Doorbell_TriggersLock(t *testing.T) {
 func TestDevice_ChainTrigger(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-chain"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -651,6 +834,7 @@ func TestDevice_ChainTrigger(t *testing.T) {
 	})
 
 	var steps []api.SimulationStepPayload
+
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
 	steps = append(steps, tick(t, conn, reqID, 3, nil))
@@ -720,6 +904,7 @@ func mockFloorTwoRooms(t *testing.T) json.RawMessage {
 	if err != nil {
 		t.Fatalf("mockFloorTwoRooms: %v", err)
 	}
+
 	return raw
 }
 
@@ -776,6 +961,7 @@ func humanPositionFrom(steps []api.SimulationStepPayload, humanID string) (x, y 
 			if change.EntityID != humanID {
 				continue
 			}
+
 			var out struct {
 				To struct {
 					X float64 `json:"x"`
@@ -786,11 +972,13 @@ func humanPositionFrom(steps []api.SimulationStepPayload, humanID string) (x, y 
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+
 			if out.Status == "moved" {
 				return out.To.X, out.To.Y, true
 			}
 		}
 	}
+
 	return 0, 0, false
 }
 
@@ -801,6 +989,7 @@ func humanRoomFrom(steps []api.SimulationStepPayload, humanID string) (roomID st
 			if change.EntityID != humanID {
 				continue
 			}
+
 			var out struct {
 				To struct {
 					X float64 `json:"x"`
@@ -812,11 +1001,13 @@ func humanRoomFrom(steps []api.SimulationStepPayload, humanID string) (roomID st
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+
 			if out.RoomID != "" {
 				return out.RoomID, true
 			}
 		}
 	}
+
 	return "", false
 }
 
@@ -948,6 +1139,7 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 	if !roomFound {
 		t.Fatal("no room found for human_1")
 	}
+
 	if roomID != "room_2" {
 		t.Fatalf("expected room_2, got %s", roomID)
 	}
@@ -992,6 +1184,7 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 	if !found {
 		t.Fatal("no state change found for lamp_1")
 	}
+
 	if !lampState {
 		t.Fatal("lamp_1 should be ON after human interaction")
 	}
@@ -1039,6 +1232,7 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 	if !found {
 		t.Fatal("no state change for lamp_1")
 	}
+
 	if !lampState {
 		t.Fatal("lamp_1 should be ON")
 	}
@@ -1047,6 +1241,7 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 	if !posFound {
 		t.Fatal("no position found for human_1")
 	}
+
 	if x != 3.0 || y != 3.0 {
 		t.Fatalf("expected position (3.0, 3.0), got (%.2f, %.2f)", x, y)
 	}
@@ -1055,6 +1250,7 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 func TestObserver_Sensor_And_Camera(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-observers"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
@@ -1138,6 +1334,7 @@ func TestObserver_Sensor_And_Camera(t *testing.T) {
 func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
+
 	const reqID = "sim-camera-other-room"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{

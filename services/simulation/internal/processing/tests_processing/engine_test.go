@@ -27,10 +27,12 @@ func (s *stubEntity) GetReceiversID() []string {
 
 func (s *stubEntity) SetReceivers(actions []api.EdgeDTO) {
 	s.setCalled = true
+
 	var ids []string
 	for _, a := range actions {
 		ids = append(ids, a.ToID)
 	}
+
 	s.receivers = ids
 }
 
@@ -101,6 +103,7 @@ func TestCheckCircleDependencies(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := engine.NewSimEngine(1.0)
 			e.IDToEntity = tt.entities
+
 			got := e.CheckCircleDependencies()
 			if got != tt.want {
 				t.Errorf("CheckCircleDependencies() = %v, want %v", got, tt.want)

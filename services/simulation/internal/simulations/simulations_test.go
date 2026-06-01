@@ -62,6 +62,7 @@ func (s *stubEngine) CollectStep(tick int) *api.SimulationStepPayload {
 	if s.collectResult != nil {
 		return s.collectResult
 	}
+
 	return &api.SimulationStepPayload{Tick: tick}
 }
 
@@ -109,6 +110,7 @@ func TestNewSimulation(t *testing.T) {
 	if s == nil {
 		t.Fatal("simulation is nil")
 	}
+
 	if s.IDToEngine == nil {
 		t.Fatal("IDToEngine not initialized")
 	}
@@ -122,7 +124,6 @@ func TestStart(t *testing.T) {
 	s := newTestSimulations()
 
 	err := s.Start(reqID, payload)
-
 	if err != nil {
 		t.Fatalf("Start() error = %v, want nil", err)
 	}
@@ -164,9 +165,11 @@ func TestTick_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if result.Tick != 5 {
 		t.Errorf("tick = %v, want 5", result.Tick)
 	}
+
 	if !stub.stepCalled {
 		t.Error("Step() was not called")
 	}
@@ -193,6 +196,7 @@ func TestStop_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if !stub.stopCalled {
 		t.Error("Stop() was not called on engine")
 	}
@@ -200,6 +204,7 @@ func TestStop_Success(t *testing.T) {
 	s.mu.RLock()
 	_, ok := s.IDToEngine["sim1"]
 	s.mu.RUnlock()
+
 	if ok {
 		t.Error("engine was not removed after Stop()")
 	}
@@ -223,6 +228,7 @@ func TestStart_CircleDependencies(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for circular dependencies, got nil")
 	}
+
 	if err.Error() != "circle dependencies detected" {
 		t.Fatalf("unexpected error message: %v", err)
 	}

@@ -192,6 +192,7 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 func (s *SimEngine) NotifyObservers(roomID string, kind string, payload []byte) {
 	for _, observerID := range s.roomObservers[roomID] {
 		entity := s.IDToEntity[observerID]
+
 		observer, ok := entity.(entities.Observer)
 		if !ok {
 			continue
@@ -204,6 +205,7 @@ func (s *SimEngine) NotifyObservers(roomID string, kind string, payload []byte) 
 					EntityID: observerID,
 					Payload:  payload,
 				}
+
 				break
 			}
 		}

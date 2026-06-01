@@ -10,7 +10,7 @@ import (
 // Lamp реализует интерфейс entities.EntityWithProcess.
 type Lamp struct {
 	BaseDevice[LampData]
-	TurnedOn bool `json:"turn_on"`
+	TurnOn bool `json:"turn_on"`
 }
 
 type LampData struct {
@@ -36,6 +36,7 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
+
 	l.Put(input)
 
 	return nil
@@ -44,11 +45,11 @@ func (l *Lamp) HandleInDTO(dto []byte) error {
 // HandleEvent реализует бизнес-логику устройства.
 // Возвращает обработанные данные.
 func (l *Lamp) HandleEvent(inData LampData) LampData {
-	l.TurnedOn = inData.TurnOn
+	l.TurnOn = inData.TurnOn
 
 	return LampData{
 		Kind:   inData.Kind,
-		TurnOn: l.TurnedOn,
+		TurnOn: l.TurnOn,
 	}
 }
 
@@ -80,6 +81,7 @@ func (s *SmartLamp) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
+
 	s.Put(input)
 
 	return nil

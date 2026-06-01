@@ -30,103 +30,155 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = lamp
 		case entities.TypeSmartLamp:
 			smartLamp, err := devices.NewSmartLamp(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = smartLamp
 		case entities.TypeSwitcher:
 			Switcher, err := devices.NewSwitcher(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = Switcher
 		case entities.TypeSensorWithUpdate:
 			sensor, err := devices.NewSensorWithUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeSensorWithIntStatus:
 			sensor, err := devices.NewSensorWithIntStatus(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeRadiusMoveSensorWithoutUpdate:
 			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeRadiusMoveSensorWithUpdate:
 			sensor, err := devices.NewRadiusSensorWithUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeHuman:
 			human, err := actors.NewHuman(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = human
 		case entities.TypeSmartDimmer:
 			dimmer, err := devices.NewSmartDimmer(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = dimmer
 		case entities.TypeSensorWithoutUpdate:
 			sensor, err := devices.NewSensorWithoutUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeSiren:
 			siren, err := devices.NewSiren(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = siren
 		case entities.TypeWindow:
 			window, err := devices.NewWindow(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = window
 		case entities.TypeDoor:
 			door, err := devices.NewDoor(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = door
 		case entities.TypeSmartLock:
 			lock, err := devices.NewSmartLock(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = lock
 		case entities.TypeSmartDoorbell:
 			doorbell, err := devices.NewSmartDoorbell(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = doorbell
 		case entities.TypeSmartCurtains:
 			curtains, err := devices.NewSmartCurtains(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = curtains
 		case entities.TypeCamera:
 			camera, err := devices.NewCamera(entityDTO.Info, engineAPI)
 			if err != nil {
 				return nil, err
 			}
+
 			IDToEntity[entityDTO.ID] = camera
+		case entities.TypeAirConditioner:
+			airConditioner, err := devices.NewAirConditioner(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = airConditioner
+		case entities.TypeThermostat:
+			thermostat, err := devices.NewThermostat(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = thermostat
+		case entities.TypeSmartFloor:
+			smartFloor, err := devices.NewSmartFloor(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = smartFloor
+		case entities.TypeTV:
+			tv, err := devices.NewTV(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = tv
+		case entities.TypeSubwoofer:
+			subwoofer, err := devices.NewSubwoofer(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = subwoofer
 		default:
 			return nil, ErrorInvalidFormat
 		}
@@ -148,6 +200,7 @@ func ParseFloor(data []byte) (*api.Floor, error) {
 		if len(door.Rooms) != 2 {
 			continue
 		}
+
 		aID, bID := door.Rooms[0], door.Rooms[1]
 		floor.Adjacency[aID] = append(floor.Adjacency[aID], api.RoomEdge{
 			NeighborRoomID: bID,

@@ -28,6 +28,9 @@ type UploadedPlanState = {
   fileName?: string;
   planDataUrl?: string;
   planFileType?: "dxf" | "png" | "";
+  floorJson?: unknown;
+  parsedFloor?: unknown;
+  floor?: unknown;
 };
 
 export default function PlanPage() {
@@ -581,6 +584,11 @@ function openSimulation(bundle: SimulationBundle) {
   });
 
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  const uploadedPlan = loadUploadedPlan();
+  const floor = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
+  if (floor) {
+    localStorage.setItem("simulation-floor", JSON.stringify(floor));
+  }
 
   const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
   const url = new URL(simUrl, window.location.origin);

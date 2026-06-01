@@ -8,6 +8,7 @@ import { Card } from "@/app/components/ui";
 import floorPlanData from "@/app/simulation/floor.json";
 import dependencyConfig from "../../../../../services/simulation/configs/dependencies.json";
 import entityConfig from "../../../../../services/simulation/configs/entities.json";
+import { adaptFloorData, type FloorPlanView, type WallSegment } from "@/app/simulation/floorAdapter";
 import {
   buildSimulationStartPayload,
   buildTickPayload,
@@ -28,7 +29,6 @@ import {
   type DeviceMarker,
   type LogEvent,
   type LogLevel,
-  type Room,
 } from "@/app/simulation/Mockdata";
 
 type Status = "empty" | "loading" | "running" | "paused" | "error";
@@ -36,9 +36,6 @@ type Speed = number;
 type Filter = "ALL" | LogLevel;
 type RunMode = "parallel" | "sequence";
 type Point = { x: number; y: number };
-type WallSegment =
-  | { kind: "vertical"; x: number; y1: number; y2: number }
-  | { kind: "horizontal"; y: number; x1: number; x2: number };
 type ExternalDevice = {
   id: string;
   name?: string;
@@ -57,30 +54,11 @@ type DependencyConfig = {
 type EntityConfig = {
   entities: Record<string, { description?: string }>;
 };
-type FloorPlanData = {
-  rooms?: Room[];
-  walls?: {
-    viewBox?: { width?: number; height?: number };
-    paths?: string[];
-    stroke?: string;
-    strokeWidth?: number;
-  };
-  doors?: {
-    paths?: string[];
-    stroke?: string;
-    strokeWidth?: number;
-  };
-  devices?: Array<{ id: string; x: number; y: number; roomId?: string }>;
-};
 
 const PLAN_STORAGE_KEY = "simulation-plan-layout";
+const FLOOR_STORAGE_KEYS = ["simulation-floor", "planner-floor-json", "parsed-floor", "floor-json"];
 const SIM_DEPENDENCIES = dependencyConfig as DependencyConfig;
 const SIM_ENTITIES = entityConfig as EntityConfig;
-const SIM_FLOOR = floorPlanData as FloorPlanData;
-const SIM_ROOMS = SIM_FLOOR.rooms?.length ? SIM_FLOOR.rooms : MOCK_ROOMS;
-const SIM_DEVICE_MARKERS: DeviceMarker[] = SIM_FLOOR.devices?.length
-  ? SIM_FLOOR.devices.map((device) => ({ id: device.id, x: device.x, y: device.y }))
-  : deviceMarkers;
 
 function readStorage(key: string) {
   if (typeof window === "undefined") return null;
@@ -109,6 +87,22 @@ function removeStorage(key: string) {
   }
 }
 
+function loadFloorSourceFromStorage() {
+  if (typeof window === "undefined") return floorPlanData as unknown;
+
+  for (const key of FLOOR_STORAGE_KEYS) {
+    try {
+      const raw = readStorage(key);
+      if (!raw) continue;
+      return JSON.parse(raw) as unknown;
+    } catch {
+      // Ignore stale or unrelated values from other pages.
+    }
+  }
+
+  return floorPlanData as unknown;
+}
+
 const FIRE_DEVICE_MARKERS: DeviceMarker[] = [
   { id: "smoke_sensor", x: 0.79, y: 0.25 },
   { id: "co_sensor", x: 0.52, y: 0.38 },
@@ -123,19 +117,6 @@ const WATER_DEVICE_MARKERS: DeviceMarker[] = [
   { id: "water_flow", x: 0.77, y: 0.64 },
   { id: "water_valve", x: 0.91, y: 0.76 },
 ];
-const BLOCKING_WALLS: WallSegment[] = [
-  { kind: "vertical", x: 0.35, y1: 0.057, y2: 0.286 },
-  { kind: "vertical", x: 0.35, y1: 0.357, y2: 0.5 },
-  { kind: "vertical", x: 0.35, y1: 0.557, y2: 0.671 },
-  { kind: "horizontal", y: 0.429, x1: 0.04, x2: 0.35 },
-  { kind: "vertical", x: 0.7, y1: 0.057, y2: 0.286 },
-  { kind: "vertical", x: 0.7, y1: 0.529, y2: 0.786 },
-  { kind: "vertical", x: 0.7, y1: 0.829, y2: 0.943 },
-  { kind: "horizontal", y: 0.6, x1: 0.7, x2: 0.96 },
-  { kind: "horizontal", y: 0.671, x1: 0.04, x2: 0.45 },
-  { kind: "horizontal", y: 0.671, x1: 0.6, x2: 0.7 },
-];
-
 function speedToDelay(speed: Speed) {
   const s = Math.max(Number(speed) || 1, 0.1);
   return Math.round(700 / s);
@@ -143,6 +124,10 @@ function speedToDelay(speed: Speed) {
 
 function crossesWall(from: Point, to: Point, wall: WallSegment) {
   const eps = 0.0001;
+
+  if (wall.kind === "segment") {
+    return segmentsIntersect(from, to, wall.from, wall.to);
+  }
 
   if (wall.kind === "vertical") {
     if (Math.abs(to.x - from.x) < eps) return false;
@@ -161,6 +146,37 @@ function crossesWall(from: Point, to: Point, wall: WallSegment) {
   if (t < 0 || t > 1) return false;
   const xAtWall = from.x + (to.x - from.x) * t;
   return xAtWall >= wall.x1 && xAtWall <= wall.x2;
+}
+
+function segmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
+  const eps = 0.0001;
+
+  function orientation(p: Point, q: Point, r: Point) {
+    const value = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+    if (Math.abs(value) < eps) return 0;
+    return value > 0 ? 1 : 2;
+  }
+
+  function onSegment(p: Point, q: Point, r: Point) {
+    return (
+      q.x <= Math.max(p.x, r.x) + eps &&
+      q.x + eps >= Math.min(p.x, r.x) &&
+      q.y <= Math.max(p.y, r.y) + eps &&
+      q.y + eps >= Math.min(p.y, r.y)
+    );
+  }
+
+  const o1 = orientation(a, b, c);
+  const o2 = orientation(a, b, d);
+  const o3 = orientation(c, d, a);
+  const o4 = orientation(c, d, b);
+
+  if (o1 !== o2 && o3 !== o4) return true;
+  if (o1 === 0 && onSegment(a, c, b)) return true;
+  if (o2 === 0 && onSegment(a, d, b)) return true;
+  if (o3 === 0 && onSegment(c, a, d)) return true;
+  if (o4 === 0 && onSegment(c, b, d)) return true;
+  return false;
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -419,6 +435,12 @@ function buildPlacedScenarios(placedIds: string[], bridgeId: string | undefined,
 
 export default function SimulationPage() {
   const baseScenarios = useMemo<Scenario[]>(() => MOCK_SCENARIOS, []);
+  const [floorSource] = useState<unknown>(() => loadFloorSourceFromStorage());
+  const adaptedFloor = useMemo(() => adaptFloorData(floorSource, MOCK_ROOMS, deviceMarkers), [floorSource]);
+  const roomsForPlan = adaptedFloor.rooms;
+  const floorPlanForView: FloorPlanView = adaptedFloor.floorPlan;
+  const baseDeviceMarkers = adaptedFloor.markers;
+  const blockingWalls = floorPlanForView.blockers?.length ? floorPlanForView.blockers : [];
   const [externalDevices] = useState<ExternalDevice[]>(() => loadExternalDevicesFromStorage());
   const [savedPlanDevices] = useState<SavedPlanDevice[]>(() => loadSavedPlanDevices());
 
@@ -457,7 +479,7 @@ export default function SimulationPage() {
       .filter((device) => device.x !== undefined && device.y !== undefined && !savedPlanDevices.some((saved) => saved.id === device.id))
       .map((device) => ({ id: device.id, x: device.x as number, y: device.y as number, label: device.name }));
 
-    return [...SIM_DEVICE_MARKERS, ...FIRE_DEVICE_MARKERS, ...WATER_DEVICE_MARKERS, ...externalMarkers, ...savedMarkers];
+    return [...baseDeviceMarkers, ...FIRE_DEVICE_MARKERS, ...WATER_DEVICE_MARKERS, ...externalMarkers, ...savedMarkers];
   });
   const [placedDeviceIds, setPlacedDeviceIds] = useState<string[]>(() => {
     const savedIds = savedPlanDevices.map((device) => device.id);
@@ -566,12 +588,12 @@ export default function SimulationPage() {
   function suggestedDevicePosition(id: string) {
     const roomTitle = id.toLowerCase();
     const room =
-      SIM_ROOMS.find((item) => roomTitle.includes(item.id) || roomTitle.includes(item.title)) ??
-      (roomTitle.includes("leak") || roomTitle.includes("water") ? SIM_ROOMS.find((item) => item.id === "bath") : undefined) ??
-      (roomTitle.includes("smoke") || roomTitle.includes("gas") ? SIM_ROOMS.find((item) => item.id === "kitchen") : undefined) ??
-      (roomTitle.includes("lamp") || roomTitle.includes("motion") || roomTitle.includes("door") ? SIM_ROOMS.find((item) => item.id === "hall") : undefined) ??
-      SIM_ROOMS.find((item) => item.id === "living") ??
-      SIM_ROOMS[0];
+      roomsForPlan.find((item) => roomTitle.includes(item.id) || roomTitle.includes(item.title)) ??
+      (roomTitle.includes("leak") || roomTitle.includes("water") ? roomsForPlan.find((item) => item.id === "bath") : undefined) ??
+      (roomTitle.includes("smoke") || roomTitle.includes("gas") ? roomsForPlan.find((item) => item.id === "kitchen") : undefined) ??
+      (roomTitle.includes("lamp") || roomTitle.includes("motion") || roomTitle.includes("door") ? roomsForPlan.find((item) => item.id === "hall") : undefined) ??
+      roomsForPlan.find((item) => item.id === "living") ??
+      roomsForPlan[0];
     const index = placedDeviceIds.length;
     const col = index % 3;
     const row = Math.floor(index / 3) % 3;
@@ -848,7 +870,7 @@ export default function SimulationPage() {
   }
 
   function hasLineOfSight(from: Point, to: Point) {
-    return !BLOCKING_WALLS.some((wall) => crossesWall(from, to, wall));
+    return !blockingWalls.some((wall) => crossesWall(from, to, wall));
   }
 
   function markerFor(id: string) {
@@ -861,7 +883,7 @@ export default function SimulationPage() {
   }
 
   function roomTitleForPoint(point: Point) {
-    const room = SIM_ROOMS.find((r) => point.x >= r.x && point.x <= r.x + r.w && point.y >= r.y && point.y <= r.y + r.h);
+    const room = roomsForPlan.find((r) => point.x >= r.x && point.x <= r.x + r.w && point.y >= r.y && point.y <= r.y + r.h);
     if (room) return room.title;
 
     if (point.x >= 0.7 && point.y >= 0.6) return "ванная";
@@ -882,14 +904,14 @@ export default function SimulationPage() {
 
   function buildFireSpreadWaves(origin: Point) {
     function isBlocked(from: Point, to: Point) {
-      return BLOCKING_WALLS.some((wall) => crossesWall(from, to, wall));
+      return blockingWalls.some((wall) => crossesWall(from, to, wall));
     }
 
     function cellKey(point: Point) {
       return `${point.x.toFixed(3)}:${point.y.toFixed(3)}`;
     }
 
-    const cells = SIM_ROOMS.flatMap((room) => {
+    const cells = roomsForPlan.flatMap((room) => {
       const points: Point[] = [];
       const step = 0.065;
       for (let x = room.x + step * 0.8; x < room.x + room.w - step * 0.45; x += step) {
@@ -942,14 +964,14 @@ export default function SimulationPage() {
 
   function buildWaterSpreadWaves(origin: Point) {
     function isBlocked(from: Point, to: Point) {
-      return BLOCKING_WALLS.some((wall) => crossesWall(from, to, wall));
+      return blockingWalls.some((wall) => crossesWall(from, to, wall));
     }
 
     function cellKey(point: Point) {
       return `${point.x.toFixed(3)}:${point.y.toFixed(3)}`;
     }
 
-    const cells = SIM_ROOMS.flatMap((room) => {
+    const cells = roomsForPlan.flatMap((room) => {
       const points: Point[] = [];
       const step = 0.072;
       for (let x = room.x + step * 0.65; x < room.x + room.w - step * 0.4; x += step) {
@@ -1278,7 +1300,7 @@ export default function SimulationPage() {
     const sentToBackend = sendWsMessage(
       "simulation:start",
       buildSimulationStartPayload({
-        rooms: SIM_ROOMS,
+        rooms: roomsForPlan,
         markers: devicePositions,
         scenarios: selectedScenarios,
         deviceIds: placedDeviceIds,
@@ -1582,8 +1604,8 @@ export default function SimulationPage() {
           <div className="sim-workspace">
             <div className="sim-stage">
               <ApartmentPlan
-                rooms={SIM_ROOMS}
-                floorPlan={SIM_FLOOR}
+                rooms={roomsForPlan}
+                floorPlan={floorPlanForView}
                 markers={devicePositions}
                 devices={devicesForPlan}
                 chains={chainGroups}

@@ -2,18 +2,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { Device, DeviceMarker, LogEvent, Room } from "@/app/simulation/Mockdata";
+import type { FloorPlanView, WallSegment } from "@/app/simulation/floorAdapter";
 
 type Point = { x: number; y: number };
-type FloorPathLayer = {
-  paths?: string[];
-  stroke?: string;
-  strokeWidth?: number;
-  viewBox?: { width?: number; height?: number };
-};
-type FloorPlanView = {
-  walls?: FloorPathLayer;
-  doors?: FloorPathLayer;
-};
 
 type Props = {
   rooms: Room[];
@@ -81,10 +72,6 @@ type ForbiddenZone = {
   forbiddenFor: DeviceType[];
   reason: string;
 };
-
-type WallSegment =
-  | { kind: "vertical"; x: number; y1: number; y2: number }
-  | { kind: "horizontal"; y: number; x1: number; x2: number };
 
 const PERSON_STEP_MS = 340;
 const ROUTE_STEP_GAP_MS = 35;
@@ -353,7 +340,7 @@ export function ApartmentPlan({
     return zones;
   })();
 
-  const blockingWalls: WallSegment[] = [
+  const fallbackBlockingWalls: WallSegment[] = [
     { kind: "vertical", x: 0.35, y1: 0.057, y2: 0.286 },
     { kind: "vertical", x: 0.35, y1: 0.357, y2: 0.5 },
     { kind: "vertical", x: 0.35, y1: 0.557, y2: 0.671 },
@@ -365,9 +352,14 @@ export function ApartmentPlan({
     { kind: "horizontal", y: 0.671, x1: 0.04, x2: 0.45 },
     { kind: "horizontal", y: 0.671, x1: 0.6, x2: 0.7 },
   ];
+  const blockingWalls = floorPlan?.blockers?.length ? floorPlan.blockers : fallbackBlockingWalls;
 
   function crossesWall(from: { x: number; y: number }, to: { x: number; y: number }, wall: WallSegment) {
     const eps = 0.0001;
+
+    if (wall.kind === "segment") {
+      return segmentsIntersect(from, to, wall.from, wall.to);
+    }
 
     if (wall.kind === "vertical") {
       if (Math.abs(to.x - from.x) < eps) return false;
@@ -386,6 +378,37 @@ export function ApartmentPlan({
     if (t < 0 || t > 1) return false;
     const xAtWall = from.x + (to.x - from.x) * t;
     return xAtWall >= wall.x1 && xAtWall <= wall.x2;
+  }
+
+  function segmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
+    const eps = 0.0001;
+
+    function orientation(p: Point, q: Point, r: Point) {
+      const value = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+      if (Math.abs(value) < eps) return 0;
+      return value > 0 ? 1 : 2;
+    }
+
+    function onSegment(p: Point, q: Point, r: Point) {
+      return (
+        q.x <= Math.max(p.x, r.x) + eps &&
+        q.x + eps >= Math.min(p.x, r.x) &&
+        q.y <= Math.max(p.y, r.y) + eps &&
+        q.y + eps >= Math.min(p.y, r.y)
+      );
+    }
+
+    const o1 = orientation(a, b, c);
+    const o2 = orientation(a, b, d);
+    const o3 = orientation(c, d, a);
+    const o4 = orientation(c, d, b);
+
+    if (o1 !== o2 && o3 !== o4) return true;
+    if (o1 === 0 && onSegment(a, c, b)) return true;
+    if (o2 === 0 && onSegment(a, d, b)) return true;
+    if (o3 === 0 && onSegment(c, a, d)) return true;
+    if (o4 === 0 && onSegment(c, b, d)) return true;
+    return false;
   }
 
   function movePerson(dx: number, dy: number) {
@@ -805,6 +828,16 @@ export function ApartmentPlan({
           >
             <rect x="0" y="0" width="1000" height="700" fill="#f5f5f7" />
 
+            {floorPlan?.furniture?.paths?.map((path, index) => (
+              <path
+                key={`furniture-${index}`}
+                d={path}
+                fill={floorPlan.furniture?.fill ?? "rgba(142,142,147,0.14)"}
+                stroke={floorPlan.furniture?.stroke ?? "rgba(60,60,67,0.24)"}
+                strokeWidth={floorPlan.furniture?.strokeWidth ?? 2}
+              />
+            ))}
+
             {(floorPlan?.walls?.paths?.length
               ? floorPlan.walls.paths
               : [
@@ -824,6 +857,17 @@ export function ApartmentPlan({
                 stroke={floorPlan?.walls?.stroke ?? "#86868b"}
                 strokeWidth={floorPlan?.walls?.strokeWidth ?? 8}
                 strokeLinecap="square"
+              />
+            ))}
+
+            {floorPlan?.windows?.paths?.map((path, index) => (
+              <path
+                key={`window-${index}`}
+                d={path}
+                stroke={floorPlan.windows?.stroke ?? "#7cc7ff"}
+                strokeWidth={floorPlan.windows?.strokeWidth ?? 9}
+                strokeLinecap="round"
+                fill="none"
               />
             ))}
 

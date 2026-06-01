@@ -17,7 +17,8 @@ docker compose up --build
 
 Open:
 
-- API Gateway: `http://localhost:8090`
+- API Gateway (nginx -> Go gateway): `http://localhost:8090`
+- Frontend API: `http://localhost:8090/api/v1`
 - Temporal UI: `http://localhost:8088`
 - Prometheus: `http://localhost:9092`
 - Jaeger: `http://localhost:16686`
@@ -33,28 +34,69 @@ Open:
 
 ## Test examples
 
+Register a user:
+
+```bash
+curl -X POST http://localhost:8090/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","password":"demo-password"}'
+```
+
+Login and copy `access_token` from the response:
+
+```bash
+curl -X POST http://localhost:8090/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","password":"demo-password"}'
+```
+
+Start workflow with the JWT token:
+
 ```bash
 curl -X POST http://localhost:8090/start \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer dev-token" \
+  -H "Authorization: Bearer <access_token>" \
   --data-binary @examples/security_basic.json
 
 curl -X POST http://localhost:8090/start \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer dev-token" \
+  -H "Authorization: Bearer <access_token>" \
   --data-binary @examples/lighting_plus_security.json
 ```
 
-`api-gateway` accepts the request, validates required fields, checks `Authorization: Bearer <API_GATEWAY_TOKEN>` or `X-API-Key`, and starts `MainPipelineWorkflow` via Temporal client.
+`nginx` routes public HTTP requests to `api-gateway`. `api-gateway` accepts the request, validates required fields, checks `Authorization: Bearer <JWT>`, and starts `MainPipelineWorkflow` via Temporal client.
+
+Optional password reset flow for local/dev usage:
+
+```bash
+curl -X POST http://localhost:8090/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com"}'
+
+curl -X POST http://localhost:8090/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","reset_token":"<reset_token>","new_password":"new-demo-password"}'
+```
+
+Users are stored in memory inside `api-gateway`, so registrations are reset when the container restarts. For production, move users and password reset tokens to a persistent DB.
+
+Frontend contract endpoints are routed through nginx to `frontend-api`:
+
+```bash
+curl http://localhost:8090/api/v1/device-types
+curl http://localhost:8090/api/v1/ecosystems
+curl http://localhost:8090/api/v1/presets
+curl http://localhost:8090/api/v1/plans
+```
 
 To fetch a completed workflow result:
 
 ```bash
 curl -X GET http://localhost:8090/result/main-pipeline-lighting-plus-security \
-  -H "Authorization: Bearer dev-token"
+  -H "Authorization: Bearer <access_token>"
 
 curl -X GET http://localhost:8090/result/{workflow-id} \
-  -H "Authorization: Bearer dev-token"
+  -H "Authorization: Bearer <access_token>"
 
 ```
 
@@ -62,7 +104,7 @@ Or with query parameters:
 
 ```bash
 curl -X GET "http://localhost:8090/result?workflow_id=main-pipeline-lighting-plus-security" \
-  -H "Authorization: Bearer dev-token"
+  -H "Authorization: Bearer <access_token>"
 ```
 
 If the workflow is still running or failed, the endpoint returns the current Temporal status instead of the final JSON.
@@ -77,5 +119,5 @@ Watch workflow status in Temporal UI. Logs are emitted to container stdout, metr
 4. Each activity type currently uses one task queue (`floor-parser`, `layout`, `device-selection`), so there is no priority split between light and heavy requests. See `services/main-pipeline/workflows/main_pipeline.go`.
 5. `GET /result` polling can add load to `api-gateway` and Temporal if many clients poll frequently. See `services/main-pipeline/cmd/api-gateway/main.go`.
 6. Final JSON is stored in Temporal workflow history, which is not ideal for large or long-lived payloads. For production, store large results in DB/S3/MinIO and keep only a reference in workflow result.
-7. `api-gateway` currently has auth and validation, but no rate limiting or queue-load based backpressure.
+7. `api-gateway` currently has JWT auth and validation, but no rate limiting or queue-load based backpressure.
 8. Docker Compose does not define replicas or CPU/RAM limits; local scaling is done manually with `docker compose up --scale ...`.

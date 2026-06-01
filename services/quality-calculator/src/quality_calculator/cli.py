@@ -17,6 +17,8 @@ app = typer.Typer()
 DEVICE_TYPES_PATH = Path("../../shared/schemas/devices/device_types.json")
 TRAITS_PATH = Path("config/evaluation_traits.json")
 STRATEGIES_DIR = Path("config/strategies")
+SPEC_STRATEGIES_DIR = Path("config/strategies/specs")
+RUBRIC_PATH = Path("config/ground_truth_rubric.json")
 
 
 def _load_evaluator(strategy_name: str) -> tuple[QualityEvaluator, dict]:
@@ -133,6 +135,89 @@ def run_evaluation(
 
 def _fmt(x) -> str:
     return f"{x:.3f}" if isinstance(x, (int, float)) else "  -  "
+
+
+def _list_spec_strategies() -> list[str]:
+    return sorted(p.stem for p in SPEC_STRATEGIES_DIR.glob("*.json"))
+
+
+def _select_spec_strategy_interactive(names: list[str]) -> list[str]:
+    """Интерактивное меню в терминале: вывести список и дать выбрать одну стратегию или все."""
+    typer.echo("Выберите спек-стратегию для прогона против эталона:\n")
+    for i, name in enumerate(names, 1):
+        typer.echo(f"  [{i}] {name}")
+    typer.echo(f"  [{len(names) + 1}] <все>\n")
+    while True:
+        raw = typer.prompt("Номер").strip()
+        if not raw.isdigit():
+            typer.echo("Введите номер из списка.")
+            continue
+        idx = int(raw)
+        if 1 <= idx <= len(names):
+            return [names[idx - 1]]
+        if idx == len(names) + 1:
+            return names
+        typer.echo("Номер вне диапазона.")
+
+
+@app.command("tune-specs")
+def tune_specs(
+    catalog_path: Path = typer.Option(Path("evaluation/catalog.json"), "--catalog", "-i"),
+    output_dir: Path = typer.Option(Path("evaluation/results"), "--output", "-o"),
+    strategy: str = typer.Option(
+        None, "--strategy", "-s",
+        help="Спек-стратегия из config/strategies/specs. Если не задана — интерактивный выбор.",
+    ),
+    min_n: int = typer.Option(10, "--min-n", help="Минимум размеченных устройств в категории для F1."),
+):
+    """
+    Тестирует спек-стратегии (варианты весов внутри N(S)) против эталона
+    bad/good/excellent и печатает таблицу лидеров по weighted macro-F1.
+    """
+    from quality_calculator.evaluation.spec_tuning import evaluate_spec_strategy
+
+    tech = json.loads(DEVICE_TYPES_PATH.read_text(encoding="utf-8"))
+    rubric = json.loads(RUBRIC_PATH.read_text(encoding="utf-8"))
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+
+    available = _list_spec_strategies()
+    if not available:
+        typer.echo("Нет спек-стратегий в config/strategies/specs.")
+        raise typer.Exit(code=1)
+
+    if strategy:
+        names = [strategy]
+    else:
+        import sys
+        # В неинтерактивном окружении (CI, пайп) — берём все, чтобы не зависнуть на prompt.
+        names = _select_spec_strategy_interactive(available) if sys.stdin.isatty() else available
+
+    results = []
+    for name in names:
+        spec_strategy = json.loads((SPEC_STRATEGIES_DIR / f"{name}.json").read_text(encoding="utf-8"))
+        res = evaluate_spec_strategy(catalog, tech, spec_strategy, rubric, name, min_n=min_n)
+        results.append(res)
+
+    results.sort(key=lambda r: (r["weighted_macro_f1"] is not None, r["weighted_macro_f1"]), reverse=True)
+
+    typer.echo("\n=== Лидерборд спек-стратегий (по эталону, метрика — N(S)) ===")
+    for r in results:
+        typer.echo(
+            f"  {r['strategy']:<20} macroF1={_fmt(r['weighted_macro_f1'])} "
+            f"размечено={r['labeled_devices']:<4} оценено={r['evaluated_devices']}"
+        )
+    best = results[0]
+    typer.echo(f"\nЛучшая спек-стратегия: {best['strategy']} (macroF1={_fmt(best['weighted_macro_f1'])})")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = output_dir / f"{timestamp}_spec_tuning.json"
+    out_path.write_text(
+        json.dumps({"timestamp": timestamp, "best": best["strategy"], "results": results},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    typer.echo(f"Подробности: {out_path}")
 
 
 if __name__ == "__main__":

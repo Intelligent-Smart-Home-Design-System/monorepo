@@ -1,13 +1,13 @@
 {
   "lighting": {
     "brightness_lm": {
-      "weight": 0.6
+      "weight": 0.7
     },
     "cri": {
       "weight": 0.2
     },
     "lifespan_hours": {
-      "weight": 0.2
+      "weight": 0.1
     },
     "rgb_support": {
       "bonus": 0.1
@@ -18,7 +18,7 @@
   },
   "camera": {
     "resolution": {
-      "weight": 0.5,
+      "weight": 0.7,
       "scale": {
         "720p": 0.25,
         "1080p": 0.5,
@@ -27,7 +27,7 @@
       }
     },
     "field_of_view_deg": {
-      "weight": 0.5
+      "weight": 0.3
     },
     "has_night_vision": {
       "bonus": 0.1

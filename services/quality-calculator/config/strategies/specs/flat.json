@@ -1,13 +1,13 @@
 {
   "lighting": {
     "brightness_lm": {
-      "weight": 0.6
+      "weight": 0.333
     },
     "cri": {
-      "weight": 0.2
+      "weight": 0.333
     },
     "lifespan_hours": {
-      "weight": 0.2
+      "weight": 0.334
     },
     "rgb_support": {
       "bonus": 0.1

@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import {

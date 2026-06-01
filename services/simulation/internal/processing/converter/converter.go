@@ -196,10 +196,31 @@ func normalizeEntityType(entityDTO api.EntityDTO) string {
 	switch entityType {
 	case "lamp_switcher", "lampSwitcher":
 		return entities.TypeSwitcher
+	case "motion_sensor", "presence_sensor":
+		return entities.TypeSensorWithUpdate
+	case "illumination_sensor":
+		return entities.TypeSensorWithIntStatus
+	case "door_sensor", "window_sensor", "wireless_button_switch":
+		return entities.TypeSensorWithoutUpdate
+	case "smart_bulb":
+		if strings.HasPrefix(entityDTO.ID, "smartLamp") {
+			return entities.TypeSmartLamp
+		}
+		return entities.TypeLamp
 	case "smart_lamp":
 		return entities.TypeSmartLamp
 	case "smart_dimmer":
 		return entities.TypeSmartDimmer
+	case "smart_siren":
+		return entities.TypeSiren
+	case "smart_lock":
+		return entities.TypeSmartLock
+	case "smart_doorbell":
+		return entities.TypeSmartDoorbell
+	case "curtains":
+		return entities.TypeSmartCurtains
+	case "lamp_with":
+		return entities.TypeRadiusMoveSensorWithoutUpdate
 	case "sensor_with_update":
 		return entities.TypeSensorWithUpdate
 	case "sensor_without_update":

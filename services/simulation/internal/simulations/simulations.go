@@ -92,7 +92,6 @@ func normalizeInput(input api.EventInDTO) api.EventInDTO {
 	}
 
 	var meta struct {
-		Kind    string `json:"kind"`
 		Trigger string `json:"trigger"`
 	}
 
@@ -100,9 +99,6 @@ func normalizeInput(input api.EventInDTO) api.EventInDTO {
 		return input
 	}
 
-	if input.Kind == "" {
-		input.Kind = meta.Kind
-	}
 	if input.Trigger == "" {
 		input.Trigger = meta.Trigger
 	}

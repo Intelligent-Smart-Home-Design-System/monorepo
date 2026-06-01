@@ -77,6 +77,26 @@
       "description": "Сирена — аварийное звуковое оповещение",
       "triggers": []
     },
+    "air_conditioner": {
+      "description": "Кондиционер — управляет температурой воздуха",
+      "triggers": []
+    },
+    "thermostat": {
+      "description": "Термостат — регулирует температуру и нагрев",
+      "triggers": ["smart_floor"]
+    },
+    "smart_floor": {
+      "description": "Умный тёплый пол — зональный обогрев",
+      "triggers": []
+    },
+    "tv": {
+      "description": "Телевизор — мультимедийное устройство",
+      "triggers": []
+    },
+    "subwoofer": {
+      "description": "Сабвуфер — низкочастотная акустика",
+      "triggers": []
+    },
     "human": {
       "description": "Человек — активный субъект, вызывающий срабатывание сенсоров",
       "triggers": [

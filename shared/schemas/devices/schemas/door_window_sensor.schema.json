@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WaterLeakSensor",
-  "description": "A smart home water leak detection sensor",
+  "title": "DoorWindowSensor",
+  "description": "A smart home door and window open/close sensor",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Door and Window Sensor P2'"
     },
     "brand": {
       "type": "string",
-      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'sonoff'"
     },
     "model": {
       "type": "string",
-      "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
+      "description": "Model identifier as stated by the manufacturer."
     },
     "ecosystem": {
       "type": "array",
@@ -35,7 +35,7 @@
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge) - may be multiple."
+      "description": "Smart home ecosystems this device can connect to through any connection path."
     },
     "protocol": {
       "type": "array",
@@ -87,7 +87,7 @@
     "ip_rating": {
       "type": "string",
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-      "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
+      "description": "Ingress protection rating, relevant for outdoor installation."
     },
     "power_source": {
       "type": "array",
@@ -105,32 +105,8 @@
       "uniqueItems": true,
       "description": "Power sources supported by the device"
     },
-    "detects_leaks_above": {
-      "type": "boolean",
-      "description": "Whether the sensor can detect water dripping from above via contacts on top."
-    },
-    "detects_leaks_below": {
-      "type": "boolean",
-      "description": "Whether the sensor detects water on the floor via bottom contacts."
-    },
-    "min_detected_water_level_mm": {
-      "type": "number",
-      "minimum": 0.1,
-      "maximum": 10,
-      "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
-    },
-    "has_audio_alert": {
-      "type": "boolean",
-      "description": "Whether the sensor emits an audible alarm when a leak is detected."
-    },
-    "audio_alert_volume_db": {
-      "type": "integer",
-      "minimum": 60,
-      "maximum": 120,
-      "description": "Volume of the audible alert in decibels, e.g. 85."
-    },
     "type": {
-      "const": "water_leak_sensor"
+      "const": "door_window_sensor"
     }
   },
   "required": [

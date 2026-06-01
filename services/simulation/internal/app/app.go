@@ -26,7 +26,7 @@ func New() *App {
 	manager := ws.NewManager(simService)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", manager.ServeWS)
+	mux.HandleFunc("/ws/simulation", manager.ServeWS)
 
 	server := &http.Server{
 		Addr:    ":8080",

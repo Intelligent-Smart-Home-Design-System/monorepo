@@ -44,14 +44,10 @@ func (t *WallIntervalTracker) Protect(iv point.Interval) {
 // Он учитывает занятые зоны (blocked) и защищенные области (protected), которые разрешено перекрывать.
 // Возвращаемые интервалы гарантированно отсортированы по возрастанию координаты From.
 func (t *WallIntervalTracker) FreeIntervals(minLen float64) []point.Interval {
-	// 1. мёржим blocked
 	mergedBlocked := mergeIntervals(t.blocked)
 
-	// 2. вычитаем protected из blocked
-	//    результат — реально заблокированные участки
 	realBlocked := subtractProtected(mergedBlocked, mergeIntervals(t.protected))
 
-	// 3. sweep — строим свободные из дырок
 	free := make([]point.Interval, 0)
 	cursor := 0.0
 
@@ -116,7 +112,6 @@ func subtractProtected(blocked, protected []point.Interval) []point.Interval {
 				continue
 			}
 
-			// часть до защищённого — реально заблокирована
 			if p.From > cursor {
 				result = append(result, point.Interval{From: cursor, To: p.From})
 			}
@@ -125,7 +120,6 @@ func subtractProtected(blocked, protected []point.Interval) []point.Interval {
 			pi++
 		}
 
-		// остаток после всех защищённых
 		if cursor < b.To {
 			result = append(result, point.Interval{From: cursor, To: b.To})
 		}

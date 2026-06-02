@@ -16,9 +16,13 @@ func IsPointInPolygon(p Point, polygon []Point) bool {
 	inside := false
 
 	j := n - 1
-	for i := 0; i < n; i++ {
+	for i := range n {
 		curr := polygon[i]
 		prev := polygon[j]
+
+		if onSegment(curr, p, prev) {
+			return true
+		}
 
 		if (curr.Y > p.Y) != (prev.Y > p.Y) {
 			intersectX := (prev.X-curr.X)*(p.Y-curr.Y)/(prev.Y-curr.Y) + curr.X
@@ -114,5 +118,5 @@ func GenerateGridPoints(polygon []Point, step float64) ([]Point, error) {
 		}
 	}
 
-	return polygon, nil
+	return result, nil
 }

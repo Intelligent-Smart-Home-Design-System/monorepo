@@ -1,5 +1,7 @@
 package apartment
 
 const (
-	FirnitureBed = "bed"
+	Bed = "bed"
+	Sofa = "sofa"
+	Chair = "chair"
 )

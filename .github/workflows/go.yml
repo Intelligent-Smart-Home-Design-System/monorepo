@@ -34,7 +34,7 @@ jobs:
       working-directory: services/layout
 
     - name: Test_layout
-      run: go test -v ./tests/...
+      run: go test -v ./...
       working-directory: services/layout
 
     - name: Build_scraper

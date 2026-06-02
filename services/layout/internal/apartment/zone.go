@@ -17,16 +17,18 @@ func NewZone(p []point.Point) *Zone {
 
 // ZonedRoom комната, обогащённая зонами после обработки правилами.
 type ZonedRoom struct {
-	OrigRoom         *Room
-	NoWindZones      []*Zone             `json:"no_wind_zones"`
-	WetZones         []*Zone             `json:"wet_zones"`
-	GasZones         []*Zone             `json:"gas_zones"`
-	EntryDoorZone    *Zone               `json:"entry_doors_zones"`
-	HighTrafficZones []*Zone             `json:"high_traffic_zones"`
-	WindowZones      []*Zone             `json:"window_zones"`
-	ViewedZones      []*Zone             `json:"viewed_zones"`
-	SirenZones       []*Zone             `json:"siren_zones"`
-	ACAvailableWalls map[string]struct{} // nil = все стены доступны
+	OrigRoom          *Room
+	NoWindZones       []*Zone `json:"no_wind_zones"`
+	WetZones          []*Zone `json:"wet_zones"`
+	GasZones          []*Zone `json:"gas_zones"`
+	EntryDoorZone     *Zone   `json:"entry_doors_zones"`
+	HighTrafficZones  []*Zone `json:"high_traffic_zones"`
+	WindowZones       []*Zone `json:"window_zones"`
+	ViewedZones       []*Zone `json:"viewed_zones"`
+	SirenZones        []*Zone `json:"siren_zones"`
+	ListeningPosition *point.Point
+	TVPosition        *point.Point
+	ACAvailableWalls  map[string]struct{} // nil = все стены доступны
 }
 
 func NewZonedRoom(r *Room) *ZonedRoom {

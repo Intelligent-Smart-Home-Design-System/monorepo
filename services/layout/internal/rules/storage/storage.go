@@ -4,6 +4,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/climate"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/media"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 )
 
@@ -18,6 +19,15 @@ func NewStorage() *Storage {
 
 func (s *Storage) LoadRule(rule rules.Rule) {
 	s.Rules[rule.Type()] = rule
+}
+
+func (s *Storage) LoadAllRules() {
+	s.LoadAllSecurityRules()
+	s.LoadAllLightingRules()
+	s.LoadAllClimateRules()
+	s.LoadAllMediaRules()
+
+	// TODO: добавить оставшиеся треки
 }
 
 func (s *Storage) LoadAllSecurityRules() {
@@ -53,6 +63,18 @@ func (s *Storage) LoadAllLightingRules() {
 func (s *Storage) LoadAllClimateRules() {
 	storageRules := []rules.Rule{
 		climate.NewAirConditionerRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+}
+
+func (s *Storage) LoadAllMediaRules() {
+	storageRules := []rules.Rule{
+		media.NewSmartTVRule(),
+		media.NewSmartSpeakerRule(),
+		media.NewSubwooferRule(),
 	}
 
 	for _, rule := range storageRules {

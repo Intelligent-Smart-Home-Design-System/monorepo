@@ -9,6 +9,11 @@ func (p *Point) VecProduct(vector Point) float64 {
 	return p.X*vector.Y - p.Y*vector.X
 }
 
+// DotProduct - скалярное произведение
+func (p *Point) DotProduct(vector Point) float64 {
+	return p.X*vector.X + p.Y*vector.Y
+}
+
 // TODO x1, y1, x2, y2 float64 переместить в сегмент
 // IsInInterval проверяет, находится ли точка на отрезке
 func (p *Point) IsInInterval(x1, y1, x2, y2 float64) bool {
@@ -48,10 +53,30 @@ func CalculatePointsDistance(p1, p2 Point) float64 {
 	return math.Sqrt(diffX*diffX + diffY*diffY)
 }
 
-// MovePointInDirection сдвигает вектор по направлению в offset раз
-func MovePointInDirection(vec Point, vecDirection Point, offset float64) Point {
+// MovePointInDirection сдвигает точку/вектор по направлению в offset раз
+func MovePointInDirection(p Point, direction Point, offset float64) Point {
+	size := math.Sqrt(direction.X * direction.X + direction.Y * direction.Y)
+	if size == 0 {
+		return p
+	}
+
 	return Point{
-		X: vec.X + vecDirection.X*offset,
-		Y: vec.Y + vecDirection.Y*offset,
+		X: p.X + (direction.X / size) * offset,
+		Y: p.Y + (direction.Y / size) * offset,
+	}
+}
+
+// MovePointInDirectionPlusOffset сдвигает точку/вектор по направлению на offset раз
+func MovePointInDirectionPlusOffset(p Point, direction Point, offset float64) Point {
+	size := math.Sqrt(direction.X * direction.X + direction.Y * direction.Y)
+	if size == 0 {
+		return p
+	}
+
+	total := size + offset 
+
+	return Point{
+		X: p.X + (direction.X / size) * total,
+		Y: p.Y + (direction.Y / size) * total,
 	}
 }

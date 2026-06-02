@@ -183,7 +183,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			case "window_sensor":
 				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Position)
 			case "motion_sensor":
-				assert.Equal(t, &point.Point{X: 0, Y: 0}, devicePlacement.Position)
+				assert.Equal(t, &point.Point{X: 12, Y: 2.5}, devicePlacement.Position)
 			}
 		}
 	}

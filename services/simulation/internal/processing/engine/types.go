@@ -5,7 +5,6 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -25,7 +24,7 @@ type Engine interface {
 	CheckCircleDependencies() bool
 
 	// SetField устанавливает поле для симуляции.
-	SetField(simField *field.Field)
+	SetFloor(floor *api.Floor)
 
 	// GetInChan возвращает канал для входящих событий.
 	GetInChan() chan api.EventInDTO
@@ -45,17 +44,16 @@ type Engine interface {
 
 	// HandleEvent обрабатывает event по его entityID
 	HandleEvent(event api.EventInDTO)
-
-	// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
-	UpdateField(x, y int, cell field.Cell) error
 }
 
 // EnginePort определяет интерфейс для взаимодействия сущностей с движком
 type EnginePort interface {
-	UpdateField(x, y int, cell field.Cell) error
 	GetOutChan() chan api.EventOutDTO
 	GetInChan() chan api.EventInDTO
 	GetSimulation() *simgo.Simulation
+	GetFloor() *api.Floor
+	GetRoomObservers(roomID string) []string
+	NotifyObservers(roomID string, kind string, payload []byte)
 }
 
 var (

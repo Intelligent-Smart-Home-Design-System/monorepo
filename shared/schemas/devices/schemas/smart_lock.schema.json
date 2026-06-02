@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WaterLeakSensor",
-  "description": "A smart home water leak detection sensor",
+  "title": "SmartLock",
+  "description": "A smart home door lock",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Smart Lock U100'"
     },
     "brand": {
       "type": "string",
-      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'yale'"
     },
     "model": {
       "type": "string",
-      "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
+      "description": "Model identifier as stated by the manufacturer."
     },
     "ecosystem": {
       "type": "array",
@@ -35,7 +35,7 @@
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge) - may be multiple."
+      "description": "Smart home ecosystems this device can connect to through any connection path."
     },
     "protocol": {
       "type": "array",
@@ -87,7 +87,7 @@
     "ip_rating": {
       "type": "string",
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-      "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
+      "description": "Ingress protection rating for outdoor use, e.g. 'IP65'."
     },
     "power_source": {
       "type": "array",
@@ -103,34 +103,46 @@
         ]
       },
       "uniqueItems": true,
-      "description": "Power sources supported by the device"
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
     },
-    "detects_leaks_above": {
+    "access_methods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "keypad",
+          "fingerprint",
+          "rfid_card",
+          "app",
+          "key",
+          "face_recognition"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Methods supported for unlocking. keypad = PIN code entry, rfid_card = NFC or RFID card."
+    },
+    "auto_lock": {
       "type": "boolean",
-      "description": "Whether the sensor can detect water dripping from above via contacts on top."
+      "description": "Whether the lock automatically re-locks after a set time."
     },
-    "detects_leaks_below": {
+    "tamper_alert": {
       "type": "boolean",
-      "description": "Whether the sensor detects water on the floor via bottom contacts."
+      "description": "Whether the lock sends an alert if someone tries to tamper with or force it."
     },
-    "min_detected_water_level_mm": {
-      "type": "number",
-      "minimum": 0.1,
-      "maximum": 10,
-      "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
-    },
-    "has_audio_alert": {
-      "type": "boolean",
-      "description": "Whether the sensor emits an audible alarm when a leak is detected."
-    },
-    "audio_alert_volume_db": {
+    "door_thickness_min_mm": {
       "type": "integer",
-      "minimum": 60,
+      "minimum": 30,
       "maximum": 120,
-      "description": "Volume of the audible alert in decibels, e.g. 85."
+      "description": "Minimum supported door thickness in millimeters."
+    },
+    "door_thickness_max_mm": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 200,
+      "description": "Maximum supported door thickness in millimeters."
     },
     "type": {
-      "const": "water_leak_sensor"
+      "const": "smart_lock"
     }
   },
   "required": [

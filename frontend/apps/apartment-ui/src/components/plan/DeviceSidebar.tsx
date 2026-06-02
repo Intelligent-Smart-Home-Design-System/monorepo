@@ -1,6 +1,5 @@
-import React from 'react';
 import type { SmartDevice } from '../../types';
-import { DEVICE_PATHS } from './SmartDevices';
+import { DEVICE_PATHS } from './devicePaths';
 
 interface DeviceSidebarProps {
   devices: SmartDevice[];

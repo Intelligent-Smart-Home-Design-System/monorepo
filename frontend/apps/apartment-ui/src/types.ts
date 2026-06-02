@@ -31,10 +31,30 @@ export interface FloorPlan {
   rooms: Room[];
 }
 
-export interface SmartDevice {
+export type SmartDeviceType =
+  | 'smart_lamp'
+  | 'smart_plug'
+  | 'motion_sensor'
+  | 'temperature_sensor'
+  | 'water_leak_sensor';
+
+export interface SmartDeviceStateByType {
+  smart_lamp: { is_on: boolean };
+  smart_plug: { is_on: boolean };
+  motion_sensor: { detected: boolean };
+  temperature_sensor: { value: number };
+  water_leak_sensor: { leak_detected: boolean };
+}
+
+interface SmartDeviceBase<TType extends SmartDeviceType> {
   id: string;
-  type: 'smart_lamp' | 'smart_plug' | 'motion_sensor' | 'temperature_sensor' | 'water_leak_sensor';
+  type: TType;
   room_id: string;
   position: { x: number; y: number };
-  state: any; // Пока оставим any, так как у разных устройств разные стейты
 }
+
+export type SmartDevice = {
+  [TType in SmartDeviceType]: SmartDeviceBase<TType> & {
+    state: SmartDeviceStateByType[TType];
+  };
+}[SmartDeviceType];

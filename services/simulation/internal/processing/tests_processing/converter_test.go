@@ -41,6 +41,10 @@ func (s *stubEnginePort) NotifyObservers(roomID string, kind string, payload []b
 	return
 }
 
+func (s *stubEnginePort) DrainInChan() {
+	return
+}
+
 // =====Tests=====
 // проверка парсинга лампы
 func TestEntitiesFromDTO_Lamp(t *testing.T) {

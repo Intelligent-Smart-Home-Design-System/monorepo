@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,11 +16,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
+	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -42,6 +43,17 @@ func main() {
 	}
 	defer temporalClient.Close()
 
+	authDB, err := sql.Open("postgres", env("DATABASE_DSN", "postgres://catalog:catalog@localhost:5432/smart_home?sslmode=disable"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("open auth database")
+	}
+	defer authDB.Close()
+	dbCtx, dbCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer dbCancel()
+	if err := authDB.PingContext(dbCtx); err != nil {
+		log.Fatal().Err(err).Msg("connect auth database")
+	}
+
 	registry := prometheus.NewRegistry()
 	startedTotal := prometheus.NewCounterVec(
 		prometheus.CounterOpts{Name: "api_gateway_workflows_started_total", Help: "Total workflow start requests grouped by status."},
@@ -52,7 +64,7 @@ func main() {
 	apiServer := &http.Server{
 		Addr:              env("HTTP_ADDRESS", ":8080"),
 		ReadHeaderTimeout: 5 * time.Second,
-		Handler:           buildAPI(log, temporalClient, startedTotal, newAuthService(env("JWT_SECRET", "dev-jwt-secret"), 24*time.Hour)),
+		Handler:           buildAPI(log, temporalClient, startedTotal, newAuthService(authDB, env("JWT_SECRET", "dev-jwt-secret"), 24*time.Hour)),
 	}
 	metricsServer := &http.Server{
 		Addr:              env("METRICS_ADDRESS", ":2116"),
@@ -105,7 +117,11 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		if !decodeJSON(w, r, &req) {
 			return
 		}
-		resetToken, _ := auth.createResetToken(req.Email)
+		resetToken, err := auth.createResetToken(req.Email)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		writeJSON(w, http.StatusOK, forgotPasswordResponse{
 			Message:    "if the user exists, a reset token was generated",
 			ResetToken: resetToken,
@@ -256,8 +272,7 @@ type forgotPasswordResponse struct {
 }
 
 type authService struct {
-	mu        sync.RWMutex
-	users     map[string]*userRecord
+	db        *sql.DB
 	jwtSecret []byte
 	tokenTTL  time.Duration
 }
@@ -267,12 +282,12 @@ type userRecord struct {
 	Salt             string
 	PasswordHash     string
 	ResetTokenHash   string
-	ResetTokenExpiry time.Time
+	ResetTokenExpiry *time.Time
 }
 
-func newAuthService(secret string, tokenTTL time.Duration) *authService {
+func newAuthService(db *sql.DB, secret string, tokenTTL time.Duration) *authService {
 	return &authService{
-		users:     make(map[string]*userRecord),
+		db:        db,
 		jwtSecret: []byte(secret),
 		tokenTTL:  tokenTTL,
 	}
@@ -283,28 +298,39 @@ func (a *authService) register(email, password string) (string, error) {
 	if err := validateCredentials(email, password); err != nil {
 		return "", err
 	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if _, exists := a.users[email]; exists {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	salt := randomToken(16)
+	_, err := a.db.ExecContext(ctx, `
+		INSERT INTO api_users (email, salt, password_hash)
+		VALUES ($1, $2, $3)
+	`, email, salt, hashPassword(salt, password))
+	if isUniqueViolation(err) {
 		return "", errors.New("user already exists")
 	}
-	salt := randomToken(16)
-	a.users[email] = &userRecord{
-		Email:        email,
-		Salt:         salt,
-		PasswordHash: hashPassword(salt, password),
+	if err != nil {
+		return "", err
 	}
+
 	return a.issueJWT(email)
 }
 
 func (a *authService) login(email, password string) (string, error) {
 	email = normalizeEmail(email)
-	a.mu.RLock()
-	user, exists := a.users[email]
-	a.mu.RUnlock()
-	if !exists {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, err := a.getUser(ctx, email)
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", errors.New("invalid credentials")
 	}
+	if err != nil {
+		return "", err
+	}
+
 	expected := hashPassword(user.Salt, password)
 	if subtle.ConstantTimeCompare([]byte(expected), []byte(user.PasswordHash)) != 1 {
 		return "", errors.New("invalid credentials")
@@ -315,12 +341,28 @@ func (a *authService) login(email, password string) (string, error) {
 func (a *authService) createResetToken(email string) (string, error) {
 	email = normalizeEmail(email)
 	resetToken := randomToken(32)
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if user, exists := a.users[email]; exists {
-		user.ResetTokenHash = hashPassword(user.Salt, resetToken)
-		user.ResetTokenExpiry = time.Now().Add(15 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, err := a.getUser(ctx, email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return resetToken, nil
 	}
+	if err != nil {
+		return "", err
+	}
+	expiresAt := time.Now().UTC().Add(15 * time.Minute)
+	if _, err := a.db.ExecContext(ctx, `
+		UPDATE api_users
+		SET reset_token_hash = $2,
+			reset_token_expires_at = $3,
+			updated_at = NOW()
+		WHERE email = $1
+	`, email, hashPassword(user.Salt, resetToken), expiresAt); err != nil {
+		return "", err
+	}
+
 	return resetToken, nil
 }
 
@@ -329,21 +371,63 @@ func (a *authService) resetPassword(email, resetToken, newPassword string) error
 	if err := validateCredentials(email, newPassword); err != nil {
 		return err
 	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	user, exists := a.users[email]
-	if !exists || user.ResetTokenHash == "" || time.Now().After(user.ResetTokenExpiry) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, err := a.getUser(ctx, email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return errors.New("invalid or expired reset token")
+	}
+	if err != nil {
+		return err
+	}
+	if user.ResetTokenHash == "" || user.ResetTokenExpiry == nil || time.Now().After(*user.ResetTokenExpiry) {
 		return errors.New("invalid or expired reset token")
 	}
 	expected := hashPassword(user.Salt, resetToken)
 	if subtle.ConstantTimeCompare([]byte(expected), []byte(user.ResetTokenHash)) != 1 {
 		return errors.New("invalid or expired reset token")
 	}
-	user.Salt = randomToken(16)
-	user.PasswordHash = hashPassword(user.Salt, newPassword)
-	user.ResetTokenHash = ""
-	user.ResetTokenExpiry = time.Time{}
-	return nil
+	salt := randomToken(16)
+	_, err = a.db.ExecContext(ctx, `
+		UPDATE api_users
+		SET salt = $2,
+			password_hash = $3,
+			reset_token_hash = NULL,
+			reset_token_expires_at = NULL,
+			updated_at = NOW()
+		WHERE email = $1
+	`, email, salt, hashPassword(salt, newPassword))
+	return err
+}
+
+func (a *authService) getUser(ctx context.Context, email string) (*userRecord, error) {
+	var user userRecord
+	var resetTokenHash sql.NullString
+	var resetTokenExpiry sql.NullTime
+	err := a.db.QueryRowContext(ctx, `
+		SELECT email, salt, password_hash, reset_token_hash, reset_token_expires_at
+		FROM api_users
+		WHERE email = $1
+	`, email).Scan(
+		&user.Email,
+		&user.Salt,
+		&user.PasswordHash,
+		&resetTokenHash,
+		&resetTokenExpiry,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resetTokenHash.Valid {
+		user.ResetTokenHash = resetTokenHash.String
+	}
+	if resetTokenExpiry.Valid {
+		expiry := resetTokenExpiry.Time
+		user.ResetTokenExpiry = &expiry
+	}
+	return &user, nil
 }
 
 func (a *authService) authorized(r *http.Request) bool {
@@ -434,6 +518,11 @@ func normalizeEmail(email string) string {
 func hashPassword(salt, password string) string {
 	sum := sha256.Sum256([]byte(salt + ":" + password))
 	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+func isUniqueViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505"
 }
 
 func randomToken(size int) string {

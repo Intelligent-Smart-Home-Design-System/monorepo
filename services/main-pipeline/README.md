@@ -78,7 +78,7 @@ curl -X POST http://localhost:8090/auth/reset-password \
   -d '{"email":"demo@example.com","reset_token":"<reset_token>","new_password":"new-demo-password"}'
 ```
 
-Users are stored in memory inside `api-gateway`, so registrations are reset when the container restarts. For production, move users and password reset tokens to a persistent DB.
+Users and password reset tokens are stored in `catalog-postgresql` through the `api_users` table, so registrations survive `api-gateway` restarts.
 
 Frontend contract endpoints are routed through nginx to `frontend-api`:
 

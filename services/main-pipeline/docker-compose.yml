@@ -97,11 +97,16 @@ services:
       context: .
     entrypoint: ["api-gateway"]
     depends_on:
-      - temporal
-      - main-pipeline
+      temporal:
+        condition: service_started
+      main-pipeline:
+        condition: service_started
+      catalog-db-migrate:
+        condition: service_completed_successfully
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
+      DATABASE_DSN: postgres://catalog:catalog@catalog-postgresql:5432/smart_home?sslmode=disable
       HTTP_ADDRESS: :8080
       METRICS_ADDRESS: :2116
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
@@ -129,7 +134,7 @@ services:
       - api-gateway
       - frontend-api
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     ports:
       - "8090:80"
     restart: unless-stopped

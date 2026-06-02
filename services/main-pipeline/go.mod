@@ -3,8 +3,10 @@ module github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pi
 go 1.25.0
 
 require (
+	github.com/lib/pq v1.12.3
 	github.com/prometheus/client_golang v1.20.5
 	github.com/rs/zerolog v1.35.0
+	go.temporal.io/api v1.24.0
 	go.temporal.io/sdk v1.25.1
 )
 
@@ -33,7 +35,6 @@ require (
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	go.temporal.io/api v1.24.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect

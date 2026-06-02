@@ -17,6 +17,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/wildberries"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/yandex"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
+	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
 )
 
 func NewParseCmd() *cobra.Command {
@@ -102,10 +103,6 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 
 		logger.Debug().Msgf("parsed %d listings", len(listings))
 		for _, listing := range listings {
-			if !listing.HasSmartHomeMarkers {
-				logger.Info().Err(err).Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
-				continue
-			}
 			if err := snapshotRepo.SaveListingParseResult(listing); err != nil {
 				logger.Error().Err(err).Msg("failed to save listing result")
 			}
@@ -126,6 +123,42 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from discovery")
 				} else {
 					logger.Debug().Str("url", productURL).Msg("created listing task from discovery")
+				}
+			}
+		}
+	}
+
+	if shouldRun(domain.PageTypeCategory, domain.SourceWildberries) {
+		categoryParsers := []parser.SourceParser[[]string]{
+			wildberries.NewCategoryParser(),
+		}
+		categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
+		categoryResults := categoryWorker.Parse(ctx)
+		for _, urls := range categoryResults {
+			for _, productURL := range urls {
+				if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
+					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from category")
+				} else {
+					logger.Debug().Str("url", productURL).Msg("created listing task from category")
+				}
+        	}
+    	}
+	}
+
+	if shouldRun(domain.PageTypeDiscovery, domain.SourceDns) {
+		discoveryParsersDns := []parser.SourceParser[[]string]{
+			dnsParser.NewDiscoveryParser(),
+		}
+		discoveryWorkerDns := parser.NewWorker(logger, domain.PageTypeDiscovery, snapshotRepo, discoveryParsersDns)
+		discoveryResultsDns := discoveryWorkerDns.Parse(ctx)
+
+		logger.Debug().Msgf("processed %d DNS discovery snapshots", len(discoveryResultsDns))
+		for _, urls := range discoveryResultsDns {
+			for _, productURL := range urls {
+				if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeListing.String(), productURL); err != nil {
+					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from DNS discovery")
+				} else {
+					logger.Debug().Str("url", productURL).Msg("created listing task from DNS discovery")
 				}
 			}
 		}

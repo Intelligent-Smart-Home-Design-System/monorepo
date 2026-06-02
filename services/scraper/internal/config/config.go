@@ -9,6 +9,7 @@ type Config struct {
     Scraping    ScrapingConfig    `mapstructure:"scraping"`
     Wildberries WildberriesConfig `mapstructure:"wildberries"`
     Yandex      YandexConfig      `mapstructure:"yandex"`
+    Dns         DnsConfig         `mapstructure:"dns"`
 }
 
 type DatabaseConfig struct {
@@ -39,10 +40,21 @@ type WildberriesDiscoveryConfig struct {
 
 type WildberriesConfig struct {
     Discovery               WildberriesDiscoveryConfig `mapstructure:"discovery"`
+    Category                WildberriesCategoryConfig  `mapstructure:"category"`
     BrandAliases            map[string]string          `mapstructure:"brand_aliases"`
     SmartHomeDeviceMarkers  []string                   `mapstructure:"smart_home_device_markers"`
 }
 
+type WildberriesCategoryConfig struct {
+    CategoryURL string `mapstructure:"category_url"`
+}
+
 type YandexConfig struct {
     SupportedZigbeeDevicesURL string `mapstructure:"supported_zigbee_devices_url"`
+}
+
+type DnsConfig struct {
+    SearchQueries []string `mapstructure:"search_queries"`
+    MaxPages      int      `mapstructure:"max_pages"`
+    UserAgent     string   `mapstructure:"user_agent"`
 }

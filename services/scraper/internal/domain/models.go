@@ -12,6 +12,7 @@ const (
 	PageTypeListing
 	PageTypeDiscovery
 	PageTypeCompatibility
+	PageTypeCategory
 )
 
 var pageTypes = map[string]PageType{
@@ -19,6 +20,7 @@ var pageTypes = map[string]PageType{
 	"listing":       PageTypeListing,
 	"discovery":     PageTypeDiscovery,
 	"compatibility": PageTypeCompatibility,
+	"category":      PageTypeCategory,
 }
 
 func (t PageType) String() string {
@@ -76,8 +78,7 @@ type PageSnapshot struct {
 }
 
 type ListingParseResult struct {
-	PageSnapshotID      int
-	HasSmartHomeMarkers bool
+	PageSnapshotID int
 
 	InStock      bool
 	Text         string
@@ -99,16 +100,17 @@ type ListingParseResult struct {
 }
 
 const (
-	SourceSprut       = "sprut"
-	SourceWildberries = "wildberries"
-	SourcePrinter     = "printer"
-	SourceYandex      = "yandex"
+    SourceSprut       = "sprut"
+    SourceWildberries = "wildberries"
+    SourcePrinter     = "printer"
+    SourceYandex      = "yandex"
+	SourceDns         = "dns"
 )
 
 type DirectCompatibilityRecord struct {
-	PageSnapshotID int
-	Brand          string
-	Model          string
-	Ecosystem      string
-	Protocol       string
+    PageSnapshotID int
+    Brand          string
+    Model          string
+    Ecosystem      string
+    Protocol       string
 }

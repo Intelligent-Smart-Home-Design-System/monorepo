@@ -10,6 +10,7 @@ import (
 	"slices"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	"net/url"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
@@ -17,6 +18,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	dnsScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/dns"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
 )
@@ -66,6 +68,18 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	taskRepo := repository.NewTrackedPageRepo(db)
 	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
+	if len(cfg.Dns.SearchQueries) > 0 {
+    for _, query := range cfg.Dns.SearchQueries {
+        for page := 1; page <= cfg.Dns.MaxPages; page++ {
+            encodedQuery := url.QueryEscape(query)
+            searchURL := fmt.Sprintf("https://www.dns-shop.ru/search/?q=%s&page=%d", encodedQuery, page)
+            if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), searchURL); err != nil {
+                logger.Error().Err(err).Str("query", query).Int("page", page).Msg("failed to create DNS discovery task")
+            }
+        }
+    }
+}
+
 	printerScraper := printer.NewPrinterScraper()
 	wildberriesScraper := wbScraper.NewScraper(
 		cfg.Scraping.Timeout,
@@ -77,11 +91,19 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 		cfg.Wildberries.Discovery.MaxPages,
 	)
 
+	if cfg.Wildberries.Category.CategoryURL != "" {
+		if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeCategory.String(), cfg.Wildberries.Category.CategoryURL); err != nil {
+			logger.Error().Err(err).Msg("failed to create category task")
+		}
+	}
+
 	if cfg.Yandex.SupportedZigbeeDevicesURL != "" {
 		if err := taskRepo.CreateTask(domain.SourceYandex, domain.PageTypeCompatibility.String(), cfg.Yandex.SupportedZigbeeDevicesURL); err != nil {
 			logger.Error().Err(err).Msg("failed to create Yandex compatibility task")
 		}
 	}
+
+	dnsScraperInstance := dnsScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Dns.UserAgent)
 
 	yandexScraperInstance := yandexScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Scraping.RateLimitRps)
 
@@ -89,6 +111,7 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 		domain.SourcePrinter:     printerScraper,
 		domain.SourceWildberries: wildberriesScraper,
 		domain.SourceYandex:      yandexScraperInstance,
+		domain.SourceDns:         dnsScraperInstance,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)

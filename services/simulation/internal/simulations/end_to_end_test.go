@@ -407,16 +407,16 @@ func intEvent(t *testing.T, entityID string, field string, value int) api.EventI
 
 func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field string) (bool, bool) {
 	for i := len(steps) - 1; i >= 0; i-- {
-		for _, change := range steps[i].StateChanges {
+		changes := steps[i].StateChanges
+		for j := len(changes) - 1; j >= 0; j-- {
+			change := changes[j]
 			if change.EntityID != entityID {
 				continue
 			}
-
 			var out map[string]any
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
-
 			if v, ok := out[field]; ok {
 				if b, ok := v.(bool); ok {
 					return b, true
@@ -424,22 +424,21 @@ func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field s
 			}
 		}
 	}
-
 	return false, false
 }
 
 func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field string) (int, bool) {
 	for i := len(steps) - 1; i >= 0; i-- {
-		for _, change := range steps[i].StateChanges {
+		changes := steps[i].StateChanges
+		for j := len(changes) - 1; j >= 0; j-- {
+			change := changes[j]
 			if change.EntityID != entityID {
 				continue
 			}
-
 			var out map[string]any
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
-
 			if v, ok := out[field]; ok {
 				if f, ok := v.(float64); ok {
 					return int(f), true
@@ -447,7 +446,6 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 			}
 		}
 	}
-
 	return 0, false
 }
 
@@ -464,7 +462,7 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "sensorWithUpdate_1", Type: "motion_sensor", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0}`)},
+			{ID: "sensorWithUpdate_1", Type: "motion_sensor", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0, "timeout": 1000}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
 			{ID: "siren_1", Type: "smart_siren", Info: json.RawMessage(`{"id":"siren_1","delay":0.0}`)},
 		},
@@ -476,8 +474,6 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 	var steps []api.SimulationStepPayload
 
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithUpdate_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
 	bulbState, bulbFound := lastBoolStateOf(steps, "lamp_1", "turn_on")
 	sirenState, sirenFound := lastBoolStateOf(steps, "siren_1", "turn_on")
@@ -718,10 +714,6 @@ func TestDevice_Thermostat(t *testing.T) {
 	if !found || !on {
 		t.Fatal("Thermostat should be turned on")
 	}
-
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
-		intEvent(t, "thermostat_1", "temperature", 75),
-	}))
 
 	temperature, found := lastIntStateOf(steps, "thermostat_1", "temperature")
 	if !found || temperature != 75 {

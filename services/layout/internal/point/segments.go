@@ -2,6 +2,8 @@ package point
 
 import "math"
 
+const epsilon = 1e-9
+
 type Segment struct {
 	From Point // Начальная точка отрезка в пространстве (X, Y)
 	To   Point // Конечная точка отрезка в пространстве (X, Y)
@@ -67,4 +69,47 @@ func (s *Segment) NormalVectors() (*Point, *Point) {
 	dy := s.To.Y - s.From.Y
 
 	return &Point{X: -dy, Y: dx}, &Point{X: dy, Y: -dx}
+}
+
+func IsPointOnSegment(p, q, r Point) bool {
+	PR := Point{X: r.X - p.X, Y: r.Y - p.Y}
+	PQ := Point{X: q.X - p.X, Y: q.Y - p.Y}
+
+	if math.Abs(PR.VecProduct(PQ)) <= epsilon {
+		return onSegment(p, q, r)
+	}
+
+	return false
+}
+
+func ClosestPointOnSegment(p Point, seg Segment) Point {
+	segmentVector := Point{
+		X: seg.To.X - seg.From.X,
+		Y: seg.To.Y - seg.From.Y,
+	}
+	pVector := Point{
+		X: p.X - seg.From.X,
+		Y: p.Y - seg.From.Y,
+	}
+
+	if segmentVector.X == 0 && segmentVector.Y == 0 {
+        return seg.From
+    }
+
+    
+    dot := segmentVector.X * pVector.X + segmentVector.Y * pVector.Y
+    segmentVectorSize := segmentVector.X * segmentVector.X + segmentVector.Y * segmentVector.Y
+    t := dot / segmentVectorSize
+    
+    if t < 0 {
+        t = 0
+    }
+    if t > 1 {
+        t = 1
+    }
+    
+    return Point{
+        X: seg.From.X + t * segmentVector.X,
+        Y: seg.From.Y + t * segmentVector.Y,
+    }
 }

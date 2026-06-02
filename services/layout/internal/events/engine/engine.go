@@ -31,7 +31,7 @@ func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string
 	zonedAp := apartment.Build(ap)
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	res := apartment.NewApartmentResult()
+	res := apartment.NewLayout()
 
 	for trackName, levelNum := range selectedLevels {
 		trackConfig := tracksConfig.Tracks[trackName]

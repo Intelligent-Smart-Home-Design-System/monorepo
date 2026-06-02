@@ -73,7 +73,7 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 			}
 
 			if deviceCnt < maxCount {
-				layout.AddDeviceToLayout(deviceType, sd.track, zr.OrigRoom.ID, &zoneCenter, smartDoorBellFilters)
+				layout.AddDeviceToLayout(deviceType, sd.track, zr.OrigRoom.ID, &zoneCenter, nil, smartDoorBellFilters)
 				deviceCnt++
 			}
 		}

@@ -54,6 +54,7 @@ type EnginePort interface {
 	GetFloor() *api.Floor
 	GetRoomObservers(roomID string) []string
 	NotifyObservers(roomID string, kind string, payload []byte)
+	DrainInChan()
 }
 
 var (

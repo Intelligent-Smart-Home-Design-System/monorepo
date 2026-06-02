@@ -653,7 +653,6 @@ func TestDevice_Doorbell_TriggersLock(t *testing.T) {
 	var steps []api.SimulationStepPayload
 
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "smartDoorbell_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
 
 	lockState, lockFound := lastBoolStateOf(steps, "smartLock_1", "turn_on")
 	if !lockFound || !lockState {
@@ -679,12 +678,10 @@ func TestDevice_AirConditioner(t *testing.T) {
 	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
 		boolEvent(t, "airConditioner_1", "turn_on", true),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
 
 	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{
 		intEvent(t, "airConditioner_1", "temperature", 25),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
 
 	on, found := lastBoolStateOf(steps, "airConditioner_1", "turn_on")
 	if !found || !on {

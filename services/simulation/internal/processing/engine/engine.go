@@ -137,13 +137,13 @@ func (s *SimEngine) InitStep() {
 func (s *SimEngine) Step() {
 	targetTime := s.simulation.Now() + s.dtSim
 
-	s.drainInChan()
+	s.DrainInChan()
 
 	s.simulation.RunUntil(targetTime)
 }
 
-// drainInChan читает все доступные события из канала
-func (s *SimEngine) drainInChan() {
+// DrainInChan читает все доступные события из канала
+func (s *SimEngine) DrainInChan() {
 	for {
 		select {
 		case event, ok := <-s.eventsInChan:

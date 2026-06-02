@@ -11,6 +11,7 @@ dependencies = [
     "pydantic-settings>=2.13.1",
     "tomli>=2.4.0",
     "structlog>=25.5.0",
+    "numpy>=2.0",
 ]
 
 [project.scripts]

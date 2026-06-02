@@ -2,5 +2,4 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-# результаты локальных прогонов эвалюации — артефакты, не исходники
 evaluation/results/

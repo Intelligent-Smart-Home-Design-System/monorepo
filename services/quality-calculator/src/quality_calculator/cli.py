@@ -220,5 +220,65 @@ def tune_specs(
     typer.echo(f"Подробности: {out_path}")
 
 
+def _load_labels_csv(path: Path) -> dict[int, str]:
+    """Читает CSV ручной разметки -> {device_id: label}. Пустые/неизвестные метки пропускает."""
+    import csv
+    valid = {"bad", "good", "excellent"}
+    labels: dict[int, str] = {}
+    with open(path, encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            label = (row.get("label") or "").strip().lower()
+            if label in valid:
+                labels[int(row["device_id"])] = label
+    return labels
+
+
+@app.command("train-weights")
+def train_weights_cmd(
+    catalog_path: Path = typer.Option(Path("evaluation/catalog.json"), "--catalog", "-i"),
+    spec_labels: Path = typer.Option(Path("evaluation/spec_labels.csv"), "--spec-labels"),
+    overall_labels: Path = typer.Option(Path("evaluation/overall_labels.csv"), "--overall-labels"),
+    out_strategy: Path = typer.Option(Path("config/strategies/specs/trained.json"), "--out-strategy"),
+    n_iter: int = typer.Option(500, "--iters"),
+    lr: float = typer.Option(0.5, "--lr"),
+):
+    """
+    Обучает веса по ручной разметке (MSE, градиентный спуск):
+      стадия 1 — веса внутри N(S) -> config/strategies/specs/trained.json;
+      стадия 2 — веса компонентов (w_R/w_S/w_E) -> печать + JSON отчёта.
+    """
+    from quality_calculator.evaluation.train_weights import train
+
+    tech = json.loads(DEVICE_TYPES_PATH.read_text(encoding="utf-8"))
+    base = json.loads(TRAITS_PATH.read_text(encoding="utf-8"))
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    sp = _load_labels_csv(spec_labels)
+    ov = _load_labels_csv(overall_labels)
+    typer.echo(f"спек-меток: {len(sp)}   общих меток: {len(ov)}\n")
+
+    result = train(catalog["devices"], sp, ov, tech, base, n_iter=n_iter, lr=lr)
+
+    out_strategy.parent.mkdir(parents=True, exist_ok=True)
+    out_strategy.write_text(json.dumps(result["trained_strategy"], ensure_ascii=False, indent=2), encoding="utf-8")
+
+    typer.echo("=== стадия 1: веса внутри N(S) ===")
+    for trait, info in result["report"]["stage1"].items():
+        if info["trained"]:
+            pairs = ", ".join(f"{f}={w}" for f, w in zip(info["fields"], info["weights"]))
+            typer.echo(f"  {trait:<18} n={info['n']:<4} MSE {info['mse_before']}->{info['mse_after']}  [{pairs}]")
+        else:
+            typer.echo(f"  {trait:<18} пропущен ({info['reason']}, n={info['n']})")
+
+    s2 = result["report"]["stage2"]
+    typer.echo("\n=== стадия 2: веса компонентов ===")
+    if s2["trained"]:
+        typer.echo(f"  n={s2['n']}  MSE {s2['mse_before']}->{s2['mse_after']}  -> {s2['weights']}")
+    else:
+        typer.echo(f"  не обучено ({s2['reason']}, n={s2['n']}), оставлены дефолты {s2['weights']}")
+
+    typer.echo(f"\nОбученная спек-стратегия: {out_strategy}")
+    typer.echo("Веса компонентов перенеси в нужную стратегию config/strategies/*.json.")
+
+
 if __name__ == "__main__":
     app()

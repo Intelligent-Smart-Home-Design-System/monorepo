@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from typing import Any
 
 import asyncpg
 
@@ -11,6 +12,7 @@ from temporalio import activity
 from device_selection.config import Settings
 from device_selection.data.loader import CatalogLoader
 from device_selection.data.catalog import Catalog
+from device_selection.data.json_loader import load_request
 
 log = structlog.get_logger()
 
@@ -103,10 +105,10 @@ async def select_devices(inp: SolveInput) -> SolveOutput:
     req = request_from_proto(proto_req)
 
     activity.logger.info(
-        "selection request received",
-        main_ecosystem=req.main_ecosystem,
-        budget=req.budget,
-        num_requirements=len(req.requirements),
+        "selection request received main_ecosystem=%s budget=%s num_requirements=%s",
+        req.main_ecosystem,
+        req.budget,
+        len(req.requirements),
     )
 
     catalog = await _get_catalog(state)
@@ -123,3 +125,71 @@ async def select_devices(inp: SolveInput) -> SolveOutput:
 
     response_proto = response_to_proto(points)
     return SolveOutput(response_proto_bytes=response_proto.SerializeToString())
+
+
+@activity.defn(name="select_devices_json")
+async def select_devices_json(inp: dict[str, Any]) -> dict[str, Any]:
+    from device_selection.solvers.enum_repair import SolverConfig, solve_enum_repair
+
+    state = _get_state()
+    s = state.settings
+    req = load_request(inp["request"])
+
+    activity.logger.info(
+        "json selection request received main_ecosystem=%s budget=%s num_requirements=%s",
+        req.main_ecosystem,
+        req.budget,
+        len(req.requirements),
+    )
+
+    catalog = await _get_catalog(state)
+    solver_cfg = SolverConfig(
+        max_bridge_ecosystems=s.solver.max_bridge_ecosystems,
+        max_hub_types=s.solver.max_hub_types,
+        max_candidates_per_type=s.solver.max_candidates_per_type,
+    )
+    archive = solve_enum_repair(req, catalog, solver_cfg)
+    points = sorted(archive.points, key=lambda p: p.total_cost)
+    return {
+        "result": {
+            "num_solutions": len(points),
+            "pareto_front": [_point_to_dict(point) for point in points],
+        }
+    }
+
+
+def _conn_to_dict(info: Any) -> dict[str, Any] | None:
+    if info is None:
+        return None
+    return {
+        "ecosystem": info.ecosystem,
+        "protocol": info.protocol,
+        "hub_solution_item_id": info.hub_solution_item_id,
+    }
+
+
+def _point_to_dict(point: Any) -> dict[str, Any]:
+    return {
+        "total_cost": point.total_cost,
+        "avg_quality": point.avg_quality,
+        "num_ecosystems": point.num_ecosystems,
+        "num_hubs": point.num_hubs,
+        "items": [
+            {
+                "id": item.id,
+                "device_id": item.device.device_id,
+                "device_type": item.device.device_type,
+                "brand": item.device.brand,
+                "model": item.device.model,
+                "requirement_id": item.requirement_id,
+                "quantity": item.quantity,
+                "price": item.device.price,
+                "quality": item.device.quality,
+                "connection": {
+                    "direct": _conn_to_dict(item.connection.connection_direct),
+                    "final": _conn_to_dict(item.connection.connection_final),
+                },
+            }
+            for item in point.items
+        ],
+    }

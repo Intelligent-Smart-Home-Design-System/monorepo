@@ -21,7 +21,7 @@ run: build
 	$(COMPOSE) up -d
 
 down:
-	$(COMPOSE) down -v
+	$(COMPOSE) down
 
 logs:
 	$(COMPOSE) logs -f pipeline-worker temporal temporal-ui catalog-postgresql

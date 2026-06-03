@@ -1,0 +1,19 @@
+{
+  "id": "synth_011_multihub_tight",
+  "description": "Same catalog as synth_010 but tighter budget (6000). Budget forces trade-offs: ultra yandex-zigbee lamps (1800x2=3600) + aqara sensors (600x2) + hubs barely fits. Expected: enum_repair misses heterogeneous-within-lamp solution that brute force finds. H=2 solution on front but H=3 may not fit budget. Faster BF (~40s, same combo count) with more solutions filtered by budget.",
+  "run_brute_force": true,
+  "catalog": "catalog_multihub.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 6000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 100,
+    "time_budget_seconds": 180.0
+  }
+}

@@ -16,6 +16,7 @@ const smartHubCategory = "smart_hub"
 type BuilderConfig struct {
 	IdentifyingAttributes map[string][]string
 	Ecosystems            map[string]config.EcosystemConfig
+	SupportedHubProtocols []string
 	TaxonomySchemaPath    string
 	// StrictSchema skips devices that fail schema validation instead of just warning
 	StrictSchema bool
@@ -152,11 +153,20 @@ func (b *Builder) Build(listings []*domain.ExtractedListing, compat []*domain.Sc
 		if c.Ecosystem == device.Brand {
 			continue // skip - added as generic rule
 		}
-		addDirect(device, c.Ecosystem, c.Protocol)
+		b.addDirect(device, c.Ecosystem, c.Protocol)
 	}
 
 	for _, d := range devices {
 		b.buildCompatibilityLinks(d)
+		if d.Category == smartHubCategory {
+			ecosystems := []string{}
+			for _, c := range d.DirectCompatibility {
+				if !slices.Contains(ecosystems, c.Ecosystem) {
+					ecosystems = append(ecosystems, c.Ecosystem)
+				}
+			}
+			d.DeviceAttributes["ecosystem"] = ecosystems
+		}
 	}
 
 	return &domain.Catalog{Devices: devices}
@@ -169,7 +179,7 @@ func (b *Builder) buildCompatibilityLinks(d *domain.Device) {
 	for _, eco := range ecosystems {
 		if eco == d.Brand {
 			for _, proto := range protocols {
-				addDirect(d, eco, proto)
+				b.addDirect(d, eco, proto)
 			}
 		}
 	}
@@ -178,7 +188,7 @@ func (b *Builder) buildCompatibilityLinks(d *domain.Device) {
 		config := b.cfg.Ecosystems[eco]
 		if !config.SupportsExternalIntegrations {
 			for _, proto := range protocols {
-				addDirect(d, eco, proto)
+				b.addDirect(d, eco, proto)
 			}
 			if d.Category == smartHubCategory {
 				continue
@@ -203,14 +213,17 @@ func (b *Builder) buildCompatibilityLinks(d *domain.Device) {
 			protocol := getStringSet(d.DeviceAttributes, "protocol")
 			for _, matterProtocol := range config.SupportedMatterProtocols {
 				if slices.Contains(protocol, matterProtocol) {
-					addDirect(d, eco, matterProtocol)
+					b.addDirect(d, eco, matterProtocol)
 				}
 			}
 		}
 	}
 }
 
-func addDirect(d *domain.Device, ecosystem string, protocol string) {
+func (b *Builder) addDirect(d *domain.Device, ecosystem string, protocol string) {
+	if d.Category == smartHubCategory && !b.hubProtocolSupported(protocol) {
+		return
+	}
 	for _, c := range d.DirectCompatibility {
 		if c.Ecosystem == ecosystem && c.Protocol == protocol {
 			return
@@ -220,6 +233,13 @@ func addDirect(d *domain.Device, ecosystem string, protocol string) {
 		Ecosystem: ecosystem,
 		Protocol:  protocol,
 	})
+}
+
+func (b *Builder) hubProtocolSupported(proto string) bool {
+	if len(b.cfg.SupportedHubProtocols) == 1 && b.cfg.SupportedHubProtocols[0] == "*" {
+		return true
+	}
+	return slices.Contains(b.cfg.SupportedHubProtocols, proto)
 }
 
 func getStringSet(attrs map[string]any, key string) []string {

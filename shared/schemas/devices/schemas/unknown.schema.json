@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Unknown",
+  "description": "Unknown device",
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "unknown"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "additionalProperties": false
+}

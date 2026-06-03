@@ -63,3 +63,17 @@ func (r *TrackedPageRepo) SetStatus(taskID int, success bool, durationMs int) er
 		return err
 	}
 }
+
+func (r *TrackedPageRepo) CreateTask(source, pageType, url string) error {
+    _, err := r.db.Exec(`
+        INSERT INTO tracked_pages (source_name, page_type, url, is_active)
+        VALUES ($1, $2, $3, true)
+        ON CONFLICT (url_hash) DO NOTHING
+    `, source, pageType, url)
+    return err
+}
+
+func (r *TrackedPageRepo) DeleteTaskByID(id int) error {
+	_, err := r.db.Exec(`DELETE FROM tracked_pages WHERE id = $1`, id)
+	return err
+}

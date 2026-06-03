@@ -23,6 +23,24 @@
             "gas_leak_sensor": [
               "kitchen"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 2,
+            "gas_leak_sensor": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "contact",
+              "alarm_vulume_db": 65,
+              "battery_life_years": 1
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane"
+              ],
+              "alarm_volume_db": 65,
+              "battery_life_years": 1
+            }
           }
         },
         "2": {
@@ -53,6 +71,39 @@
             "smart_lock": [
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 2,
+            "gas_leak_sensor": 1,
+            "smart_doorbell": 1,
+            "smart_lock": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "contact",
+              "alarm_vulume_db": 75,
+              "battery_life_years": 2
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas"
+              ],
+              "alarm_volume_db": 75,
+              "battery_life_years": 2
+            },
+            "smart_doorbell": {
+              "resolution": "720p",
+              "angle": 90,
+              "night_vision": false,
+              "two_way_audio": false
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint"
+              ]
+            }
           }
         },
         "3": {
@@ -97,6 +148,49 @@
               "living",
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 1,
+            "door_sensor": 1,
+            "window_sensor": 3,
+            "motion_sensor": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "cable",
+              "alarm_vulume_db": 85,
+              "battery_life_years": 2
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas"
+              ],
+              "alarm_volume_db": 85,
+              "battery_life_years": 2
+            },
+            "smart_doorbell": {
+              "resolution": "1080p",
+              "angle": 105,
+              "night_vision": false,
+              "two_way_audio": true
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint",
+                "app"
+              ]
+            },
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {
+              "angle": 110,
+              "range": 4
+            }
           }
         },
         "4": {
@@ -146,6 +240,58 @@
               "living",
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 2,
+            "door_sensor": 2,
+            "window_sensor": 4,
+            "motion_sensor": 1,
+            "camera": 2
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "cable",
+              "alarm_vulume_db": 100,
+              "battery_life_years": 3
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas",
+                "propan"
+              ],
+              "alarm_volume_db": 100,
+              "battery_life_years": 3
+            },
+            "smart_doorbell": {
+              "resolution": "2K",
+              "angle": 130,
+              "night_vision": true,
+              "two_way_audio": true
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint",
+                "app",
+                "face_recognition"
+              ]
+            },
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {
+              "angle": 130,
+              "range": 8
+            },
+            "camera": {
+              "angle": 110,
+              "range": 10,
+              "night_vision": true,
+              "resolution": "2K"
+            }
           }
         },
         "5": {
@@ -199,6 +345,63 @@
             "smart_siren": [
               "hall"
             ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 2,
+            "door_sensor": 2,
+            "window_sensor": 4,
+            "motion_sensor": 2,
+            "camera": 2,
+            "smart_siren": 2
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "cable",
+              "alarm_vulume_db": 100,
+              "battery_life_years": 4
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas",
+                "propan",
+                "carbon_monoxide"
+              ],
+              "alarm_volume_db": 100,
+              "battery_life_years": 4
+            },
+            "smart_doorbell": {
+              "resolution": "4K",
+              "angle": 150,
+              "night_vision": true,
+              "two_way_audio": true
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint",
+                "app",
+                "face_recognition"
+              ]
+            },
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {
+              "angle": 150,
+              "range": 10
+            },
+            "camera": {
+              "angle": 110,
+              "range": 10,
+              "night_vision": true,
+              "resolution": "2K"
+            },
+            "smart_siren": {
+              "volume_db": 85
+            }
           }
         }
       }
@@ -221,6 +424,12 @@
               "living",
               "kitchen"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 3
+          },
+          "device_filters": {
+            "smart_buld": {}
           }
         },
         "2": {
@@ -240,6 +449,12 @@
               "passage",
               "bathroom"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5
+          },
+          "device_filters": {
+            "smart_buld": {}
           }
         },
         "3": {
@@ -269,6 +484,16 @@
               "living",
               "kitchen"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2
+          },
+          "device_filters": {
+            "smart_buld": {},
+            "motion_sensor": {},
+            "illumination_sensor": {}
           }
         },
         "4": {
@@ -452,6 +677,104 @@
               "living",
               "bedroom"
             ]
+          }
+        }
+      }
+    },
+    "media": {
+      "name": "Медиа и развлечения",
+      "levels": {
+        "1": {
+          "name":"Первый уровень",
+          "description": "Базовый набор c умной колонкой",
+          "price_range": {
+            "min": 5000,
+            "max": 50000
+          },
+          "devices": [
+            "smart_speaker"
+          ],
+          "device_rooms": {
+            "smart_speaker": [
+              "living",
+              "kitchen",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1
+          },
+          "device_filters": {
+            "smart_speaker": {}
+          }
+        },
+        "2": {
+          "name":"Второй уровень",
+          "description": "Набор для просмотра контента",
+          "price_range": {
+            "min": 25000,
+            "max": 550000
+          },
+          "devices": [
+            "smart_tv",
+            "smart_speaker"
+          ],
+          "device_rooms": {
+            "smart_speaker": [
+              "living",
+              "kitchen",
+              "bedroom"
+            ],
+            "smart_tv": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1,
+            "smart_tv": 1
+          },
+          "device_filters": {
+            "smart_speaker": {},
+            "smart_tv": {}
+          }
+        },
+        "3": {
+          "name":"Третий уровень",
+          "description": "Продвинутый набор для просмотра контента",
+          "price_range": {
+            "min": 32000,
+            "max": 580000
+          },
+          "devices": [
+            "smart_tv",
+            "smart_speaker",
+            "subwoofer"
+          ],
+          "device_rooms": {
+            "smart_speaker": [
+              "living",
+              "kitchen",
+              "bedroom"
+            ],
+            "smart_tv": [
+              "living",
+              "bedroom"
+            ],
+            "subwoofer": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1,
+            "smart_tv": 1,
+            "subwoofer": 1
+          },
+          "device_filters": {
+            "smart_speaker": {},
+            "smart_tv": {},
+            "subwoofer": {}
           }
         }
       }

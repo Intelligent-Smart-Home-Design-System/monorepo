@@ -37,7 +37,6 @@ func TestLightingLevel1(t *testing.T) {
 	apartmentStruct := &apartment.Apartment{
 		Rooms: rooms,
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"lighting": "1",
@@ -45,17 +44,17 @@ func TestLightingLevel1(t *testing.T) {
 
 	st := storage.NewStorage()
 	st.LoadAllLightingRules()
-	tracksConfig, err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
-	devicesConfig, err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
+	err1 := configs.LoadTracksConfig("../../../internal/configs/tracks.json")
+	err2 := configs.LoadDevicesConfig("../../../internal/configs/devices.json")
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	e := engine.NewEngine(st, tracksConfig, devicesConfig)
+	e := engine.NewEngine(st)
 	globalPlacement, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 
-	_, livingHasBulb := globalPlacement.Placements["r1"]["smart_bulb"]
-	_, kitchenHasBulb := globalPlacement.Placements["r2"]["smart_bulb"]
+	livingHasBulb := globalPlacement.HasDeviceInRoom("smart_bulb", "r1")
+	kitchenHasBulb := globalPlacement.HasDeviceInRoom("smart_bulb", "r2")
 	assert.True(t, livingHasBulb)
 	assert.True(t, kitchenHasBulb)
 }

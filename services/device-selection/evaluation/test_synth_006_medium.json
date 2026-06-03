@@ -1,0 +1,19 @@
+{
+  "id": "synth_006_multieco_medium",
+  "description": "Multi-ecosystem medium test. 2 lamps + 2 sensors + 2 plugs against a 35-device catalog spanning yandex (direct wifi/zigbee), aqara (cloud bridge, needs aqara hub), and tuya (cloud bridge wifi, or zigbee needs tuya hub). Rich Pareto front expected: all-yandex-direct (E=1 H=0, expensive), all-aqara-bridge (E=2 H=1, cheap+high quality), tuya-bridge mix (E=2-3 H=0-1, cheap+mid quality). Brute force should take 15-60s depending on hardware (~4M candidate combinations before constraint filtering).",
+  "run_brute_force": true,
+  "catalog": "catalog_multieco.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 12000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 50,
+    "time_budget_seconds": 120.0
+  }
+}

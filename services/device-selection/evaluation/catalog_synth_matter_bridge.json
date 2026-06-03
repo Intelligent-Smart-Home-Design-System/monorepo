@@ -1,0 +1,103 @@
+{
+  "_comment": "Matter bridge test catalog. Three lamp options: (1) yandex wifi, no hub. (2) aqara zigbee -> yandex via cloud bridge, needs aqara basic hub on source side only. (3) aqara matter -> yandex via matter bridge: needs aqara matter hub (source leg) AND yandex matter hub (final leg). Hub IDs 4-7 cover all combinations so BF can enumerate each hub choice independently.",
+  "devices": [
+    {
+      "device_id": 1,
+      "device_type": "smart_lamp",
+      "brand": "yandex",
+      "model": "YL-WiFi",
+      "attributes": {},
+      "price": 600.0,
+      "quality": 0.80,
+      "source_listing_id": 6001,
+      "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 2,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQL-Zigbee",
+      "attributes": {},
+      "price": 300.0,
+      "quality": 0.88,
+      "source_listing_id": 6002,
+      "direct_compat": [{"ecosystem": "aqara", "protocol": "zigbee"}],
+      "bridge_compat": [{"source_ecosystem": "aqara", "target_ecosystem": "yandex", "protocol": "cloud"}]
+    },
+    {
+      "device_id": 3,
+      "device_type": "smart_lamp",
+      "brand": "aqara",
+      "model": "AQL-zigbee-matter-bridgeable",
+      "attributes": {},
+      "price": 800.0,
+      "quality": 0.95,
+      "source_listing_id": 6003,
+      "direct_compat": [{"ecosystem": "aqara", "protocol": "zigbee"}],
+      "bridge_compat": [{"source_ecosystem": "aqara", "target_ecosystem": "yandex", "protocol": "matter"}]
+    },
+    {
+      "device_id": 4,
+      "device_type": "smart_hub",
+      "brand": "aqara",
+      "model": "AQ-Hub-Basic",
+      "attributes": {},
+      "price": 700.0,
+      "quality": 0.80,
+      "source_listing_id": 6004,
+      "direct_compat": [
+        {"ecosystem": "aqara", "protocol": "wifi"},
+        {"ecosystem": "aqara", "protocol": "zigbee"}
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 5,
+      "device_type": "smart_hub",
+      "brand": "aqara",
+      "model": "AQ-Hub-Matter",
+      "attributes": {},
+      "price": 1500.0,
+      "quality": 0.90,
+      "source_listing_id": 6005,
+      "direct_compat": [
+        {"ecosystem": "aqara", "protocol": "wifi"},
+        {"ecosystem": "aqara", "protocol": "zigbee"},
+        {"ecosystem": "aqara", "protocol": "matter"}
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 6,
+      "device_type": "smart_hub",
+      "brand": "yandex",
+      "model": "Y-Hub-Basic",
+      "attributes": {},
+      "price": 800.0,
+      "quality": 0.80,
+      "source_listing_id": 6006,
+      "direct_compat": [
+        {"ecosystem": "yandex", "protocol": "wifi"},
+        {"ecosystem": "yandex", "protocol": "zigbee"}
+      ],
+      "bridge_compat": []
+    },
+    {
+      "device_id": 7,
+      "device_type": "smart_hub",
+      "brand": "yandex",
+      "model": "Y-Hub-Matter",
+      "attributes": {},
+      "price": 2000.0,
+      "quality": 0.90,
+      "source_listing_id": 6007,
+      "direct_compat": [
+        {"ecosystem": "yandex", "protocol": "wifi"},
+        {"ecosystem": "yandex", "protocol": "zigbee"},
+        {"ecosystem": "yandex", "protocol": "matter"}
+      ],
+      "bridge_compat": []
+    }
+  ]
+}

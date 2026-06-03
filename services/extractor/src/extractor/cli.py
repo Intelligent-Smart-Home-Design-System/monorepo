@@ -207,5 +207,84 @@ async def _run_evaluation(
     print(timestamp)
 
 
+import statistics
+
+def summarize(results_path: Path) -> None:
+    data = json.loads(results_path.read_text())
+    s = data["summary"]
+    model = data.get("model", "unknown")
+
+    print(f"\n=== Модель: {model} ===")
+    print(f"Всего листингов: {s['total_listings']}")
+    print(f"Точность классификации типа: {s['type_accuracy']:.1%}")
+    print(f"Полное извлечение (все поля верно): {s['perfect_extraction_rate']:.1%}")
+
+    print("\n=== Матрица ошибок типов ===")
+    cm = s["type_confusion_matrix"]
+    types = sorted(set(cm.keys()) | {a for row in cm.values() for a in row.keys()})
+    print(f"{'expected\\actual':<22}" + "".join(f"{t:<22}" for t in types))
+    for expected in types:
+        row = cm.get(expected, {})
+        cells = "".join(f"{row.get(a, 0):<22}" for a in types)
+        print(f"{expected:<22}" + cells)
+
+    # ----- скалярные поля -----
+    scalar = s["scalar_field_metrics"]
+    recall = scalar["recall"]["values"]
+    precision = scalar["precision"]["values"]
+    miss = scalar["miss_rate"]["values"]
+    hall = scalar["hallucination_rate"]["values"]
+    cov = scalar.get("coverage", {}).get("values", {})
+
+    covered_fields = [f for f in recall if cov.get(f, 0) > 0]
+
+    if covered_fields:
+        avg_recall = statistics.mean(recall[f] for f in covered_fields)
+        avg_precision = statistics.mean(
+            precision[f] for f in covered_fields if f in precision
+        )
+        avg_miss = statistics.mean(miss[f] for f in covered_fields if f in miss)
+        avg_hall_all = statistics.mean(hall.values())
+        print("\n=== Скалярные поля: агрегаты ===")
+        print(f"Средний recall (поля с покрытием > 0): {avg_recall:.1%}")
+        print(f"Средний precision: {avg_precision:.1%}")
+        print(f"Средний miss rate: {avg_miss:.1%}")
+        print(f"Средний hallucination rate (все поля): {avg_hall_all:.1%}")
+
+    print("\n=== Худшие 5 полей по recall ===")
+    print(f"{'field':<30} {'recall':<10} {'coverage':<10}")
+    for f, v in sorted(((f, recall[f]) for f in covered_fields), key=lambda x: x[1])[:5]:
+        print(f"{f:<30} {v:<10.0%} {cov.get(f, 0):<10}")
+
+    print("\n=== Худшие 5 полей по hallucination rate ===")
+    for f, v in sorted(hall.items(), key=lambda x: -x[1])[:5]:
+        if v > 0:
+            print(f"{f:<30} hallucination={v:.0%} {cov.get(f, 0)}")
+
+    set_field = s.get("set_field_metrics", {})
+    exact_match = set_field.get("exact_match_rate", {}).get("values", {})
+    value_recall = set_field.get("value_recall", {}).get("values", {})
+    value_hall = set_field.get("value_hallucination_rate", {}).get("values", {})
+
+    print("\n=== ecosystem, protocol ===")
+    for field in ("ecosystem", "protocol"):
+        em = exact_match.get(field)
+        if em is not None:
+            print(f"\n{field}: exact match rate = {em:.1%}")
+            keys = sorted(k for k in value_recall if k.startswith(f"{field}_"))
+            print(f"  {'value':<25} {'recall':<10} {'hallucination':<15}")
+            for k in keys:
+                v = k[len(field) + 1:]
+                r = value_recall.get(k, 0)
+                h = value_hall.get(k, 0)
+                print(f"  {v:<25} {r:<10.0%} {h:<15.0%}")
+
+
+@app.command()
+def summarize_eval(
+    results_path: Path = typer.Option(Path("results.json"), "--results", "-r"),
+):
+    summarize(results_path=results_path)
+    
 if __name__ == "__main__":
     app()

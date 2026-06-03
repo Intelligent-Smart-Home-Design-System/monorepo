@@ -1,46 +1,41 @@
 package engine
 
 import (
-	"context"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/fschuetz04/simgo"
 )
 
-const (
-	maxEventsBuffer = 100
-	simStep         = 1.0
-)
+const maxEventsBuffer = 100
 
 // SimEngine реализует интерфефс Engine
 type SimEngine struct {
-	simulation *simgo.Simulation // дискретная симуляция из simgo
-
-	IDToEntity map[string]entities.Entity // ID сущности <-> структура сущности.
-
-	Field *field.Field // Поле для симуляции
-
-	eventsInChan chan api.EventInDTO // Канал для входящих событий
-
-	eventsOutChan chan api.EventOutDTO // Канал для новых событий
+	simulation    *simgo.Simulation          // дискретная симуляция из simgo
+	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
+	roomObservers map[string][]string        // roomID → []entityID (entity с логикой entities.Observer)
+	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
+	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
+	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
+	Floor         *api.Floor                 // Поле для симуляции
 }
 
 // NewSimEngine создает SimEngine
-func NewSimEngine() *SimEngine {
+func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
 		simulation:    simgo.NewSimulation(),
 		IDToEntity:    make(map[string]entities.Entity),
+		roomObservers: make(map[string][]string),
 		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
 		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
+		dtSim:         dtSim,
 	}
 }
 
 // InitEntities инициализирует сущности и их зависимости.
 func (s *SimEngine) InitEntities(
 	IDToEntity map[string]entities.Entity,
-	IDToDependencies map[string][]api.ActionDTO,
+	IDToDependencies map[string][]api.EdgeDTO,
 ) {
 	s.IDToEntity = IDToEntity
 
@@ -55,7 +50,22 @@ func (s *SimEngine) InitProcesses() {
 		if entityWithProcess, ok := entity.(entities.EntityWithProcess); ok {
 			s.simulation.ProcessReflect(entityWithProcess.GetProcessFunc())
 		}
+
+		if observer, ok := entity.(entities.Observer); ok {
+			x, y := observer.GetPosition()
+			for _, room := range s.Floor.Rooms {
+				if field.PointInRoom(x, y, room) {
+					s.roomObservers[room.ID] = append(s.roomObservers[room.ID], observer.GetID())
+					break
+				}
+			}
+		}
 	}
+}
+
+// GetRoomObservers возвращает ID observers в комнате.
+func (s *SimEngine) GetRoomObservers(roomID string) []string {
+	return s.roomObservers[roomID]
 }
 
 // CheckCircleDependencies проверяет наличие циклических зависимостей среди сущностей.
@@ -101,9 +111,9 @@ func (s *SimEngine) hasCycleDFS(entityID string, color map[string]int) bool {
 	return false
 }
 
-// SetField устанавливает поле для симуляции.
-func (s *SimEngine) SetField(simField *field.Field) {
-	s.Field = simField
+// SetFloor устанавливает поле для симуляции.
+func (s *SimEngine) SetFloor(floor *api.Floor) {
+	s.Floor = floor
 }
 
 // GetInChan возвращает канал для входящих событий.
@@ -111,58 +121,97 @@ func (s *SimEngine) GetInChan() chan api.EventInDTO {
 	return s.eventsInChan
 }
 
-// GetOutChan возвращает канал для исходящих событий.
+// GetOutChan возвращает канал для выходящих событий.
 func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
 	return s.eventsOutChan
 }
 
-// Run запускает симуляцию, обрабатывая события из канала eventsInChan.
-// Если контекст отменен или канал закрыт, то симуляция завершается.
-func (s *SimEngine) Run(ctx context.Context) error {
+func (s *SimEngine) GetSimulation() *simgo.Simulation {
+	return s.simulation
+}
+
+func (s *SimEngine) InitStep() {
+	s.simulation.RunUntil(0)
+}
+
+func (s *SimEngine) Step() {
+	targetTime := s.simulation.Now() + s.dtSim
+
+	s.DrainInChan()
+
+	s.simulation.RunUntil(targetTime)
+}
+
+// DrainInChan читает все доступные события из канала
+func (s *SimEngine) DrainInChan() {
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
 		case event, ok := <-s.eventsInChan:
 			if !ok {
-				return nil
+				return
 			}
-
 			s.HandleEvent(event)
-
-			s.simulation.RunUntil(s.simulation.Now() + simStep) // шаг симуляции (можно делать каждый lockstep)
+		default:
+			return
 		}
 	}
 }
 
-// HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event api.EventInDTO) {
-	entity := s.IDToEntity[event.EntityID]
-	receiversID := entity.GetReceiversID()
+// CollectStep собирает обновления от всех сущностей после тика.
+func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
+	changes := make([]api.EventOutDTO, 0)
 
-	for _, receiverID := range receiversID {
-		s.eventsInChan <- api.EventInDTO{
-			EntityID: receiverID,
+	for {
+		select {
+		case event := <-s.eventsOutChan:
+			changes = append(changes, event)
+		default:
+			return &api.SimulationStepPayload{
+				Tick:         tick,
+				SimTime:      s.simulation.Now(),
+				StateChanges: changes,
+			}
 		}
 	}
+}
 
+func (s *SimEngine) Stop() {
+	close(s.eventsInChan)
+}
+
+// HandleEvent обрабатывает event по его entityID
+func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
-		err := entityWithProcess.HandleInDTO(event.Info)
+		err := entityWithProcess.HandleInDTO(event.Payload)
 		if err != nil {
 			return
 		}
 	}
 }
 
-// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
-func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
-	if x < 0 || x > s.Field.Height {
-		return ErrorFieldInvalidParameterX
-	} else if y < 0 || y > s.Field.Width {
-		return ErrorFieldInvalidParameterY
+func (s *SimEngine) NotifyObservers(roomID string, kind string, payload []byte) {
+	for _, observerID := range s.roomObservers[roomID] {
+		entity := s.IDToEntity[observerID]
+
+		observer, ok := entity.(entities.Observer)
+		if !ok {
+			continue
+		}
+
+		// проверяем что observer слушает этот kind
+		for _, k := range observer.GetObservedKinds() {
+			if k == kind {
+				s.eventsInChan <- api.EventInDTO{
+					EntityID: observerID,
+					Payload:  payload,
+				}
+
+				break
+			}
+		}
 	}
+}
 
-	s.Field.Cells[x][y].Condition = cell.Condition
-
-	return nil
+func (s *SimEngine) GetFloor() *api.Floor {
+	return s.Floor
 }

@@ -14,51 +14,76 @@ import (
 )
 
 func TestSimpleFirstLevelScript(t *testing.T) {
-	room := apartment.Room{
+	stove := apartment.Appliances{
 		ID:   "1",
-		Name: "kitchen",
-		Area: []point.Point{
-			{X: 0, Y: 0},
-			{X: 2, Y: 0},
+		Name: apartment.Stove,
+		Points: []point.Point{
 			{X: 2, Y: 2},
-			{X: 0, Y: 2},
+			{X: 2, Y: 3},
+			{X: 3, Y: 3},
+			{X: 3, Y: 2},
 		},
 	}
-	apartmentStruct := &apartment.Apartment{
-		Rooms: []apartment.Room{room},
+
+	sink := apartment.Plumbing{
+		ID:   "2",
+		Name: apartment.Sink,
+		Points: []point.Point{
+			{X: 1, Y: 2},
+			{X: 1, Y: 3},
+			{X: 2, Y: 3},
+			{X: 2, Y: 2},
+		},
 	}
-	apartmentStruct.MakeDependency()
+
+	room := apartment.Room{
+		ID:   "1",
+		Name: apartment.RoomKitchen,
+		Area: []point.Point{
+			{X: 0, Y: 0},
+			{X: 3, Y: 0},
+			{X: 3, Y: 3},
+			{X: 0, Y: 3},
+		},
+		Appliances: []string{"1"},
+		Plumbing:   []string{"2"},
+	}
+	ap := &apartment.Apartment{
+		Rooms:      []apartment.Room{room},
+		Plumbing:   []apartment.Plumbing{sink},
+		Appliances: []apartment.Appliances{stove},
+	}
 
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
+
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 2.5}, devicePlacement.Position)
 		case "gas_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 2.5, Y: 2.5}, devicePlacement.Position)
 		}
 	}
 
 	kitchenRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		kitchenRoomKeys = append(kitchenRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		kitchenRoomKeys = append(kitchenRoomKeys, placement.Device.Type)
 	}
 
 	correctKitchenRoomKeys := []string{"water_leak_sensor", "gas_leak_sensor"}
@@ -70,6 +95,28 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 }
 
 func TestMultipleRooms(t *testing.T) {
+	stove := apartment.Appliances{
+		ID:   "1",
+		Name: apartment.Stove,
+		Points: []point.Point{
+			{X: 0, Y: 0},
+			{X: 0, Y: 1},
+			{X: 1, Y: 1},
+			{X: 1, Y: 0},
+		},
+	}
+
+	sink := apartment.Plumbing{
+		ID:   "2",
+		Name: apartment.Sink,
+		Points: []point.Point{
+			{X: 1, Y: 2},
+			{X: 1, Y: 3},
+			{X: 2, Y: 3},
+			{X: 2, Y: 2},
+		},
+	}
+
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
@@ -80,6 +127,8 @@ func TestMultipleRooms(t *testing.T) {
 				{X: 2, Y: 2},
 				{X: 0, Y: 2},
 			},
+			Plumbing: []string{"2"},
+
 		},
 		{
 			ID:   "2",
@@ -90,6 +139,7 @@ func TestMultipleRooms(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
+			Appliances: []string{"1"},
 		},
 		{
 			ID:   "3",
@@ -102,42 +152,44 @@ func TestMultipleRooms(t *testing.T) {
 			},
 		},
 	}
-	apartmentStruct := &apartment.Apartment{
+
+	ap := &apartment.Apartment{
 		Rooms: rooms,
+		Plumbing: []apartment.Plumbing{sink},
+		Appliances: []apartment.Appliances{stove},
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
+
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[0].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
-		case "gas_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
-		}
+			assert.Equal(t, &point.Point{X: 1.5, Y: 2.5}, devicePlacement.Position)
 	}
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[1].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+			assert.Equal(t, &point.Point{X: 1.5, Y: 2.5}, devicePlacement.Position)
+		case "gas_leak_sensor":
+			assert.Equal(t, &point.Point{X: 0.5, Y: 0.5}, devicePlacement.Position)
+		}
 		}
 	}
 
@@ -145,6 +197,28 @@ func TestMultipleRooms(t *testing.T) {
 }
 
 func TestFirstLevelPriceCalculation(t *testing.T) {
+	stove := apartment.Appliances{
+		ID:   "1",
+		Name: apartment.Stove,
+		Points: []point.Point{
+			{X: 0, Y: 0},
+			{X: 0, Y: 1},
+			{X: 1, Y: 1},
+			{X: 1, Y: 0},
+		},
+	}
+
+	sink := apartment.Plumbing{
+		ID:   "2",
+		Name: apartment.Sink,
+		Points: []point.Point{
+			{X: 1, Y: 2},
+			{X: 1, Y: 3},
+			{X: 2, Y: 3},
+			{X: 2, Y: 2},
+		},
+	}
+
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
@@ -155,6 +229,8 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 				{X: 2, Y: 2},
 				{X: 0, Y: 2},
 			},
+			Plumbing: []string{"2"},
+
 		},
 		{
 			ID:   "2",
@@ -165,6 +241,7 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
+			Appliances: []string{"1"},
 		},
 		{
 			ID:   "3",
@@ -177,31 +254,33 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 			},
 		},
 	}
-	apartmentStruct := &apartment.Apartment{
+
+	ap := &apartment.Apartment{
 		Rooms: rooms,
+		Plumbing: []apartment.Plumbing{sink},
+		Appliances: []apartment.Appliances{stove},
 	}
-	apartmentStruct.MakeDependency()
 
 	selectedLevels := map[string]string{
 		"security": "1",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
+
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
 	priceInfo := engine.CalculateLayoutPrice(globalPlacement)
 
-	assert.Equal(t, 4000, priceInfo.MinPrice)
-	assert.Equal(t, 9000, priceInfo.MaxPrice)
+	assert.Equal(t, 3000, priceInfo.MinPrice)
+	assert.Equal(t, 7000, priceInfo.MaxPrice)
 }

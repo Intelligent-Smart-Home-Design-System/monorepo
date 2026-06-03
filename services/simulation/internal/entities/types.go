@@ -16,7 +16,7 @@ type Entity interface {
 	GetReceiversID() []string
 
 	// SetReceivers устанавливает сущности, которые данная сущность тригерит
-	SetReceivers(actions []api.ActionDTO)
+	SetReceivers(actions []api.EdgeDTO)
 }
 
 // EntityWithProcess определяет интерфейс сущности с бизнес-логикой
@@ -26,20 +26,41 @@ type EntityWithProcess interface {
 	// HandleInDTO обрабатывает входящие данные и сохраняет их в хранилище сущности.
 	HandleInDTO(dto []byte) error
 
-	// HandleOutDTO обрабатывает исходящие данные и отправляет их в канал событий.
-	HandleOutDTO(out any) error
+	// HandleOutDTO обрабатывает исходящие данные, отправляет их в канал событий и тригерит ресиверов.
+	HandleOutDTO(dto []byte)
 
 	// GetProcessFunc возвращает функция процесс
 	GetProcessFunc() func(process simgo.Process)
+}
 
-	// Process реализует функцию процесса устройства.
-	Process(process simgo.Process)
-
-	// GetOutCh возвращает канал для отправки данных о событиях.
-	GetOutCh() chan []byte
+type Observer interface {
+	Entity
+	GetPosition() (x, y float64)
+	GetObservedKinds() []string // ["human:move"], ["fire:spread"] и тд
 }
 
 const (
-	TypeLamp         = "lamp"
-	TypeLampSwitcher = "lampSwitcher"
+	TypeLamp                          = "lamp"
+	TypeSmartLamp                     = "smartLamp"
+	TypeSmartDimmer                   = "smartDimmer"
+	TypeSwitcher                      = "switcher"
+	TypeSensorWithUpdate              = "sensorWithUpdate"
+	TypeSensorWithoutUpdate           = "sensorWithoutUpdate"
+	TypeSensorWithIntStatus           = "sensorWithIntStatus"
+	TypeRadiusMoveSensorWithUpdate    = "radiusMoveSensorWithUpdate"
+	TypeRadiusMoveSensorWithoutUpdate = "radiusMoveSensorWithoutUpdate"
+	TypeSiren                         = "siren"
+	TypeWindow                        = "window"
+	TypeDoor                          = "door"
+	TypeSmartLock                     = "smartLock"
+	TypeSmartDoorbell                 = "smartDoorbell"
+	TypeSmartCurtains                 = "smartCurtains"
+	TypeCamera                        = "camera"
+	TypeAirConditioner                = "airConditioner"
+	TypeThermostat                    = "thermostat"
+	TypeSmartFloor                    = "smartFloor"
+	TypeTV                            = "tv"
+	TypeSubwoofer                     = "subwoofer"
+
+	TypeHuman = "human"
 )

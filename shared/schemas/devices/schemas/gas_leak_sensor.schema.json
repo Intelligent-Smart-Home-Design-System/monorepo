@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GasLeakSensor",
+  "description": "A smart home gas leak detection sensor",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Gas Sensor'"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier as stated by the manufacturer, e.g. 'JTQJ-BF-01LM'."
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "digma",
+          "sber",
+          "vk",
+          "ekf"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems this device can connect to through any connection path."
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "ble",
+          "matter-over-wifi",
+          "matter-over-thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Wireless protocols supported by this device."
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "CR2032",
+        "CR2450",
+        "CR123A",
+        "CR1632",
+        "AA",
+        "AAA",
+        "18650"
+      ],
+      "description": "Battery type required."
+    },
+    "battery_quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Estimated battery life in months"
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built-in rechargeable battery."
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress protection rating, e.g. 'IP20'."
+    },
+    "power_source": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mains",
+          "battery",
+          "rechargeable_battery",
+          "usb",
+          "poe",
+          "ac_dc_adapter"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+    },
+    "detected_gas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "natural_gas",
+          "lpg",
+          "carbon_monoxide",
+          "smoke"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Types of gas or hazard this sensor can detect. natural_gas = methane/CH4, lpg = propane/butane."
+    },
+    "has_audio_alert": {
+      "type": "boolean",
+      "description": "Whether the sensor emits an audible alarm when gas is detected."
+    },
+    "audio_alert_volume_db": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 120,
+      "description": "Volume of the audible alert in decibels, e.g. 85."
+    },
+    "type": {
+      "const": "gas_leak_sensor"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type"
+  ],
+  "additionalProperties": false
+}

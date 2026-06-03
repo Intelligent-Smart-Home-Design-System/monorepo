@@ -1,0 +1,14 @@
+{
+  "devices": [
+    {"device_id": 1, "device_type": "smart_lamp", "brand": "zb_co", "model": "ZBL-M", "attributes": {}, "price": 400.0, "quality": 0.80, "source_listing_id": 2001, "direct_compat": [{"ecosystem": "yandex", "protocol": "zigbee"}], "bridge_compat": []},
+    {"device_id": 2, "device_type": "smart_lamp", "brand": "zb_co", "model": "ZBL-P", "attributes": {}, "price": 700.0, "quality": 0.92, "source_listing_id": 2002, "direct_compat": [{"ecosystem": "yandex", "protocol": "zigbee"}], "bridge_compat": []},
+    {"device_id": 3, "device_type": "motion_sensor", "brand": "zb_co", "model": "ZBS-M", "attributes": {}, "price": 300.0, "quality": 0.80, "source_listing_id": 2003, "direct_compat": [{"ecosystem": "yandex", "protocol": "zigbee"}], "bridge_compat": []},
+    {"device_id": 4, "device_type": "motion_sensor", "brand": "zb_co", "model": "ZBS-P", "attributes": {}, "price": 550.0, "quality": 0.92, "source_listing_id": 2004, "direct_compat": [{"ecosystem": "yandex", "protocol": "zigbee"}], "bridge_compat": []},
+    {"device_id": 5, "device_type": "smart_hub", "brand": "yandex", "model": "Y-HUB-Basic", "attributes": {}, "price": 1200.0, "quality": 0.75, "source_listing_id": 2005, "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}, {"ecosystem": "yandex", "protocol": "zigbee"}], "bridge_compat": []},
+    {"device_id": 6, "device_type": "smart_hub", "brand": "yandex", "model": "Y-HUB-Premium", "attributes": {}, "price": 2500.0, "quality": 0.92, "source_listing_id": 2006, "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}, {"ecosystem": "yandex", "protocol": "zigbee"}, {"ecosystem": "yandex", "protocol": "matter"}], "bridge_compat": []},
+    {"device_id": 7, "device_type": "smart_lamp", "brand": "wf_co", "model": "WFL-M", "attributes": {}, "price": 900.0, "quality": 0.78, "source_listing_id": 2007, "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}], "bridge_compat": []},
+    {"device_id": 8, "device_type": "smart_lamp", "brand": "wf_co", "model": "WFL-P", "attributes": {}, "price": 1400.0, "quality": 0.90, "source_listing_id": 2008, "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}], "bridge_compat": []},
+    {"device_id": 9, "device_type": "motion_sensor", "brand": "wf_co", "model": "WFS-M", "attributes": {}, "price": 700.0, "quality": 0.78, "source_listing_id": 2009, "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}], "bridge_compat": []},
+    {"device_id": 10, "device_type": "motion_sensor", "brand": "wf_co", "model": "WFS-P", "attributes": {}, "price": 1100.0, "quality": 0.90, "source_listing_id": 2010, "direct_compat": [{"ecosystem": "yandex", "protocol": "wifi"}], "bridge_compat": []}
+  ]
+}

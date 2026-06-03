@@ -14,29 +14,6 @@ import (
 )
 
 func TestThirdLevelSimpleScript(t *testing.T) {
-	rooms := []apartment.Room{
-		{
-			ID:   "1",
-			Name: "living",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
-			},
-		},
-		{
-			ID:   "2",
-			Name: "hall",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
-			},
-		},
-	}
-
 	window := apartment.Window{
 		ID: "1",
 		Points: []point.Point{
@@ -44,39 +21,153 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			{X: 0, Y: 1.6},
 		},
 		Rooms: []string{"1"},
+		Width: 0.4,
 	}
 
-	door := apartment.Door{
-		ID: "1",
-		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
+	doors := []apartment.Door{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 1, Y: 0},
+				{X: 3, Y: 0},
+			},
+			Rooms: []string{"1"},
+			Width: 2,
 		},
-		Rooms: []string{"2"},
+		{
+			ID: "2",
+			Points: []point.Point{
+				{X: 12, Y: 3},
+				{X: 12, Y: 4},
+			},
+			Rooms: []string{"1", "2"},
+			Width: 1,
+		},
 	}
 
-	apartmentStruct := &apartment.Apartment{
-		Windows: []apartment.Window{window},
-		Doors:   []apartment.Door{door},
-		Rooms:   rooms,
+	walls_1 := []apartment.Wall{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 0, Y: 0},
+				{X: 12, Y: 0},
+			},
+			Width: 12,
+		},
+		{
+			ID: "2",
+			Points: []point.Point{
+				{X: 12, Y: 0},
+				{X: 12, Y: 5},
+			},
+			Width: 5,
+		},
+		{
+			ID: "3",
+			Points: []point.Point{
+				{X: 12, Y: 5},
+				{X: 0, Y: 5},
+			},
+			Width: 12,
+		},
+		{
+			ID: "4",
+			Points: []point.Point{
+				{X: 0, Y: 5},
+				{X: 0, Y: 0},
+			},
+			Width: 5,
+		},
 	}
-	apartmentStruct.MakeDependency()
+
+	walls_2 := []apartment.Wall{
+		{
+			ID: "5",
+			Points: []point.Point{
+				{X: 12, Y: 0},
+				{X: 16, Y: 0},
+			},
+			Width: 4,
+		},
+		{
+			ID: "6",
+			Points: []point.Point{
+				{X: 16, Y: 0},
+				{X: 16, Y: 20},
+			},
+			Width: 20,
+		},
+		{
+			ID: "7",
+			Points: []point.Point{
+				{X: 16, Y: 20},
+				{X: 12, Y: 20},
+			},
+			Width: 4,
+		},
+		{
+			ID: "8",
+			Points: []point.Point{
+				{X: 12, Y: 20},
+				{X: 12, Y: 0},
+			},
+			Width: 20,
+		},
+	}
+
+	rooms := []apartment.Room{
+		{
+			ID:   "1",
+			Name: "living",
+			Area: []point.Point{
+				{X: 0, Y: 0},
+				{X: 12, Y: 0},
+				{X: 12, Y: 5},
+				{X: 0, Y: 5},
+			},
+			Doors:   []string{doors[1].ID},
+			Windows: []string{window.ID},
+			Walls:   []string{"1", "2", "3", "4"},
+		},
+		{
+			ID:   "2",
+			Name: "hall",
+			Area: []point.Point{
+				{X: 12, Y: 0},
+				{X: 16, Y: 0},
+				{X: 16, Y: 20},
+				{X: 12, Y: 20},
+			},
+			Doors: []string{doors[0].ID},
+			Walls: []string{"5", "6", "7", "8"},
+		},
+	}
+
+	walls := walls_1
+	walls = append(walls, walls_2...)
+
+	ap := &apartment.Apartment{
+		Windows: []apartment.Window{window},
+		Doors:   doors,
+		Rooms:   rooms,
+		Walls:   walls,
+	}
 
 	selectedLevels := map[string]string{
 		"security": "3",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
+
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
@@ -84,22 +175,22 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		for _, devicePlacement := range roomPlacement {
 			switch devicePlacement.Device.Type {
 			case "door_sensor":
-				assert.Equal(t, &point.Point{X: 1.5, Y: 0}, devicePlacement.Place)
-			case "window_sensor":
-				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Place)
-			case "motion_sensor":
 				if roomID == "1" {
-					assert.Equal(t, &point.Point{X: 1, Y: 1}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
 				} else {
-					assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Place)
+					assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
 				}
+			case "window_sensor":
+				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Position)
+			case "motion_sensor":
+				assert.Equal(t, &point.Point{X: 12, Y: 2.5}, devicePlacement.Position)
 			}
 		}
 	}
 
 	livingRoomKeys := make([]string, 0, len(globalPlacement.Placements["1"]))
-	for key := range globalPlacement.Placements["1"] {
-		livingRoomKeys = append(livingRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["1"] {
+		livingRoomKeys = append(livingRoomKeys, placement.Device.Type)
 	}
 
 	correctLivingRoomKeys := []string{"window_sensor", "motion_sensor"}
@@ -110,11 +201,11 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 	assert.Equal(t, len(correctLivingRoomKeys), len(livingRoomKeys))
 
 	hallRoomKeys := make([]string, 0, len(globalPlacement.Placements["2"]))
-	for key := range globalPlacement.Placements["2"] {
-		hallRoomKeys = append(hallRoomKeys, key)
+	for _, placement := range globalPlacement.Placements["2"] {
+		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
-	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor", "motion_sensor"}
+	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor"}
 	for _, key := range correctHallRoomKeys {
 		assert.Contains(t, hallRoomKeys, key)
 	}
@@ -123,101 +214,162 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 }
 
 func TestThirdLevelPriceCalculation(t *testing.T) {
-	rooms := []apartment.Room{
-		{
-			ID:   "1",
-			Name: "bathroom",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
-			},
+	window := apartment.Window{
+		ID: "1",
+		Points: []point.Point{
+			{X: 0, Y: 1.2},
+			{X: 0, Y: 1.6},
 		},
-		{
-			ID:   "2",
-			Name: "kitchen",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
-			},
-		},
-		{
-			ID:   "3",
-			Name: "hall",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
-			},
-		},
-		{
-			ID:   "4",
-			Name: "living",
-			Area: []point.Point{
-				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
-			},
-		},
+		Rooms: []string{"1"},
 	}
 
-	windows := []apartment.Window{
+	doors := []apartment.Door{
 		{
 			ID: "1",
 			Points: []point.Point{
-				{X: 0, Y: 1},
-				{X: 0, Y: 2},
+				{X: 1, Y: 0},
+				{X: 3, Y: 0},
 			},
-			Rooms: []string{"2"},
+			Rooms: []string{"1"},
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 0, Y: 1},
-				{X: 0, Y: 2},
+				{X: 12, Y: 3},
+				{X: 12, Y: 4},
 			},
-			Rooms: []string{"4"},
+			Rooms: []string{"1", "2"},
 		},
 	}
 
-	door := apartment.Door{
-		ID:     "1",
-		Points: []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}},
-		Rooms:  []string{"3"},
+	walls_1 := []apartment.Wall{
+		{
+			ID: "1",
+			Points: []point.Point{
+				{X: 0, Y: 0},
+				{X: 12, Y: 0},
+			},
+			Width: 2,
+		},
+		{
+			ID: "2",
+			Points: []point.Point{
+				{X: 12, Y: 0},
+				{X: 12, Y: 5},
+			},
+			Width: 2,
+		},
+		{
+			ID: "3",
+			Points: []point.Point{
+				{X: 12, Y: 5},
+				{X: 0, Y: 5},
+			},
+			Width: 2,
+		},
+		{
+			ID: "4",
+			Points: []point.Point{
+				{X: 0, Y: 5},
+				{X: 0, Y: 0},
+			},
+			Width: 2,
+		},
 	}
 
-	apartmentStruct := &apartment.Apartment{
-		Windows: windows,
-		Doors:   []apartment.Door{door},
-		Rooms:   rooms,
+	walls_2 := []apartment.Wall{
+		{
+			ID: "5",
+			Points: []point.Point{
+				{X: 12, Y: 0},
+				{X: 16, Y: 0},
+			},
+			Width: 2,
+		},
+		{
+			ID: "6",
+			Points: []point.Point{
+				{X: 16, Y: 0},
+				{X: 16, Y: 20},
+			},
+			Width: 2,
+		},
+		{
+			ID: "7",
+			Points: []point.Point{
+				{X: 16, Y: 20},
+				{X: 12, Y: 20},
+			},
+			Width: 2,
+		},
+		{
+			ID: "8",
+			Points: []point.Point{
+				{X: 12, Y: 20},
+				{X: 12, Y: 0},
+			},
+			Width: 2,
+		},
 	}
-	apartmentStruct.MakeDependency()
+
+	rooms := []apartment.Room{
+		{
+			ID:   "1",
+			Name: "living",
+			Area: []point.Point{
+				{X: 0, Y: 0},
+				{X: 12, Y: 0},
+				{X: 12, Y: 5},
+				{X: 0, Y: 5},
+			},
+			Doors:   []string{doors[1].ID},
+			Windows: []string{window.ID},
+			Walls:   []string{"1", "2", "3", "4"},
+		},
+		{
+			ID:   "2",
+			Name: "hall",
+			Area: []point.Point{
+				{X: 12, Y: 0},
+				{X: 16, Y: 0},
+				{X: 16, Y: 20},
+				{X: 12, Y: 20},
+			},
+			Doors: []string{doors[0].ID},
+			Walls: []string{"5", "6", "7", "8"},
+		},
+	}
+
+	walls := walls_1
+	walls = append(walls, walls_2...)
+
+	ap := &apartment.Apartment{
+		Windows: []apartment.Window{window},
+		Doors:   doors,
+		Rooms:   rooms,
+		Walls:   walls,
+	}
 
 	selectedLevels := map[string]string{
 		"security": "3",
 	}
 
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err1 := configs.LoadTracksConfig(rules.GetTracksPath())
-	devicesConfig, err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
+	err1 := configs.LoadTracksConfig(rules.GetTracksPath())
+	err2 := configs.LoadDevicesConfig(rules.GetDevicesPath())
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	storage := storage.NewStorage()
+	storage.LoadAllSecurityRules()
+
+	engine := engine.NewEngine(storage)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
 
 	assert.NoError(t, err)
 
 	priceInfo := engine.CalculateLayoutPrice(globalPlacement)
 
-	assert.Equal(t, 39500, priceInfo.MinPrice)
-	assert.Equal(t, 57000, priceInfo.MaxPrice)
+	assert.Equal(t, 32000, priceInfo.MinPrice)
+	assert.Equal(t, 41000, priceInfo.MaxPrice)
 }

@@ -189,3 +189,19 @@ func (r *SnapshotRepo) SaveListingParseResult(result *domain.ListingParseResult)
 
 	return nil
 }
+
+func (r *SnapshotRepo) SaveDirectCompatibilityRecord(rec *domain.DirectCompatibilityRecord) error {
+	_, err := r.db.Exec(`
+        INSERT INTO parsed_direct_compatibility_record (brand, model, ecosystem, protocol, page_snapshot_id)
+        VALUES ($1, $2, $3, $4, $5)
+    `, rec.Brand, rec.Model, rec.Ecosystem, rec.Protocol, rec.PageSnapshotID)
+	return err
+}
+
+func (r *SnapshotRepo) SetProcessed(snapshotId int) error {
+	_, err := r.db.Exec(
+		`UPDATE page_snapshots SET processed = TRUE WHERE id = $1`,
+		snapshotId,
+	)
+	return err
+}

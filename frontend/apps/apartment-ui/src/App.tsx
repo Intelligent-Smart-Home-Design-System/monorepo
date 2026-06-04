@@ -1,37 +1,67 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FloorPlanStage } from './components/FloorPlanStage';
 import { DeviceSidebar } from './components/plan/DeviceSidebar';
-import rawPlanData from './image_apartment_plan.json';
 import rawDevicesData from './devices.json';
-import type { FloorPlan, SmartDevice } from './types';
+import rawPlanData from './image_apartment_plan.json';
+import type { FloorPlan, SmartDevice, Zone } from './types';
+import { updateSmartDevicePosition } from './utils/devices';
+import { updateZonePoint } from './utils/zones';
+import rawZonesData from './zones.json';
 
 const currentPlan = rawPlanData as unknown as FloorPlan;
 const currentDevices = rawDevicesData as unknown as SmartDevice[];
+const currentZones = rawZonesData as unknown as Zone[];
 
-export default function App() {
-  // Главное состояние приложения: какое устройство сейчас выбрано
+interface AppProps {
+  plan?: FloorPlan;
+  devices?: SmartDevice[];
+  zones?: Zone[];
+}
+
+export default function App({
+  plan = currentPlan,
+  devices: initialDevices = currentDevices,
+  zones = currentZones,
+}: AppProps) {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [devices, setDevices] = useState<SmartDevice[]>(() => initialDevices);
+  const [editableZones, setEditableZones] = useState<Zone[]>(() => zones);
+  const handleMoveDevice = useCallback(
+    (deviceId: string, position: SmartDevice['position']) => {
+      setDevices((currentDevicesState) =>
+        updateSmartDevicePosition(currentDevicesState, deviceId, position),
+      );
+    },
+    [],
+  );
+  const handleMoveZonePoint = useCallback(
+    (zoneId: string, pointIndex: number, point: Zone['points'][number]) => {
+      setEditableZones((currentZonesState) =>
+        updateZonePoint(currentZonesState, zoneId, pointIndex, point, plan.rooms),
+      );
+    },
+    [plan.rooms],
+  );
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      
-      {/* Левая часть: 2D движок с планом */}
       <div style={{ flex: 1, position: 'relative' }}>
-        <FloorPlanStage 
-          plan={currentPlan} 
-          devices={currentDevices}
+        <FloorPlanStage
+          plan={plan}
+          devices={devices}
+          zones={editableZones}
           selectedDeviceId={selectedDeviceId}
           onSelectDevice={setSelectedDeviceId}
+          onMoveDevice={handleMoveDevice}
+          onMoveZonePoint={handleMoveZonePoint}
         />
       </div>
 
-      {/* Правая часть: HTML панель */}
-      <DeviceSidebar 
-        devices={currentDevices}
+      <DeviceSidebar
+        devices={devices}
         selectedDeviceId={selectedDeviceId}
         onSelectDevice={setSelectedDeviceId}
       />
-      
     </div>
   );
 }

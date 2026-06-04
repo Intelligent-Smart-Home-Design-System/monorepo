@@ -1,54 +1,28 @@
 import { Group, Line, Text } from 'react-konva';
 
-import type { Point, Room } from '../../types';
+import type { Room } from '../../types';
+import { flattenPolygonPoints, getPolygonCentroid } from '../../utils/polygon';
 
 interface RoomsProps {
   rooms: Room[];
 }
 
-const getRoomCenter = (area: Point[]): Point => {
-  if (area.length === 0) {
-    return [0, 0];
-  }
-
-  const first = area[0];
-  const last = area[area.length - 1];
-
-  if (!first || !last) {
-    return [0, 0];
-  }
-
-  const points =
-    area.length > 1 && first[0] === last[0] && first[1] === last[1]
-      ? area.slice(0, -1)
-      : area;
-
-  if (points.length === 0) {
-    return [0, 0];
-  }
-
-  const totals = points.reduce(
-    (acc, [x, y]) => ({
-      x: acc.x + x,
-      y: acc.y + y,
-    }),
-    { x: 0, y: 0 },
-  );
-
-  return [totals.x / points.length, totals.y / points.length];
-};
-
 export function Rooms({ rooms }: RoomsProps) {
   return (
     <>
       {rooms.map((room) => {
-        const [centerX, centerY] = getRoomCenter(room.area);
+        const [centerX, centerY] = getPolygonCentroid(room.area);
         const labelWidth = 2000;
         const labelHeight = 220;
 
         return (
           <Group key={room.id}>
-            <Line points={room.area.flat()} fill="#ffffff" closed />
+            <Line
+              name="room-floor"
+              points={flattenPolygonPoints(room.area)}
+              fill="#ffffff"
+              closed
+            />
             <Text
               x={centerX - labelWidth / 2}
               y={centerY - labelHeight / 2}

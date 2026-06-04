@@ -1,5 +1,10 @@
 export type Point = [number, number];
 
+export interface LayoutPoint {
+  X: number;
+  Y: number;
+}
+
 export interface Wall {
   id: string;
   points: Point[];
@@ -22,6 +27,13 @@ export interface Room {
   id: string;
   name: string;
   area: Point[];
+}
+
+export interface Zone {
+  id: string;
+  room_id?: string;
+  roomId?: string;
+  points: LayoutPoint[];
 }
 
 export interface FloorPlan {

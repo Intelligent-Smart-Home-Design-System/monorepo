@@ -88,8 +88,15 @@ export const getWallThickness = (segPoints: Point[], walls: Wall[]): number => {
 export const calculateInitialView = (
   plan: FloorPlan,
   viewport: ViewportSize,
+  additionalPoints: Point[] = [],
 ): InitialView => {
-  const points = plan.walls.flatMap((wall) => wall.points);
+  const points = [
+    ...plan.walls.flatMap((wall) => wall.points),
+    ...plan.doors.flatMap((door) => door.points),
+    ...plan.windows.flatMap((windowOpening) => windowOpening.points),
+    ...plan.rooms.flatMap((room) => room.area),
+    ...additionalPoints,
+  ];
 
   if (points.length === 0) {
     return {

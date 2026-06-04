@@ -24,8 +24,25 @@ export default function App({
   zones = currentZones,
 }: AppProps) {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [devices, setDevices] = useState<SmartDevice[]>(() => initialDevices);
   const [editableZones, setEditableZones] = useState<Zone[]>(() => zones);
+  const selectedZone =
+    editableZones.find((zone) => zone.id === selectedZoneId) ?? null;
+  const handleSelectDevice = useCallback((deviceId: string | null) => {
+    setSelectedDeviceId(deviceId);
+
+    if (deviceId) {
+      setSelectedZoneId(null);
+    }
+  }, []);
+  const handleSelectZone = useCallback((zoneId: string | null) => {
+    setSelectedZoneId(zoneId);
+
+    if (zoneId) {
+      setSelectedDeviceId(null);
+    }
+  }, []);
   const handleMoveDevice = useCallback(
     (deviceId: string, position: SmartDevice['position']) => {
       setDevices((currentDevicesState) =>
@@ -51,7 +68,9 @@ export default function App({
           devices={devices}
           zones={editableZones}
           selectedDeviceId={selectedDeviceId}
-          onSelectDevice={setSelectedDeviceId}
+          selectedZoneId={selectedZoneId}
+          onSelectDevice={handleSelectDevice}
+          onSelectZone={handleSelectZone}
           onMoveDevice={handleMoveDevice}
           onMoveZonePoint={handleMoveZonePoint}
         />
@@ -59,8 +78,9 @@ export default function App({
 
       <DeviceSidebar
         devices={devices}
+        selectedZone={selectedZone}
         selectedDeviceId={selectedDeviceId}
-        onSelectDevice={setSelectedDeviceId}
+        onSelectDevice={handleSelectDevice}
       />
     </div>
   );

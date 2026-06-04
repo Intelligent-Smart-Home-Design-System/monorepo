@@ -23,6 +23,7 @@ interface ZoneState {
 
 export function ApartmentPlanView({ plan, devices, zones }: ApartmentPlanViewProps) {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [deviceState, setDeviceState] = useState<DeviceState>(() => ({
     basis: devices,
     current: devices,
@@ -39,6 +40,24 @@ export function ApartmentPlanView({ plan, devices, zones }: ApartmentPlanViewPro
     visibleDevices.some((device) => device.id === selectedDeviceId)
       ? selectedDeviceId
       : null;
+  const visibleSelectedZoneId =
+    selectedZoneId && visibleZones.some((zone) => zone.id === selectedZoneId)
+      ? selectedZoneId
+      : null;
+  const handleSelectDevice = useCallback((deviceId: string | null) => {
+    setSelectedDeviceId(deviceId);
+
+    if (deviceId) {
+      setSelectedZoneId(null);
+    }
+  }, []);
+  const handleSelectZone = useCallback((zoneId: string | null) => {
+    setSelectedZoneId(zoneId);
+
+    if (zoneId) {
+      setSelectedDeviceId(null);
+    }
+  }, []);
   const handleMoveDevice = useCallback(
     (deviceId: string, position: SmartDevice['position']) => {
       setDeviceState({
@@ -64,7 +83,9 @@ export function ApartmentPlanView({ plan, devices, zones }: ApartmentPlanViewPro
       devices={visibleDevices}
       zones={visibleZones}
       selectedDeviceId={visibleSelectedDeviceId}
-      onSelectDevice={setSelectedDeviceId}
+      selectedZoneId={visibleSelectedZoneId}
+      onSelectDevice={handleSelectDevice}
+      onSelectZone={handleSelectZone}
       onMoveDevice={handleMoveDevice}
       onMoveZonePoint={handleMoveZonePoint}
     />

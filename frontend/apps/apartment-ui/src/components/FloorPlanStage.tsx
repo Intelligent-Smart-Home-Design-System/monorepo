@@ -17,7 +17,9 @@ interface FloorPlanStageProps {
   devices: SmartDevice[];
   zones?: Zone[];
   selectedDeviceId: string | null;
+  selectedZoneId: string | null;
   onSelectDevice: (id: string | null) => void;
+  onSelectZone: (id: string | null) => void;
   onMoveDevice: (id: string, position: SmartDevice['position']) => void;
   onMoveZonePoint: (zoneId: string, pointIndex: number, point: Zone['points'][number]) => void;
 }
@@ -47,7 +49,9 @@ export function FloorPlanStage({
   devices,
   zones = EMPTY_ZONES,
   selectedDeviceId,
+  selectedZoneId,
   onSelectDevice,
+  onSelectZone,
   onMoveDevice,
   onMoveZonePoint,
 }: FloorPlanStageProps) {
@@ -209,6 +213,7 @@ export function FloorPlanStage({
             event.target.name() === 'room-floor'
           ) {
             onSelectDevice(null);
+            onSelectZone(null);
           }
         }}
       >
@@ -217,7 +222,9 @@ export function FloorPlanStage({
           <Zones
             zones={zones}
             rooms={plan.rooms}
+            selectedZoneId={selectedZoneId}
             renderHandles={false}
+            onSelectZone={onSelectZone}
             onMoveZonePoint={onMoveZonePoint}
           />
           <Walls walls={plan.walls} hatchPattern={hatchPattern} />
@@ -233,7 +240,9 @@ export function FloorPlanStage({
           <Zones
             zones={zones}
             rooms={plan.rooms}
+            selectedZoneId={selectedZoneId}
             renderPolygons={false}
+            onSelectZone={onSelectZone}
             onMoveZonePoint={onMoveZonePoint}
           />
         </Layer>

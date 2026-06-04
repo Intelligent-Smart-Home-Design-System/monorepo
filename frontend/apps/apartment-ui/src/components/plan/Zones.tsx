@@ -8,8 +8,10 @@ import { getConstrainedZonePoint } from '../../utils/zones';
 interface ZonesProps {
   zones: Zone[];
   rooms: Room[];
+  selectedZoneId?: string | null;
   renderPolygons?: boolean;
   renderHandles?: boolean;
+  onSelectZone?: (id: string | null) => void;
   onMoveZonePoint: (zoneId: string, pointIndex: number, point: LayoutPoint) => void;
 }
 
@@ -22,8 +24,10 @@ const getZonePointKey = (zoneId: string, pointIndex: number): string =>
 export function Zones({
   zones,
   rooms,
+  selectedZoneId = null,
   renderPolygons = true,
   renderHandles = true,
+  onSelectZone,
   onMoveZonePoint,
 }: ZonesProps) {
   const lastValidPoints = useRef<Map<string, LayoutPoint>>(new Map());
@@ -65,18 +69,35 @@ export function Zones({
     <Group id="zones-layer">
       {zones.map((zone) => {
         const points = zone.points.map(layoutPointToPoint);
+        const isSelected = selectedZoneId === zone.id;
 
         return (
           <Group key={zone.id}>
             {renderPolygons && (
               <Line
                 points={flattenPolygonPoints(points)}
-                fill="rgba(243, 156, 18, 0.2)"
-                stroke="#d68910"
-                strokeWidth={35}
+                fill={isSelected ? 'rgba(46, 204, 113, 0.18)' : 'rgba(243, 156, 18, 0.2)'}
+                stroke={isSelected ? '#2ecc71' : '#d68910'}
+                strokeWidth={isSelected ? 48 : 35}
                 dash={[120, 80]}
                 closed
-                listening={false}
+                listening
+                onClick={(event) => {
+                  event.cancelBubble = true;
+                  onSelectZone?.(zone.id);
+                }}
+                onTap={(event) => {
+                  event.cancelBubble = true;
+                  onSelectZone?.(zone.id);
+                }}
+                onMouseEnter={(event) => {
+                  const container = event.target.getStage()?.container();
+                  if (container) container.style.cursor = 'pointer';
+                }}
+                onMouseLeave={(event) => {
+                  const container = event.target.getStage()?.container();
+                  if (container) container.style.cursor = 'grab';
+                }}
               />
             )}
             {renderHandles && zone.points.map((point, pointIndex) => (

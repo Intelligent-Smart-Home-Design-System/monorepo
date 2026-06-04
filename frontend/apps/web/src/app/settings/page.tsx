@@ -14,6 +14,7 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Collapse,
   Divider,
   IconButton,
   MenuItem,
@@ -55,6 +56,8 @@ export default function SettingsPage() {
   const [presets, setPresets] = useState<ApiPreset[]>([]);
   const [deviceTypes, setDeviceTypes] = useState<ApiDeviceType[]>([]);
   const [mainEcosystemId, setMainEcosystemId] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [requirementsExpanded, setRequirementsExpanded] = useState(false);
   const [requirements, setRequirements] = useState<RequirementDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -85,7 +88,9 @@ export default function SettingsPage() {
         setPresets(presetsResponse);
         setDeviceTypes(deviceTypesResponse);
         setMainEcosystemId(mainEcosystems[0]?.id ?? "");
-        setRequirements([makeEmptyRequirement(deviceTypesResponse[0]?.id ?? "")]);
+        setSelectedPresetId("");
+        setRequirements([]);
+        setRequirementsExpanded(false);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -100,9 +105,15 @@ export default function SettingsPage() {
     };
   }, [auth.isAuthenticated, auth.loading]);
 
+  const selectedPreset = useMemo(
+    () => presets.find((preset) => preset.id === selectedPresetId),
+    [presets, selectedPresetId]
+  );
+
   const canSubmit =
     Number(budget) > 0 &&
     mainEcosystemId.length > 0 &&
+    selectedPresetId.length > 0 &&
     requirements.some((item) => item.device_type && item.quantity > 0);
 
   const planPreviewState: UploadedPlanState = useMemo(
@@ -111,6 +122,8 @@ export default function SettingsPage() {
   );
 
   const applyPreset = (preset: ApiPreset) => {
+    setSelectedPresetId(preset.id);
+    setRequirementsExpanded(false);
     setRequirements(
       preset.requirements.map((requirement) => ({
         localId: crypto.randomUUID(),
@@ -129,6 +142,7 @@ export default function SettingsPage() {
       const payload: ApiCreatePlanRequest = {
         budget: Number(budget),
         main_ecosystem_id: mainEcosystemId,
+        preset_id: selectedPresetId,
         requirements: requirements
           .filter((item) => item.device_type && item.quantity > 0)
           .map((item) => ({
@@ -259,25 +273,80 @@ export default function SettingsPage() {
                 </Box>
 
                 <Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1 }}>Presets</Typography>
-                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                    {presets.map((preset) => (
-                      <Button
-                        key={preset.id}
-                        variant="outlined"
-                        onClick={() => applyPreset(preset)}
-                        sx={{ borderRadius: 3 }}
-                      >
-                        {preset.name}
-                      </Button>
-                    ))}
+                  <Typography sx={{ fontWeight: 700, mb: 1 }}>Уровень подбора</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.4 }}>
+                    Выбери уровень из backend-конфига. Без выбранного уровня подбор не запускается,
+                    а его требования отправляются в `POST /api/v1/plans`.
+                  </Typography>
+
+                  <Stack spacing={1.2}>
+                    {presets.map((preset) => {
+                      const active = preset.id === selectedPresetId;
+
+                      return (
+                        <Box
+                          key={preset.id}
+                          onClick={() => applyPreset(preset)}
+                          sx={{
+                            cursor: "pointer",
+                            borderRadius: 4,
+                            p: 2,
+                            border: active
+                              ? "2px solid #2563eb"
+                              : "1px solid rgba(148,163,184,0.32)",
+                            background: active
+                              ? "linear-gradient(135deg, rgba(37,99,235,0.10), rgba(14,165,233,0.05))"
+                              : "#fff",
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                            <Typography sx={{ fontWeight: 850 }}>{preset.name}</Typography>
+                            {active && <Chip size="small" label="Выбран" color="primary" />}
+                          </Stack>
+
+                          {preset.description && (
+                            <Typography variant="body2" color="text.secondary">
+                              {preset.description}
+                            </Typography>
+                          )}
+
+                          <Typography variant="caption" color="text.secondary">
+                            Требований в конфиге: {preset.requirements.length}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
                   </Stack>
                 </Box>
 
-                <Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1.2 }}>Требования</Typography>
-                  <Stack spacing={1.6}>
-                    {requirements.map((requirement, index) => {
+                {selectedPreset ? (
+                  <Box>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      alignItems={{ xs: "stretch", sm: "center" }}
+                      spacing={1}
+                      sx={{ mb: 1.2 }}
+                    >
+                      <Box>
+                        <Typography sx={{ fontWeight: 700 }}>Требования уровня</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          По умолчанию скрыты. Раскрой, чтобы проверить и при необходимости изменить состав устройств.
+                        </Typography>
+                      </Box>
+
+                      <Button
+                        variant="outlined"
+                        onClick={() => setRequirementsExpanded((value) => !value)}
+                        sx={{ borderRadius: 3 }}
+                      >
+                        {requirementsExpanded ? "Скрыть требования" : "Раскрыть требования"}
+                      </Button>
+                    </Stack>
+
+                    <Collapse in={requirementsExpanded} timeout="auto" unmountOnExit>
+                      <Stack spacing={1.6}>
+                        {requirements.map((requirement, index) => {
                       const selectedType = deviceTypes.find(
                         (deviceType) => deviceType.id === requirement.device_type
                       );
@@ -313,6 +382,11 @@ export default function SettingsPage() {
                                   )
                                 }
                               >
+                                {!selectedType && requirement.device_type && (
+                                  <MenuItem value={requirement.device_type}>
+                                    {requirement.device_type}
+                                  </MenuItem>
+                                )}
                                 {deviceTypes.map((deviceType) => (
                                   <MenuItem key={deviceType.id} value={deviceType.id}>
                                     {deviceType.name}
@@ -371,19 +445,25 @@ export default function SettingsPage() {
                         </Card>
                       );
                     })}
-                  </Stack>
+                      </Stack>
 
-                  <Button
-                    sx={{ mt: 1.5 }}
-                    startIcon={<AddRoundedIcon />}
-                    variant="outlined"
-                    onClick={() =>
-                      setRequirements((prev) => [...prev, makeEmptyRequirement(deviceTypes[0]?.id ?? "")])
-                    }
-                  >
-                    Добавить требование
-                  </Button>
-                </Box>
+                      <Button
+                        sx={{ mt: 1.5 }}
+                        startIcon={<AddRoundedIcon />}
+                        variant="outlined"
+                        onClick={() =>
+                          setRequirements((prev) => [...prev, makeEmptyRequirement(deviceTypes[0]?.id ?? "")])
+                        }
+                      >
+                        Добавить требование
+                      </Button>
+                    </Collapse>
+                  </Box>
+                ) : (
+                  <Alert severity="info">
+                    Сначала выбери уровень подбора. После этого ниже можно будет раскрыть требования из конфига.
+                  </Alert>
+                )}
 
                 <Box>
                   <Typography sx={{ fontWeight: 700, mb: 1 }}>План квартиры</Typography>
@@ -447,6 +527,11 @@ export default function SettingsPage() {
                 >
                   {submitting ? "Создаём план..." : "Запустить подбор"}
                 </Button>
+                {!selectedPresetId && (
+                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                    Кнопка активируется после выбора уровня подбора.
+                  </Typography>
+                )}
               </>
             )}
           </Stack>

@@ -1,7 +1,10 @@
 import { useMemo, useRef } from 'react';
 import { Circle, Group, Path } from 'react-konva';
 import type { Room, SmartDevice } from '../../types';
-import { isPointInPolygon } from '../../utils/polygon';
+import {
+  getConstrainedSmartDevicePosition,
+  isSmartDevicePositionAllowed,
+} from '../../utils/devices';
 import { DEVICE_PATHS } from './devicePaths';
 
 interface SmartDevicesProps {
@@ -25,19 +28,6 @@ export function SmartDevices({
     () => new Map(rooms.map((room) => [room.id, room])),
     [rooms],
   );
-
-  const isDevicePositionAllowed = (
-    device: SmartDevice,
-    position: SmartDevice['position'],
-  ): boolean => {
-    const room = roomsById.get(device.room_id);
-
-    if (!room) {
-      return true;
-    }
-
-    return isPointInPolygon([position.x, position.y], room.area);
-  };
 
   return (
     <Group id="smart-devices-layer">
@@ -71,15 +61,17 @@ export function SmartDevices({
                 x: event.target.x(),
                 y: event.target.y(),
               };
-
-              if (isDevicePositionAllowed(device, nextPosition)) {
-                lastValidPositions.current.set(device.id, nextPosition);
-                return;
-              }
-
               const lastValidPosition =
                 lastValidPositions.current.get(device.id) ?? device.position;
-              event.target.position(lastValidPosition);
+              const constrainedPosition = getConstrainedSmartDevicePosition(
+                device,
+                nextPosition,
+                lastValidPosition,
+                roomsById,
+              );
+
+              event.target.position(constrainedPosition);
+              lastValidPositions.current.set(device.id, constrainedPosition);
             }}
             onDragEnd={(event) => {
               event.cancelBubble = true;
@@ -87,9 +79,20 @@ export function SmartDevices({
                 x: event.target.x(),
                 y: event.target.y(),
               };
-              const finalPosition = isDevicePositionAllowed(device, nextPosition)
+              const lastValidPosition =
+                lastValidPositions.current.get(device.id) ?? device.position;
+              const finalPosition = isSmartDevicePositionAllowed(
+                device,
+                nextPosition,
+                roomsById,
+              )
                 ? nextPosition
-                : lastValidPositions.current.get(device.id) ?? device.position;
+                : getConstrainedSmartDevicePosition(
+                    device,
+                    nextPosition,
+                    lastValidPosition,
+                    roomsById,
+                  );
 
               event.target.position(finalPosition);
               onMoveDevice(device.id, finalPosition);

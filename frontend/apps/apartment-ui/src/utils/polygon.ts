@@ -1,6 +1,8 @@
 import type { LayoutPoint, Point } from '../types';
 
 const EPSILON = 1e-9;
+const BOUNDARY_DISTANCE_TOLERANCE = 0.5;
+const CONSTRAINT_SEARCH_STEPS = 32;
 
 export const layoutPointToPoint = (point: LayoutPoint): Point => [point.X, point.Y];
 
@@ -141,6 +143,172 @@ const getMidPoint = (first: Point, second: Point): Point => [
   (first[0] + second[0]) / 2,
   (first[1] + second[1]) / 2,
 ];
+
+const getSquaredDistance = (first: Point, second: Point): number =>
+  (first[0] - second[0]) * (first[0] - second[0]) +
+  (first[1] - second[1]) * (first[1] - second[1]);
+
+const getClosestPointOnSegment = (
+  point: Point,
+  start: Point,
+  end: Point,
+): Point => {
+  const segmentX = end[0] - start[0];
+  const segmentY = end[1] - start[1];
+  const squaredLength = segmentX * segmentX + segmentY * segmentY;
+
+  if (squaredLength < EPSILON) {
+    return start;
+  }
+
+  const projection =
+    ((point[0] - start[0]) * segmentX + (point[1] - start[1]) * segmentY) /
+    squaredLength;
+  const clampedProjection = Math.max(0, Math.min(1, projection));
+
+  return [
+    start[0] + clampedProjection * segmentX,
+    start[1] + clampedProjection * segmentY,
+  ];
+};
+
+const lerpPoint = (start: Point, end: Point, amount: number): Point => [
+  start[0] + (end[0] - start[0]) * amount,
+  start[1] + (end[1] - start[1]) * amount,
+];
+
+const getBoundaryEdgeIndexesForPoint = (
+  point: Point,
+  points: Point[],
+): number[] => {
+  const polygon = getOpenPolygonPoints(points);
+  const toleranceSquared =
+    BOUNDARY_DISTANCE_TOLERANCE * BOUNDARY_DISTANCE_TOLERANCE;
+
+  return getPolygonEdges(polygon)
+    .map(([start, end], index) => ({
+      index,
+      distance: getSquaredDistance(
+        point,
+        getClosestPointOnSegment(point, start, end),
+      ),
+    }))
+    .filter((edge) => edge.distance <= toleranceSquared)
+    .sort((first, second) => first.distance - second.distance)
+    .map((edge) => edge.index);
+};
+
+const getProjectedPointsOnEdges = (
+  point: Point,
+  points: Point[],
+  edgeIndexes: number[],
+): Point[] => {
+  const polygon = getOpenPolygonPoints(points);
+  const edges = getPolygonEdges(polygon);
+
+  return edgeIndexes
+    .map((edgeIndex) => {
+      const edge = edges[edgeIndex];
+
+      if (!edge) {
+        return null;
+      }
+      const projectedPoint = getClosestPointOnSegment(point, edge[0], edge[1]);
+
+      return {
+        point: projectedPoint,
+        distance: getSquaredDistance(point, projectedPoint),
+      };
+    })
+    .filter((candidate): candidate is { point: Point; distance: number } =>
+      Boolean(candidate),
+    )
+    .sort((first, second) => first.distance - second.distance)
+    .map((candidate) => candidate.point);
+};
+
+const getFarthestAllowedPointOnSegment = (
+  start: Point,
+  end: Point,
+  isAllowed: (point: Point) => boolean,
+): Point => {
+  if (!isAllowed(start)) {
+    return start;
+  }
+
+  let low = 0;
+  let high = 1;
+  let best = start;
+
+  for (let step = 0; step < CONSTRAINT_SEARCH_STEPS; step += 1) {
+    const middle = (low + high) / 2;
+    const candidate = lerpPoint(start, end, middle);
+
+    if (isAllowed(candidate)) {
+      best = candidate;
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+
+  return best;
+};
+
+export const getClosestPointsOnPolygonBoundary = (
+  point: Point,
+  points: Point[],
+): Point[] => {
+  const polygon = getOpenPolygonPoints(points);
+
+  if (polygon.length < 2) {
+    return [];
+  }
+
+  return getPolygonEdges(polygon)
+    .map(([start, end]) => {
+      const candidate = getClosestPointOnSegment(point, start, end);
+
+      return {
+        point: candidate,
+        distance: getSquaredDistance(point, candidate),
+      };
+    })
+    .sort((first, second) => first.distance - second.distance)
+    .map((candidate) => candidate.point);
+};
+
+export const getClosestPointOnPolygonBoundary = (
+  point: Point,
+  points: Point[],
+): Point | null => getClosestPointsOnPolygonBoundary(point, points)[0] ?? null;
+
+export const getConstrainedPointOnDragPath = (
+  currentPoint: Point,
+  desiredPoint: Point,
+  boundaryPoints: Point[],
+  isAllowed: (point: Point) => boolean,
+): Point => {
+  if (isAllowed(desiredPoint)) {
+    return desiredPoint;
+  }
+
+  const boundaryEdgeIndexes = getBoundaryEdgeIndexesForPoint(
+    currentPoint,
+    boundaryPoints,
+  );
+  const boundaryCandidate = getProjectedPointsOnEdges(
+    desiredPoint,
+    boundaryPoints,
+    boundaryEdgeIndexes,
+  ).find(isAllowed);
+
+  if (boundaryCandidate) {
+    return boundaryCandidate;
+  }
+
+  return getFarthestAllowedPointOnSegment(currentPoint, desiredPoint, isAllowed);
+};
 
 export const isPointInPolygon = (point: Point, points: Point[]): boolean => {
   const polygon = getOpenPolygonPoints(points);

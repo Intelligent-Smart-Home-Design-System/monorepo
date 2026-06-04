@@ -1,5 +1,9 @@
 import type { LayoutPoint, Room, Zone } from '../types';
-import { isPolygonInsidePolygon, layoutPointToPoint } from './polygon';
+import {
+  getConstrainedPointOnDragPath,
+  isPolygonInsidePolygon,
+  layoutPointToPoint,
+} from './polygon';
 
 export const getZoneRoomId = (zone: Zone): string | undefined =>
   zone.room_id ?? zone.roomId;
@@ -41,6 +45,42 @@ export const isZonePointMoveAllowed = (
   );
 };
 
+export const getConstrainedZonePoint = (
+  zone: Zone,
+  pointIndex: number,
+  point: LayoutPoint,
+  roomsById: ReadonlyMap<string, Room>,
+  currentPoint = zone.points[pointIndex],
+): LayoutPoint => {
+  if (isZonePointMoveAllowed(zone, pointIndex, point, roomsById)) {
+    return point;
+  }
+
+  const roomId = getZoneRoomId(zone);
+  const room = roomId ? roomsById.get(roomId) : undefined;
+  if (!room || !currentPoint) {
+    return currentPoint ?? point;
+  }
+
+  const constrainedPoint = getConstrainedPointOnDragPath(
+    layoutPointToPoint(currentPoint),
+    layoutPointToPoint(point),
+    room.area,
+    (candidate) =>
+      isZonePointMoveAllowed(
+        zone,
+        pointIndex,
+        { X: candidate[0], Y: candidate[1] },
+        roomsById,
+      ),
+  );
+
+  return {
+    X: constrainedPoint[0],
+    Y: constrainedPoint[1],
+  };
+};
+
 export const updateZonePoint = (
   zones: Zone[],
   zoneId: string,
@@ -55,10 +95,11 @@ export const updateZonePoint = (
 
     if (rooms) {
       const roomsById = new Map(rooms.map((room) => [room.id, room]));
-
-      if (!isZonePointMoveAllowed(zone, pointIndex, point, roomsById)) {
-        return zone;
-      }
+      return getZoneWithUpdatedPoint(
+        zone,
+        pointIndex,
+        getConstrainedZonePoint(zone, pointIndex, point, roomsById),
+      );
     }
 
     return getZoneWithUpdatedPoint(zone, pointIndex, point);

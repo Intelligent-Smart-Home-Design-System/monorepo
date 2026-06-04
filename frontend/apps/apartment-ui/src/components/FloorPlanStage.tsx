@@ -217,6 +217,7 @@ export function FloorPlanStage({
           <Zones
             zones={zones}
             rooms={plan.rooms}
+            renderHandles={false}
             onMoveZonePoint={onMoveZonePoint}
           />
           <Walls walls={plan.walls} hatchPattern={hatchPattern} />
@@ -228,6 +229,12 @@ export function FloorPlanStage({
             selectedDeviceId={selectedDeviceId}
             onSelectDevice={onSelectDevice}
             onMoveDevice={onMoveDevice}
+          />
+          <Zones
+            zones={zones}
+            rooms={plan.rooms}
+            renderPolygons={false}
+            onMoveZonePoint={onMoveZonePoint}
           />
         </Layer>
       </Stage>

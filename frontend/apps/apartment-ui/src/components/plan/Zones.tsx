@@ -1,20 +1,32 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Circle, Group, Line } from 'react-konva';
 
 import type { LayoutPoint, Room, Zone } from '../../types';
 import { flattenPolygonPoints, layoutPointToPoint } from '../../utils/polygon';
-import { isZonePointMoveAllowed } from '../../utils/zones';
+import { getConstrainedZonePoint } from '../../utils/zones';
 
 interface ZonesProps {
   zones: Zone[];
   rooms: Room[];
+  renderPolygons?: boolean;
+  renderHandles?: boolean;
   onMoveZonePoint: (zoneId: string, pointIndex: number, point: LayoutPoint) => void;
 }
 
 const ZONE_POINT_RADIUS = 72;
 const ZONE_POINT_STROKE_WIDTH = 22;
 
-export function Zones({ zones, rooms, onMoveZonePoint }: ZonesProps) {
+const getZonePointKey = (zoneId: string, pointIndex: number): string =>
+  `${zoneId}:${pointIndex}`;
+
+export function Zones({
+  zones,
+  rooms,
+  renderPolygons = true,
+  renderHandles = true,
+  onMoveZonePoint,
+}: ZonesProps) {
+  const lastValidPoints = useRef<Map<string, LayoutPoint>>(new Map());
   const roomsById = useMemo(
     () => new Map(rooms.map((room) => [room.id, room])),
     [rooms],
@@ -27,12 +39,26 @@ export function Zones({ zones, rooms, onMoveZonePoint }: ZonesProps) {
     nextPoint: LayoutPoint,
     setNodePosition: (point: LayoutPoint) => void,
   ) => {
-    if (!isZonePointMoveAllowed(zone, pointIndex, nextPoint, roomsById)) {
-      setNodePosition(fallbackPoint);
-      return;
-    }
+    const pointKey = getZonePointKey(zone.id, pointIndex);
+    const lastValidPoint =
+      lastValidPoints.current.get(pointKey) ?? fallbackPoint;
+    const constrainedPoint = getConstrainedZonePoint(
+      zone,
+      pointIndex,
+      nextPoint,
+      roomsById,
+      lastValidPoint,
+    );
 
-    onMoveZonePoint(zone.id, pointIndex, nextPoint);
+    setNodePosition(constrainedPoint);
+    lastValidPoints.current.set(pointKey, constrainedPoint);
+
+    if (
+      constrainedPoint.X !== fallbackPoint.X ||
+      constrainedPoint.Y !== fallbackPoint.Y
+    ) {
+      onMoveZonePoint(zone.id, pointIndex, constrainedPoint);
+    }
   };
 
   return (
@@ -42,16 +68,18 @@ export function Zones({ zones, rooms, onMoveZonePoint }: ZonesProps) {
 
         return (
           <Group key={zone.id}>
-            <Line
-              points={flattenPolygonPoints(points)}
-              fill="rgba(243, 156, 18, 0.2)"
-              stroke="#d68910"
-              strokeWidth={35}
-              dash={[120, 80]}
-              closed
-              listening={false}
-            />
-            {zone.points.map((point, pointIndex) => (
+            {renderPolygons && (
+              <Line
+                points={flattenPolygonPoints(points)}
+                fill="rgba(243, 156, 18, 0.2)"
+                stroke="#d68910"
+                strokeWidth={35}
+                dash={[120, 80]}
+                closed
+                listening={false}
+              />
+            )}
+            {renderHandles && zone.points.map((point, pointIndex) => (
               <Circle
                 key={`${zone.id}-${pointIndex}`}
                 x={point.X}
@@ -67,6 +95,13 @@ export function Zones({ zones, rooms, onMoveZonePoint }: ZonesProps) {
                 dragDistance={0}
                 onDragStart={(event) => {
                   event.cancelBubble = true;
+                  lastValidPoints.current.set(
+                    getZonePointKey(zone.id, pointIndex),
+                    {
+                      X: event.target.x(),
+                      Y: event.target.y(),
+                    },
+                  );
 
                   const container = event.target.getStage()?.container();
                   if (container) container.style.cursor = 'grabbing';
@@ -103,6 +138,10 @@ export function Zones({ zones, rooms, onMoveZonePoint }: ZonesProps) {
 
                   const container = event.target.getStage()?.container();
                   if (container) container.style.cursor = 'grab';
+
+                  lastValidPoints.current.delete(
+                    getZonePointKey(zone.id, pointIndex),
+                  );
                 }}
                 onMouseEnter={(event) => {
                   const container = event.target.getStage()?.container();

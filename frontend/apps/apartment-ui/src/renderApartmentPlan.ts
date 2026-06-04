@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client';
 
 import { ApartmentPlanView } from './components/ApartmentPlanView';
 import type { FloorPlan, SmartDevice, Zone } from './types';
+import {
+  addSmartDevice,
+  clearSmartDevices,
+  removeSmartDevice,
+} from './utils/devices';
 
 export interface ApartmentPlanRenderHandle {
   update(
@@ -10,6 +15,9 @@ export interface ApartmentPlanRenderHandle {
     devices?: SmartDevice[] | null,
     zones?: Zone[] | null,
   ): void;
+  addDevice(device: SmartDevice): void;
+  removeDevice(deviceId: string): void;
+  clearDevices(): void;
   destroy(): void;
 }
 
@@ -34,6 +42,26 @@ export function renderApartmentPlan(
 
   const root = createRoot(container);
   let destroyed = false;
+  let currentPlan = plan ?? createEmptyPlan();
+  let currentDevices = devices ?? [];
+  let currentZones = zones ?? [];
+
+  const renderCurrentState = () => {
+    if (destroyed) {
+      throw new Error('Cannot update a destroyed apartment plan renderer.');
+    }
+
+    root.render(
+      createElement(ApartmentPlanView, {
+        plan: currentPlan,
+        devices: currentDevices,
+        zones: currentZones,
+        onDevicesChange: (nextDevices: SmartDevice[]) => {
+          currentDevices = nextDevices;
+        },
+      }),
+    );
+  };
 
   const update = (
     nextPlan?: FloorPlan | null,
@@ -44,19 +72,28 @@ export function renderApartmentPlan(
       throw new Error('Cannot update a destroyed apartment plan renderer.');
     }
 
-    root.render(
-      createElement(ApartmentPlanView, {
-        plan: nextPlan ?? createEmptyPlan(),
-        devices: nextDevices ?? [],
-        zones: nextZones ?? [],
-      }),
-    );
+    currentPlan = nextPlan ?? createEmptyPlan();
+    currentDevices = nextDevices ?? [];
+    currentZones = nextZones ?? [];
+    renderCurrentState();
   };
 
   update(plan, devices, zones);
 
   return {
     update,
+    addDevice: (device: SmartDevice) => {
+      currentDevices = addSmartDevice(currentDevices, device);
+      renderCurrentState();
+    },
+    removeDevice: (deviceId: string) => {
+      currentDevices = removeSmartDevice(currentDevices, deviceId);
+      renderCurrentState();
+    },
+    clearDevices: () => {
+      currentDevices = clearSmartDevices();
+      renderCurrentState();
+    },
     destroy: () => {
       if (destroyed) {
         return;

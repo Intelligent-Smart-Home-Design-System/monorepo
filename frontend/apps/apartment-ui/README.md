@@ -21,10 +21,17 @@ if (container) {
     zones as Zone[],
   );
 
+  renderer.addDevice(device);
+  renderer.removeDevice(device.id);
+  renderer.clearDevices();
   renderer.update(nextPlan, nextDevices, nextZones);
   renderer.destroy();
 }
 ```
+
+`addDevice` appends a new device. `removeDevice` deletes the device from the
+renderer state and from the canvas. `clearDevices` removes all devices from the
+renderer state and from the canvas. Device changes are not written back to JSON.
 
 Zone data uses the same base shape as
 `services/layout/internal/apartment/zone.go`. The flat frontend renderer also

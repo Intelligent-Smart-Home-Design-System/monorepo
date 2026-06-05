@@ -100,7 +100,6 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 				NightVision: cameraFilters.NightVision,
 				Resolution: cameraFilters.Resolution,
 				RecommendedRangeM: distance,
-				Direction: &direction,
 			}
 		} else {
 			deviceFilter = &filters.CameraFilter{
@@ -109,7 +108,6 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 				NightVision: cameraFilters.NightVision,
 				Resolution: cameraFilters.Resolution,
 				RecommendedRangeM: cameraFilters.Range,
-				Direction: &direction,
 			}
 		}
 

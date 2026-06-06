@@ -29,12 +29,11 @@ type LayoutOutput struct {
 }
 
 type DeviceSelectionInput struct {
-	Request map[string]interface{} `json:"request"`
-	Layout  map[string]interface{} `json:"layout"`
+	RequestProtoBytes []byte `json:"request_proto_bytes"`
 }
 
 type DeviceSelectionOutput struct {
-	Result map[string]interface{} `json:"result"`
+	ResponseProtoBytes []byte `json:"response_proto_bytes"`
 }
 
 type PipelineResult struct {

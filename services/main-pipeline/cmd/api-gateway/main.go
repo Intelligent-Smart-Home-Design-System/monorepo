@@ -34,9 +34,10 @@ func main() {
 	defer stop()
 
 	temporalClient, err := client.Dial(client.Options{
-		HostPort:  env("TEMPORAL_ADDRESS", "localhost:7233"),
-		Namespace: env("TEMPORAL_NAMESPACE", "default"),
-		Logger:    temporalLogger{log: log},
+		HostPort:      env("TEMPORAL_ADDRESS", "localhost:7233"),
+		Namespace:     env("TEMPORAL_NAMESPACE", "default"),
+		Logger:        temporalLogger{log: log},
+		DataConverter: pipeline.NewDataConverter(),
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect temporal")

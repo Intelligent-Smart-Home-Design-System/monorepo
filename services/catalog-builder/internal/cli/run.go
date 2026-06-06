@@ -66,6 +66,7 @@ func run(ctx context.Context, cfgFile string) error {
 
 	builder, err := catalogbuilder.NewBuilder(catalogbuilder.BuilderConfig{
 		IdentifyingAttributes: cfg.IdentifyingAttributes,
+		SupportedHubProtocols: cfg.SupportedHubProtocols,
 		Ecosystems:            cfg.Ecosystems,
 		TaxonomySchemaPath:    cfg.TaxonomySchemaPath,
 		StrictSchema:          cfg.StrictSchema,

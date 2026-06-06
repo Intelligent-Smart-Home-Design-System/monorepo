@@ -15,7 +15,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
     - name: Install uv
       uses: astral-sh/setup-uv@v4
@@ -27,6 +27,27 @@ jobs:
     - name: Run tests
       run: uv run pytest -v
       working-directory: services/extractor
+
+  test-device-selection:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Install dependencies
+      run: uv sync
+      working-directory: services/device-selection
+
+    - name: Run tests
+      run: uv run pytest -v
+      working-directory: services/device-selection
 
   test-quality-calculator:
     runs-on: ubuntu-latest

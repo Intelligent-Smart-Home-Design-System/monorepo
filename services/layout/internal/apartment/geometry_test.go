@@ -7,53 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetCenterMethod(t *testing.T) {
-	room := Room{
-		Name: "bathroom",
-		Area: []point.Point{
-			{X: 1, Y: 0},
-			{X: 5, Y: 0},
-			{X: 5, Y: 5},
-			{X: 1, Y: 5},
-		},
-	}
 
-	center, err := room.GetCenter()
-	
-	assert.NoError(t, err)
-	assert.Equal(t, point.Point{X: 3, Y: 2.5}, *center)
-}
-
-func TestGetObjectCenterMethod(t *testing.T) {
-	door := Door{
-		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
-		},
-	}
-
-	doorCenter := GetObjectCenter(door.Points)
-
-	assert.Equal(t, point.Point{X: 1.5, Y: 0}, doorCenter)
-}
-
-func TestGridMethodSize(t *testing.T) {
-	room := Room{
-		Name: "kitchen",
-		Area: []point.Point{
-			{X: 0, Y: 0},
-			{X: 3, Y: 0},
-			{X: 3, Y: 3},
-			{X: 0, Y: 3},
-		},
-	}
-
-	step := 0.5
-	gridPoints, err := room.GenerateGridPoints(step)
-
-	assert.NoError(t, err)
-	assert.Equal(t, int((3 / step) * (3 / step)), len(gridPoints))
-}
 
 func TestIsPointInRoomMethodPositive(t *testing.T) {
 	room := Room{
@@ -124,7 +78,7 @@ func TestIsWallBetweenPoints(t *testing.T) {
 		Walls: walls,
 		Rooms:   []Room{room},
 	}
-	apartment.MakeDependency()
+	apartment.Index()
 
 	assert.Equal(t, false, apartment.IsWallBetweenPoints(point.Point{X: 2, Y: 3}, point.Point{X: 3, Y: 2}))
 	assert.Equal(t, true, apartment.IsWallBetweenPoints(point.Point{X: 2, Y: 3}, point.Point{X: 6, Y: 2}))

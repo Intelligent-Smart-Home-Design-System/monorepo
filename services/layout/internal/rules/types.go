@@ -9,5 +9,5 @@ type Rule interface {
 	Type() string
 
 	// Apply расставляет устройство в квартире
-	Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error
+	Apply(zonedAP *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error
 }

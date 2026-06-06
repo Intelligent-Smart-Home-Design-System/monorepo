@@ -1,0 +1,23 @@
+{
+  "id": "synth_013_many_reqs",
+  "description": "5-requirement test on catalog_multieco, heuristic only (BF would be O(hours)). 3 lamps + 3 sensors + 3 plugs + 2 lamps_filtered + 2 sensors_filtered. Tests enum_repair stability with many requirements and filters. run_brute_force=false.",
+  "run_brute_force": false,
+  "catalog": "catalog_multieco.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 25000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp",    "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug",    "count": 3, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 4, "device_type": "smart_lamp",    "count": 2, "connect_to_main_ecosystem": true,
+        "filters": [{"field": "brand", "op": "eq", "value": "aqara"}]},
+      {"requirement_id": 5, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true,
+        "filters": [{"field": "brand", "op": "eq", "value": "tuya"}]}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 50,
+    "time_budget_seconds": 600.0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "synth_004_tight_budget",
+  "description": "Constraint tightness test. 3 requirements (2 lamps + 2 sensors + 2 plugs), budget 2500. Almost all premium and all-mid configurations are infeasible - the budget forces trade-offs. Expected Pareto front: (1) wifi mid mix Q=0.80 H=0 E=1; (2) zigbee mid + basic hub Q=0.83 H=1 E=1. Tests algorithm behavior when feasible region is small and most candidate configurations get rejected.",
+  "run_brute_force": true,
+  "catalog": "catalog_synth_004.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 2500.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "smart_lamp", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "motion_sensor", "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "smart_plug", "count": 2, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": [],
+    "max_solutions": 10,
+    "time_budget_seconds": 180.0
+  }
+}

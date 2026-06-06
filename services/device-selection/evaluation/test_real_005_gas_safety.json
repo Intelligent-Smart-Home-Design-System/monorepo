@@ -1,0 +1,19 @@
+{
+  "id": "real_005_gas_safety",
+  "description": "Real catalog: gas safety kit. Smaller device types to stress test when options are limited. gas_leak_sensor (73 devices) + water_leak_sensor (128) + door_window_sensor (36). Budget 8000. Useful for testing behavior with medium-size catalog slices.",
+  "run_brute_force": false,
+  "catalog": "real_catalog.json",
+  "request": {
+    "main_ecosystem": "yandex",
+    "budget": 8000.0,
+    "requirements": [
+      {"requirement_id": 1, "device_type": "gas_leak_sensor",    "count": 2, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 2, "device_type": "water_leak_sensor",  "count": 4, "connect_to_main_ecosystem": true, "filters": []},
+      {"requirement_id": 3, "device_type": "door_window_sensor", "count": 3, "connect_to_main_ecosystem": true, "filters": []}
+    ],
+    "include_ecosystems": [],
+    "exclude_ecosystems": ["xiaomi", "digma"],
+    "max_solutions": 10,
+    "time_budget_seconds": 60.0
+  }
+}

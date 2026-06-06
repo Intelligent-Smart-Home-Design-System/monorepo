@@ -78,7 +78,8 @@ type PageSnapshot struct {
 }
 
 type ListingParseResult struct {
-	PageSnapshotID int
+	PageSnapshotID      int
+	HasSmartHomeMarkers bool
 
 	InStock      bool
 	Text         string
@@ -100,16 +101,16 @@ type ListingParseResult struct {
 }
 
 const (
-    SourceSprut       = "sprut"
-    SourceWildberries = "wildberries"
-    SourcePrinter     = "printer"
-    SourceYandex      = "yandex"
+	SourceSprut       = "sprut"
+	SourceWildberries = "wildberries"
+	SourcePrinter     = "printer"
+	SourceYandex      = "yandex"
 )
 
 type DirectCompatibilityRecord struct {
-    PageSnapshotID int
-    Brand          string
-    Model          string
-    Ecosystem      string
-    Protocol       string
+	PageSnapshotID int
+	Brand          string
+	Model          string
+	Ecosystem      string
+	Protocol       string
 }

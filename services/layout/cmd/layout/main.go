@@ -1,54 +1,37 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/handlers"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 )
 
-// TODO: убрать
-func GetApartment() *apartment.Apartment {
-	return &apartment.Apartment{}
-}
-
-// TODO: убрать
-func GetSelectedLevels() map[string]string {
-	return make(map[string]string)
-}
-
 func main() {
-	apartmentStruct := GetApartment()
-	apartmentStruct.MakeRoomDependency()
-
-	selectedLevels := GetSelectedLevels()
-
-	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-
-	tracksConfig, err := configs.LoadTracksConfig("internal/configs/tracks.json")
+	err := configs.LoadTracksConfig("internal/configs/tracks.json")
 	if err != nil {
 		log.Fatal("failed to load tracks config")
 	}
 
-	devicesConfig, err := configs.LoadDevicesConfig("internal/configs/tracks.json")
+	err = configs.LoadDevicesConfig("internal/configs/tracks.json")
 	if err != nil {
 		log.Fatal("failed to load devices config")
 	}
 
-	engine := engine.NewEngine(storage, tracksConfig, devicesConfig)
+	storage := storage.NewStorage()
+	storage.LoadAllRules()
 
-	_, err = engine.PlaceDevices(apartmentStruct, selectedLevels) // вся расстановка в квартире
-	if err != nil {
-		_ = fmt.Errorf("failed to place devices: %w", err)
-	}
+	engine := engine.NewEngine(storage)
 
-	go func() {
-		// TODO: несколько пользователей (параллельно)
-	}()
+	handlers := handlers.NewHandlers()
+	http.HandleFunc("/apartment", handlers.ApartmentHandler)   // TODO: договориться с названием URL
+	http.HandleFunc("/layout", handlers.LayoutHandler(engine)) // TODO: договориться с названием URL
 
-	// TODO: записать результаты на плане квартиры
+	err = http.ListenAndServe(":8080", nil)
+
+	log.Println("Layout algorithm is running")
+	log.Fatal(err)
 }

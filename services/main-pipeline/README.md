@@ -4,7 +4,7 @@ Temporal workflow-orchestrator for floor plan processing:
 
 1. `floor-parser` activity `parse_floor_json`
 2. `layout` activity `place_devices`
-3. `device-selection` activity `select_devices_json`
+3. `device-selection` activity `select_devices`
 
 Workers start once with Docker Compose and continuously poll Temporal task queues. A concrete pipeline starts only by `POST /start` through `api-gateway`, runs the three activities, then completes.
 
@@ -23,6 +23,13 @@ Open:
 - Prometheus: `http://localhost:9092`
 - Jaeger: `http://localhost:16686`
 - Grafana: `http://localhost:3000` (`admin` / `admin`)
+
+
+Optional:
+В docker-compose.yml у каждого сервиса в env прописаны порты для метрик в METRICS_PORT. (Main-pipeline - 2112, api-gateway - 2116, floor-parser-worker - 2113, layout-worker - 2114, device-selection-worker - 2115)
+
+В Grafana по умолчанию user:admin, pasw:admin. (Лучше поменять)
+
 
 Метрики, логи и трейсы.
 

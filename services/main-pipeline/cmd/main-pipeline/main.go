@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -29,9 +30,10 @@ func main() {
 	registry.MustRegister(prometheus.NewGoCollector(), prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 
 	temporalClient, err := client.Dial(client.Options{
-		HostPort:  temporalAddress,
-		Namespace: namespace,
-		Logger:    temporalLogger{log: log},
+		HostPort:      temporalAddress,
+		Namespace:     namespace,
+		Logger:        temporalLogger{log: log},
+		DataConverter: pipeline.NewDataConverter(),
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect temporal")
@@ -75,10 +77,18 @@ func env(key, fallback string) string {
 
 type temporalLogger struct{ log zerolog.Logger }
 
-func (l temporalLogger) Debug(msg string, keyvals ...interface{}) { l.log.Debug().Fields(fields(keyvals...)).Msg(msg) }
-func (l temporalLogger) Info(msg string, keyvals ...interface{})  { l.log.Info().Fields(fields(keyvals...)).Msg(msg) }
-func (l temporalLogger) Warn(msg string, keyvals ...interface{})  { l.log.Warn().Fields(fields(keyvals...)).Msg(msg) }
-func (l temporalLogger) Error(msg string, keyvals ...interface{}) { l.log.Error().Fields(fields(keyvals...)).Msg(msg) }
+func (l temporalLogger) Debug(msg string, keyvals ...interface{}) {
+	l.log.Debug().Fields(fields(keyvals...)).Msg(msg)
+}
+func (l temporalLogger) Info(msg string, keyvals ...interface{}) {
+	l.log.Info().Fields(fields(keyvals...)).Msg(msg)
+}
+func (l temporalLogger) Warn(msg string, keyvals ...interface{}) {
+	l.log.Warn().Fields(fields(keyvals...)).Msg(msg)
+}
+func (l temporalLogger) Error(msg string, keyvals ...interface{}) {
+	l.log.Error().Fields(fields(keyvals...)).Msg(msg)
+}
 
 func fields(keyvals ...interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(keyvals)/2)

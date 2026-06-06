@@ -15,7 +15,7 @@ const (
 	DeviceSelectionTaskQueue  = "device-selection"
 	ParseFloorActivityName    = "parse_floor_json"
 	PlaceDevicesActivityName  = "place_devices"
-	SelectDevicesActivityName = "select_devices_json"
+	SelectDevicesActivityName = "select_devices"
 )
 
 func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) (*pipeline.PipelineResult, error) {
@@ -56,16 +56,23 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 		return nil, err
 	}
 
+	selectionInput, err := pipeline.DeviceSelectionInputFromJSON(input.DeviceSelection)
+	if err != nil {
+		return nil, err
+	}
+
 	var selected pipeline.DeviceSelectionOutput
 	selectionCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		TaskQueue:           DeviceSelectionTaskQueue,
 		StartToCloseTimeout: 3 * time.Minute,
 		RetryPolicy:         retryPolicy,
 	})
-	if err := workflow.ExecuteActivity(selectionCtx, SelectDevicesActivityName, pipeline.DeviceSelectionInput{
-		Request: input.DeviceSelection,
-		Layout:  placed.Layout,
-	}).Get(ctx, &selected); err != nil {
+	if err := workflow.ExecuteActivity(selectionCtx, SelectDevicesActivityName, selectionInput).Get(ctx, &selected); err != nil {
+		return nil, err
+	}
+
+	deviceSelectionResult, err := pipeline.DeviceSelectionOutputToJSON(selected)
+	if err != nil {
 		return nil, err
 	}
 
@@ -74,6 +81,6 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 		RequestID:       input.RequestID,
 		ParsedFloorPlan: parsed.FloorPlan,
 		Layout:          placed.Layout,
-		DeviceSelection: selected.Result,
+		DeviceSelection: deviceSelectionResult,
 	}, nil
 }

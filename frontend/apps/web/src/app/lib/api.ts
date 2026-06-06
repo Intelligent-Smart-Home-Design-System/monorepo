@@ -8,23 +8,51 @@ import type {
   ApiPlanStatus,
   ApiPlanSummary,
   ApiPreset,
+  AuthResponse,
+  LoginRequest,
+  RefreshTokenRequest,
+  RegisterRequest,
 } from "./types";
+import {
+  clearAuthState,
+  getAccessToken,
+  getAuthPaths,
+  getRefreshToken,
+  normalizeAuthResponse,
+  persistAuthResponse,
+} from "./auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+const AUTH_PATHS = getAuthPaths();
+let refreshPromise: Promise<string | null> | null = null;
 
 function buildUrl(path: string) {
   return `${API_BASE_URL}${path}`;
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+async function requestJson<T>(path: string, init?: RequestInit, allowRefresh = true): Promise<T> {
+  const headers = new Headers(init?.headers ?? {});
+  if (!headers.has("Content-Type") && init?.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const accessToken = getAccessToken();
+  if (accessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
   const response = await fetch(buildUrl(path), {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
     cache: "no-store",
   });
+
+  if (response.status === 401 && allowRefresh && path !== AUTH_PATHS.refresh) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      return requestJson<T>(path, init, false);
+    }
+  }
 
   if (!response.ok) {
     let error: ApiErrorResponse | null = null;
@@ -39,7 +67,54 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearAuthState();
+    return null;
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = requestJson<AuthResponse>(
+      AUTH_PATHS.refresh,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+        } satisfies RefreshTokenRequest),
+      },
+      false
+    )
+      .then((response) => {
+        const normalized = normalizeAuthResponse(response);
+        persistAuthResponse(normalized);
+        return normalized.access_token;
+      })
+      .catch(() => {
+        clearAuthState();
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}
+
 export const api = {
+  login(payload: LoginRequest) {
+    return requestJson<AuthResponse>(AUTH_PATHS.login, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, false);
+  },
+  register(payload: RegisterRequest) {
+    return requestJson<AuthResponse>(AUTH_PATHS.register, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, false);
+  },
   listPlans() {
     return requestJson<ApiPlanSummary[]>("/api/v1/plans");
   },

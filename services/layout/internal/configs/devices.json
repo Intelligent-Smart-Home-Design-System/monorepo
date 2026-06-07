@@ -67,7 +67,8 @@
         "max": 4000
       },
       "tracks": [
-        "security"
+        "security",
+        "lighting"
       ],
       "filters": {
         "angle": 120,
@@ -182,6 +183,96 @@
       },
       "tracks": [
         "climate"
+      ]
+    },
+    "robot_vacuum": {
+      "name": "Робот-пылесос",
+      "price_range": {
+        "min": 20000,
+        "max": 80000
+      },
+      "tracks": [
+        "household"
+      ]
+    },
+    "smart_bulb": {
+      "name": "Умная лампа",
+      "price_range": {
+        "min": 700,
+        "max": 1200
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "illumination_sensor": {
+      "name": "Датчик освещённости",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "curtains": {
+      "name": "Умные шторы",
+      "price_range": {
+        "min": 7000,
+        "max": 12000
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "wireless_button_switch": {
+      "name": "Беспроводной кнопочный выключатель",
+      "price_range": {
+        "min": 1200,
+        "max": 2500
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "smart_dimmer": {
+      "name": "Умный диммер",
+      "price_range": {
+        "min": 2000,
+        "max": 3500
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "presence_sensor": {
+      "name": "Датчик присутствия",
+      "price_range": {
+        "min": 1800,
+        "max": 3500
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "built_in_backlight": {
+      "name": "Встроенная подсветка",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "lighting"
+      ]
+    },
+    "decorative_luminaire": {
+      "name": "Декоративный светильник",
+      "price_range": {
+        "min": 2000,
+        "max": 5000
+      },
+      "tracks": [
+        "lighting"
       ]
     },
     "smart_tv": {

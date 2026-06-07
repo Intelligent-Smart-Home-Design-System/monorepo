@@ -93,6 +93,18 @@ type SmartFloorThermostatFilter struct {
 type FloorTemperatureSensorFilter struct {
 	CableLength float64 `json:"cable_length,omitempty"`
 }
+  
+type RobotVacuumFilter struct {
+	NoiseLevelDB          float64 `json:"noise_level_db,omitempty"`
+	SuctionPowerPA        float64 `json:"suction_power_pa,omitempty"`
+	NavigationType        string  `json:"navigation_type,omitempty"`
+	RoomMapping           bool    `json:"room_mapping,omitempty"`
+	WetCleaning           bool    `json:"wet_cleaning,omitempty"`
+	CarpetDetection       bool    `json:"carpet_detection,omitempty"`
+	ObstacleAvoidance     bool    `json:"obstacle_avoidance,omitempty"`
+	AutoEmptyStation      bool    `json:"auto_empty_station,omitempty"`
+	VoiceAssistantSupport bool    `json:"voice_assistant_support,omitempty"`
+}
 
 type SmartTVFilter struct {
 	Resolution     string  `json:"resolution,omitempty"`
@@ -153,6 +165,10 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartFloorThermostatFilter{}
 	case "floor_temperature_sensor":
 		filter = &FloorTemperatureSensorFilter{}
+    
+  // Household-устройства
+	case "robot_vacuum":
+		filter = &RobotVacuumFilter{}
 
 	// Media-устройства
 	case "smart_tv":

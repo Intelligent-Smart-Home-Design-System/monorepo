@@ -27,6 +27,7 @@ type ZonedRoom struct {
 	ViewedZones       []*Zone            `json:"viewed_zones"`
 	SirenZones        []*Zone            `json:"siren_zones"`
 	PollutionZones    []*Zone            `json:"pollution_zones"`
+  CleaningZones    []*Zone             `json:"cleaning_zones"`
 	RestrictedZones   []*Zone            `json:"restricted_zones"`
 	ListeningPosition *point.Point
 	TVPosition        *point.Point

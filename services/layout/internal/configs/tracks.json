@@ -748,6 +748,191 @@
         }
       }
     },
+    "household": {
+      "name": "Бытовая техника",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Базовая автоматизация уборки",
+          "price_range": {
+            "min": 20000,
+            "max": 25000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 75,
+              "suction_power_pa": 2000,
+              "navigation_type": "basic",
+              "room_mapping": false,
+              "wet_cleaning": false,
+              "carpet_detection": false,
+              "obstacle_avoidance": false,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Улучшенная навигация и построение карты помещения",
+          "price_range": {
+            "min": 30000,
+            "max": 40000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 72,
+              "suction_power_pa": 3500,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": false,
+              "carpet_detection": false,
+              "obstacle_avoidance": false,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Влажная уборка",
+          "price_range": {
+            "min": 40000,
+            "max": 50000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 70,
+              "suction_power_pa": 5000,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": false,
+              "obstacle_avoidance": true,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Автономная станция",
+          "price_range": {
+            "min": 55000,
+            "max": 65000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 68,
+              "suction_power_pa": 7000,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": true,
+              "obstacle_avoidance": true,
+              "auto_empty_station": true,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Продвинутый робот-пылесос",
+          "price_range": {
+            "min": 70000,
+            "max": 80000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 65,
+              "suction_power_pa": 11000,
+              "navigation_type": "lidar_ai",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": true,
+              "obstacle_avoidance": true,
+              "auto_empty_station": true,
+              "voice_assistant_support": true
+            }
+          }
+        }
+      }
+    },
     "media": {
       "name": "Медиа и развлечения",
       "levels": {

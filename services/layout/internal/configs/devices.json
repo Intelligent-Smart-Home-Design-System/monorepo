@@ -105,6 +105,16 @@
         "climate"
       ]
     },
+    "robot_vacuum": {
+      "name": "Робот-пылесос",
+      "price_range": {
+        "min": 20000,
+        "max": 80000
+      },
+      "tracks": [
+        "household"
+      ]
+    },
     "smart_bulb": {
       "name": "Умная лампа",
       "price_range": {

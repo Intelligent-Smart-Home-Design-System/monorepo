@@ -6,6 +6,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -43,6 +44,10 @@ func (s *stubEnginePort) NotifyObservers(roomID string, kind string, payload []b
 
 func (s *stubEnginePort) DrainInChan() {
 	return
+}
+
+func (s *stubEnginePort) GetEntity(id string) entities.Entity {
+    return nil
 }
 
 // =====Tests=====

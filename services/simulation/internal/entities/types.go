@@ -39,6 +39,11 @@ type Observer interface {
 	GetObservedKinds() []string // ["human:move"], ["fire:spread"] и тд
 }
 
+type Tickable interface {
+    Entity
+    OnTick()
+}
+
 const (
 	TypeLamp                          = "lamp"
 	TypeSmartLamp                     = "smartLamp"
@@ -63,4 +68,5 @@ const (
 	TypeSubwoofer                     = "subwoofer"
 
 	TypeHuman = "human"
+	TypeFire = "fire"
 )

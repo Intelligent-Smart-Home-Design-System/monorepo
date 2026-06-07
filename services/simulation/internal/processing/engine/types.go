@@ -55,6 +55,7 @@ type EnginePort interface {
 	GetRoomObservers(roomID string) []string
 	NotifyObservers(roomID string, kind string, payload []byte)
 	DrainInChan()
+	GetEntity(id string) entities.Entity
 }
 
 var (

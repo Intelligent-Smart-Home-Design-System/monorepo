@@ -343,7 +343,8 @@
               "hall"
             ],
             "smart_siren": [
-              "hall"
+              "hall",
+              "passage"
             ]
           },
           "max_device_counts": {

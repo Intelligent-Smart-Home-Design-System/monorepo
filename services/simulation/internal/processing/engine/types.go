@@ -66,4 +66,5 @@ type EnginePort interface {
 
 	// DrainInChan читает события из входного канала.
 	DrainInChan()
+	GetEntity(id string) entities.Entity
 }

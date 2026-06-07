@@ -95,3 +95,9 @@ func IsInRadius(xCenter, yCenter, xPoint, yPoint, radius float64) bool {
 
 	return dx*dx+dy*dy <= radius*radius
 }
+
+// CirclesIntersect возвращает true если две окружности пересекаются или одна содержит другую.
+func CirclesIntersect(x1, y1, r1, x2, y2, r2 float64) bool {
+    distSq := (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1)
+    return distSq <= (r1 + r2)*(r1 + r2)
+}

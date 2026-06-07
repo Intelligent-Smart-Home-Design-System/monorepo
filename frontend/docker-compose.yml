@@ -1,0 +1,27 @@
+services:
+  sim-ui:
+    build:
+      context: .
+      args:
+        APP: sim-ui
+      target: next
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: .
+      args:
+        APP: web
+      target: next
+    ports:
+      - "3001:3000"
+
+  apartment-ui:
+    build:
+      context: .
+      args:
+        APP: apartment-ui
+      target: vite
+    ports:
+      - "8080:80"

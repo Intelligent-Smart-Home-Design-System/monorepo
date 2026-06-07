@@ -35,9 +35,7 @@ func NewActivities(tracksPath, devicesPath string) (*Activities, error) {
 		return nil, fmt.Errorf("load devices config: %w", err)
 	}
 	rules := storage.NewStorage()
-	rules.LoadAllSecurityRules()
-	rules.LoadAllLightingRules()
-	rules.LoadAllClimateRules()
+	rules.LoadAllRules()
 	return &Activities{engine: engine.NewEngine(rules)}, nil
 }
 

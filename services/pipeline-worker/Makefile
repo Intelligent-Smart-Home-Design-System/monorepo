@@ -34,3 +34,9 @@ trigger:
 
 migrate:
 	$(COMPOSE) run --rm catalog-db-migrate
+
+deploy:
+	git pull
+	make build
+	make migrate
+	make up

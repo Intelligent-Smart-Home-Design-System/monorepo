@@ -838,6 +838,17 @@ export function ApartmentPlan({
               />
             ))}
 
+            {floorPlan?.zones?.map((zone) => (
+              <path
+                key={`zone-${zone.id}`}
+                d={zone.path}
+                fill="rgba(0,113,227,0.08)"
+                stroke="rgba(0,113,227,0.34)"
+                strokeWidth={2}
+                strokeDasharray="8 8"
+              />
+            ))}
+
             {(floorPlan?.walls?.paths?.length
               ? floorPlan.walls.paths
               : [
@@ -1066,6 +1077,29 @@ export function ApartmentPlan({
             >
               {r.title}
             </div>
+          ))}
+
+          {floorPlan?.zones?.map((zone) => (
+            zone.label ? (
+              <div
+                key={`zone-label-${zone.id}`}
+                className="absolute"
+                style={{
+                  left: `${zone.label.x * 100}%`,
+                  top: `${zone.label.y * 100}%`,
+                  transform: "translate(-50%, -50%)",
+                  color: "#0071e3",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: 0,
+                  textTransform: "uppercase",
+                  pointerEvents: "none",
+                  opacity: 0.72,
+                }}
+              >
+                {zone.roomId ? `зона ${zone.roomId}` : "зона"}
+              </div>
+            ) : null
           ))}
 
           {draggingType &&

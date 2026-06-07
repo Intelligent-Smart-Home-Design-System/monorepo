@@ -209,7 +209,13 @@ function PlanPageContent() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
               <Button
                 variant="contained"
-                onClick={() => router.push(`/simulation?plan_id=${planId}`)}
+                onClick={() => {
+                  if (selectedBundle) {
+                    openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan));
+                  } else {
+                    openSimulationFromPlan(planId, collectSimulationFloorData(uploadedPlan, status, plan));
+                  }
+                }}
                 sx={{
                   borderRadius: 3,
                   fontWeight: 900,
@@ -549,7 +555,7 @@ function PlanPageContent() {
                       <Button
                         variant="outlined"
                         disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle)}
+                        onClick={() => openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan))}
                         sx={{ fontWeight: 900, borderRadius: 3 }}
                       >
                         Открыть в симуляции
@@ -852,7 +858,19 @@ function loadUploadedPlan(): UploadedPlanState | null {
 
 type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
 
-function openSimulation(bundle: SimulationBundle) {
+function openSimulationFromPlan(planId: number, floor?: unknown) {
+  if (floor) {
+    localStorage.setItem("simulation-floor", JSON.stringify(floor));
+  }
+
+  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
+  const url = new URL(simUrl, window.location.origin);
+  if (Number.isFinite(planId) && planId > 0) url.searchParams.set("plan_id", String(planId));
+  url.searchParams.set("returnTo", window.location.href);
+  window.location.href = url.toString();
+}
+
+function openSimulation(bundle: SimulationBundle, floor?: unknown) {
   const devices = bundle.listings.map((listing, index) => {
     const type = listing.device_attributes?.device_type;
     return {
@@ -863,8 +881,6 @@ function openSimulation(bundle: SimulationBundle) {
   });
 
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
-  const uploadedPlan = loadUploadedPlan();
-  const floor = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
@@ -873,6 +889,71 @@ function openSimulation(bundle: SimulationBundle) {
   const url = new URL(simUrl, window.location.origin);
   url.searchParams.set("devices", JSON.stringify(devices));
   window.location.href = url.toString();
+}
+
+function collectSimulationFloorData(
+  uploadedPlan: UploadedPlanState | null,
+  status: ApiPlanStatus | null,
+  plan: ApiHomePlan | null
+) {
+  const fromUpload = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
+  let floor: unknown = fromUpload ?? null;
+  let zones: unknown = null;
+  let layout: unknown = null;
+
+  const artifacts = collectStageArtifacts(status, plan);
+  for (const artifact of artifacts) {
+    const payload = artifact.data ?? artifact.payload;
+    floor ??= findFloorPayload(payload);
+    zones ??= findPayloadByKeys(payload, ["zones", "zone"]);
+    layout ??= findPayloadByKeys(payload, ["layout", "placements"]);
+  }
+
+  if (!floor && !zones && !layout) return null;
+  if (floor && !zones && !layout) return floor;
+
+  return {
+    floor,
+    zones,
+    layout,
+  };
+}
+
+function findFloorPayload(value: unknown): unknown {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  if (Array.isArray(record.walls) || Array.isArray(record.rooms) || record.layout || record.apartment) {
+    return value;
+  }
+
+  for (const key of ["floor", "floorJson", "parsedFloor", "apartment", "layout", "plan"]) {
+    const nested = record[key];
+    if (!nested) continue;
+    const match = findFloorPayload(nested);
+    if (match) return match;
+  }
+
+  return null;
+}
+
+function findPayloadByKeys(value: unknown, keys: string[]): unknown {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+
+  for (const [key, nested] of Object.entries(record)) {
+    const normalized = key.toLowerCase();
+    if (keys.some((candidate) => normalized === candidate || normalized.includes(candidate))) {
+      return nested;
+    }
+  }
+
+  for (const nested of Object.values(record)) {
+    const match = findPayloadByKeys(nested, keys);
+    if (match) return match;
+  }
+
+  return null;
 }
 
 function makeSimulationDeviceId(listing: ApiHomePlan["bundles"][number]["listings"][number], index: number) {

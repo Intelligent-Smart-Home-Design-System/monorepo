@@ -8,6 +8,7 @@ import { Card } from "@/app/components/ui";
 import floorPlanData from "@/app/simulation/floor.json";
 import dependencyConfig from "../../../../../services/simulation/configs/dependencies.json";
 import entityConfig from "../../../../../services/simulation/configs/entities.json";
+import layoutDeviceConfig from "../../../../../services/layout/internal/configs/devices.json";
 import { adaptFloorData, type FloorPlanView, type WallSegment } from "@/app/simulation/floorAdapter";
 import {
   buildSimulationStartPayload,
@@ -54,11 +55,15 @@ type DependencyConfig = {
 type EntityConfig = {
   entities: Record<string, { description?: string }>;
 };
+type LayoutDeviceConfig = {
+  device_types: Record<string, { name?: string; tracks?: string[] }>;
+};
 
 const PLAN_STORAGE_KEY = "simulation-plan-layout";
 const FLOOR_STORAGE_KEYS = ["simulation-floor", "planner-floor-json", "parsed-floor", "floor-json"];
 const SIM_DEPENDENCIES = dependencyConfig as DependencyConfig;
 const SIM_ENTITIES = entityConfig as EntityConfig;
+const LAYOUT_DEVICES = layoutDeviceConfig as LayoutDeviceConfig;
 
 function readStorage(key: string) {
   if (typeof window === "undefined") return null;
@@ -209,7 +214,10 @@ function loadExternalDevicesFromStorage(): ExternalDevice[] {
   if (fromUrl.length) {
     writeStorage("simulation-devices", JSON.stringify(fromUrl));
     try {
-      window.history.replaceState(null, "", window.location.pathname);
+      const params = new URLSearchParams(window.location.search);
+      params.delete("devices");
+      const nextQuery = params.toString();
+      window.history.replaceState(null, "", nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname);
     } catch {
       // URL cleanup is nice to have, not required for the simulation.
     }
@@ -253,8 +261,7 @@ function loadExternalDevicesFromUrl(): ExternalDevice[] {
     const raw = new URLSearchParams(window.location.search).get("devices");
     if (!raw) return [];
 
-    const decoded = decodeURIComponent(raw);
-    const parsed = JSON.parse(decoded) as unknown;
+    const parsed = JSON.parse(raw) as unknown;
     const list = Array.isArray(parsed)
       ? parsed
       : parsed && typeof parsed === "object" && Array.isArray((parsed as { devices?: unknown[] }).devices)
@@ -440,6 +447,7 @@ export default function SimulationPage() {
   const roomsForPlan = adaptedFloor.rooms;
   const floorPlanForView: FloorPlanView = adaptedFloor.floorPlan;
   const baseDeviceMarkers = adaptedFloor.markers;
+  const placementMarkers = adaptedFloor.placementMarkers;
   const blockingWalls = floorPlanForView.blockers?.length ? floorPlanForView.blockers : [];
   const [externalDevices] = useState<ExternalDevice[]>(() => loadExternalDevicesFromStorage());
   const [savedPlanDevices] = useState<SavedPlanDevice[]>(() => loadSavedPlanDevices());
@@ -449,7 +457,6 @@ export default function SimulationPage() {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
 
-  const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
   const [runMode, setRunMode] = useState<RunMode>("parallel");
 
   const [events, setEvents] = useState<LogEvent[]>([]);
@@ -473,18 +480,21 @@ export default function SimulationPage() {
   const backendRunActiveRef = useRef(false);
   const wsStartAckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const floorWarningsLoggedRef = useRef(false);
   const [devicePositions, setDevicePositions] = useState<DeviceMarker[]>(() => {
     const savedMarkers = savedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
+    const knownMarkerIds = new Set([...placementMarkers.map((marker) => marker.id), ...savedPlanDevices.map((device) => device.id)]);
     const externalMarkers = externalDevices
-      .filter((device) => device.x !== undefined && device.y !== undefined && !savedPlanDevices.some((saved) => saved.id === device.id))
+      .filter((device) => device.x !== undefined && device.y !== undefined && !knownMarkerIds.has(device.id))
       .map((device) => ({ id: device.id, x: device.x as number, y: device.y as number, label: device.name }));
 
     return [...baseDeviceMarkers, ...FIRE_DEVICE_MARKERS, ...WATER_DEVICE_MARKERS, ...externalMarkers, ...savedMarkers];
   });
   const [placedDeviceIds, setPlacedDeviceIds] = useState<string[]>(() => {
+    const placementIds = placementMarkers.map((marker) => marker.id);
     const savedIds = savedPlanDevices.map((device) => device.id);
     const externalPlacedIds = externalDevices.filter((device) => device.x !== undefined && device.y !== undefined).map((device) => device.id);
-    return Array.from(new Set([...savedIds, ...externalPlacedIds]));
+    return Array.from(new Set([...placementIds, ...savedIds, ...externalPlacedIds]));
   });
   const [fireMode, setFireMode] = useState(false);
   const [firePoint, setFirePoint] = useState<Point | null>(null);
@@ -515,20 +525,22 @@ export default function SimulationPage() {
       .forEach((scenario) => byId.set(scenario.id, scenario));
     return Array.from(byId.values());
   }, [baseScenarios, placedDeviceIds, placedScenarios]);
-  const selectedScenarios = useMemo(() => {
-    return scenarios.filter((s) => selectedScenarioIds.includes(s.id));
-  }, [scenarios, selectedScenarioIds]);
+  const selectedScenarioIds = useMemo(() => scenarios.map((scenario) => scenario.id), [scenarios]);
+  const selectedScenarios = scenarios;
   const availableDeviceIds = useMemo(() => {
     const ids = new Set<string>();
+
+    if (externalDevices.length) {
+      externalDevices.forEach((device) => ids.add(device.id));
+      placedDeviceIds.forEach((id) => ids.add(id));
+      return Array.from(ids);
+    }
+
+    Object.keys(LAYOUT_DEVICES.device_types ?? {}).forEach((id) => ids.add(id));
     baseScenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
     scenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
-    externalDevices.forEach((device) => ids.add(device.id));
     return Array.from(ids);
-  }, [baseScenarios, externalDevices, scenarios]);
-
-  useEffect(() => {
-    setSelectedScenarioIds(scenarios.map((scenario) => scenario.id));
-  }, [scenarios]);
+  }, [baseScenarios, externalDevices, placedDeviceIds, scenarios]);
 
   const devicesForPlan = useMemo<Device[]>(() => {
     const activeSelectedIds = [...fireActiveDeviceIds, ...waterActiveDeviceIds, ...motionActiveDeviceIds].filter((id) =>
@@ -655,6 +667,18 @@ export default function SimulationPage() {
     setEvents((prev) => [...prev, event]);
     setLastEvent(event);
   }
+
+  useEffect(() => {
+    if (floorWarningsLoggedRef.current) return;
+    if (!adaptedFloor.warnings.length) return;
+
+    floorWarningsLoggedRef.current = true;
+    adaptedFloor.warnings.forEach((warning) => {
+      addEvent("floor", warning, "WARNING");
+    });
+    // addEvent intentionally writes to the log once for the loaded floor source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adaptedFloor.warnings]);
 
   function sendWsMessage(type: string, payload?: unknown) {
     const ws = wsRef.current;
@@ -1362,7 +1386,6 @@ export default function SimulationPage() {
   function onClearDevices() {
     removeStorage(PLAN_STORAGE_KEY);
     setPlacedDeviceIds([]);
-    setSelectedScenarioIds([]);
     setActiveNodes([]);
     setActiveEdges([]);
     setManualDeviceState({});

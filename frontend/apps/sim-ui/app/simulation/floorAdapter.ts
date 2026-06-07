@@ -22,11 +22,19 @@ export type FloorPolygonLayer = {
   viewBox?: { width?: number; height?: number };
 };
 
+export type FloorZoneView = {
+  id: string;
+  roomId?: string;
+  path: string;
+  label?: Point;
+};
+
 export type FloorPlanView = {
   walls?: FloorPathLayer;
   doors?: FloorPathLayer;
   windows?: FloorPathLayer;
   furniture?: FloorPolygonLayer;
+  zones?: FloorZoneView[];
   blockers?: WallSegment[];
 };
 
@@ -35,15 +43,18 @@ export type AdaptedFloor = {
   rooms: Room[];
   floorPlan: FloorPlanView;
   markers: DeviceMarker[];
+  placementMarkers: DeviceMarker[];
   warnings: string[];
 };
 
 type RawPoint = [number, number];
-type ParserWall = { id?: string; points?: RawPoint[]; width?: number };
-type ParserDoor = { id?: string; points?: RawPoint[]; width?: number };
-type ParserWindow = { id?: string; points?: RawPoint[]; width?: number };
-type ParserFurniture = { id?: string; category?: string; points?: RawPoint[] };
-type ParserRoom = { id?: string; name?: string; area?: RawPoint[] };
+type RawPointLike = RawPoint | { x?: number; y?: number; X?: number; Y?: number };
+type ParserWall = { id?: string; points?: RawPointLike[]; width?: number };
+type ParserDoor = { id?: string; points?: RawPointLike[]; width?: number };
+type ParserWindow = { id?: string; points?: RawPointLike[]; width?: number };
+type ParserFurniture = { id?: string; category?: string; points?: RawPointLike[] };
+type ParserRoom = { id?: string; name?: string; title?: string; area?: RawPointLike[]; x?: number; y?: number; w?: number; h?: number };
+type ParserZone = { id?: string; room_id?: string; roomId?: string; points?: RawPointLike[] };
 type ParserFloor = {
   schema_version?: string;
   meta?: { source?: string; source_ref?: string; units?: string };
@@ -52,6 +63,7 @@ type ParserFloor = {
   windows?: ParserWindow[];
   furniture?: ParserFurniture[];
   rooms?: ParserRoom[];
+  zones?: ParserZone[];
   warnings?: Array<{ code?: string; message?: string }>;
 };
 
@@ -61,7 +73,18 @@ type LocalFloor = {
   doors?: FloorPathLayer;
   windows?: FloorPathLayer;
   furniture?: FloorPolygonLayer;
+  zones?: ParserZone[];
+  blockers?: WallSegment[];
   devices?: Array<{ id: string; x: number; y: number; roomId?: string }>;
+};
+
+type LayoutPlacement = {
+  device?: { id?: string; type?: string };
+  position?: { x?: number; y?: number };
+};
+
+type LayoutPayload = {
+  placements?: Record<string, LayoutPlacement[]>;
 };
 
 const VIEWBOX = { width: 1000, height: 700 };
@@ -91,24 +114,80 @@ function isPointTuple(value: unknown): value is RawPoint {
   );
 }
 
+function toRawPoint(value: unknown): RawPoint | null {
+  if (isPointTuple(value)) return [value[0], value[1]];
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const x = typeof record.x === "number" ? record.x : typeof record.X === "number" ? record.X : undefined;
+  const y = typeof record.y === "number" ? record.y : typeof record.Y === "number" ? record.Y : undefined;
+  return typeof x === "number" && Number.isFinite(x) && typeof y === "number" && Number.isFinite(y) ? [x, y] : null;
+}
+
+function normalizeRawPoints(points: RawPointLike[] | undefined) {
+  return points?.map(toRawPoint).filter((point): point is RawPoint => Boolean(point)) ?? [];
+}
+
 function isParserFloor(value: unknown): value is ParserFloor {
   if (!value || typeof value !== "object") return false;
   const candidate = value as ParserFloor;
-  return Array.isArray(candidate.walls) && Array.isArray(candidate.rooms) && Boolean(candidate.schema_version || candidate.meta);
+  return Array.isArray(candidate.walls) && Boolean(candidate.schema_version || candidate.meta || Array.isArray(candidate.rooms));
 }
 
 function asLocalFloor(value: unknown): LocalFloor {
   return value && typeof value === "object" ? (value as LocalFloor) : {};
 }
 
+function unwrapFloorPayload(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  if (record.floor || record.floorJson || record.parsedFloor || record.apartment) {
+    const floor = unwrapFloorPayload(record.floor ?? record.floorJson ?? record.parsedFloor ?? record.apartment);
+    if (floor && typeof floor === "object") {
+      const floorRecord = floor as Record<string, unknown>;
+      return {
+        ...floorRecord,
+        zones: floorRecord.zones ?? record.zones,
+        layout: floorRecord.layout ?? record.layout,
+      };
+    }
+    return floor;
+  }
+
+  for (const key of ["floor", "floorJson", "parsedFloor", "apartment"]) {
+    if (record[key]) return unwrapFloorPayload(record[key]);
+  }
+  return value;
+}
+
 function collectPoints(floor: ParserFloor) {
   const points: RawPoint[] = [];
-  floor.walls?.forEach((item) => item.points?.forEach((point) => isPointTuple(point) && points.push(point)));
-  floor.doors?.forEach((item) => item.points?.forEach((point) => isPointTuple(point) && points.push(point)));
-  floor.windows?.forEach((item) => item.points?.forEach((point) => isPointTuple(point) && points.push(point)));
-  floor.furniture?.forEach((item) => item.points?.forEach((point) => isPointTuple(point) && points.push(point)));
-  floor.rooms?.forEach((item) => item.area?.forEach((point) => isPointTuple(point) && points.push(point)));
+  floor.walls?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
+  floor.doors?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
+  floor.windows?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
+  floor.furniture?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
+  floor.rooms?.forEach((item) => {
+    points.push(...normalizeRawPoints(item.area));
+    if (typeof item.x === "number" && typeof item.y === "number") points.push([item.x, item.y]);
+    if (typeof item.x === "number" && typeof item.y === "number" && typeof item.w === "number" && typeof item.h === "number") {
+      points.push([item.x + item.w, item.y + item.h]);
+    }
+  });
+  floor.zones?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
   return points;
+}
+
+function collectLayoutPoints(raw: unknown) {
+  const layout = extractLayout(raw);
+  if (!layout?.placements) return [];
+
+  return Object.values(layout.placements).flatMap((placements) =>
+    placements.flatMap((placement) => {
+      const x = placement.position?.x;
+      const y = placement.position?.y;
+      return typeof x === "number" && Number.isFinite(x) && typeof y === "number" && Number.isFinite(y) ? ([[x, y]] as RawPoint[]) : [];
+    })
+  );
 }
 
 function boundsFor(points: RawPoint[]) {
@@ -132,12 +211,42 @@ function makeNormalizer(points: RawPoint[]) {
   });
 }
 
+function validateScale(points: RawPoint[], source: "local" | "parser") {
+  if (!points.length) return [];
+  const bounds = boundsFor(points);
+  const warnings: string[] = [];
+  const ratio = bounds.width / bounds.height;
+
+  if (bounds.width < 1 || bounds.height < 1) {
+    warnings.push("План имеет слишком маленький масштаб координат, проверь входной floor.json");
+  }
+
+  if (ratio > 4 || ratio < 0.25) {
+    warnings.push("План выглядит слишком вытянутым, возможна ошибка масштаба или единиц измерения");
+  }
+
+  if (source === "parser" && points.length < 4) {
+    warnings.push("В плане недостаточно стен для надежной проверки проходов");
+  }
+
+  return warnings;
+}
+
 function toPath(points: Point[], close = false) {
   if (!points.length) return "";
   const [first, ...rest] = points;
   const start = `M ${Math.round(first.x * VIEWBOX.width)} ${Math.round(first.y * VIEWBOX.height)}`;
   const tail = rest.map((point) => `L ${Math.round(point.x * VIEWBOX.width)} ${Math.round(point.y * VIEWBOX.height)}`).join(" ");
   return `${start}${tail ? ` ${tail}` : ""}${close ? " Z" : ""}`;
+}
+
+function toSegmentPaths(points: Point[], close = false) {
+  if (points.length < 2) return [];
+  if (close) return [toPath(points, true)];
+  return points.slice(0, -1).flatMap((point, index) => {
+    const next = points[index + 1];
+    return next ? [toPath([point, next])] : [];
+  });
 }
 
 function toBlocker(points: Point[]): WallSegment | null {
@@ -158,8 +267,70 @@ function toBlocker(points: Point[]): WallSegment | null {
   return { kind: "segment", from: a, to: b };
 }
 
+function toBlockers(points: Point[]) {
+  return points.slice(0, -1).flatMap((point, index) => {
+    const next = points[index + 1];
+    const blocker = next ? toBlocker([point, next]) : null;
+    return blocker ? [blocker] : [];
+  });
+}
+
+function distance(a: Point | undefined, b: Point | undefined) {
+  if (!a || !b) return Infinity;
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function extractLayout(raw: unknown): LayoutPayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  const layout = (record.layout ?? raw) as LayoutPayload;
+  return layout && typeof layout === "object" && layout.placements ? layout : null;
+}
+
+function layoutMarkers(raw: unknown, normalize?: (point: RawPoint) => Point): DeviceMarker[] {
+  const layout = extractLayout(raw);
+  if (!layout?.placements) return [];
+
+  return Object.entries(layout.placements).flatMap(([roomId, placements]) =>
+    placements.flatMap((placement, index) => {
+      const x = placement.position?.x;
+      const y = placement.position?.y;
+      if (typeof x !== "number" || !Number.isFinite(x) || typeof y !== "number" || !Number.isFinite(y)) return [];
+
+      const point = normalize ? normalize([x, y]) : { x, y };
+      if (point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return [];
+
+      const type = placement.device?.type || "device";
+      const id = placement.device?.id || `${type}_${roomId}_${index + 1}`;
+      return [{ id, x: point.x, y: point.y, label: type }];
+    })
+  );
+}
+
 function roomFromParser(room: ParserRoom, index: number, normalize: (point: RawPoint) => Point): Room | null {
-  const area = room.area?.filter(isPointTuple).map(normalize) ?? [];
+  if (
+    typeof room.x === "number" &&
+    typeof room.y === "number" &&
+    typeof room.w === "number" &&
+    typeof room.h === "number" &&
+    room.x >= 0 &&
+    room.x <= 1 &&
+    room.y >= 0 &&
+    room.y <= 1
+  ) {
+    return {
+      id: room.id || `room_${index + 1}`,
+      title: room.title || room.name || room.id || `комната ${index + 1}`,
+      x: room.x,
+      y: room.y,
+      w: Math.max(room.w, 0.04),
+      h: Math.max(room.h, 0.04),
+      labelX: room.x + room.w / 2,
+      labelY: room.y + room.h / 2,
+    };
+  }
+
+  const area = normalizeRawPoints(room.area).map(normalize);
   if (!area.length) return null;
 
   const minX = Math.min(...area.map((point) => point.x));
@@ -173,7 +344,7 @@ function roomFromParser(room: ParserRoom, index: number, normalize: (point: RawP
 
   return {
     id: room.id || `room_${index + 1}`,
-    title: room.name || room.id || `комната ${index + 1}`,
+    title: room.title || room.name || room.id || `комната ${index + 1}`,
     x: minX,
     y: minY,
     w: Math.max(maxX - minX, 0.04),
@@ -183,52 +354,74 @@ function roomFromParser(room: ParserRoom, index: number, normalize: (point: RawP
   };
 }
 
+function zoneFromParser(zone: ParserZone, index: number, normalize: (point: RawPoint) => Point): FloorZoneView | null {
+  const points = normalizeRawPoints(zone.points).map(normalize);
+  if (points.length < 3) return null;
+  const center = points.reduce(
+    (acc, point) => ({ x: acc.x + point.x / points.length, y: acc.y + point.y / points.length }),
+    { x: 0, y: 0 }
+  );
+  return {
+    id: zone.id || `zone_${index + 1}`,
+    roomId: zone.room_id ?? zone.roomId,
+    path: toPath(points, true),
+    label: center,
+  };
+}
+
 function adaptParserFloor(raw: ParserFloor, fallbackRooms: Room[]): AdaptedFloor {
-  const sourcePoints = collectPoints(raw);
+  const sourcePoints = [...collectPoints(raw), ...collectLayoutPoints(raw)];
   if (!sourcePoints.length) {
     return {
       source: "parser",
       rooms: fallbackRooms,
       markers: [],
+      placementMarkers: [],
       warnings: ["Парсер прислал план без координат, использован локальный план"],
       floorPlan: { blockers: DEFAULT_BLOCKERS },
     };
   }
 
   const normalize = makeNormalizer(sourcePoints);
+  const scaleWarnings = validateScale(sourcePoints, "parser");
   const rooms = raw.rooms?.map((room, index) => roomFromParser(room, index, normalize)).filter((room): room is Room => Boolean(room)) ?? [];
   const walls = raw.walls?.flatMap((wall) => {
-    const points = wall.points?.filter(isPointTuple).map(normalize) ?? [];
-    return points.length >= 2 ? [toPath(points.slice(0, 2))] : [];
+    const points = normalizeRawPoints(wall.points).map(normalize);
+    return toSegmentPaths(points, points.length > 2 && distance(points[0], points[points.length - 1]) < 0.002);
   });
   const doors = raw.doors?.flatMap((door) => {
-    const points = door.points?.filter(isPointTuple).map(normalize) ?? [];
+    const points = normalizeRawPoints(door.points).map(normalize);
     return points.length >= 2 ? [toPath(points.slice(0, 2))] : [];
   });
   const windows = raw.windows?.flatMap((window) => {
-    const points = window.points?.filter(isPointTuple).map(normalize) ?? [];
+    const points = normalizeRawPoints(window.points).map(normalize);
     return points.length >= 2 ? [toPath(points.slice(0, 2))] : [];
   });
   const furniture = raw.furniture?.flatMap((item) => {
-    const points = item.points?.filter(isPointTuple).map(normalize) ?? [];
+    const points = normalizeRawPoints(item.points).map(normalize);
     return points.length >= 3 ? [toPath(points, true)] : [];
   });
+  const zones = raw.zones?.map((zone, index) => zoneFromParser(zone, index, normalize)).filter((zone): zone is FloorZoneView => Boolean(zone)) ?? [];
   const blockers =
     raw.walls
-      ?.map((wall) => wall.points?.filter(isPointTuple).map(normalize) ?? [])
-      .map(toBlocker)
-      .filter((blocker): blocker is WallSegment => Boolean(blocker)) ?? [];
+      ?.flatMap((wall) => toBlockers(normalizeRawPoints(wall.points).map(normalize))) ?? [];
+  const placementMarkers = layoutMarkers(raw, normalize);
 
   return {
     source: "parser",
     rooms: rooms.length ? rooms : fallbackRooms,
-    markers: [],
-    warnings: raw.warnings?.map((warning) => warning.message || warning.code || "Предупреждение парсера") ?? [],
+    markers: placementMarkers,
+    placementMarkers,
+    warnings: [
+      ...(raw.warnings?.map((warning) => warning.message || warning.code || "Предупреждение парсера") ?? []),
+      ...scaleWarnings,
+    ],
     floorPlan: {
       walls: { paths: walls, stroke: "#2f343b", strokeWidth: 8, viewBox: VIEWBOX },
       doors: { paths: doors, stroke: "#f5f5f7", strokeWidth: 16, viewBox: VIEWBOX },
       windows: { paths: windows, stroke: "#7cc7ff", strokeWidth: 9, viewBox: VIEWBOX },
       furniture: { paths: furniture, fill: "rgba(142,142,147,0.16)", stroke: "rgba(60,60,67,0.28)", strokeWidth: 2, viewBox: VIEWBOX },
+      zones,
       blockers: blockers.length ? blockers : DEFAULT_BLOCKERS,
     },
   };
@@ -236,22 +429,41 @@ function adaptParserFloor(raw: ParserFloor, fallbackRooms: Room[]): AdaptedFloor
 
 function adaptLocalFloor(raw: unknown, fallbackRooms: Room[], fallbackMarkers: DeviceMarker[]): AdaptedFloor {
   const floor = asLocalFloor(raw);
+  const markersFromLayout = layoutMarkers(raw);
+  const warnings = validateScale(
+    [
+      ...(floor.rooms?.flatMap((room) => [
+        [room.x, room.y],
+        [room.x + room.w, room.y + room.h],
+      ]) as RawPoint[] | undefined ?? []),
+      ...collectLayoutPoints(raw),
+    ],
+    "local"
+  );
+
   return {
     source: "local",
     rooms: floor.rooms?.length ? floor.rooms : fallbackRooms,
-    markers: floor.devices?.length ? floor.devices.map((device) => ({ id: device.id, x: device.x, y: device.y })) : fallbackMarkers,
-    warnings: [],
+    markers: floor.devices?.length
+      ? floor.devices.map((device) => ({ id: device.id, x: device.x, y: device.y }))
+      : markersFromLayout.length
+      ? markersFromLayout
+      : fallbackMarkers,
+    placementMarkers: markersFromLayout,
+    warnings,
     floorPlan: {
       walls: floor.walls,
       doors: floor.doors,
       windows: floor.windows,
       furniture: floor.furniture,
-      blockers: DEFAULT_BLOCKERS,
+      zones: floor.zones?.map((zone, index) => zoneFromParser(zone, index, ([x, y]) => ({ x, y }))).filter((zone): zone is FloorZoneView => Boolean(zone)),
+      blockers: floor.blockers?.length ? floor.blockers : DEFAULT_BLOCKERS,
     },
   };
 }
 
 export function adaptFloorData(raw: unknown, fallbackRooms: Room[], fallbackMarkers: DeviceMarker[]): AdaptedFloor {
-  if (isParserFloor(raw)) return adaptParserFloor(raw, fallbackRooms);
-  return adaptLocalFloor(raw, fallbackRooms, fallbackMarkers);
+  const payload = unwrapFloorPayload(raw);
+  if (isParserFloor(payload)) return adaptParserFloor(payload, fallbackRooms);
+  return adaptLocalFloor(payload, fallbackRooms, fallbackMarkers);
 }

@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"encoding/json"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
@@ -13,10 +15,11 @@ const maxEventsBuffer = 100
 type SimEngine struct {
 	simulation    *simgo.Simulation          // дискретная симуляция из simgo
 	IDToEntity    map[string]entities.Entity // ID сущности <-> структура сущности.
-	Field         *field.Field               // Поле для симуляции
-	eventsInChan  chan api.EventInDTO        // Канал для входящих событий
-	eventsOutChan chan api.EventOutDTO       // Канал для выходящих событий
+	roomObservers map[string][]string        // roomID <-> []entityID (entity с логикой entities.Observer)
+	eventsInChan  chan api.EventDTO          // Канал для входящих событий
+	eventsOutChan chan api.EventDTO          // Канал для выходящих событий
 	dtSim         float64                    // шаг симуляционного времени, задаётся при создании
+	Floor         *api.Floor                 // Поле для симуляции
 }
 
 // NewSimEngine создает SimEngine
@@ -24,8 +27,9 @@ func NewSimEngine(dtSim float64) *SimEngine {
 	return &SimEngine{
 		simulation:    simgo.NewSimulation(),
 		IDToEntity:    make(map[string]entities.Entity),
-		eventsInChan:  make(chan api.EventInDTO, maxEventsBuffer),
-		eventsOutChan: make(chan api.EventOutDTO, maxEventsBuffer),
+		roomObservers: make(map[string][]string),
+		eventsInChan:  make(chan api.EventDTO, maxEventsBuffer),
+		eventsOutChan: make(chan api.EventDTO, maxEventsBuffer),
 		dtSim:         dtSim,
 	}
 }
@@ -48,7 +52,22 @@ func (s *SimEngine) InitProcesses() {
 		if entityWithProcess, ok := entity.(entities.EntityWithProcess); ok {
 			s.simulation.ProcessReflect(entityWithProcess.GetProcessFunc())
 		}
+
+		if observer, ok := entity.(entities.Observer); ok {
+			x, y := observer.GetPosition()
+			for _, room := range s.Floor.Rooms {
+				if field.PointInRoom(x, y, room) {
+					s.roomObservers[room.ID] = append(s.roomObservers[room.ID], observer.GetID())
+					break
+				}
+			}
+		}
 	}
+}
+
+// GetRoomObservers возвращает ID observers в комнате.
+func (s *SimEngine) GetRoomObservers(roomID string) []string {
+	return s.roomObservers[roomID]
 }
 
 // CheckCircleDependencies проверяет наличие циклических зависимостей среди сущностей.
@@ -94,45 +113,61 @@ func (s *SimEngine) hasCycleDFS(entityID string, color map[string]int) bool {
 	return false
 }
 
-// SetField устанавливает поле для симуляции.
-func (s *SimEngine) SetField(simField *field.Field) {
-	s.Field = simField
+// SetFloor устанавливает поле для симуляции.
+func (s *SimEngine) SetFloor(floor *api.Floor) {
+	s.Floor = floor
 }
 
 // GetInChan возвращает канал для входящих событий.
-func (s *SimEngine) GetInChan() chan api.EventInDTO {
+func (s *SimEngine) GetInChan() chan api.EventDTO {
 	return s.eventsInChan
 }
 
 // GetOutChan возвращает канал для выходящих событий.
-func (s *SimEngine) GetOutChan() chan api.EventOutDTO {
+func (s *SimEngine) GetOutChan() chan api.EventDTO {
 	return s.eventsOutChan
 }
 
+// GetSimulation возвращает дикретную симуляцию simgo.
 func (s *SimEngine) GetSimulation() *simgo.Simulation {
 	return s.simulation
 }
 
+// InitStep запускает симуляцию до 0, чтобы инициализировать процессы.
 func (s *SimEngine) InitStep() {
 	s.simulation.RunUntil(0)
 }
 
+// Step выполняет шаг симуляции.
 func (s *SimEngine) Step() {
 	targetTime := s.simulation.Now() + s.dtSim
 
-	s.simulation.RunUntil(targetTime)
+	for _, entity := range s.IDToEntity {
+		if t, ok := entity.(entities.Tickable); ok {
+			tickPayload, _ := json.Marshal(struct {
+				Tick bool `json:"tick"`
+			}{Tick: true})
+			s.eventsInChan <- api.EventDTO{
+				EntityID: t.GetID(),
+				Payload:  tickPayload,
+			}
+		}
+	}
 
-	s.drainInChan()
+	s.DrainInChan()
+
+	s.simulation.RunUntil(targetTime)
 }
 
-// drainInChan читает все доступные события из канала
-func (s *SimEngine) drainInChan() {
+// DrainInChan читает все доступные события из канала
+func (s *SimEngine) DrainInChan() {
 	for {
 		select {
 		case event, ok := <-s.eventsInChan:
 			if !ok {
 				return
 			}
+
 			s.HandleEvent(event)
 		default:
 			return
@@ -142,7 +177,7 @@ func (s *SimEngine) drainInChan() {
 
 // CollectStep собирает обновления от всех сущностей после тика.
 func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
-	changes := make([]api.EventOutDTO, 0)
+	changes := make([]api.EventDTO, 0)
 
 	for {
 		select {
@@ -158,12 +193,13 @@ func (s *SimEngine) CollectStep(tick int) *api.SimulationStepPayload {
 	}
 }
 
+// Stop останавливает симуляцию, закрывая канал входящих событий.
 func (s *SimEngine) Stop() {
 	close(s.eventsInChan)
 }
 
 // HandleEvent обрабатывает event по его entityID
-func (s *SimEngine) HandleEvent(event api.EventInDTO) {
+func (s *SimEngine) HandleEvent(event api.EventDTO) {
 	if entityWithProcess, ok := s.IDToEntity[event.EntityID].(entities.EntityWithProcess); ok {
 		err := entityWithProcess.HandleInDTO(event.Payload)
 		if err != nil {
@@ -172,15 +208,34 @@ func (s *SimEngine) HandleEvent(event api.EventInDTO) {
 	}
 }
 
-// UpdateField обновляет состояние ячейки на поле. Если координаты некорректные, то возвращает ошибку.
-func (s *SimEngine) UpdateField(x, y int, cell field.Cell) error {
-	if x < 0 || x > s.Field.Height {
-		return ErrorFieldInvalidParameterX
-	} else if y < 0 || y > s.Field.Width {
-		return ErrorFieldInvalidParameterY
+// NotifyObservers отправляет payload всем observer в комнате roomID, которые слушают kind событий.
+func (s *SimEngine) NotifyObservers(roomID string, kind string, payload []byte) {
+	for _, observerID := range s.roomObservers[roomID] {
+		entity := s.IDToEntity[observerID]
+
+		observer, ok := entity.(entities.Observer)
+		if !ok {
+			continue
+		}
+
+		for _, k := range observer.GetObservedKinds() {
+			if k == kind {
+				s.eventsInChan <- api.EventDTO{
+					EntityID: observerID,
+					Payload:  payload,
+				}
+
+				break
+			}
+		}
 	}
+}
 
-	s.Field.Cells[x][y].Condition = cell.Condition
+// GetFloor возвращает поле для симуляции.
+func (s *SimEngine) GetFloor() *api.Floor {
+	return s.Floor
+}
 
-	return nil
+func (s *SimEngine) GetEntity(id string) entities.Entity {
+	return s.IDToEntity[id]
 }

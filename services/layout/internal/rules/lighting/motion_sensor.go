@@ -32,8 +32,8 @@ func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum str
 				return err
 			}
 
-			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p1, nil)
-			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p2, nil)
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p1, nil, nil)
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p2, nil, nil)
 			continue
 		}
 
@@ -42,7 +42,7 @@ func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum str
 			return err
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, sensorPoint, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, sensorPoint, nil, nil)
 	}
 
 	return nil

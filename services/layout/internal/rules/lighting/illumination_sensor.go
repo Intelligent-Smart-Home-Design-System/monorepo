@@ -34,7 +34,7 @@ func (r *IlluminationSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelN
 			return err
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil, nil)
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package apartment
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
@@ -12,6 +11,20 @@ const (
 	doorZoneDepth      = 1.5
 	degreePerDirection = 30
 )
+
+func (r *Room) GetRoomSizes() (float64, float64) {
+	p1, p2 := point.GetBoundaries(r.Area)
+	
+	length := p2.X - p1.X
+	width := p2.Y - p1.Y
+	
+	return length, width
+}
+
+// IsPointInRoom проверяет, находится ли точка в комнате
+func (r *Room) IsPointInRoom(targetPoint point.Point) bool {
+	return point.IsPointInPolygon(targetPoint, r.Area)
+}
 
 // IsPointVisibleOnDevice проверяет, видна ли точка на устройстве
 func (r *Room) IsPointVisibleOnDevice(apartment *Apartment, p point.Point, devicePoint point.Point, deviceRange, deviceAngle float64, deviceDirection point.Point) bool {
@@ -111,7 +124,6 @@ func (r *Room) GetTheOppositePoint(p point.Point) (point.Point, float64) {
 	for _, corner := range r.Area[1:] {
 		dist := point.CalculatePointsDistance(p, corner)
 		if dist > maxDist {
-			fmt.Println(dist, corner, p)
 			maxDist = dist
 			bestPoint = corner
 		}

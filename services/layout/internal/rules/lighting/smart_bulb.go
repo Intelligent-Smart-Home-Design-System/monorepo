@@ -35,7 +35,7 @@ func (r *SmartBulbRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 			place = &fallback
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil, nil)
 	}
 
 	return nil

@@ -332,6 +332,8 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		return s.scrapeListing(ctx, task)
 	case domain.PageTypeDiscovery:
 		return s.scrapeDiscoveryTask(ctx, task)
+	case domain.PageTypeCategory:
+    	return s.scrapeCategory(ctx, task)
 	default:
 		return nil, fmt.Errorf("unsupported page type %s for source %s", task.PageType.String(), task.Source)
 	}
@@ -441,4 +443,20 @@ func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages in
 		return nil, fmt.Errorf("no search results found for query %s", query)
 	}
 	return resources, nil
+}
+
+func (s *Scraper) scrapeCategory(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
+    body, err := s.fetchWithRetry(ctx, task.URL)
+    if err != nil {
+        return nil, fmt.Errorf("fetch category page: %w", err)
+    }
+    resource := domain.Resource{
+        Name:         "html",
+        URL:          task.URL,
+        ResponseBody: body,
+        StatusCode:   http.StatusOK,
+        Status:       "200 OK",
+        Timestamp:    time.Now(),
+    }
+    return &domain.ScrapeResult{Resources: []domain.Resource{resource}}, nil
 }

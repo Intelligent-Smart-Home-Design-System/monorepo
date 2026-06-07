@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -18,16 +20,27 @@ import {
   Divider,
   LinearProgress,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
 import { api } from "../lib/api";
-import type { ApiHomePlan, ApiPlanStatus } from "../lib/types";
+import { useAuth } from "../lib/auth-context";
+import type { ApiHomePlan, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
 
 type UploadedPlanState = {
   fileName?: string;
   planDataUrl?: string;
   planFileType?: "dxf" | "png" | "";
+};
+
+type ResultTabKey = "final" | "zones" | "energy" | "stages";
+
+type ResultTab = {
+  key: ResultTabKey;
+  label: string;
+  artifact?: ApiPlanStageArtifact;
 };
 
 export default function PlanPage() {
@@ -45,6 +58,7 @@ export default function PlanPage() {
 }
 
 function PlanPageContent() {
+  const auth = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -55,11 +69,19 @@ function PlanPageContent() {
   const [uploadedPlan] = useState<UploadedPlanState | null>(() => loadUploadedPlan());
   const [selectedBundleId, setSelectedBundleId] = useState<number | null>(null);
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
+  const [activeResultTab, setActiveResultTab] = useState<ResultTabKey>("final");
 
   const planId = Number(searchParams.get("id") ?? "");
   const invalidPlanId = !Number.isFinite(planId) || planId <= 0;
 
   useEffect(() => {
+    if (auth.loading || !auth.isAuthenticated) {
+      if (!auth.loading) {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (invalidPlanId) {
       return;
     }
@@ -104,7 +126,7 @@ function PlanPageContent() {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [invalidPlanId, planId]);
+  }, [auth.isAuthenticated, auth.loading, invalidPlanId, planId]);
 
   const selectedBundle = useMemo(
     () => plan?.bundles.find((bundle) => bundle.id === selectedBundleId) ?? plan?.bundles[0] ?? null,
@@ -120,6 +142,25 @@ function PlanPageContent() {
   );
 
   const bundleTotalListings = selectedBundle?.listings.length ?? 0;
+
+  const stageArtifacts = useMemo(
+    () => collectStageArtifacts(status, plan),
+    [plan, status]
+  );
+
+  const resultTabs = useMemo(
+    () => buildResultTabs(stageArtifacts, Boolean(plan)),
+    [plan, stageArtifacts]
+  );
+
+  useEffect(() => {
+    if (!resultTabs.length) return;
+    if (!resultTabs.some((tab) => tab.key === activeResultTab)) {
+      setActiveResultTab(resultTabs[0].key);
+    }
+  }, [activeResultTab, resultTabs]);
+
+  const activeStageArtifact = resultTabs.find((tab) => tab.key === activeResultTab)?.artifact;
 
   return (
     <Box
@@ -162,21 +203,51 @@ function PlanPageContent() {
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
-              onClick={() => router.push("/")}
-              sx={{
-                borderRadius: 3,
-                fontWeight: 900,
-                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
-              }}
-            >
-              На главную
-            </Button>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
+              <Button
+                variant="contained"
+                onClick={() => router.push(`/simulation?plan_id=${planId}`)}
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 900,
+                  background: "linear-gradient(135deg, #7c3aed, #c026d3)",
+                  boxShadow: "0 14px 34px rgba(124,58,237,0.28)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #6d28d9, #a21caf)",
+                    boxShadow: "0 18px 42px rgba(124,58,237,0.34)",
+                  },
+                }}
+              >
+                Перейти к симуляции
+              </Button>
+
+              <Button
+                variant="contained"
+                onClick={() => router.push("/")}
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 900,
+                  background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+                }}
+              >
+                На главную
+              </Button>
+            </Stack>
           </Stack>
         </Box>
 
-        {invalidPlanId ? (
+        {!auth.isAuthenticated ? (
+          <Alert
+            severity="warning"
+            action={
+              <Button color="inherit" size="small" onClick={() => router.push(`/login?next=/plan?id=${planId}`)}>
+                Войти
+              </Button>
+            }
+          >
+            Для просмотра плана нужен вход в аккаунт.
+          </Alert>
+        ) : invalidPlanId ? (
           <Alert severity="error">Не передан корректный plan_id.</Alert>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
@@ -226,7 +297,38 @@ function PlanPageContent() {
               </CardContent>
             </Card>
 
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2.5}>
+            {resultTabs.length > 0 && (
+              <Card sx={surfaceCardSx}>
+                <CardContent>
+                  <Stack spacing={1.5}>
+                    <Box>
+                      <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+                        Результаты по этапам
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Данные этапов не теряются: когда backend присылает новый артефакт, он появляется отдельной вкладкой.
+                      </Typography>
+                    </Box>
+
+                    <Tabs
+                      value={activeResultTab}
+                      onChange={(_, value) => setActiveResultTab(value as ResultTabKey)}
+                      variant="scrollable"
+                      scrollButtons="auto"
+                    >
+                      {resultTabs.map((tab) => (
+                        <Tab key={tab.key} value={tab.key} label={tab.label} />
+                      ))}
+                    </Tabs>
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeResultTab !== "final" ? (
+              <StageArtifactPanel artifact={activeStageArtifact} />
+            ) : (
+              <Stack direction={{ xs: "column", md: "row" }} spacing={2.5}>
               <Card sx={{ ...surfaceCardSx, flex: 1 }}>
                 <CardContent>
                   <Typography sx={{ fontWeight: 900, color: "#0f172a", mb: 1.2 }}>
@@ -444,7 +546,8 @@ function PlanPageContent() {
                   )}
                 </CardContent>
               </Card>
-            </Stack>
+              </Stack>
+            )}
           </Stack>
         )}
       </Box>
@@ -508,6 +611,182 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null }) {
           Для DXF пока показываем только факт загрузки, а сам подбор идёт через backend API.
         </Typography>
       </Stack>
+    </Box>
+  );
+}
+
+function collectStageArtifacts(
+  status: ApiPlanStatus | null,
+  plan: ApiHomePlan | null
+): ApiPlanStageArtifact[] {
+  const byKey = new Map<string, ApiPlanStageArtifact>();
+
+  for (const artifact of status?.stages ?? []) {
+    if (artifact.key) byKey.set(artifact.key, artifact);
+  }
+
+  for (const artifact of [...(plan?.stages ?? []), ...(plan?.artifacts ?? [])]) {
+    if (artifact.key) byKey.set(artifact.key, artifact);
+  }
+
+  return Array.from(byKey.values());
+}
+
+function buildResultTabs(stageArtifacts: ApiPlanStageArtifact[], hasFinalPlan: boolean): ResultTab[] {
+  const tabs: ResultTab[] = [];
+  const zones = findStageArtifact(stageArtifacts, ["zones", "zoning", "rooms", "layout_zones"]);
+  const energy = findStageArtifact(stageArtifacts, ["energy", "energy_report", "power", "consumption"]);
+  const extraStages = stageArtifacts.filter((artifact) => artifact !== zones && artifact !== energy);
+
+  if (hasFinalPlan) {
+    tabs.push({ key: "final", label: "Финал" });
+  }
+
+  if (zones) {
+    tabs.push({ key: "zones", label: "Зоны", artifact: zones });
+  }
+
+  if (energy) {
+    tabs.push({ key: "energy", label: "Энергопотребление", artifact: energy });
+  }
+
+  if (extraStages.length) {
+    tabs.push({
+      key: "stages",
+      label: "Этапы",
+      artifact: {
+        key: "stages",
+        title: "Промежуточные этапы",
+        data: extraStages,
+      },
+    });
+  }
+
+  return tabs;
+}
+
+function findStageArtifact(stageArtifacts: ApiPlanStageArtifact[], keys: string[]) {
+  return stageArtifacts.find((artifact) => {
+    const normalizedKey = artifact.key.toLowerCase();
+    const normalizedTitle = `${artifact.name ?? ""} ${artifact.title ?? ""}`.toLowerCase();
+    return keys.some((key) => normalizedKey.includes(key) || normalizedTitle.includes(key));
+  });
+}
+
+function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
+  if (!props.artifact) {
+    return (
+      <Card sx={surfaceCardSx}>
+        <CardContent>
+          <Typography color="text.secondary">Данные этого этапа пока не пришли от backend.</Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const payload = props.artifact.data ?? props.artifact.payload ?? props.artifact;
+
+  return (
+    <Card sx={surfaceCardSx}>
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", mb: 0.5 }}>
+              <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+                {props.artifact.title ?? props.artifact.name ?? props.artifact.key}
+              </Typography>
+              {props.artifact.status && <Chip size="small" label={props.artifact.status} />}
+            </Stack>
+            <Typography variant="body2" color="text.secondary">
+              Артефакт этапа сохранён на фронте и не пропадает после получения финального результата.
+            </Typography>
+          </Box>
+
+          {typeof props.artifact.progress === "number" && (
+            <Box>
+              <LinearProgress variant="determinate" value={props.artifact.progress * 100} />
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.8 }}>
+                Прогресс этапа: {(props.artifact.progress * 100).toFixed(0)}%
+              </Typography>
+            </Box>
+          )}
+
+          <StagePayloadView payload={payload} />
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StagePayloadView(props: { payload: unknown }) {
+  if (Array.isArray(props.payload)) {
+    return (
+      <Stack spacing={1}>
+        {props.payload.map((item, index) => (
+          <Box
+            key={index}
+            sx={{
+              borderRadius: 3,
+              p: 1.5,
+              background: "#f8fafc",
+              border: "1px solid rgba(148,163,184,0.18)",
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Элемент #{index + 1}</Typography>
+            <JsonBlock value={item} />
+          </Box>
+        ))}
+      </Stack>
+    );
+  }
+
+  if (props.payload && typeof props.payload === "object") {
+    const record = props.payload as Record<string, unknown>;
+    const entries = Object.entries(record).filter(([key]) => !["data", "payload"].includes(key));
+
+    return (
+      <Stack spacing={1}>
+        {entries.map(([key, value]) => (
+          <Box
+            key={key}
+            sx={{
+              borderRadius: 3,
+              p: 1.5,
+              background: "#f8fafc",
+              border: "1px solid rgba(148,163,184,0.18)",
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, mb: 0.5 }}>{key}</Typography>
+            {typeof value === "object" && value !== null ? (
+              <JsonBlock value={value} />
+            ) : (
+              <Typography color="text.secondary">{String(value ?? "—")}</Typography>
+            )}
+          </Box>
+        ))}
+      </Stack>
+    );
+  }
+
+  return <Typography color="text.secondary">{String(props.payload ?? "Нет данных")}</Typography>;
+}
+
+function JsonBlock(props: { value: unknown }) {
+  return (
+    <Box
+      component="pre"
+      sx={{
+        m: 0,
+        p: 1.5,
+        borderRadius: 3,
+        overflow: "auto",
+        background: "#0f172a",
+        color: "#e2e8f0",
+        fontSize: 12,
+        lineHeight: 1.6,
+      }}
+    >
+      {JSON.stringify(props.value, null, 2)}
     </Box>
   );
 }

@@ -184,6 +184,36 @@
       "tracks": [
         "lighting"
       ]
+    },
+    "smart_tv": {
+      "name": "Умный телевизор",
+      "price_range": {
+        "min": 20000,
+        "max": 500000
+      },
+      "tracks": [
+        "media"
+      ]
+    },
+    "smart_speaker": {
+      "name": "Умная колонка",
+      "price_range": {
+        "min": 5000,
+        "max": 50000
+      },
+      "tracks": [
+        "media"
+      ]
+    },
+    "subwoofer": {
+      "name": "Сабвуфер",
+      "price_range": {
+        "min": 7000,
+        "max": 30000
+      },
+      "tracks": [
+        "media"
+      ]
     }
   }
 }

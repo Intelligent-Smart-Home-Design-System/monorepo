@@ -1,14 +1,31 @@
 from __future__ import annotations
 
 from internal.classification.classifier import ClassifiedEntities
-from internal.entities.floor import Door, FloorMetadata, FloorPlan, Wall, Window
+from internal.entities.floor import FloorPlan
+from internal.topology.furniture_builder import FurnitureBuilder
+from internal.topology.room_builder import RoomBuilder
 
 
 class TopologyBuilder:
-    def build_floor(self, source_file: str, classified_entities: ClassifiedEntities, parsed_entity_count: int) -> FloorPlan:
+    def __init__(self) -> None:
+        self._room_builder = RoomBuilder()
+        self._furniture_builder = FurnitureBuilder()
+
+    def build_floor(
+        self,
+        source_file: str,
+        classified_entities: ClassifiedEntities,
+        units: str | None = None,
+    ) -> FloorPlan:
         walls = classified_entities.walls
-        doors = classified_entities.doors
-        windows = classified_entities.windows
+        rooms, doors, windows = self._room_builder.build(
+            walls,
+            classified_entities.doors,
+            classified_entities.windows,
+            classified_entities.texts,
+            units=units,
+        )
+        furniture, rooms = self._furniture_builder.build(classified_entities.entities, rooms, units=units)
 
         return FloorPlan(
             schema_version="0.1.0",
@@ -16,23 +33,6 @@ class TopologyBuilder:
             walls=walls,
             doors=doors,
             windows=windows,
-            metadata=FloorMetadata(
-                parsed_entity_count=parsed_entity_count,
-                supported_attributes=self._collect_supported_attributes(walls, doors, windows),
-            ),
+            rooms=rooms,
+            furniture=furniture,
         )
-
-    def _collect_supported_attributes(
-        self,
-        walls: list[Wall],
-        doors: list[Door],
-        windows: list[Window],
-    ) -> list[str]:
-        supported_attributes = []
-        if walls:
-            supported_attributes.append("walls")
-        if doors:
-            supported_attributes.append("doors")
-        if windows:
-            supported_attributes.append("windows")
-        return supported_attributes

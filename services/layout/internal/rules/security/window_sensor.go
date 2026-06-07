@@ -72,7 +72,7 @@ func (ws *WindowSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 			zoneCenter := point.GetCenter(windowZone.Points)
 
 			if deviceCnt < maxCount {
-				layout.AddDeviceToLayout(deviceType, ws.track, zr.OrigRoom.ID, zoneCenter, windowSensorFilters)
+				layout.AddDeviceToLayout(deviceType, ws.track, zr.OrigRoom.ID, zoneCenter, nil, windowSensorFilters)
 				deviceCnt++
 			}
 		}

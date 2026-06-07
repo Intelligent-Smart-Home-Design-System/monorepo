@@ -65,7 +65,7 @@ func (sl *SmartLockRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 			zoneCenter := zr.EntryDoorZone.Points[1]
 
 			if deviceCnt < maxCount {
-				layout.AddDeviceToLayout(deviceType, sl.track, zr.OrigRoom.ID, &zoneCenter, smartLockFilters)
+				layout.AddDeviceToLayout(deviceType, sl.track, zr.OrigRoom.ID, &zoneCenter, nil, smartLockFilters)
 				deviceCnt++
 			}
 		}

@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
@@ -63,11 +65,89 @@ func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string
 	return res, nil
 }
 
-func (e *Engine) CalculateLayoutPrice(apartmentLayout *apartment.Layout) *PriceInfo {
+// MakeScenarioDependencies возвращает зависимости между устройства внутри итоговой расстановки
+func (e *Engine) MakeScenarioDependencies(layout *apartment.Layout) (map[string][]string, error) {
+	result := make(map[string][]string)
+
+	var dependencies struct {
+		Triggers map[string]TriggerInfo
+	}
+	
+	path := "../../../../simulation/configs/dependencies.json"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(data, &dependencies); err != nil {
+		return nil, err
+	}
+
+	roomAndTypeToDeviceIDs := make(map[string]map[string][]string)
+	smartSirens := make([]string, 0)
+
+	for roomID, placements := range layout.Placements {
+		for _, placement := range placements {
+			if placement.Device == nil {
+				continue
+			}
+
+			deviceType := placement.Device.Type
+			if deviceType == "smart_siren" {
+				smartSirens = append(smartSirens, placement.Device.ID)
+			}
+
+			if roomAndTypeToDeviceIDs[roomID] == nil {
+				roomAndTypeToDeviceIDs[roomID] = make(map[string][]string)
+			}
+
+
+			roomAndTypeToDeviceIDs[roomID][deviceType] = append(
+				roomAndTypeToDeviceIDs[roomID][deviceType], 
+				placement.Device.ID,
+			)
+		}
+	}
+
+	for triggerType, info := range dependencies.Triggers {
+		for _, typeToDeviceIDs := range roomAndTypeToDeviceIDs {
+			triggersIDs, ok := typeToDeviceIDs[triggerType]
+			if !ok {
+				continue
+			}
+
+			executorsIDs := make([]string, 0)
+			isUsedSirens := false
+			for _, executorType := range info.Triggers {
+				if !isUsedSirens && executorType == "smart_siren" {
+					executorsIDs = append(executorsIDs, smartSirens...)
+					isUsedSirens = true
+				} else {
+					executorsInRoom, ok := typeToDeviceIDs[executorType]
+					if ok {
+						executorsIDs = append(executorsIDs, executorsInRoom...)
+					}
+				}
+			}
+
+			if len(executorsIDs) == 0 {
+				continue
+			}
+
+			for _, triggerID := range triggersIDs {
+				result[triggerID] = executorsIDs
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (e *Engine) CalculateLayoutPrice(layout *apartment.Layout) *PriceInfo {
 	devicesConfig := configs.GetGlobalDevicesConfig()
 
 	priceInfo := &PriceInfo{}
-	for _, roomPlacements := range apartmentLayout.Placements {
+	for _, roomPlacements := range layout.Placements {
 		for _, placement := range roomPlacements {
 			device := devicesConfig.Devices[placement.Device.Type]
 

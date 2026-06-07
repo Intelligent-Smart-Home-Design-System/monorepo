@@ -27,8 +27,7 @@ func (s *Storage) LoadAllRules() {
 	s.LoadAllLightingRules()
 	s.LoadAllClimateRules()
 	s.LoadAllMediaRules()
-
-	// TODO: добавить оставшиеся треки
+	s.LoadAllHouseholdRules()
 }
 
 func (s *Storage) LoadAllSecurityRules() {

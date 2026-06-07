@@ -28,7 +28,9 @@ type ZonedRoom struct {
 	SirenZones       []*Zone             `json:"siren_zones"`
 	CleaningZones    []*Zone             `json:"cleaning_zones"`
 	RestrictedZones  []*Zone             `json:"restricted_zones"`
-	ACAvailableWalls map[string]struct{} // nil = все стены доступны
+	ListeningPosition *point.Point
+	TVPosition        *point.Point
+	ACAvailableWalls  map[string]struct{} // nil = все стены доступны
 }
 
 func NewZonedRoom(r *Room) *ZonedRoom {

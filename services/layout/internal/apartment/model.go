@@ -38,7 +38,7 @@ type Door struct {
 type Window struct {
 	ID     string        `json:"id"`
 	Points []point.Point `json:"points"`
-	Width float64       `json:"width"`
+	Width  float64       `json:"width"`
 	Rooms  []string      `json:"rooms"`
 }
 
@@ -46,7 +46,7 @@ type Furniture struct {
 	ID     string        `json:"id"`
 	Name   string        `json:"name"`
 	Points []point.Point `json:"points"`
-	Rooms  []string      `json:"rooms"`
+	Room  string      `json:"room"`
 }
 
 type Plumbing struct {

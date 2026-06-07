@@ -1,3 +1,0 @@
-package devices
-
-// Инфраструктура

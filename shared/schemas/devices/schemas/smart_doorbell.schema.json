@@ -1,0 +1,178 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SmartDoorbell",
+  "description": "A smart home doorbell",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Video Doorbell G4'"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'ring', 'tuya'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier as stated by the manufacturer."
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "digma",
+          "sber",
+          "vk",
+          "ekf"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems this device can connect to through any connection path."
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "ble",
+          "matter-over-wifi",
+          "matter-over-thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Wireless protocols supported by this device."
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "CR2032",
+        "CR2450",
+        "CR123A",
+        "CR1632",
+        "AA",
+        "AAA",
+        "18650"
+      ],
+      "description": "Battery type required."
+    },
+    "battery_quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Expected battery life in months as stated by manufacturer."
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built-in rechargeable battery."
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress protection rating for outdoor use, e.g. 'IP65'."
+    },
+    "power_source": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mains",
+          "battery",
+          "rechargeable_battery",
+          "usb",
+          "poe",
+          "ac_dc_adapter"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "720p",
+        "1080p",
+        "2K",
+        "4K"
+      ],
+      "description": "Video resolution if a camera is present."
+    },
+    "has_night_vision": {
+      "type": "boolean",
+      "description": "Whether the camera supports night vision or infrared recording in low light."
+    },
+    "has_two_way_audio": {
+      "type": "boolean",
+      "description": "Whether the doorbell supports two-way audio communication with the visitor."
+    },
+    "has_motion_detection": {
+      "type": "boolean",
+      "description": "Whether the doorbell can detect motion and trigger alerts without the button being pressed."
+    },
+    "has_person_detection": {
+      "type": "boolean",
+      "description": "Uses AI to distinguish people from general motion"
+    },
+    "local_storage": {
+      "type": "boolean",
+      "description": "Whether the device supports local video storage, e.g. via microSD card."
+    },
+    "cloud_storage": {
+      "type": "boolean",
+      "description": "Whether the device supports cloud video storage."
+    },
+    "field_of_view_deg": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 360,
+      "description": "Horizontal field of view in degrees"
+    },
+    "ptz": {
+      "type": "boolean",
+      "description": "Supports pan, tilt, and zoom"
+    },
+    "indoor_outdoor": {
+      "type": "string",
+      "enum": [
+        "indoor",
+        "outdoor",
+        "both"
+      ],
+      "description": "Intended usage environment"
+    },
+    "type": {
+      "const": "smart_doorbell"
+    },
+    "has_camera": {
+      "type": "boolean",
+      "description": "Whether the doorbell includes a built-in camera for video."
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type"
+  ],
+  "additionalProperties": false
+}

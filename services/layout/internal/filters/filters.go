@@ -30,7 +30,7 @@ type SmartDoorBellFilter struct {
 	NightVision bool    `json:"night_vision,omitempty"`
 	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
 
-	Direction *point.Point
+	Direction *point.Point `json:"direction,omitempty"`
 }
 
 type DoorSensorFilter struct{}
@@ -50,8 +50,8 @@ type CameraFilter struct {
 	NightVision bool    `json:"night_vision,omitempty"`
 	Resolution  string  `json:"resolution,omitempty"`
 
-	RecommendedRange float64
-	Direction        *point.Point
+	RecommendedRangeM float64      `json:"recommended_range_m,omitempty"`
+	Direction         *point.Point `json:"direction,omitempty"`
 }
 
 type SmartSirenFilter struct {
@@ -79,11 +79,27 @@ type RobotVacuumFilter struct {
 	VoiceAssistantSupport bool    `json:"voice_assistant_support,omitempty"`
 }
 
+type SmartTVFilter struct {
+	Resolution     string  `json:"resolution,omitempty"`
+	Width          float64 `json:"width,omitempty"`
+	RefreshRatehHZ float64 `json:"refresh_rate_hz,omitempty"`
+
+	MaxWidthM float64 `json:"max_width_m,omitempty"`
+}
+
+type SmartSpeaker struct{}
+
+type Subwoofer struct{}
+
+type CeilingSpeakers struct{}
+
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
 
 	switch deviceType {
+
+	// Security-устройства
 	case "water_leak_sensor":
 		filter = &WaterLeakSensorFilter{}
 	case "gas_leak_sensor":
@@ -102,10 +118,24 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &CameraFilter{}
 	case "smart_siren":
 		filter = &SmartSirenFilter{}
+
+	// Climate-устройства
 	case "air_conditioner":
 		filter = &AirConditionerFilter{}
+    
+  // Household-устройства
 	case "robot_vacuum":
 		filter = &RobotVacuumFilter{}
+
+	// Media-устройства
+	case "smart_tv":
+		filter = &SmartTVFilter{}
+	case "smart_speaker":
+		filter = &SmartSpeaker{}
+	case "sub_woofer":
+		filter = &Subwoofer{}
+	case "ceiling_speakers":
+		filter = &CeilingSpeakers{}
 	}
 
 	if filter == nil {

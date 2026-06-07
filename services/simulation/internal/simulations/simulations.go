@@ -9,11 +9,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 )
 
-// В пакете реализовано управление симуляциями через соответствующие компоненты.
-// Пакет связывает логику компонентов (fetcher, sender, engine, ...) между собой и
-// старается как можно меньше реализовывать логику самостоятельно.
-
-// Simulations - структура, которая усправляет всеми симуляциями.
+// Simulations - структура, которая усправляет всеми движками.
 type Simulations struct {
 	mu         sync.RWMutex
 	IDToEngine map[string]engine.Engine // engineID <-> engine
@@ -31,13 +27,18 @@ func NewSimulation() *Simulations {
 func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) error {
 	eng := engine.NewSimEngine(payload.DtSim)
 
-	simField := converter.FieldFromDTO(payload.Apartment)
-	eng.SetField(simField)
+	simField, err := converter.ParseFloor(payload.Apartment)
+	if err != nil {
+		return err
+	}
+
+	eng.SetFloor(simField)
 
 	entities, err := converter.EntitiesFromDTO(payload.Devices, eng)
 	if err != nil {
 		return err
 	}
+
 	dependencies := converter.DependenciesFromDTO(payload.Scenarios)
 	eng.InitEntities(entities, dependencies)
 
@@ -72,6 +73,7 @@ func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*ap
 	}
 
 	eng.Step()
+
 	return eng.CollectStep(payload.Tick), nil
 }
 

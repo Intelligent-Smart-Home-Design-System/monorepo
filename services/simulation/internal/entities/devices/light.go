@@ -13,11 +13,13 @@ type Lamp struct {
 	TurnOn bool `json:"turn_on"`
 }
 
+// LampData - входные и выходные данные для лампы.
 type LampData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewLamp - конструктор для создания новой лампы из JSON-данных.
 func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 	var lamp Lamp
 	if err := json.Unmarshal(data, &lamp); err != nil {
@@ -31,6 +33,7 @@ func NewLamp(data []byte, engineAPI engine.EnginePort) (*Lamp, error) {
 	return &lamp, nil
 }
 
+// HandleInDTO - метод для обработки входных данных в формате JSON и сохранения их во внутреннем хранилище.
 func (l *Lamp) HandleInDTO(dto []byte) error {
 	input := LampData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -53,16 +56,19 @@ func (l *Lamp) HandleEvent(inData LampData) LampData {
 	}
 }
 
+// SmartLamp (управление светом — используется для акцентного освещения и сцен)
 type SmartLamp struct {
 	BaseDevice[SmartLampData]
 	Percents int `json:"percents"`
 }
 
+// SmartLampData - входные и выходные данные для SmartLamp.
 type SmartLampData struct {
 	Kind     string `json:"kind"`
 	Percents int    `json:"percents"`
 }
 
+// NewSmartLamp - конструктор для создания новой SmartLamp из JSON-данных.
 func NewSmartLamp(data []byte, engineAPI engine.EnginePort) (*SmartLamp, error) {
 	var lamp SmartLamp
 	if err := json.Unmarshal(data, &lamp); err != nil {
@@ -76,6 +82,7 @@ func NewSmartLamp(data []byte, engineAPI engine.EnginePort) (*SmartLamp, error) 
 	return &lamp, nil
 }
 
+// HandleInDTO - метод для обработки входных данных в формате JSON и сохранения их во внутреннем хранилище.
 func (s *SmartLamp) HandleInDTO(dto []byte) error {
 	input := SmartLampData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -98,18 +105,20 @@ func (s *SmartLamp) HandleEvent(inData SmartLampData) SmartLampData {
 	}
 }
 
-// SmartDimmer (управление светом — используется для акцентного освещения и сцен)
+// SmartDimmer (управление светом - используется для акцентного освещения и сцен)
 // реализует интерфейс entities.EntityWithProcess.
 type SmartDimmer struct {
 	BaseDevice[DimmerData]
 	Percents int `json:"percents"` // 0-100
 }
 
+// DimmerData - входные и выходные данные для SmartDimmer.
 type DimmerData struct {
 	Kind     string `json:"kind"`
 	Percents int    `json:"percents"`
 }
 
+// NewSmartDimmer - конструктор для создания новой SmartDimmer из JSON-данных.
 func NewSmartDimmer(data []byte, engineAPI engine.EnginePort) (*SmartDimmer, error) {
 	var dimmer SmartDimmer
 
@@ -124,6 +133,7 @@ func NewSmartDimmer(data []byte, engineAPI engine.EnginePort) (*SmartDimmer, err
 	return &dimmer, nil
 }
 
+// HandleInDTO - метод для обработки входных данных в формате JSON и сохранения их во внутреннем хранилище.
 func (d *SmartDimmer) HandleInDTO(dto []byte) error {
 	input := DimmerData{}
 

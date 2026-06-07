@@ -343,7 +343,8 @@
               "hall"
             ],
             "smart_siren": [
-              "hall"
+              "hall",
+              "passage"
             ]
           },
           "max_device_counts": {
@@ -429,7 +430,7 @@
             "smart_bulb": 3
           },
           "device_filters": {
-            "smart_buld": {}
+            "smart_bulb": {}
           }
         },
         "2": {
@@ -454,7 +455,7 @@
             "smart_bulb": 5
           },
           "device_filters": {
-            "smart_buld": {}
+            "smart_bulb": {}
           }
         },
         "3": {
@@ -491,7 +492,7 @@
             "illumination_sensor": 2
           },
           "device_filters": {
-            "smart_buld": {},
+            "smart_bulb": {},
             "motion_sensor": {},
             "illumination_sensor": {}
           }
@@ -527,6 +528,18 @@
             "curtains": [
               "windows"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2,
+            "curtains": 3
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "motion_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {}
           }
         },
         "5": {
@@ -571,6 +584,22 @@
               "living",
               "bedroom"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2,
+            "curtains": 3,
+            "wireless_button_switch": 3,
+            "smart_dimmer": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "motion_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {},
+            "wireless_button_switch": {},
+            "smart_dimmer": {}
           }
         },
         "6": {
@@ -621,6 +650,24 @@
               "passage",
               "bathroom"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "presence_sensor": 3,
+            "illumination_sensor": 2,
+            "curtains": 3,
+            "wireless_button_switch": 3,
+            "smart_dimmer": 2,
+            "built_in_backlight": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "presence_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {},
+            "wireless_button_switch": {},
+            "smart_dimmer": {},
+            "built_in_backlight": {}
           }
         },
         "7": {
@@ -677,6 +724,211 @@
               "living",
               "bedroom"
             ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "presence_sensor": 3,
+            "illumination_sensor": 2,
+            "curtains": 3,
+            "wireless_button_switch": 3,
+            "smart_dimmer": 2,
+            "built_in_backlight": 4,
+            "decorative_luminaire": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "presence_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {},
+            "wireless_button_switch": {},
+            "smart_dimmer": {},
+            "built_in_backlight": {},
+            "decorative_luminaire": {}
+          }
+        }
+      }
+    },
+    "household": {
+      "name": "Бытовая техника",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Базовая автоматизация уборки",
+          "price_range": {
+            "min": 20000,
+            "max": 25000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 75,
+              "suction_power_pa": 2000,
+              "navigation_type": "basic",
+              "room_mapping": false,
+              "wet_cleaning": false,
+              "carpet_detection": false,
+              "obstacle_avoidance": false,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Улучшенная навигация и построение карты помещения",
+          "price_range": {
+            "min": 30000,
+            "max": 40000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 72,
+              "suction_power_pa": 3500,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": false,
+              "carpet_detection": false,
+              "obstacle_avoidance": false,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Влажная уборка",
+          "price_range": {
+            "min": 40000,
+            "max": 50000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 70,
+              "suction_power_pa": 5000,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": false,
+              "obstacle_avoidance": true,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Автономная станция",
+          "price_range": {
+            "min": 55000,
+            "max": 65000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 68,
+              "suction_power_pa": 7000,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": true,
+              "obstacle_avoidance": true,
+              "auto_empty_station": true,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Продвинутый робот-пылесос",
+          "price_range": {
+            "min": 70000,
+            "max": 80000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 65,
+              "suction_power_pa": 11000,
+              "navigation_type": "lidar_ai",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": true,
+              "obstacle_avoidance": true,
+              "auto_empty_station": true,
+              "voice_assistant_support": true
+            }
           }
         }
       }

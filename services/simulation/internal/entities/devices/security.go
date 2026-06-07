@@ -11,17 +11,18 @@ import (
 // Безопасность
 
 // Siren — исполнительное устройство (умная сирена).
-// Активируется по сигналу тревоги и генерирует звуковое/световое оповещение.
 type Siren struct {
 	BaseDevice[SirenData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// SirenData - входные данные для сирены.
 type SirenData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSiren - конструктор сирены.
 func NewSiren(data []byte, engineAPI engine.EnginePort) (*Siren, error) {
 	var s Siren
 
@@ -36,6 +37,7 @@ func NewSiren(data []byte, engineAPI engine.EnginePort) (*Siren, error) {
 	return &s, nil
 }
 
+// HandleInDTO - обработка входных данных для сирены.
 func (s *Siren) HandleInDTO(dto []byte) error {
 	input := SirenData{}
 
@@ -48,7 +50,7 @@ func (s *Siren) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-// HandleEvent — бизнес-логика сирены.
+// HandleEvent - бизнес-логика сирены.
 func (s *Siren) HandleEvent(inData SirenData) SirenData {
 	s.TurnOn = inData.TurnOn
 
@@ -58,7 +60,7 @@ func (s *Siren) HandleEvent(inData SirenData) SirenData {
 	}
 }
 
-// Camera — камера наблюдения с радиусом обзора.
+// Camera - камера наблюдения с радиусом обзора.
 type Camera struct {
 	BaseDevice[CameraData]
 	TurnOn bool    `json:"turn_on"`
@@ -67,11 +69,13 @@ type Camera struct {
 	Radius float64 `json:"radius"`
 }
 
+// CameraData - входные данные для камеры.
 type CameraData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewCamera - конструктор камеры.
 func NewCamera(data []byte, engineAPI engine.EnginePort) (*Camera, error) {
 	var c Camera
 	if err := json.Unmarshal(data, &c); err != nil {
@@ -85,10 +89,12 @@ func NewCamera(data []byte, engineAPI engine.EnginePort) (*Camera, error) {
 	return &c, nil
 }
 
+// GetPosition - возвращает координаты камеры.
 func (c *Camera) GetPosition() (float64, float64) {
 	return c.X, c.Y
 }
 
+// HandleInDTO - обработка входных данных для камеры.
 func (c *Camera) HandleInDTO(dto []byte) error {
 	var move struct {
 		Kind string `json:"kind"`
@@ -109,6 +115,7 @@ func (c *Camera) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// HandleEvent - бизнес-логика камеры.
 func (c *Camera) HandleEvent(inData CameraData) CameraData {
 	c.TurnOn = inData.TurnOn
 
@@ -118,6 +125,7 @@ func (c *Camera) HandleEvent(inData CameraData) CameraData {
 	}
 }
 
+// GetObservedKinds - возвращает список видов событий, которые может наблюдать камера.
 func (c *Camera) GetObservedKinds() []string {
 	return []string{"human:move", "device:move"}
 }

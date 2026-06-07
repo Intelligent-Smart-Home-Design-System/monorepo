@@ -29,7 +29,7 @@ func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum str
 	for _, room := range devicesRooms {
 		roomID := room.ID
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &point.Point{X: 0, Y: 0}, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &point.Point{X: 0, Y: 0}, nil, nil)
 	}
 
 	return nil

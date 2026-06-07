@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/client"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,20 +15,24 @@ var (
 	}
 )
 
+// Manager представляет структуру менеджера для управления WebSocket клиентами и их взаимодействием с симуляцией.
 type Manager struct {
 	clients map[*Client]bool
 	mu      sync.RWMutex
 
-	simService api.SimulationService
+	simService client.SimulationService
 }
 
-func NewManager(simService api.SimulationService) *Manager {
+// NewManager создает новый экземпляр Manager с инициализацией необходимых полей.
+func NewManager(simService client.SimulationService) *Manager {
 	return &Manager{
 		clients:    make(map[*Client]bool),
 		simService: simService,
 	}
 }
 
+// ServeWS обрабатывает входящие HTTP запросы и устанавливает WebSocket соединение с клиентом. После успешного подключения,
+// создается новый клиент и запускаются горутины для чтения и записи сообщений.
 func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -43,6 +47,7 @@ func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
 	go client.WriteMessages()
 }
 
+// addClient добавляет нового клиента в список активных клиентов, обеспечивая безопасность доступа с помощью мьютекса.
 func (m *Manager) addClient(client *Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -50,6 +55,7 @@ func (m *Manager) addClient(client *Client) {
 	m.clients[client] = true
 }
 
+// removeClient удаляет клиента из списка активных клиентов и закрывает его соединение, обеспечивая безопасность доступа с помощью мьютекса.
 func (m *Manager) removeClient(client *Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

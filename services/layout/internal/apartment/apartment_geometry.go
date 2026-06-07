@@ -6,34 +6,6 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-// GetBoundaries возвращает противоположные точки прямоугольника, описывающего комнату
-func (r *Room) GetBoundaries() (point.Point, point.Point) {
-	minX, minY, maxX, maxY := r.Area[0].X, r.Area[0].Y, r.Area[0].X, r.Area[0].Y
-	for _, p := range r.Area[1:] {
-		minX = min(minX, p.X)
-		maxX = max(maxX, p.X)
-		minY = min(minY, p.Y)
-		maxY = max(maxY, p.Y)
-	}
-
-	return point.Point{X: minX, Y: minY}, point.Point{X: maxX, Y: maxY}
-}
-
-// CalculateMaxDistance считает дистанцию между точками прямоугольника, описывающего комнату
-func (r *Room) CalculateMaxDistance() float64 {
-	p1, p2 := r.GetBoundaries()
-	return point.CalculatePointsDistance(p1, p2)
-}
-
-// IsPointInRoom проверяет, находится ли точка в комнате
-func (r *Room) IsPointInRoom(targetPoint point.Point) bool {
-	if len(r.Area) < 3 {
-		return false
-	}
-
-	return point.IsPointInPolygon(targetPoint, r.Area)
-}
-
 // IsWallBetweenPoints проверяет, есть ли стены между двумя точками.
 func (a *Apartment) IsWallBetweenPoints(A, B point.Point) bool {
 	segAB := &point.Segment{From: A, To: B}

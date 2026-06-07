@@ -80,7 +80,7 @@ func (wl *WaterLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum
 			zoneCenter := point.GetCenter(wetZone.Points)
 
 			if deviceCnt < maxCount {
-				layout.AddDeviceToLayout(deviceType, wl.track, zr.OrigRoom.ID, zoneCenter, waterLeakSensorFilters)
+				layout.AddDeviceToLayout(deviceType, wl.track, zr.OrigRoom.ID, zoneCenter, nil, waterLeakSensorFilters)
 				deviceCnt++
 			}
 		}

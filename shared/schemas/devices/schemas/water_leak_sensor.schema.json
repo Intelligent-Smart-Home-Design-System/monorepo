@@ -1,18 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WaterLeakSensor",
+  "description": "A smart home water leak detection sensor",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "Product name as displayed in the store"
+      "description": "User-facing product name as it appears in the listing, e.g. 'Aqara Water Leak Sensor T1'"
     },
     "brand": {
       "type": "string",
-      "description": "Normalized lower‑case brand name, e.g. 'aqara', 'xiaomi'"
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'tuya'"
     },
     "model": {
       "type": "string",
-      "description": "Manufacturer model or SKU"
+      "description": "Model identifier or SKU as stated by the manufacturer, e.g. 'SJCGQ12LM'."
     },
     "ecosystem": {
       "type": "array",
@@ -25,13 +27,15 @@
           "aqara",
           "tuya",
           "xiaomi",
-          "smartthings",
-          "homekit"
+          "digma",
+          "sber",
+          "vk",
+          "ekf"
         ]
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Smart home ecosystems the device works with"
+      "description": "Smart home ecosystems this device can connect to through any connection path (direct or via hub/bridge) - may be multiple."
     },
     "protocol": {
       "type": "array",
@@ -42,13 +46,14 @@
           "z-wave",
           "wifi",
           "bluetooth",
-          "matter",
-          "thread"
+          "ble",
+          "matter-over-wifi",
+          "matter-over-thread"
         ]
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Communication protocols supported by the device"
+      "description": "Wireless protocols supported by this device."
     },
     "battery_type": {
       "type": "string",
@@ -56,54 +61,76 @@
         "CR2032",
         "CR2450",
         "CR123A",
+        "CR1632",
         "AA",
         "AAA",
-        "18650",
-        "built-in"
+        "18650"
       ],
-      "description": "Type of battery or built‑in rechargeable cell"
+      "description": "Battery type required."
+    },
+    "battery_quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
     },
     "battery_life_months": {
       "type": "number",
       "minimum": 1,
       "maximum": 300,
-      "description": "Estimated battery life in months"
+      "description": "Expected battery life in months as stated by manufacturer."
     },
     "rechargeable": {
       "type": "boolean",
-      "description": "Whether the device has a built‑in rechargeable battery"
+      "description": "Whether the device has a built-in rechargeable battery."
     },
     "ip_rating": {
       "type": "string",
       "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
-      "description": "Ingress Protection code, e.g. IP67, IP44"
+      "description": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance."
     },
-    "type": {
-      "const": "water_leak_sensor"
-    },
-    "has_audio_alert": {
-      "type": "boolean",
-      "description": "Whether the device emits an audible alert when water is detected"
-    },
-    "audio_alert_volume_db": {
-      "type": "number",
-      "minimum": 60,
-      "maximum": 120,
-      "description": "Sound volume of the alert in decibels"
+    "power_source": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mains",
+          "battery",
+          "rechargeable_battery",
+          "usb",
+          "poe",
+          "ac_dc_adapter"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Power sources supported by the device"
     },
     "detects_leaks_above": {
       "type": "boolean",
-      "description": "Can detect water dripping from above (e.g. on contacts)"
+      "description": "Whether the sensor can detect water dripping from above via contacts on top."
     },
     "detects_leaks_below": {
       "type": "boolean",
-      "description": "Can detect water on the floor"
+      "description": "Whether the sensor detects water on the floor via bottom contacts."
     },
     "min_detected_water_level_mm": {
       "type": "number",
       "minimum": 0.1,
       "maximum": 10,
-      "description": "Minimum water layer thickness that triggers detection (mm)"
+      "description": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
+    },
+    "has_audio_alert": {
+      "type": "boolean",
+      "description": "Whether the sensor emits an audible alarm when a leak is detected."
+    },
+    "audio_alert_volume_db": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 120,
+      "description": "Volume of the audible alert in decibels, e.g. 85."
+    },
+    "type": {
+      "const": "water_leak_sensor"
     }
   },
   "required": [

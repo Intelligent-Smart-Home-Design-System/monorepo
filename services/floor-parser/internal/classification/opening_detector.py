@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from statistics import median
 from math import cos, radians, sin
 import re
 from dataclasses import dataclass
@@ -53,20 +54,11 @@ class GapHint:
 
 
 @dataclass(frozen=True)
-class OpeningThresholds:
-    segment_search_radius: float
-    arc_search_radius: float
-    min_opening_length: float
-    precise_length_tolerance: float
-    segment_overhang: float
-    perp_dist_max: float
-    parallel_midline_max_offset: float
-    gap_arc_distance: float
-    gap_hint_distance: float
-    gap_axis_overhang: float
-    gap_axis_offset_tolerance: float
-    parallel_span_gap_max: float
-    orientation_axis_tolerance: float
+class DoorBlockGeometry:
+    closed_line: LineEntity
+    hinge_point: Point
+    open_point: Point
+    hinge_side: Literal["start", "end"]
 
 
 @dataclass(frozen=True)
@@ -79,6 +71,10 @@ class OpeningContext:
     arcs: list[ArcEntity]
     texts: list[TextEntity]
     inserts: list[InsertEntity]
+    insert_content_ids: frozenset[str]
+    door_block_geometries: dict[str, DoorBlockGeometry]
+    window_block_lines: dict[str, LineEntity]
+    insert_gap_ids: dict[str, str]
     gaps: list[Gap]
     wall_host_ids: dict[str, str]
     thresholds: OpeningThresholds
@@ -95,9 +91,11 @@ class OpeningDetector:
         detected_doors = _detect_door_lines(entities, context)
         detected_windows = _detect_window_lines(entities, context)
         resolved_context = _with_wall_host_ids(context, [*detected_doors, *detected_windows])
+        doors = [_line_to_door(entity, resolved_context) for entity in detected_doors]
+        windows = [_line_to_window(entity, resolved_context) for entity in detected_windows]
         return (
-            [_line_to_door(entity, resolved_context) for entity in detected_doors],
-            [_line_to_window(entity, resolved_context) for entity in detected_windows],
+            [door for door in doors if _is_bound_opening(door)],
+            [window for window in windows if _is_bound_opening(window)],
         )
 
     def detect_doors(self, entities: list[NormalizedEntity], walls: list[Wall], units: str | None = None) -> list[Door]:
@@ -111,61 +109,124 @@ class OpeningDetector:
 
 def detect_by_layer(entities: list[NormalizedEntity], kind: Literal["door", "window"]) -> list[LineEntity]:
     pred = _is_door_layer if kind == "door" else _is_window_layer
-    return [line for e in entities if pred(e.layer) for line in _entity_to_lines(e)]
+    return [
+        line
+        for e in entities
+        if pred(e.layer) and e.source_insert_id is None
+        for line in _entity_to_lines(e)
+    ]
 
 
-def detect_by_block_name(
-    entities: list[NormalizedEntity],
-    kind: Literal["door", "window"],
-    opening_segments: list[Segment],
-    header_segments: list[Segment],
-    thresholds: OpeningThresholds,
-) -> list[LineEntity]:
-    keywords = (
-        OPENING_DETECTOR_CONFIG.door_block_keywords
-        if kind == "door"
-        else OPENING_DETECTOR_CONFIG.window_block_keywords
-    )
-    results: list[LineEntity] = []
-
-    for entity in entities:
-        if not isinstance(entity, InsertEntity):
-            continue
-
-        normalized_name = entity.block_name.strip().lower().replace("_", "-")
-        if any(keyword in normalized_name for keyword in OPENING_DETECTOR_CONFIG.garage_layer_keywords):
-            continue
-        if not any(keyword in normalized_name for keyword in keywords):
-            continue
-
-        segment = (
-            _match_segment(entity.insert, header_segments, thresholds=thresholds)
-            or _match_segment(entity.insert, opening_segments, thresholds=thresholds)
-        )
-        if segment is not None:
-            results.append(_segment_to_line(segment, entity.id))
-
-    return results
+def _is_bound_opening(opening: Door | Window) -> bool:
+    return opening.wall_id is not None or bool(opening.support_wall_ids)
 
 
 def _detect_door_lines(entities: list[NormalizedEntity], context: OpeningContext) -> list[LineEntity]:
-    gap_doors = detect_doors_from_gaps(context)
+    insert_doors = detect_by_insert_hint(context, "door")
+    existing_ids = {entity.id for entity in insert_doors}
+    gap_doors = [entity for entity in detect_doors_from_gaps(context) if entity.id not in existing_ids]
     return _dedupe([
         *detect_by_layer(entities, "door"),
-        *detect_by_block_name(entities, "door", context.opening_segments, context.header_segments, context.thresholds),
+        *insert_doors,
         *gap_doors,
-        *detect_doors_from_text_hints(context, {entity.id for entity in gap_doors}),
+        *detect_doors_from_text_hints(context, existing_ids | {entity.id for entity in gap_doors}),
     ])
 
 
 def _detect_window_lines(entities: list[NormalizedEntity], context: OpeningContext) -> list[LineEntity]:
-    gap_windows = detect_windows_from_gaps(context)
+    insert_windows = detect_by_insert_hint(context, "window")
+    existing_ids = {entity.id for entity in insert_windows}
+    gap_windows = [entity for entity in detect_windows_from_gaps(context) if entity.id not in existing_ids]
     return _dedupe([
         *detect_by_layer(entities, "window"),
-        *detect_by_block_name(entities, "window", context.opening_segments, context.header_segments, context.thresholds),
+        *insert_windows,
         *gap_windows,
-        *detect_windows_from_text_hints(context, {entity.id for entity in gap_windows}),
+        *detect_windows_from_text_hints(context, existing_ids | {entity.id for entity in gap_windows}),
     ])
+
+
+def detect_by_insert_hint(context: OpeningContext, kind: Literal["door", "window"]) -> list[LineEntity]:
+    inserts = _top_level_insert_hints(context, kind)
+    if not inserts:
+        return []
+
+    kind_segments = context.direct_door_segments if kind == "door" else context.direct_window_segments
+    insert_by_id = {entity.id: entity for entity in inserts}
+    gap_pairs = _pair_insert_hints_to_gaps(context, kind, insert_by_id)
+    resolved_lines: dict[str, LineEntity] = {}
+    inferred_lengths: list[float] = []
+
+    if kind == "door":
+        for insert in inserts:
+            geometry = context.door_block_geometries.get(insert.id)
+            if geometry is None:
+                continue
+            resolved_lines[insert.id] = geometry.closed_line
+            inferred_lengths.append(_dist(geometry.closed_line.start, geometry.closed_line.end))
+    for insert, gap in gap_pairs:
+        if insert.id in resolved_lines:
+            continue
+        segment = _match_segment(
+            insert.insert,
+            context.header_segments,
+            preferred_orientation=_orientation(gap.start, gap.end, context.thresholds),
+            thresholds=context.thresholds,
+        ) or _match_segment(
+            insert.insert,
+            context.opening_segments + kind_segments,
+            preferred_orientation=_orientation(gap.start, gap.end, context.thresholds),
+            thresholds=context.thresholds,
+        )
+
+        if segment is not None:
+            line = _segment_to_line(segment, insert.id)
+            if not _looks_like_symbolic_span(line, gap):
+                resolved_lines[insert.id] = line
+                inferred_lengths.append(_dist(line.start, line.end))
+                continue
+
+        if gap.length <= _max_fallback_gap_span(kind, context.thresholds):
+            inferred_lengths.append(gap.length)
+
+    fallback_length = _fallback_insert_span(kind, inferred_lengths, context.thresholds)
+
+    for insert, gap in gap_pairs:
+        if insert.id in resolved_lines:
+            continue
+        resolved_lines[insert.id] = _gap_to_line(
+            gap,
+            insert,
+            kind=kind,
+            fallback_length=fallback_length,
+            thresholds=context.thresholds,
+        )
+
+    for insert in inserts:
+        if insert.id in resolved_lines:
+            continue
+        segment = _match_segment(insert.insert, context.header_segments, thresholds=context.thresholds) or _match_segment(
+            insert.insert,
+            context.opening_segments + kind_segments,
+            thresholds=context.thresholds,
+        )
+        if segment is not None:
+            line = _segment_to_line(segment, insert.id)
+            if kind == "window":
+                geometry_line = context.window_block_lines.get(insert.id)
+                line_bound = _is_bindable_line(line, context)
+                geometry_bound = geometry_line is not None and _is_bindable_line(geometry_line, context)
+                if not line_bound and geometry_bound:
+                    resolved_lines[insert.id] = geometry_line
+                    continue
+            resolved_lines[insert.id] = line
+            continue
+
+        if kind == "window":
+            geometry_line = context.window_block_lines.get(insert.id)
+            if geometry_line is not None and _is_bindable_line(geometry_line, context):
+                resolved_lines[insert.id] = geometry_line
+
+    return list(resolved_lines.values())
 
 
 def detect_doors_from_gaps(context: OpeningContext) -> list[LineEntity]:
@@ -194,6 +255,17 @@ def detect_doors_from_gaps(context: OpeningContext) -> list[LineEntity]:
             or _match_segment(anchor, context.opening_segments + context.direct_door_segments, expected_length, preferred_orientation, context.thresholds)
         )
         if segment is None:
+            if hint is None or hint.kind not in {"door", "sliding_door"}:
+                continue
+
+            if gap.length > _max_fallback_gap_span("door", context.thresholds):
+                continue
+
+            line = _gap_hint_to_line(gap, hint, kind="door", thresholds=context.thresholds)
+            score = _dist(anchor, gap.center)
+            current = best_matches.get(source_id)
+            if current is None or score < current[0]:
+                best_matches[source_id] = (score, line)
             continue
 
         if arc is None and expected_length is not None and not _is_precise_match(segment, expected_length, context.thresholds):
@@ -253,24 +325,48 @@ def detect_doors_from_text_hints(context: OpeningContext, existing_ids: set[str]
         expected_length = _parse_label_width(normalized_text)
         nearest_arc = _nearest_arc_to_point(entity.insert, context.arcs, context.thresholds, expected_length)
         preferred_orientation = _infer_segment_orientation(entity.insert, nearest_arc, context.thresholds)
+        label_axis_overhang = _label_axis_overhang(expected_length, context.thresholds)
+        label_perp_limit = _label_perpendicular_tolerance(expected_length, context.thresholds)
 
         segment = (
-            _match_segment(entity.insert, context.header_segments, expected_length, preferred_orientation, context.thresholds)
+            _match_segment(
+                entity.insert,
+                context.header_segments,
+                expected_length,
+                preferred_orientation,
+                context.thresholds,
+                axis_overhang_limit=label_axis_overhang,
+                perp_dist_limit=label_perp_limit,
+            )
             or _match_segment(
                 entity.insert,
                 context.opening_segments + context.direct_door_segments,
                 expected_length,
                 preferred_orientation,
                 context.thresholds,
+                axis_overhang_limit=label_axis_overhang,
+                perp_dist_limit=label_perp_limit,
             )
         )
-        if segment is None:
+        if segment is not None:
+            if nearest_arc is None and expected_length is not None and not _is_precise_match(segment, expected_length, context.thresholds):
+                segment = None
+
+        if segment is not None:
+            results.append(_segment_to_line(segment, entity.id))
             continue
 
-        if nearest_arc is None and expected_length is not None and not _is_precise_match(segment, expected_length, context.thresholds):
+        gap = _nearest_gap_to_text_hint(entity, context.gaps, context.thresholds, expected_length)
+        if gap is None:
             continue
 
-        results.append(_segment_to_line(segment, entity.id))
+        hint = GapHint(
+            kind="sliding_door" if _is_sliding_door_label(tokens) else "door",
+            source_id=entity.id,
+            anchor=entity.insert,
+            expected_length=expected_length,
+        )
+        results.append(_gap_hint_to_line(gap, hint, kind="door", thresholds=context.thresholds))
 
     return results
 
@@ -285,13 +381,24 @@ def detect_windows_from_text_hints(context: OpeningContext, existing_ids: set[st
             continue
 
         expected_length = _parse_label_width(normalized_text)
+        label_axis_overhang = _label_axis_overhang(expected_length, context.thresholds)
+        label_perp_limit = _label_perpendicular_tolerance(expected_length, context.thresholds)
         segment = (
-            _match_segment(entity.insert, context.header_segments, expected_length, thresholds=context.thresholds)
+            _match_segment(
+                entity.insert,
+                context.header_segments,
+                expected_length,
+                thresholds=context.thresholds,
+                axis_overhang_limit=label_axis_overhang,
+                perp_dist_limit=label_perp_limit,
+            )
             or _match_segment(
                 entity.insert,
                 context.opening_segments + context.direct_window_segments,
                 expected_length,
                 thresholds=context.thresholds,
+                axis_overhang_limit=label_axis_overhang,
+                perp_dist_limit=label_perp_limit,
             )
         )
         if segment is None:
@@ -406,7 +513,7 @@ def _segments_inside_gap(gap: Gap, segments: list[Segment], thresholds: OpeningT
 
 
 def _classify_gap_hint(gap: Gap, context: OpeningContext) -> GapHint | None:
-    block_hint = _nearest_block_hint(gap, context.inserts, context.thresholds)
+    block_hint = _nearest_block_hint(gap, context)
     if block_hint is not None:
         return block_hint
 
@@ -465,25 +572,22 @@ def _nearest_arc_to_point(
     return min(nearby, key=lambda arc: _dist(anchor, arc.center))
 
 
-def _nearest_block_hint(gap: Gap, inserts: list[InsertEntity], thresholds: OpeningThresholds) -> GapHint | None:
+def _nearest_block_hint(gap: Gap, context: OpeningContext) -> GapHint | None:
     candidates: list[tuple[float, GapHint]] = []
 
-    for entity in inserts:
-        normalized_name = entity.block_name.strip().lower().replace("_", "-")
-        if any(keyword in normalized_name for keyword in OPENING_DETECTOR_CONFIG.garage_layer_keywords):
+    for entity in context.inserts:
+        kind = _insert_hint_kind(entity, context.insert_content_ids)
+        if kind is None:
             continue
 
         axis_distance = abs(_project(entity.insert, gap.center, gap.direction))
         normal_distance = abs(_project(entity.insert, gap.center, gap.normal))
-        if axis_distance > gap.length / 2.0 + thresholds.gap_axis_overhang:
+        if axis_distance > gap.length / 2.0 + context.thresholds.gap_axis_overhang:
             continue
-        if normal_distance > thresholds.gap_hint_distance:
+        if normal_distance > context.thresholds.insert_hint_normal_distance:
             continue
 
-        if any(keyword in normalized_name for keyword in OPENING_DETECTOR_CONFIG.door_block_keywords):
-            candidates.append((normal_distance + axis_distance, GapHint(kind="door", source_id=entity.id, anchor=entity.insert)))
-        if any(keyword in normalized_name for keyword in OPENING_DETECTOR_CONFIG.window_block_keywords):
-            candidates.append((normal_distance + axis_distance, GapHint(kind="window", source_id=entity.id, anchor=entity.insert)))
+        candidates.append((normal_distance + axis_distance, GapHint(kind=kind, source_id=entity.id, anchor=entity.insert)))
 
     if not candidates:
         return None
@@ -501,11 +605,14 @@ def _nearest_text_hint(gap: Gap, texts: list[TextEntity], thresholds: OpeningThr
         if _is_garage_door_label(tokens):
             continue
 
+        expected_length = _parse_label_width(normalized_text)
+        normal_limit = max(thresholds.gap_hint_distance, (expected_length or 0.0) * 0.2)
+
         axis_distance = abs(_project(entity.insert, gap.center, gap.direction))
         normal_distance = abs(_project(entity.insert, gap.center, gap.normal))
         if axis_distance > gap.length / 2.0 + thresholds.gap_axis_overhang:
             continue
-        if normal_distance > thresholds.gap_hint_distance:
+        if normal_distance > normal_limit:
             continue
 
         if _is_sliding_door_label(tokens) or _is_swing_door_label(normalized_text):
@@ -515,7 +622,7 @@ def _nearest_text_hint(gap: Gap, texts: list[TextEntity], thresholds: OpeningThr
                     kind="sliding_door" if _is_sliding_door_label(tokens) else "door",
                     source_id=entity.id,
                     anchor=entity.insert,
-                    expected_length=_parse_label_width(normalized_text),
+                    expected_length=expected_length,
                 ),
             ))
         elif any(token in tokens for token in OPENING_DETECTOR_CONFIG.window_operation_tokens):
@@ -525,7 +632,7 @@ def _nearest_text_hint(gap: Gap, texts: list[TextEntity], thresholds: OpeningThr
                     kind="window",
                     source_id=entity.id,
                     anchor=entity.insert,
-                    expected_length=_parse_label_width(normalized_text),
+                    expected_length=expected_length,
                 ),
             ))
 
@@ -534,6 +641,39 @@ def _nearest_text_hint(gap: Gap, texts: list[TextEntity], thresholds: OpeningThr
 
     _, hint = min(candidates, key=lambda item: item[0])
     return hint
+
+
+def _nearest_gap_to_text_hint(
+    text_entity: TextEntity,
+    gaps: list[Gap],
+    thresholds: OpeningThresholds,
+    expected_length: float | None = None,
+) -> Gap | None:
+    normalized_text = " ".join(text_entity.text.strip().upper().split())
+    tokens = re.findall(r"[A-Z0-9]+", normalized_text)
+    if not (_is_swing_door_label(normalized_text) or _is_sliding_door_label(tokens)):
+        return None
+
+    normal_limit = max(thresholds.gap_hint_distance, (expected_length or 0.0) * 0.75)
+    axis_limit_extra = max(thresholds.gap_axis_overhang, (expected_length or 0.0) * 0.25)
+    candidates: list[tuple[float, float, float, Gap]] = []
+
+    for gap in gaps:
+        axis_distance = abs(_project(text_entity.insert, gap.center, gap.direction))
+        normal_distance = abs(_project(text_entity.insert, gap.center, gap.normal))
+        if axis_distance > gap.length / 2.0 + axis_limit_extra:
+            continue
+        if normal_distance > normal_limit:
+            continue
+
+        length_penalty = abs((expected_length or gap.length) - gap.length)
+        candidates.append((normal_distance + axis_distance, length_penalty, axis_distance, gap))
+
+    if not candidates:
+        return None
+
+    _, _, _, gap = min(candidates, key=lambda item: (item[0], item[1], item[2], item[3].id))
+    return gap
 
 
 def _midpoint(a: Point, b: Point) -> Point:
@@ -578,6 +718,43 @@ def _is_window_layer(layer: str) -> bool:
     return any(keyword in normalized for keyword in OPENING_DETECTOR_CONFIG.window_layer_keywords)
 
 
+def _explicit_insert_hint_kind(entity: InsertEntity) -> Literal["door", "window"] | None:
+    normalized_name = entity.block_name.strip().lower().replace("_", "-")
+    if any(keyword in normalized_name for keyword in OPENING_DETECTOR_CONFIG.garage_layer_keywords):
+        return None
+    if _matches_block_keywords(normalized_name, OPENING_DETECTOR_CONFIG.door_block_keywords):
+        return "door"
+    if _matches_block_keywords(normalized_name, OPENING_DETECTOR_CONFIG.window_block_keywords):
+        return "window"
+    return None
+
+
+def _insert_hint_kind(entity: InsertEntity, insert_content_ids: frozenset[str]) -> Literal["door", "window"] | None:
+    explicit_kind = _explicit_insert_hint_kind(entity)
+    if explicit_kind is not None:
+        return explicit_kind
+    if entity.id not in insert_content_ids:
+        return None
+    if _is_door_layer(entity.layer):
+        return "door"
+    if _is_window_layer(entity.layer):
+        return "window"
+    return None
+
+
+def _matches_block_keywords(normalized_name: str, keywords: tuple[str, ...]) -> bool:
+    tokens = set(re.findall(r"[a-zа-я0-9]+", normalized_name))
+    for keyword in keywords:
+        normalized_keyword = keyword.strip().lower().replace("_", "-")
+        if len(normalized_keyword) <= 2:
+            if normalized_keyword in tokens:
+                return True
+            continue
+        if normalized_keyword in tokens or normalized_keyword in normalized_name:
+            return True
+    return False
+
+
 def _entity_to_segments(entity: NormalizedEntity) -> list[Segment]:
     if isinstance(entity, LineEntity):
         return [Segment(entity.start, entity.end, entity.id, entity.layer)]
@@ -607,7 +784,7 @@ def _segment_to_line(seg: Segment, source_id: str) -> LineEntity:
 def _line_to_door(entity: LineEntity, context: OpeningContext) -> Door:
     host_wall, support_wall_ids = _resolve_wall_binding(entity, context)
     wall_id = _resolve_host_wall_id(host_wall, support_wall_ids, context)
-    opens_towards_wall_side, swing = _resolve_door_opening(entity, context, host_wall)
+    opens_towards_wall_side, swing, hinge_side = _resolve_door_opening(entity, context, host_wall)
     return Door(
         id=entity.id,
         layer=entity.layer,
@@ -618,6 +795,7 @@ def _line_to_door(entity: LineEntity, context: OpeningContext) -> Door:
         support_wall_ids=support_wall_ids,
         opens_towards_wall_side=opens_towards_wall_side,
         swing=swing,
+        hinge_side=hinge_side,
         source_entity_ids=[entity.id],
     )
 
@@ -649,14 +827,141 @@ def _collect_segments(entities: list[NormalizedEntity], layer_pred) -> list[Segm
     return [segment for entity in entities if layer_pred(entity.layer) for segment in _entity_to_segments(entity)]
 
 
+def _top_level_insert_hints(context: OpeningContext, kind: Literal["door", "window"]) -> list[InsertEntity]:
+    return [
+        entity
+        for entity in context.inserts
+        if entity.source_insert_id is None and _insert_hint_kind(entity, context.insert_content_ids) == kind
+    ]
+
+
+def _pair_insert_hints_to_gaps(
+    context: OpeningContext,
+    kind: Literal["door", "window"],
+    insert_by_id: dict[str, InsertEntity],
+) -> list[tuple[InsertEntity, Gap]]:
+    candidates: list[tuple[float, float, str, str]] = []
+
+    for insert in insert_by_id.values():
+        for gap in context.gaps:
+            axis_distance = abs(_project(insert.insert, gap.center, gap.direction))
+            normal_distance = abs(_project(insert.insert, gap.center, gap.normal))
+            max_axis_distance = gap.length / 2.0 + max(
+                context.thresholds.gap_axis_overhang,
+                context.thresholds.segment_search_radius,
+            )
+            if axis_distance > max_axis_distance or normal_distance > context.thresholds.insert_hint_normal_distance:
+                continue
+            candidates.append((normal_distance + axis_distance, axis_distance, insert.id, gap.id))
+
+    gaps_by_id = {gap.id: gap for gap in context.gaps}
+    assigned_inserts: set[str] = set()
+    assigned_gaps: set[str] = set()
+    pairs: list[tuple[InsertEntity, Gap]] = []
+
+    for _, _, insert_id, gap_id in sorted(candidates, key=lambda item: (item[0], item[1], item[2], item[3])):
+        if insert_id in assigned_inserts or gap_id in assigned_gaps:
+            continue
+        insert = insert_by_id[insert_id]
+        if _insert_hint_kind(insert, context.insert_content_ids) != kind:
+            continue
+        pairs.append((insert, gaps_by_id[gap_id]))
+        assigned_inserts.add(insert_id)
+        assigned_gaps.add(gap_id)
+
+    return pairs
+
+
+def _fallback_insert_span(
+    kind: Literal["door", "window"],
+    inferred_lengths: list[float],
+    thresholds: OpeningThresholds,
+) -> float:
+    if inferred_lengths:
+        return float(median(inferred_lengths))
+    return thresholds.default_door_span if kind == "door" else thresholds.default_window_span
+
+
+def _max_fallback_gap_span(kind: Literal["door", "window"], thresholds: OpeningThresholds) -> float:
+    return thresholds.max_fallback_door_span if kind == "door" else thresholds.max_fallback_window_span
+
+
+def _gap_to_line(
+    gap: Gap,
+    insert: InsertEntity,
+    *,
+    kind: Literal["door", "window"],
+    fallback_length: float,
+    thresholds: OpeningThresholds,
+) -> LineEntity:
+    line_length = gap.length
+    if gap.length > _max_fallback_gap_span(kind, thresholds):
+        line_length = min(gap.length, fallback_length)
+
+    center_t = _project(insert.insert, gap.start, gap.direction)
+    lower_t = max(0.0, center_t - line_length / 2.0)
+    upper_t = min(gap.length, center_t + line_length / 2.0)
+    if upper_t - lower_t < line_length:
+        if lower_t <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+            upper_t = min(gap.length, line_length)
+        elif upper_t >= gap.length - OPENING_DETECTOR_CONFIG.vector_epsilon:
+            lower_t = max(0.0, gap.length - line_length)
+
+    return LineEntity(
+        id=insert.id,
+        layer=insert.layer,
+        start=_point_along(gap.start, gap.direction, lower_t),
+        end=_point_along(gap.start, gap.direction, upper_t),
+    )
+
+
+def _gap_hint_to_line(
+    gap: Gap,
+    hint: GapHint,
+    *,
+    kind: Literal["door", "window"],
+    thresholds: OpeningThresholds,
+) -> LineEntity:
+    line_length = gap.length
+    if hint.expected_length is not None:
+        line_length = min(gap.length, hint.expected_length)
+    elif gap.length > _max_fallback_gap_span(kind, thresholds):
+        line_length = _max_fallback_gap_span(kind, thresholds)
+
+    center_t = _project(hint.anchor, gap.start, gap.direction)
+    lower_t = max(0.0, center_t - line_length / 2.0)
+    upper_t = min(gap.length, center_t + line_length / 2.0)
+    if upper_t - lower_t < line_length:
+        if lower_t <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+            upper_t = min(gap.length, line_length)
+        elif upper_t >= gap.length - OPENING_DETECTOR_CONFIG.vector_epsilon:
+            lower_t = max(0.0, gap.length - line_length)
+
+    return LineEntity(
+        id=hint.source_id,
+        layer="opening",
+        start=_point_along(gap.start, gap.direction, lower_t),
+        end=_point_along(gap.start, gap.direction, upper_t),
+    )
+
+
+def _looks_like_symbolic_span(line: LineEntity, gap: Gap) -> bool:
+    line_length = _dist(line.start, line.end)
+    if line_length <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+        return True
+    return gap.length > line_length * 1.5
+
+
 def _resolve_wall_binding(entity: LineEntity, context: OpeningContext) -> tuple[Wall | None, tuple[str, ...]]:
+    mapped_gap = _gap_for_insert_entity(entity.id, context)
+    if mapped_gap is not None:
+        support_walls = _support_walls_for_gap(mapped_gap, context.walls)
+        host_wall = _select_host_wall(support_walls) if support_walls else None
+        return host_wall, mapped_gap.support_wall_ids
+
     gap = _nearest_gap_for_segment(entity, context.gaps, context.thresholds)
     if gap is not None:
-        support_walls = [
-            wall
-            for wall_id in gap.support_wall_ids
-            if (wall := _find_wall_by_id(context.walls, wall_id)) is not None
-        ]
+        support_walls = _support_walls_for_gap(gap, context.walls)
         host_wall = _select_host_wall(support_walls) if support_walls else None
         return host_wall, gap.support_wall_ids
 
@@ -680,7 +985,7 @@ def _resolve_wall_binding(entity: LineEntity, context: OpeningContext) -> tuple[
 
         wall_midpoint = _midpoint(wall.start, wall.end)
         normal_offset = abs(_project(wall_midpoint, midpoint, normal))
-        if normal_offset > max(wall.width, context.thresholds.perp_dist_max):
+        if normal_offset > max(_effective_wall_width(wall), context.thresholds.perp_dist_max):
             continue
 
         wall_start_t = _project(wall.start, axis_origin, line_direction)
@@ -701,6 +1006,11 @@ def _resolve_wall_binding(entity: LineEntity, context: OpeningContext) -> tuple[
     return host_wall, (host_wall.id,)
 
 
+def _is_bindable_line(entity: LineEntity, context: OpeningContext) -> bool:
+    host_wall, support_wall_ids = _resolve_wall_binding(entity, context)
+    return host_wall is not None or bool(support_wall_ids)
+
+
 def _nearest_gap_for_segment(entity: LineEntity, gaps: list[Gap], thresholds: OpeningThresholds) -> Gap | None:
     direction = _unit_vector(entity.start, entity.end)
     if direction is None:
@@ -716,8 +1026,11 @@ def _nearest_gap_for_segment(entity: LineEntity, gaps: list[Gap], thresholds: Op
         if gap_orientation is None or entity_orientation is None or gap_orientation != entity_orientation:
             continue
 
-        gap_mid_distance = _dist(midpoint, gap.center)
-        if gap_mid_distance > thresholds.segment_search_radius:
+        axis_distance = abs(_project(midpoint, gap.center, gap.direction))
+        normal_distance = abs(_project(midpoint, gap.center, gap.normal))
+        if axis_distance > gap.length / 2.0 + thresholds.segment_overhang:
+            continue
+        if normal_distance > max(thresholds.perp_dist_max, thresholds.segment_search_radius + thresholds.segment_overhang):
             continue
 
         gap_start_t = _project(gap.start, gap.start, gap.direction)
@@ -728,7 +1041,7 @@ def _nearest_gap_for_segment(entity: LineEntity, gaps: list[Gap], thresholds: Op
         if overlap <= 0.0:
             continue
 
-        score = (gap_mid_distance, abs(gap.length - _dist(entity.start, entity.end)))
+        score = (normal_distance + axis_distance, abs(gap.length - _dist(entity.start, entity.end)))
         if best_score is None or score < best_score:
             best_gap = gap
             best_score = score
@@ -743,12 +1056,247 @@ def _find_wall_by_id(walls: list[Wall], wall_id: str) -> Wall | None:
     return None
 
 
+def _build_door_block_geometries(
+    entities: list[NormalizedEntity],
+    inserts: list[InsertEntity],
+    insert_content_ids: frozenset[str],
+) -> dict[str, DoorBlockGeometry]:
+    children_by_insert_id: dict[str, list[NormalizedEntity]] = {}
+    for entity in entities:
+        if entity.source_insert_id is None:
+            continue
+        children_by_insert_id.setdefault(entity.source_insert_id, []).append(entity)
+
+    geometries: dict[str, DoorBlockGeometry] = {}
+    for insert in inserts:
+        if insert.source_insert_id is not None:
+            continue
+        if _insert_hint_kind(insert, insert_content_ids) != "door":
+            continue
+
+        geometry = _extract_door_block_geometry(insert, children_by_insert_id.get(insert.id, []))
+        if geometry is not None:
+            geometries[insert.id] = geometry
+
+    return geometries
+
+
+def _build_window_block_lines(
+    entities: list[NormalizedEntity],
+    inserts: list[InsertEntity],
+    insert_content_ids: frozenset[str],
+) -> dict[str, LineEntity]:
+    children_by_insert_id: dict[str, list[NormalizedEntity]] = {}
+    for entity in entities:
+        if entity.source_insert_id is None:
+            continue
+        children_by_insert_id.setdefault(entity.source_insert_id, []).append(entity)
+
+    lines: dict[str, LineEntity] = {}
+    for insert in inserts:
+        if insert.source_insert_id is not None:
+            continue
+        if _insert_hint_kind(insert, insert_content_ids) != "window":
+            continue
+
+        line = _extract_window_block_line(insert, children_by_insert_id.get(insert.id, []))
+        if line is not None:
+            lines[insert.id] = line
+
+    return lines
+
+
+def _extract_door_block_geometry(
+    insert: InsertEntity,
+    children: list[NormalizedEntity],
+) -> DoorBlockGeometry | None:
+    segments = []
+    for child in children:
+        if not isinstance(child, PolylineEntity) or len(child.points) < 2:
+            continue
+        start = child.points[0]
+        end = child.points[-1]
+        length = _dist(start, end)
+        if length <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+            continue
+        direction = _unit_vector(start, end)
+        if direction is None:
+            continue
+        segments.append((start, end, length, (round(direction.x, 3), round(direction.y, 3))))
+
+    if not segments:
+        return None
+
+    direction_groups: dict[tuple[float, float], list[tuple[Point, Point, float, tuple[float, float]]]] = {}
+    for segment in segments:
+        direction_groups.setdefault(segment[3], []).append(segment)
+
+    line_segments = max(
+        direction_groups.values(),
+        key=lambda group: (sum(segment[2] for segment in group), len(group)),
+    )
+    if sum(segment[2] for segment in line_segments) <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+        return None
+
+    line_endpoints = _merged_segment_endpoints(line_segments)
+    if line_endpoints is None:
+        return None
+    line_start, line_end = line_endpoints
+
+    non_line_segments = [segment for segment in segments if segment not in line_segments]
+    non_line_endpoint_counts = _segment_endpoint_counts(non_line_segments)
+
+    line_start_count = non_line_endpoint_counts.get(_snap_point(line_start), 0)
+    line_end_count = non_line_endpoint_counts.get(_snap_point(line_end), 0)
+    if line_start_count and not line_end_count:
+        open_point = line_start
+        hinge_point = line_end
+    elif line_end_count and not line_start_count:
+        open_point = line_end
+        hinge_point = line_start
+    else:
+        return None
+
+    closed_points = [
+        Point(x=point[0], y=point[1])
+        for point, count in non_line_endpoint_counts.items()
+        if count == 1 and not _same_point_coords(point, open_point)
+    ]
+    if len(closed_points) != 1:
+        return None
+
+    closed_free_point = closed_points[0]
+    closed_line_start, closed_line_end = _canonical_segment_points(hinge_point, closed_free_point)
+    hinge_side = "start" if _same_point(hinge_point, closed_line_start) else "end"
+
+    return DoorBlockGeometry(
+        closed_line=LineEntity(
+            id=insert.id,
+            layer=insert.layer,
+            start=closed_line_start,
+            end=closed_line_end,
+        ),
+        hinge_point=hinge_point,
+        open_point=open_point,
+        hinge_side=hinge_side,
+    )
+
+
+def _extract_window_block_line(
+    insert: InsertEntity,
+    children: list[NormalizedEntity],
+) -> LineEntity | None:
+    points: list[Point] = []
+    for child in children:
+        for segment in _entity_to_segments(child):
+            if _dist(segment.start, segment.end) <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+                continue
+            points.extend((segment.start, segment.end))
+
+    if len(points) < 2:
+        return None
+
+    min_x = min(point.x for point in points)
+    max_x = max(point.x for point in points)
+    min_y = min(point.y for point in points)
+    max_y = max(point.y for point in points)
+    span_x = max_x - min_x
+    span_y = max_y - min_y
+
+    if max(span_x, span_y) <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+        return None
+
+    if span_x >= span_y:
+        center_y = (min_y + max_y) / 2.0
+        start = Point(x=min_x, y=center_y)
+        end = Point(x=max_x, y=center_y)
+    else:
+        center_x = (min_x + max_x) / 2.0
+        start = Point(x=center_x, y=min_y)
+        end = Point(x=center_x, y=max_y)
+
+    return LineEntity(
+        id=insert.id,
+        layer=insert.layer,
+        start=start,
+        end=end,
+    )
+
+
+def _merged_segment_endpoints(
+    segments: list[tuple[Point, Point, float, tuple[float, float]]],
+) -> tuple[Point, Point] | None:
+    unique_points: list[Point] = []
+    for start, end, _, _ in segments:
+        if not any(_same_point(start, point) for point in unique_points):
+            unique_points.append(start)
+        if not any(_same_point(end, point) for point in unique_points):
+            unique_points.append(end)
+
+    if len(unique_points) < 2:
+        return None
+
+    best_pair: tuple[Point, Point] | None = None
+    best_distance = -1.0
+    for index, left in enumerate(unique_points):
+        for right in unique_points[index + 1 :]:
+            distance = _dist(left, right)
+            if distance > best_distance:
+                best_distance = distance
+                best_pair = (left, right)
+
+    return best_pair
+
+
+def _segment_endpoint_counts(
+    segments: list[tuple[Point, Point, float, tuple[float, float]]],
+) -> dict[tuple[float, float], int]:
+    endpoint_counts: dict[tuple[float, float], int] = {}
+    for start, end, _, _ in segments:
+        endpoint_counts[_snap_point(start)] = endpoint_counts.get(_snap_point(start), 0) + 1
+        endpoint_counts[_snap_point(end)] = endpoint_counts.get(_snap_point(end), 0) + 1
+    return endpoint_counts
+
+
+def _canonical_segment_points(start: Point, end: Point) -> tuple[Point, Point]:
+    dx = end.x - start.x
+    dy = end.y - start.y
+    epsilon = OPENING_DETECTOR_CONFIG.vector_epsilon
+    if dx > epsilon:
+        return start, end
+    if dx < -epsilon:
+        return end, start
+    if dy >= -epsilon:
+        return start, end
+    return end, start
+
+
+def _snap_point(point: Point) -> tuple[float, float]:
+    return (round(point.x, 5), round(point.y, 5))
+
+
+def _same_point_coords(point: tuple[float, float], reference: Point) -> bool:
+    return abs(point[0] - reference.x) <= 1e-5 and abs(point[1] - reference.y) <= 1e-5
+
+
+def _same_point(left: Point, right: Point) -> bool:
+    return _same_point_coords((left.x, left.y), right)
+
+
 def _build_opening_context(
     entities: list[NormalizedEntity],
     walls: list[Wall],
     thresholds: OpeningThresholds,
 ) -> OpeningContext:
-    return OpeningContext(
+    inserts = [entity for entity in entities if isinstance(entity, InsertEntity)]
+    insert_content_ids = frozenset({
+        entity.source_insert_id
+        for entity in entities
+        if entity.source_insert_id is not None
+    })
+    door_block_geometries = _build_door_block_geometries(entities, inserts, insert_content_ids)
+    window_block_lines = _build_window_block_lines(entities, inserts, insert_content_ids)
+    base_context = OpeningContext(
         walls=walls,
         opening_segments=_collect_segments(entities, _is_opening_layer),
         header_segments=_collect_segments(entities, _is_header_layer),
@@ -756,10 +1304,31 @@ def _build_opening_context(
         direct_window_segments=_collect_segments(entities, _is_window_layer),
         arcs=[entity for entity in entities if isinstance(entity, ArcEntity) and _is_opening_layer(entity.layer)],
         texts=[entity for entity in entities if isinstance(entity, TextEntity)],
-        inserts=[entity for entity in entities if isinstance(entity, InsertEntity)],
+        inserts=inserts,
+        insert_content_ids=insert_content_ids,
+        door_block_geometries=door_block_geometries,
+        window_block_lines=window_block_lines,
+        insert_gap_ids={},
         gaps=_detect_gaps(walls, thresholds),
         wall_host_ids={},
         thresholds=thresholds,
+    )
+    return OpeningContext(
+        walls=base_context.walls,
+        opening_segments=base_context.opening_segments,
+        header_segments=base_context.header_segments,
+        direct_door_segments=base_context.direct_door_segments,
+        direct_window_segments=base_context.direct_window_segments,
+        arcs=base_context.arcs,
+        texts=base_context.texts,
+        inserts=base_context.inserts,
+        insert_content_ids=base_context.insert_content_ids,
+        door_block_geometries=base_context.door_block_geometries,
+        window_block_lines=base_context.window_block_lines,
+        insert_gap_ids=_build_insert_gap_ids(base_context),
+        gaps=base_context.gaps,
+        wall_host_ids=base_context.wall_host_ids,
+        thresholds=base_context.thresholds,
     )
 
 
@@ -773,6 +1342,10 @@ def _with_wall_host_ids(context: OpeningContext, openings: list[LineEntity]) -> 
         arcs=context.arcs,
         texts=context.texts,
         inserts=context.inserts,
+        insert_content_ids=context.insert_content_ids,
+        door_block_geometries=context.door_block_geometries,
+        window_block_lines=context.window_block_lines,
+        insert_gap_ids=context.insert_gap_ids,
         gaps=context.gaps,
         wall_host_ids=_build_wall_host_ids(context, openings),
         thresholds=context.thresholds,
@@ -781,6 +1354,7 @@ def _with_wall_host_ids(context: OpeningContext, openings: list[LineEntity]) -> 
 
 def _build_wall_host_ids(context: OpeningContext, openings: list[LineEntity]) -> dict[str, str]:
     parents = {wall.id: wall.id for wall in context.walls}
+    gaps_by_id = {gap.id: gap for gap in context.gaps}
 
     def find(wall_id: str) -> str:
         parent = parents[wall_id]
@@ -803,7 +1377,8 @@ def _build_wall_host_ids(context: OpeningContext, openings: list[LineEntity]) ->
             union(wall.id, wall.run_id)
 
     for opening in openings:
-        gap = _nearest_gap_for_segment(opening, context.gaps, context.thresholds)
+        mapped_gap_id = context.insert_gap_ids.get(opening.id)
+        gap = gaps_by_id.get(mapped_gap_id) if mapped_gap_id is not None else _nearest_gap_for_segment(opening, context.gaps, context.thresholds)
         if gap is not None:
             union(gap.support_wall_ids[0], gap.support_wall_ids[1])
 
@@ -820,10 +1395,46 @@ def _build_wall_host_ids(context: OpeningContext, openings: list[LineEntity]) ->
     return host_ids
 
 
+def _build_insert_gap_ids(context: OpeningContext) -> dict[str, str]:
+    insert_gap_ids: dict[str, str] = {}
+    for kind in ("door", "window"):
+        insert_by_id = {
+            entity.id: entity
+            for entity in _top_level_insert_hints(context, kind)
+        }
+        for insert, gap in _pair_insert_hints_to_gaps(context, kind, insert_by_id):
+            insert_gap_ids[insert.id] = gap.id
+    return insert_gap_ids
+
+
 def _select_host_wall(walls: list[Wall]) -> Wall:
-    structural_walls = [wall for wall in walls if wall.width > 0.0]
+    structural_walls = [wall for wall in walls if _effective_wall_width(wall) > 0.0]
     candidates = structural_walls if structural_walls else walls
     return max(candidates, key=lambda wall: (wall.length, wall.id))
+
+
+def _effective_wall_width(wall: Wall) -> float:
+    if wall.geometry_role == "boundary_face":
+        return 0.0
+    return wall.width
+
+
+def _support_walls_for_gap(gap: Gap, walls: list[Wall]) -> list[Wall]:
+    return [
+        wall
+        for wall_id in gap.support_wall_ids
+        if (wall := _find_wall_by_id(walls, wall_id)) is not None
+    ]
+
+
+def _gap_for_insert_entity(entity_id: str, context: OpeningContext) -> Gap | None:
+    gap_id = context.insert_gap_ids.get(entity_id)
+    if gap_id is None:
+        return None
+    for gap in context.gaps:
+        if gap.id == gap_id:
+            return gap
+    return None
 
 
 def _resolve_host_wall_id(host_wall: Wall | None, support_wall_ids: tuple[str, ...], context: OpeningContext) -> str | None:
@@ -838,32 +1449,50 @@ def _resolve_host_wall_id(host_wall: Wall | None, support_wall_ids: tuple[str, .
     return context.wall_host_ids.get(host_wall.id, host_wall.run_id or host_wall.id)
 
 
-def _resolve_door_opening(entity: LineEntity, context: OpeningContext, host_wall: Wall | None) -> tuple[str | None, str | None]:
+def _resolve_door_opening(
+    entity: LineEntity,
+    context: OpeningContext,
+    host_wall: Wall | None,
+) -> tuple[str | None, str | None, str | None]:
     direction = _unit_vector(
         host_wall.start if host_wall is not None else entity.start,
         host_wall.end if host_wall is not None else entity.end,
     )
     if direction is None:
-        return None, None
+        return None, None, None
+
+    door_block_geometry = context.door_block_geometries.get(entity.id)
+    if door_block_geometry is not None:
+        normal = Point(x=-direction.y, y=direction.x)
+        open_point = door_block_geometry.open_point
+        axis_origin = host_wall.start if host_wall is not None else entity.start
+        signed_offset = _project(open_point, axis_origin, normal)
+        if abs(signed_offset) <= OPENING_DETECTOR_CONFIG.vector_epsilon:
+            return None, "single_swing", door_block_geometry.hinge_side
+        return (
+            "positive_normal" if signed_offset > 0.0 else "negative_normal",
+            "single_swing",
+            door_block_geometry.hinge_side,
+        )
 
     text_hint = next((text for text in context.texts if text.id == entity.id), None)
     if text_hint is not None:
         tokens = re.findall(r"[A-Z0-9]+", " ".join(text_hint.text.strip().upper().split()))
         if _is_sliding_door_label(tokens):
-            return None, "sliding"
+            return None, "sliding", None
 
     arc = _nearest_arc_to_segment(entity, context.arcs, context.thresholds)
     if arc is None:
-        return None, None
+        return None, None, None
 
     normal = Point(x=-direction.y, y=direction.x)
     arc_point = _arc_sample_point(arc)
     axis_origin = host_wall.start if host_wall is not None else entity.start
     signed_offset = _project(arc_point, axis_origin, normal)
     if abs(signed_offset) <= OPENING_DETECTOR_CONFIG.vector_epsilon:
-        return None, "single_swing"
+        return None, "single_swing", None
 
-    return ("positive_normal" if signed_offset > 0.0 else "negative_normal"), "single_swing"
+    return ("positive_normal" if signed_offset > 0.0 else "negative_normal"), "single_swing", None
 
 
 def _nearest_arc_to_segment(entity: LineEntity, arcs: list[ArcEntity], thresholds: OpeningThresholds) -> ArcEntity | None:
@@ -903,10 +1532,14 @@ def _match_segment(
     expected_length: float | None = None,
     preferred_orientation: Orientation | None = None,
     thresholds: OpeningThresholds | None = None,
+    axis_overhang_limit: float | None = None,
+    perp_dist_limit: float | None = None,
 ) -> Segment | None:
     thresholds = thresholds or build_opening_thresholds(None)
     search_radius = max(thresholds.segment_search_radius, (expected_length or 0) * 2.0)
     min_length = max(thresholds.min_opening_length, (expected_length or 0) * 0.5)
+    axis_overhang_limit = thresholds.segment_overhang if axis_overhang_limit is None else axis_overhang_limit
+    perp_dist_limit = thresholds.perp_dist_max if perp_dist_limit is None else perp_dist_limit
 
     candidates: list[tuple[float, float, float, Orientation, Segment]] = []
 
@@ -927,15 +1560,15 @@ def _match_segment(
 
         if orientation == "horizontal":
             x0, x1 = sorted([segment.start.x, segment.end.x])
-            if not (x0 - thresholds.segment_overhang <= anchor.x <= x1 + thresholds.segment_overhang):
+            if not (x0 - axis_overhang_limit <= anchor.x <= x1 + axis_overhang_limit):
                 continue
-            if abs(anchor.y - midpoint.y) > thresholds.perp_dist_max:
+            if abs(anchor.y - midpoint.y) > perp_dist_limit:
                 continue
         else:
             y0, y1 = sorted([segment.start.y, segment.end.y])
-            if not (y0 - thresholds.segment_overhang <= anchor.y <= y1 + thresholds.segment_overhang):
+            if not (y0 - axis_overhang_limit <= anchor.y <= y1 + axis_overhang_limit):
                 continue
-            if abs(anchor.x - midpoint.x) > thresholds.perp_dist_max:
+            if abs(anchor.x - midpoint.x) > perp_dist_limit:
                 continue
 
         length_penalty = abs(length - expected_length) if expected_length else 0.0
@@ -953,6 +1586,18 @@ def _match_segment(
     ]
 
     return _merge_segments(group, orientation)
+
+
+def _label_axis_overhang(expected_length: float | None, thresholds: OpeningThresholds) -> float:
+    if expected_length is None:
+        return thresholds.segment_overhang
+    return max(thresholds.segment_overhang, expected_length * 0.25)
+
+
+def _label_perpendicular_tolerance(expected_length: float | None, thresholds: OpeningThresholds) -> float:
+    if expected_length is None:
+        return thresholds.perp_dist_max
+    return max(thresholds.perp_dist_max, expected_length * 0.75)
 
 
 def _are_parallel_twins(a: Segment, b: Segment, orient: Orientation, thresholds: OpeningThresholds) -> bool:

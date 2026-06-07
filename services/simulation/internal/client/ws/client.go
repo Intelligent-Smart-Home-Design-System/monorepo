@@ -6,20 +6,25 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/client"
 	"github.com/gorilla/websocket"
 )
 
 const maxMessageSize = 100
 
+// Client предствляуте структуру клиента, подключенного к серверу через WebSocket.
+// Он отвечает за чтение сообщений от клиента, роутинг этих сообщений и отправку
+// ответов обратно клиенту.
 type Client struct {
 	connection *websocket.Conn
 	manager    *Manager
 	egress     chan []byte
 
-	simService api.SimulationService
+	simService client.SimulationService
 }
 
-func NewClient(conn *websocket.Conn, manager *Manager, simService api.SimulationService) *Client {
+// NewClient создает новый экземпляр Client.
+func NewClient(conn *websocket.Conn, manager *Manager, simService client.SimulationService) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
@@ -28,6 +33,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, simService api.Simulation
 	}
 }
 
+// ReadMessages запускает цикл чтения сообщений от клиента.
 func (c *Client) ReadMessages() {
 	defer func() {
 		c.manager.removeClient(c)
@@ -39,10 +45,12 @@ func (c *Client) ReadMessages() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				slog.Error("Error while reading message from client", "error", err)
 			}
+
 			return
 		}
 
 		var msg api.Message
+
 		err = json.Unmarshal(payload, &msg)
 		if err != nil {
 			slog.Error("Error while unmarshalling message from client", "error", err)
@@ -53,6 +61,7 @@ func (c *Client) ReadMessages() {
 	}
 }
 
+// route обрабатывает входящее сообщение от клиента, вызывая соответствующий обработчик
 func (c *Client) route(msg api.Message) {
 	switch msg.Type {
 	case "hello":
@@ -68,6 +77,7 @@ func (c *Client) route(msg api.Message) {
 	}
 }
 
+// handleHello обрабатывает сообщение "hello" от клиента, отправляя обратно "hello:ack" с информацией о сервере и версии
 func (c *Client) handleHello() {
 	payload, err := json.Marshal(api.HelloAckPayload{
 		Server:  "sim-backend",
@@ -85,20 +95,23 @@ func (c *Client) handleHello() {
 	})
 }
 
+// handleSimulationStart обрабатывает сообщение "simulation:start" от клиента, пытаясь запустить новую симуляцию с заданными параметрами. В случае успеха отправляет "simulation:started", в случае ошибки - сообщение об ошибке.
 func (c *Client) handleSimulationStart(msg api.Message) {
 	var startPayload api.SimulationStartPayload
 	if err := json.Unmarshal(msg.Payload, &startPayload); err != nil {
 		slog.Error("Error while unmarshalling simulation:start payload", "error", err)
 		c.sendError(msg.ReqID, "INVALID_PAYLOAD", "cannot parse simulation:start payload")
+
 		return
 	}
- 
+
 	if err := c.simService.Start(msg.ReqID, startPayload); err != nil {
 		slog.Error("Error while starting simulation", "reqID", msg.ReqID, "error", err)
 		c.sendError(msg.ReqID, "START_FAILED", err.Error())
+
 		return
 	}
- 
+
 	payload, err := json.Marshal(api.SimulationStartedPayload{
 		DtSim: startPayload.DtSim,
 		State: "running",
@@ -107,7 +120,7 @@ func (c *Client) handleSimulationStart(msg api.Message) {
 		slog.Error("Error while marshalling simulation:started payload", "error", err)
 		return
 	}
- 
+
 	c.send(api.Message{
 		Type:    "simulation:started",
 		Ts:      time.Now(),
@@ -115,28 +128,31 @@ func (c *Client) handleSimulationStart(msg api.Message) {
 		Payload: payload,
 	})
 }
- 
+
+// handleSimulationTick обрабатывает сообщение "simulation:tick" от клиента, пытаясь выполнить один шаг симуляции. В случае успеха отправляет "simulation:step" с результатами шага, в случае ошибки - сообщение об ошибке.
 func (c *Client) handleSimulationTick(msg api.Message) {
 	var tickPayload api.SimulationTickPayload
 	if err := json.Unmarshal(msg.Payload, &tickPayload); err != nil {
 		slog.Error("Error while unmarshalling simulation:tick payload", "error", err)
 		c.sendError(msg.ReqID, "INVALID_PAYLOAD", "cannot parse simulation:tick payload")
+
 		return
 	}
- 
+
 	stepResult, err := c.simService.Tick(msg.ReqID, tickPayload)
 	if err != nil {
 		slog.Error("Error while ticking simulation", "reqID", msg.ReqID, "error", err)
 		c.sendError(msg.ReqID, "TICK_FAILED", err.Error())
+
 		return
 	}
- 
+
 	payload, err := json.Marshal(stepResult)
 	if err != nil {
 		slog.Error("Error while marshalling simulation:step payload", "error", err)
 		return
 	}
- 
+
 	c.send(api.Message{
 		Type:    "simulation:step",
 		Ts:      time.Now(),
@@ -144,14 +160,16 @@ func (c *Client) handleSimulationTick(msg api.Message) {
 		Payload: payload,
 	})
 }
- 
+
+// handleSimulationStop обрабатывает сообщение "simulation:stop" от клиента, пытаясь остановить симуляцию. В случае успеха отправляет "simulation:stopped",
 func (c *Client) handleSimulationStop(msg api.Message) {
 	if err := c.simService.Stop(msg.ReqID); err != nil {
 		slog.Error("Error while stopping simulation", "reqID", msg.ReqID, "error", err)
 		c.sendError(msg.ReqID, "STOP_FAILED", err.Error())
+
 		return
 	}
- 
+
 	c.send(api.Message{
 		Type:  "simulation:stopped",
 		Ts:    time.Now(),
@@ -159,11 +177,13 @@ func (c *Client) handleSimulationStop(msg api.Message) {
 	})
 }
 
+// send отправляет сообщение клиенту, сериализуя его в JSON и отправляя через канал egress
 func (c *Client) send(msg api.Message) {
 	data, _ := json.Marshal(msg)
 	c.egress <- data
 }
 
+// sendError отправляет сообщение об ошибке клиенту с заданным кодом и сообщением
 func (c *Client) sendError(reqID, code, message string) {
 	payload, err := json.Marshal(api.ErrorPayload{
 		Code:    code,
@@ -182,6 +202,7 @@ func (c *Client) sendError(reqID, code, message string) {
 	})
 }
 
+// WriteMessages запускает цикл отправки сообщений клиенту, читая их из канала egress. Если канал закрывается, отправляет сообщение о закрытии соединения и завершает работу.
 func (c *Client) WriteMessages() {
 	defer func() {
 		c.manager.removeClient(c)
@@ -195,6 +216,7 @@ func (c *Client) WriteMessages() {
 					slog.Error("Error while closing connection to client", "error", err)
 					return
 				}
+
 				return
 			}
 

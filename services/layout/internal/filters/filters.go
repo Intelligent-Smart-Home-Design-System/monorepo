@@ -2,8 +2,6 @@ package filters
 
 import (
 	"encoding/json"
-
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DeviceFilter interface{}
@@ -29,8 +27,6 @@ type SmartDoorBellFilter struct {
 	Angle       float64 `json:"angle,omitempty"`
 	NightVision bool    `json:"night_vision,omitempty"`
 	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
-
-	Direction *point.Point
 }
 
 type DoorSensorFilter struct{}
@@ -40,8 +36,6 @@ type WindowSensorFilter struct{}
 type MotionSensorFilter struct {
 	Angle float64 `json:"angle,omitempty"`
 	Range float64 `json:"range,omitempty"`
-
-	Direction *point.Point
 }
 
 type CameraFilter struct {
@@ -50,8 +44,7 @@ type CameraFilter struct {
 	NightVision bool    `json:"night_vision,omitempty"`
 	Resolution  string  `json:"resolution,omitempty"`
 
-	RecommendedRange float64
-	Direction        *point.Point
+	RecommendedRangeM float64      `json:"recommended_range_m,omitempty"`
 }
 
 type SmartSirenFilter struct {
@@ -101,11 +94,27 @@ type FloorTemperatureSensorFilter struct {
 	CableLength float64 `json:"cable_length,omitempty"`
 }
 
+type SmartTVFilter struct {
+	Resolution     string  `json:"resolution,omitempty"`
+	Width          float64 `json:"width,omitempty"`
+	RefreshRatehHZ float64 `json:"refresh_rate_hz,omitempty"`
+
+	MaxWidthM float64 `json:"max_width_m,omitempty"`
+}
+
+type SmartSpeaker struct{}
+
+type Subwoofer struct{}
+
+type CeilingSpeakers struct{}
+
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
 
 	switch deviceType {
+
+	// Security-устройства
 	case "water_leak_sensor":
 		filter = &WaterLeakSensorFilter{}
 	case "gas_leak_sensor":
@@ -124,6 +133,8 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &CameraFilter{}
 	case "smart_siren":
 		filter = &SmartSirenFilter{}
+
+	// Climate-устройства
 	case "air_conditioner":
 		filter = &AirConditionerFilter{}
 	case "temperature_sensor":
@@ -142,6 +153,16 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartFloorThermostatFilter{}
 	case "floor_temperature_sensor":
 		filter = &FloorTemperatureSensorFilter{}
+
+	// Media-устройства
+	case "smart_tv":
+		filter = &SmartTVFilter{}
+	case "smart_speaker":
+		filter = &SmartSpeaker{}
+	case "subwoofer":
+		filter = &Subwoofer{}
+	case "ceiling_speakers":
+		filter = &CeilingSpeakers{}
 	}
 
 	if filter == nil {

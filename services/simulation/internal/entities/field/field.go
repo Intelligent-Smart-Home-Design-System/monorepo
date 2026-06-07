@@ -1,20 +1,103 @@
 package field
 
-type Cell struct {
-	Condition    bool // true - сгорело; false - дефолт
-	IsHiddenWall bool // невидимая стенка для пожара/...
+import (
+	"math"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+)
+
+//===Вспомогательные геометрические функции===
+
+// PointInRoom проверяет находится ли точка внутри комнаты методом ray casting.
+func PointInRoom(x, y float64, room api.Room) bool {
+	return pointInPolygon(x, y, room.Area)
 }
 
-type Field struct {
-	Width  int
-	Height int
-	Cells  [][]*Cell
-}
-
-func NewField(width, height int, cells [][]*Cell) *Field {
-	return &Field{
-		Width:  width,
-		Height: height,
-		Cells:  cells,
+// PolygonIntersectsCircle возвращает true если окружность пересекает многоугольник.
+func PolygonIntersectsCircle(polygon [][2]float64, cx, cy, radius float64) bool {
+	if pointInPolygon(cx, cy, polygon) {
+		return true
 	}
+
+	r2 := radius * radius
+
+	for _, v := range polygon {
+		dx := v[0] - cx
+
+		dy := v[1] - cy
+		if dx*dx+dy*dy <= r2 {
+			return true
+		}
+	}
+
+	n := len(polygon)
+	for i := 0; i < n; i++ {
+		a := polygon[i]
+
+		b := polygon[(i+1)%n]
+		if segmentIntersectsCircle(a, b, cx, cy, radius) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// segmentIntersectsCircle проверяет пересекает ли отрезок (a, b) окружность с центром (cx, cy) и радиусом radius.
+func segmentIntersectsCircle(a, b [2]float64, cx, cy, radius float64) bool {
+	dx := b[0] - a[0]
+	dy := b[1] - a[1]
+	fx := a[0] - cx
+	fy := a[1] - cy
+
+	A := dx*dx + dy*dy
+	B := 2 * (fx*dx + fy*dy)
+	C := fx*fx + fy*fy - radius*radius
+
+	discriminant := B*B - 4*A*C
+	if discriminant < 0 {
+		return false
+	}
+
+	disc := math.Sqrt(discriminant)
+	t1 := (-B - disc) / (2 * A)
+	t2 := (-B + disc) / (2 * A)
+
+	return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1)
+}
+
+// pointInPolygon проверяет находится ли точка (x, y) внутри многоугольника, заданного массивом вершин polygon.
+func pointInPolygon(x, y float64, polygon [][2]float64) bool {
+	n := len(polygon)
+	inside := false
+
+	j := n - 1
+	for i := 0; i < n; i++ {
+		xi, yi := polygon[i][0], polygon[i][1]
+
+		xj, yj := polygon[j][0], polygon[j][1]
+		if ((yi > y) != (yj > y)) &&
+			(x < (xj-xi)*(y-yi)/(yj-yi)+xi) {
+			inside = !inside
+		}
+
+		j = i
+	}
+
+	return inside
+}
+
+// IsInRadius проверяет что точка с координатами (xPoint, yPoint) попадает в
+// окружность с центром в точке (xCenter, yCenter) и радиусом radius
+func IsInRadius(xCenter, yCenter, xPoint, yPoint, radius float64) bool {
+	dx := xPoint - xCenter
+	dy := yPoint - yCenter
+
+	return dx*dx+dy*dy <= radius*radius
+}
+
+// CirclesIntersect возвращает true если две окружности пересекаются или одна содержит другую.
+func CirclesIntersect(x1, y1, r1, x2, y2, r2 float64) bool {
+    distSq := (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1)
+    return distSq <= (r1 + r2)*(r1 + r2)
 }

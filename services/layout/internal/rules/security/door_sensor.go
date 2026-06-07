@@ -69,7 +69,7 @@ func (ds *DoorSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 		zoneCenter := point.GetObjectCenter(zr.EntryDoorZone.Points)
 
 		if deviceCnt < maxCount {
-			layout.AddDeviceToLayout(deviceType, ds.track, zr.OrigRoom.ID, &zoneCenter, doorSensorFilters)
+			layout.AddDeviceToLayout(deviceType, ds.track, zr.OrigRoom.ID, &zoneCenter, nil, doorSensorFilters)
 			deviceCnt++
 		}
 	}

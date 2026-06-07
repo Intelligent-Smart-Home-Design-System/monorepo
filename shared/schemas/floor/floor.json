@@ -10,6 +10,7 @@
     "walls",
     "doors",
     "windows",
+    "furniture",
     "rooms",
     "warnings"
   ],
@@ -33,7 +34,8 @@
           "type": "string"
         },
         "units": {
-          "type": "string"
+          "type": "string",
+          "enum": ["mm", "unknown"]
         }
       }
     },
@@ -53,6 +55,12 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/window"
+      }
+    },
+    "furniture": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/furniture"
       }
     },
     "rooms": {
@@ -102,7 +110,12 @@
           "type": "string"
         },
         "points": {
-          "$ref": "#/$defs/point_list"
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
         },
         "width": {
           "type": "number"
@@ -135,6 +148,8 @@
         },
         "rooms": {
           "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
           "items": {
             "type": "string"
           }
@@ -144,6 +159,10 @@
         },
         "swing": {
           "type": "string"
+        },
+        "hinge_side": {
+          "type": "string",
+          "enum": ["start", "end"]
         }
       }
     },
@@ -153,8 +172,7 @@
       "required": [
         "id",
         "points",
-        "width",
-        "rooms"
+        "width"
       ],
       "properties": {
         "id": {
@@ -163,6 +181,7 @@
         "points": {
           "type": "array",
           "minItems": 2,
+          "maxItems": 2,
           "items": {
             "$ref": "#/$defs/point"
           }
@@ -170,11 +189,8 @@
         "width": {
           "type": "number"
         },
-        "rooms": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "room": {
+          "type": "string"
         }
       }
     },
@@ -188,6 +204,7 @@
         "area_m2",
         "windows",
         "doors",
+        "furniture",
         "walls"
       ],
       "properties": {
@@ -215,11 +232,49 @@
             "type": "string"
           }
         },
+        "furniture": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "walls": {
           "type": "array",
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "furniture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "points"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "points": {
+          "$ref": "#/$defs/point_list"
+        },
+        "room": {
+          "type": "string"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "source_block_name": {
+          "type": "string"
+        },
+        "layer": {
+          "type": "string"
         }
       }
     },

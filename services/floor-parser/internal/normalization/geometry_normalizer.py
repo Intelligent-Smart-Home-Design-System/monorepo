@@ -5,9 +5,6 @@ from internal.entities.raw_plan import RawArc, RawInsert, RawLine, RawPlan, RawP
 
 
 class GeometryNormalizer:
-    def __init__(self, precision: int = 6) -> None:
-        self._precision = precision
-
     def normalize(self, raw_plan: RawPlan) -> list[NormalizedEntity]:
         normalized_entities = []
 
@@ -18,7 +15,9 @@ class GeometryNormalizer:
                         id=entity.id,
                         layer=entity.layer,
                         start=entity.start,
-                        end=entity.end
+                        end=entity.end,
+                        source_insert_id=entity.source_insert_id,
+                        source_block_name=entity.source_block_name,
                     )
                 )
                 continue
@@ -30,6 +29,8 @@ class GeometryNormalizer:
                         layer=entity.layer,
                         points=entity.points,
                         closed=entity.closed,
+                        source_insert_id=entity.source_insert_id,
+                        source_block_name=entity.source_block_name,
                     )
                 )
                 continue
@@ -43,6 +44,8 @@ class GeometryNormalizer:
                         radius=entity.radius,
                         start_angle=entity.start_angle,
                         end_angle=entity.end_angle,
+                        source_insert_id=entity.source_insert_id,
+                        source_block_name=entity.source_block_name,
                     )
                 )
                 continue
@@ -55,6 +58,8 @@ class GeometryNormalizer:
                         text=entity.text,
                         insert=entity.insert,
                         is_multiline=entity.is_multiline,
+                        source_insert_id=entity.source_insert_id,
+                        source_block_name=entity.source_block_name,
                     )
                 )
                 continue
@@ -67,6 +72,8 @@ class GeometryNormalizer:
                         block_name=entity.block_name,
                         insert=entity.insert,
                         rotation=entity.rotation,
+                        source_insert_id=entity.source_insert_id,
+                        source_block_name=entity.source_block_name,
                     )
                 )
 

@@ -1,5 +1,10 @@
 export { renderApartmentPlan } from './renderApartmentPlan';
 export type { ApartmentPlanRenderHandle } from './renderApartmentPlan';
+export {
+  addSmartDevice,
+  clearSmartDevices,
+  removeSmartDevice,
+} from './utils/devices';
 export type {
   Door,
   FloorPlan,

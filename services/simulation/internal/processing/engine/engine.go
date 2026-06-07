@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"encoding/json"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
@@ -136,6 +138,18 @@ func (s *SimEngine) InitStep() {
 
 func (s *SimEngine) Step() {
 	targetTime := s.simulation.Now() + s.dtSim
+
+	for _, entity := range s.IDToEntity {
+		if t, ok := entity.(entities.Tickable); ok {
+			tickPayload, _ := json.Marshal(struct {
+				Tick bool `json:"tick"`
+			}{Tick: true})
+			s.eventsInChan <- api.EventInDTO{
+				EntityID: t.GetID(),
+				Payload:  tickPayload,
+			}
+		}
+	}
 
 	s.DrainInChan()
 

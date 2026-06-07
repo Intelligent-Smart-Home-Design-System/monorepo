@@ -72,7 +72,6 @@ func (f *Fire) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
-
 	f.inStore.Put(input)
 
 	return nil
@@ -115,7 +114,6 @@ func (f *Fire) Process(process simgo.Process) {
 		},
 	}
 
-	f.inStore.Put(FireInData{Tick: true})
 	for {
 		el := f.inStore.Get()
 		process.Wait(el.Event)
@@ -162,7 +160,6 @@ func (f *Fire) Process(process simgo.Process) {
 		}
 
 		f.HandleOutDTO(dto)
-		f.inStore.Put(FireInData{Tick: true})
 	}
 }
 
@@ -207,3 +204,5 @@ func (f *Fire) SetReceivers(actions []api.EdgeDTO) {
 		f.Receivers[i] = a.ToID
 	}
 }
+
+func (f *Fire) OnTick() {}

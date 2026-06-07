@@ -12,17 +12,17 @@ import (
 
 // =====Stubs=====
 type stubEnginePort struct {
-	outChan    chan api.EventOutDTO
-	inChan     chan api.EventInDTO
+	outChan    chan api.EventDTO
+	inChan     chan api.EventDTO
 	simulation *simgo.Simulation
 	floor      *api.Floor
 }
 
-func (s *stubEnginePort) GetOutChan() chan api.EventOutDTO {
+func (s *stubEnginePort) GetOutChan() chan api.EventDTO {
 	return s.outChan
 }
 
-func (s *stubEnginePort) GetInChan() chan api.EventInDTO {
+func (s *stubEnginePort) GetInChan() chan api.EventDTO {
 	return s.inChan
 }
 

@@ -33,9 +33,14 @@ type EntityWithProcess interface {
 	GetProcessFunc() func(process simgo.Process)
 }
 
+// Observer определяет интерфейс наблюдателя, который может наблюдать за событиями в комнате и реагировать на них.
 type Observer interface {
 	Entity
+
+	// GetPosition возвращает координаты наблюдателя в комнате.
 	GetPosition() (x, y float64)
+
+	// GetObservedKinds возвращает список событий наблюдения.
 	GetObservedKinds() []string // ["human:move"], ["fire:spread"] и тд
 }
 
@@ -43,7 +48,7 @@ type Tickable interface {
     Entity
     OnTick()
 }
-
+// Типы сущностей
 const (
 	TypeLamp                          = "lamp"
 	TypeSmartLamp                     = "smartLamp"

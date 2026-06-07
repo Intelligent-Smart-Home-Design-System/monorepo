@@ -72,19 +72,20 @@ func (f *Fire) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
+
 	f.inStore.Put(input)
 
 	return nil
 }
 
 func (f *Fire) HandleOutDTO(dto []byte) {
-	f.enginePort.GetOutChan() <- api.EventOutDTO{
+	f.enginePort.GetOutChan() <- api.EventDTO{
 		EntityID: f.ID,
 		Payload:  dto,
 	}
 
 	for _, r := range f.Receivers {
-		f.enginePort.GetInChan() <- api.EventInDTO{
+		f.enginePort.GetInChan() <- api.EventDTO{
 			EntityID: r,
 			Payload:  dto,
 		}
@@ -99,6 +100,7 @@ func (f *Fire) Process(process simgo.Process) {
 	for {
 		el := f.inStore.Get()
 		process.Wait(el.Event)
+
 		if el.Item.TurnOn {
 			break
 		}
@@ -117,9 +119,11 @@ func (f *Fire) Process(process simgo.Process) {
 	for {
 		el := f.inStore.Get()
 		process.Wait(el.Event)
+
 		floor = f.enginePort.GetFloor()
 
 		var newZones []*FireZoneData
+
 		for _, zone := range f.zones {
 			zone.Radius += fireSpreadRate
 
@@ -138,6 +142,7 @@ func (f *Fire) Process(process simgo.Process) {
 				door := edge.Door
 				doorMidX := (door.Points[0][0] + door.Points[1][0]) / 2
 				doorMidY := (door.Points[0][1] + door.Points[1][1]) / 2
+
 				distToDoor := math.Sqrt((zone.X-doorMidX)*(zone.X-doorMidX) + (zone.Y-doorMidY)*(zone.Y-doorMidY))
 				if zone.Radius < distToDoor {
 					continue
@@ -153,7 +158,9 @@ func (f *Fire) Process(process simgo.Process) {
 				})
 			}
 		}
+
 		f.zones = append(f.zones, newZones...)
+
 		dto, err := json.Marshal(FireOutData{Kind: KindFireSpread, Fires: f.zones})
 		if err != nil {
 			return
@@ -164,30 +171,31 @@ func (f *Fire) Process(process simgo.Process) {
 }
 
 func (f *Fire) notifyObserversInRoom(zone *FireZoneData) {
-    dto, err := json.Marshal(FireSpreadPayload{
-        Kind:   KindFireSpread,
-        RoomID: zone.RoomID,
-        X:      zone.X,
-        Y:      zone.Y,
-        Radius: zone.Radius,
-    })
-    if err != nil {
-        return
-    }
+	dto, err := json.Marshal(FireSpreadPayload{
+		Kind:   KindFireSpread,
+		RoomID: zone.RoomID,
+		X:      zone.X,
+		Y:      zone.Y,
+		Radius: zone.Radius,
+	})
+	if err != nil {
+		return
+	}
 
-    for _, observerID := range f.enginePort.GetRoomObservers(zone.RoomID) {
-        observer := f.enginePort.GetEntity(observerID).(entities.Observer)
+	for _, observerID := range f.enginePort.GetRoomObservers(zone.RoomID) {
+		observer := f.enginePort.GetEntity(observerID).(entities.Observer)
 
-        for _, k := range observer.GetObservedKinds() {
-            if k == KindFireSpread {
-                f.enginePort.GetInChan() <- api.EventInDTO{
-                    EntityID: observerID,
-                    Payload:  dto,
-                }
-                break
-            }
-        }
-    }
+		for _, k := range observer.GetObservedKinds() {
+			if k == KindFireSpread {
+				f.enginePort.GetInChan() <- api.EventDTO{
+					EntityID: observerID,
+					Payload:  dto,
+				}
+
+				break
+			}
+		}
+	}
 }
 
 func (f *Fire) GetID() string {

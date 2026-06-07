@@ -10,8 +10,8 @@ import (
 
 // =====Stubs=====
 type stubEngine struct {
-	inChan        chan api.EventInDTO
-	outChan       chan api.EventOutDTO
+	inChan        chan api.EventDTO
+	outChan       chan api.EventDTO
 	stopCalled    bool
 	stepCalled    bool
 	runErr        error
@@ -20,8 +20,8 @@ type stubEngine struct {
 
 func newStubEngine() *stubEngine {
 	return &stubEngine{
-		inChan:  make(chan api.EventInDTO, 100),
-		outChan: make(chan api.EventOutDTO, 100),
+		inChan:  make(chan api.EventDTO, 100),
+		outChan: make(chan api.EventDTO, 100),
 	}
 }
 
@@ -38,11 +38,11 @@ func (s *stubEngine) CheckCircleDependencies() bool {
 func (s *stubEngine) SetFloor(floor *api.Floor) {
 }
 
-func (s *stubEngine) GetInChan() chan api.EventInDTO {
+func (s *stubEngine) GetInChan() chan api.EventDTO {
 	return s.inChan
 }
 
-func (s *stubEngine) GetOutChan() chan api.EventOutDTO {
+func (s *stubEngine) GetOutChan() chan api.EventDTO {
 	return s.outChan
 }
 
@@ -71,7 +71,7 @@ func (s *stubEngine) Stop() {
 	close(s.inChan)
 }
 
-func (s *stubEngine) HandleEvent(event api.EventInDTO) {
+func (s *stubEngine) HandleEvent(event api.EventDTO) {
 }
 
 // =====Helper=====
@@ -158,7 +158,7 @@ func TestTick_Success(t *testing.T) {
 	inputPayload, _ := json.Marshal(map[string]bool{"turn_on": true})
 	tickPayload := api.SimulationTickPayload{
 		Tick:   5,
-		Inputs: []api.EventInDTO{{EntityID: "lamp_1", Payload: inputPayload}},
+		Inputs: []api.EventDTO{{EntityID: "lamp_1", Payload: inputPayload}},
 	}
 
 	result, err := s.Tick("sim1", tickPayload)

@@ -85,7 +85,7 @@ func (r *AirPurifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, position, airPurifierFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, position, nil, airPurifierFilters)
 		deviceCnt++
 	}
 

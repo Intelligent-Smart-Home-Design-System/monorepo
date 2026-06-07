@@ -61,7 +61,7 @@ func (r *TemperatureSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNu
 		}
 
 		position := point.GetObjectCenter(wall.Points)
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, temperatureSensorFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, nil, temperatureSensorFilters)
 		deviceCnt++
 	}
 

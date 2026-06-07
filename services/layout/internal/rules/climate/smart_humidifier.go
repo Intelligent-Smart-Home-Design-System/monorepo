@@ -85,7 +85,7 @@ func (r *SmartHumidifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum 
 			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, position, smartHumidifierFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, position, nil, smartHumidifierFilters)
 		deviceCnt++
 	}
 

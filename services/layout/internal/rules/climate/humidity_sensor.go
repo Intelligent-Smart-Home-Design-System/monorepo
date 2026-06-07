@@ -61,7 +61,7 @@ func (r *HumiditySensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 		}
 
 		position := point.GetObjectCenter(wall.Points)
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, humiditySensorFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, nil, humiditySensorFilters)
 		deviceCnt++
 	}
 

@@ -62,7 +62,7 @@ func (r *SmartRadiatorActuatorRule) Apply(zonedAp *apartment.ZonedApartment, lev
 		}
 
 		position := point.GetObjectCenter(wall.Points)
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, smartRadiatorActuatorFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, nil, smartRadiatorActuatorFilters)
 		deviceCnt++
 	}
 

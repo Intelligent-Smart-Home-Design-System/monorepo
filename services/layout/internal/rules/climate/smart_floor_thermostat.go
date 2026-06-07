@@ -61,7 +61,7 @@ func (r *SmartFloorThermostatRule) Apply(zonedAp *apartment.ZonedApartment, leve
 		}
 
 		position := point.GetObjectCenter(wall.Points)
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, smartFloorThermostatFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, nil, smartFloorThermostatFilters)
 		deviceCnt++
 	}
 

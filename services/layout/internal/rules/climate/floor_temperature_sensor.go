@@ -64,7 +64,7 @@ func (r *FloorTemperatureSensorRule) Apply(zonedAp *apartment.ZonedApartment, le
 			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, position, floorTemperatureSensorFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, position, nil, floorTemperatureSensorFilters)
 		deviceCnt++
 	}
 

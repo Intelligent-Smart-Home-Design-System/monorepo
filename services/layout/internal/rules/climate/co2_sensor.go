@@ -61,7 +61,7 @@ func (r *CO2SensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 		}
 
 		position := point.GetObjectCenter(wall.Points)
-		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, co2SensorFilters)
+		layout.AddDeviceToLayout(deviceType, track, zr.OrigRoom.ID, &position, nil, co2SensorFilters)
 		deviceCnt++
 	}
 

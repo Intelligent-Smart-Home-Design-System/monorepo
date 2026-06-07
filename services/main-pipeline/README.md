@@ -25,7 +25,7 @@ Open:
 - Grafana: `http://localhost:3000` (`admin` / `admin`)
 
 
-Optional:
+Optional (env):
 В docker-compose.yml у каждого сервиса в env прописаны порты для метрик в METRICS_PORT. (Main-pipeline - 2112, api-gateway - 2116, floor-parser-worker - 2113, layout-worker - 2114, device-selection-worker - 2115)
 
 В Grafana по умолчанию user:admin, pasw:admin. (Лучше поменять)

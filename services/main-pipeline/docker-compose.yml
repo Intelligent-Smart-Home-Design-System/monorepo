@@ -64,6 +64,7 @@ services:
 
   catalog-db-seed:
     image: postgres:16-alpine
+    profiles: [test]
     depends_on:
       catalog-db-migrate:
         condition: service_completed_successfully
@@ -97,6 +98,8 @@ services:
       context: .
     entrypoint: ["api-gateway"]
     depends_on:
+      catalog-postgresql:
+        condition: service_healthy
       temporal:
         condition: service_started
       main-pipeline:
@@ -119,7 +122,9 @@ services:
     build:
       context: ../frontend-api
     depends_on:
-      catalog-db-seed:
+      catalog-postgresql:
+        condition: service_healthy
+      catalog-db-migrate:
         condition: service_completed_successfully
     environment:
       DATABASE_DSN: postgres://catalog:catalog@catalog-postgresql:5432/smart_home?sslmode=disable
@@ -171,7 +176,9 @@ services:
     build:
       context: ../device-selection
     depends_on:
-      catalog-db-seed:
+      catalog-postgresql:
+        condition: service_healthy
+      catalog-db-migrate:
         condition: service_completed_successfully
       temporal:
         condition: service_started

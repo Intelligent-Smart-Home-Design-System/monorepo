@@ -167,6 +167,7 @@ func (s *SimEngine) DrainInChan() {
 			if !ok {
 				return
 			}
+
 			s.HandleEvent(event)
 		default:
 			return

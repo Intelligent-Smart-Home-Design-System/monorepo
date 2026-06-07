@@ -72,6 +72,7 @@ func (f *Fire) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
+
 	f.inStore.Put(input)
 
 	return nil
@@ -99,6 +100,7 @@ func (f *Fire) Process(process simgo.Process) {
 	for {
 		el := f.inStore.Get()
 		process.Wait(el.Event)
+
 		if el.Item.TurnOn {
 			break
 		}
@@ -117,9 +119,11 @@ func (f *Fire) Process(process simgo.Process) {
 	for {
 		el := f.inStore.Get()
 		process.Wait(el.Event)
+
 		floor = f.enginePort.GetFloor()
 
 		var newZones []*FireZoneData
+
 		for _, zone := range f.zones {
 			zone.Radius += fireSpreadRate
 
@@ -138,6 +142,7 @@ func (f *Fire) Process(process simgo.Process) {
 				door := edge.Door
 				doorMidX := (door.Points[0][0] + door.Points[1][0]) / 2
 				doorMidY := (door.Points[0][1] + door.Points[1][1]) / 2
+
 				distToDoor := math.Sqrt((zone.X-doorMidX)*(zone.X-doorMidX) + (zone.Y-doorMidY)*(zone.Y-doorMidY))
 				if zone.Radius < distToDoor {
 					continue
@@ -153,7 +158,9 @@ func (f *Fire) Process(process simgo.Process) {
 				})
 			}
 		}
+
 		f.zones = append(f.zones, newZones...)
+
 		dto, err := json.Marshal(FireOutData{Kind: KindFireSpread, Fires: f.zones})
 		if err != nil {
 			return
@@ -184,6 +191,7 @@ func (f *Fire) notifyObserversInRoom(zone *FireZoneData) {
 					EntityID: observerID,
 					Payload:  dto,
 				}
+
 				break
 			}
 		}

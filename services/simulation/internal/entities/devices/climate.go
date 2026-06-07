@@ -43,6 +43,7 @@ func (ac *AirConditioner) HandleInDTO(dto []byte) error {
 	if err := json.Unmarshal(dto, &input); err != nil {
 		return err
 	}
+
 	ac.Put(input)
 
 	return nil
@@ -115,9 +116,11 @@ func (t *Thermostat) HandleEvent(inData ThermostatData) ThermostatData {
 		if temp < 0 {
 			temp = 0
 		}
+
 		if temp > 100 {
 			temp = 100
 		}
+
 		t.Temperature = temp
 	}
 

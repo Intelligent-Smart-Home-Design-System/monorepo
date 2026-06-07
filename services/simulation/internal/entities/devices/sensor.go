@@ -272,30 +272,32 @@ func (s *RadiusMoveSensorWithUpdate) GetPosition() (float64, float64) {
 
 // HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithUpdate) HandleInDTO(dto []byte) error {
-    var raw struct {
-        Kind string  `json:"kind"`
-        To *struct {
-            X float64 `json:"x"`
-            Y float64 `json:"y"`
-        } `json:"to"`
-        X      *float64 `json:"x"`
-        Y      *float64 `json:"y"`
-        Radius *float64 `json:"radius"`
-    }
-    if err := json.Unmarshal(dto, &raw); err != nil {
-        return err
-    }
+	var raw struct {
+		Kind string `json:"kind"`
+		To   *struct {
+			X float64 `json:"x"`
+			Y float64 `json:"y"`
+		} `json:"to"`
+		X      *float64 `json:"x"`
+		Y      *float64 `json:"y"`
+		Radius *float64 `json:"radius"`
+	}
+	if err := json.Unmarshal(dto, &raw); err != nil {
+		return err
+	}
 
-    var inRadius bool
-    switch raw.Kind {
-    case "fire:spread":
-        inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
-    default:
-        inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
-    }
+	var inRadius bool
 
-    s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
-    return nil
+	switch raw.Kind {
+	case "fire:spread":
+		inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
+	default:
+		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+	}
+
+	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
+
+	return nil
 }
 
 // GetProcessFunc возвращает функцию процесса для RadiusMoveSensorWithUpdate.
@@ -401,30 +403,32 @@ func (s *RadiusMoveSensorWithoutUpdate) GetPosition() (float64, float64) {
 
 // HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
-    var raw struct {
-        Kind string  `json:"kind"`
-        To *struct {
-            X float64 `json:"x"`
-            Y float64 `json:"y"`
-        } `json:"to"`
-        X      *float64 `json:"x"`
-        Y      *float64 `json:"y"`
-        Radius *float64 `json:"radius"`
-    }
-    if err := json.Unmarshal(dto, &raw); err != nil {
-        return err
-    }
+	var raw struct {
+		Kind string `json:"kind"`
+		To   *struct {
+			X float64 `json:"x"`
+			Y float64 `json:"y"`
+		} `json:"to"`
+		X      *float64 `json:"x"`
+		Y      *float64 `json:"y"`
+		Radius *float64 `json:"radius"`
+	}
+	if err := json.Unmarshal(dto, &raw); err != nil {
+		return err
+	}
 
-    var inRadius bool
-    switch raw.Kind {
-    case "fire:spread":
-        inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
-    default:
-        inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
-    }
+	var inRadius bool
 
-    s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
-    return nil
+	switch raw.Kind {
+	case "fire:spread":
+		inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
+	default:
+		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+	}
+
+	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
+
+	return nil
 }
 
 // HandleEvent реализует бизнес-логику устройства, обновляет состояние и возвращает данные для отправки.

@@ -316,6 +316,7 @@ func (sf *SmartFloor) HandleEvent(inData SmartFloorData) SmartFloorData {
 	if inData.TurnOn != nil {
 		sf.TurnOn = *inData.TurnOn
 	}
+
 	if inData.Temperature != nil {
 		sf.Temperature = *inData.Temperature
 	}

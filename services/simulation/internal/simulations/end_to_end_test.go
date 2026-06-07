@@ -422,10 +422,12 @@ func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field s
 			if change.EntityID != entityID {
 				continue
 			}
+
 			var out map[string]any
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+
 			if v, ok := out[field]; ok {
 				if b, ok := v.(bool); ok {
 					return b, true
@@ -433,6 +435,7 @@ func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field s
 			}
 		}
 	}
+
 	return false, false
 }
 
@@ -445,10 +448,12 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 			if change.EntityID != entityID {
 				continue
 			}
+
 			var out map[string]any
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+
 			if v, ok := out[field]; ok {
 				if f, ok := v.(float64); ok {
 					return int(f), true
@@ -456,6 +461,7 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 			}
 		}
 	}
+
 	return 0, false
 }
 
@@ -1407,6 +1413,7 @@ func TestFire_SingleRoom(t *testing.T) {
 
 	corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
 	allCornersReached := false
+
 	for i := 1; i <= 8; i++ {
 		var inputs []api.EventDTO
 		if i == 1 {
@@ -1431,8 +1438,10 @@ func TestFire_SingleRoom(t *testing.T) {
 
 			for _, zone := range out.Fires {
 				reached := true
+
 				for _, corner := range corners {
 					dx := corner[0] - zone.X
+
 					dy := corner[1] - zone.Y
 					if dx*dx+dy*dy > zone.Radius*zone.Radius {
 						reached = false
@@ -1442,6 +1451,7 @@ func TestFire_SingleRoom(t *testing.T) {
 
 				if reached {
 					allCornersReached = true
+
 					if i < 8 {
 						t.Fatalf("fire reached all corners too early at tick %d (radius=%.2f)", i, zone.Radius)
 					}
@@ -1449,6 +1459,7 @@ func TestFire_SingleRoom(t *testing.T) {
 			}
 		}
 	}
+
 	if !allCornersReached {
 		t.Fatal("fire never reached all 4 corners within 8 ticks")
 	}
@@ -1486,6 +1497,7 @@ func TestFire_SpreadsThroughDoor(t *testing.T) {
 	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
 
 	sensorTriggeredAt := -1
+
 	var allSteps []api.SimulationStepPayload
 	for i := 1; i <= 15; i++ {
 		var inputs []api.EventDTO

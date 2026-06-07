@@ -77,6 +77,12 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 		cfg.Wildberries.Discovery.MaxPages,
 	)
 
+	if cfg.Wildberries.Category.CategoryURL != "" {
+		if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeCategory.String(), cfg.Wildberries.Category.CategoryURL); err != nil {
+			logger.Error().Err(err).Msg("failed to create category task")
+		}
+	}
+
 	if cfg.Yandex.SupportedZigbeeDevicesURL != "" {
 		if err := taskRepo.CreateTask(domain.SourceYandex, domain.PageTypeCompatibility.String(), cfg.Yandex.SupportedZigbeeDevicesURL); err != nil {
 			logger.Error().Err(err).Msg("failed to create Yandex compatibility task")

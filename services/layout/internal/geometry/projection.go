@@ -45,13 +45,11 @@ func ProjectPolygonToSegment(seg point.Segment, points []point.Point) (*point.In
 		}
 	}
 
-	// проекция полностью за пределами отрезка
 	segLen := seg.Length()
 	if maxProj < 0 || minProj > segLen {
 		return nil, nil
 	}
 
-	// зажимаем в границы отрезка
 	return &point.Interval{
 		From: math.Max(0, minProj),
 		To:   math.Min(segLen, maxProj),

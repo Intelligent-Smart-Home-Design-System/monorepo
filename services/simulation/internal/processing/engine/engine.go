@@ -147,7 +147,7 @@ func (s *SimEngine) Step() {
 			tickPayload, _ := json.Marshal(struct {
 				Tick bool `json:"tick"`
 			}{Tick: true})
-			s.eventsInChan <- api.EventInDTO{
+			s.eventsInChan <- api.EventDTO{
 				EntityID: t.GetID(),
 				Payload:  tickPayload,
 			}
@@ -236,5 +236,5 @@ func (s *SimEngine) GetFloor() *api.Floor {
 }
 
 func (s *SimEngine) GetEntity(id string) entities.Entity {
-    return s.IDToEntity[id]
+	return s.IDToEntity[id]
 }

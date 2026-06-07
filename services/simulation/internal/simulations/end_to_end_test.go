@@ -1367,146 +1367,148 @@ func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
 
 // TestFire_SingleRoom проверяет что радиус огня достигает всех углов комнаты в нужный тик.
 func TestFire_SingleRoom(t *testing.T) {
-    server := newSimServer(t)
-    conn := dialSim(t, server)
+	server := newSimServer(t)
+	conn := dialSim(t, server)
 
-    const reqID = "sim-fire-single-room"
+	const reqID = "sim-fire-single-room"
 
-    floor := api.Floor{
-        Meta:    struct{ Units string `json:"units"` }{Units: "meters"},
-        Walls:   []api.Wall{},
-        Doors:   []api.Door{},
-        Windows: []api.Window{},
-        Rooms: []api.Room{
-            {
-                ID:   "room_1",
-                Name: "Living Room",
-                Area: [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}},
-            },
-        },
-    }
-    floorRaw, _ := json.Marshal(floor)
+	floor := api.Floor{
+		Meta: struct {
+			Units string `json:"units"`
+		}{Units: "meters"},
+		Walls:   []api.Wall{},
+		Doors:   []api.Door{},
+		Windows: []api.Window{},
+		Rooms: []api.Room{
+			{
+				ID:   "room_1",
+				Name: "Living Room",
+				Area: [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}},
+			},
+		},
+	}
+	floorRaw, _ := json.Marshal(floor)
 
-    startSim(t, conn, reqID, api.SimulationStartPayload{
-        DtSim:     1.0,
-        Apartment: floorRaw,
-        Devices: []api.EntityDTO{
-            {
-                ID:   "fire_1",
-                Type: entities.TypeFire,
-                Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
-            },
-        },
-        Scenarios: []api.ScenarioDTO{},
-    })
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: floorRaw,
+		Devices: []api.EntityDTO{
+			{
+				ID:   "fire_1",
+				Type: entities.TypeFire,
+				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
 
-    fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
-    fireInput := api.EventInDTO{EntityID: "fire_1", Payload: fireStartPayload}
+	fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
+	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
 
-    corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
-    allCornersReached := false
-    for i := 1; i <= 8; i++ {
-        var inputs []api.EventInDTO
-        if i == 1 {
-            inputs = []api.EventInDTO{fireInput}
-        }
+	corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
+	allCornersReached := false
+	for i := 1; i <= 8; i++ {
+		var inputs []api.EventDTO
+		if i == 1 {
+			inputs = []api.EventDTO{fireInput}
+		}
 
-        step := tick(t, conn, reqID, i, inputs)
+		step := tick(t, conn, reqID, i, inputs)
 
-        for _, change := range step.StateChanges {
-            var out struct {
-                Kind  string `json:"kind"`
-                Fires []struct {
-                    RoomID string  `json:"roomID"`
-                    X      float64 `json:"x"`
-                    Y      float64 `json:"y"`
-                    Radius float64 `json:"radius"`
-                } `json:"fires"`
-            }
-            if err := json.Unmarshal(change.Payload, &out); err != nil {
-                continue
-            }
+		for _, change := range step.StateChanges {
+			var out struct {
+				Kind  string `json:"kind"`
+				Fires []struct {
+					RoomID string  `json:"roomID"`
+					X      float64 `json:"x"`
+					Y      float64 `json:"y"`
+					Radius float64 `json:"radius"`
+				} `json:"fires"`
+			}
+			if err := json.Unmarshal(change.Payload, &out); err != nil {
+				continue
+			}
 
-            for _, zone := range out.Fires {
-                reached := true
-                for _, corner := range corners {
-                    dx := corner[0] - zone.X
-                    dy := corner[1] - zone.Y
-                    if dx*dx+dy*dy > zone.Radius*zone.Radius {
-                        reached = false
-                        break
-                    }
-                }
+			for _, zone := range out.Fires {
+				reached := true
+				for _, corner := range corners {
+					dx := corner[0] - zone.X
+					dy := corner[1] - zone.Y
+					if dx*dx+dy*dy > zone.Radius*zone.Radius {
+						reached = false
+						break
+					}
+				}
 
-                if reached {
-                    allCornersReached = true
-                    if i < 8 {
-                        t.Fatalf("fire reached all corners too early at tick %d (radius=%.2f)", i, zone.Radius)
-                    }
-                }
-            }
-        }
-    }
-    if !allCornersReached {
-        t.Fatal("fire never reached all 4 corners within 8 ticks")
-    }
+				if reached {
+					allCornersReached = true
+					if i < 8 {
+						t.Fatalf("fire reached all corners too early at tick %d (radius=%.2f)", i, zone.Radius)
+					}
+				}
+			}
+		}
+	}
+	if !allCornersReached {
+		t.Fatal("fire never reached all 4 corners within 8 ticks")
+	}
 }
 
 // TestFire_SpreadsThroughDoor проверяет что огонь переходит через дверь
 // и триггерит датчик пожара в соседней комнате в нужный момент.
 func TestFire_SpreadsThroughDoor(t *testing.T) {
-    server := newSimServer(t)
-    conn := dialSim(t, server)
+	server := newSimServer(t)
+	conn := dialSim(t, server)
 
-    const reqID = "sim-fire-spread"
+	const reqID = "sim-fire-spread"
 
-    floorRaw := mockFloorTwoRooms(t)
+	floorRaw := mockFloorTwoRooms(t)
 
-    startSim(t, conn, reqID, api.SimulationStartPayload{
-        DtSim:     1.0,
-        Apartment: floorRaw,
-        Devices: []api.EntityDTO{
-            {
-                ID:   "fire_1",
-                Type: entities.TypeFire,
-                Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
-            },
-            {
-                ID:   "radiusMoveSensorWithoutUpdate_1",
-                Type: entities.TypeRadiusMoveSensorWithoutUpdate,
-                Info: json.RawMessage(`{"id":"radiusMoveSensorWithoutUpdate_1","x":7.5,"y":2.5,"radius":0.5,"delay":0.0}`),
-            },
-        },
-        Scenarios: []api.ScenarioDTO{},
-    })
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: floorRaw,
+		Devices: []api.EntityDTO{
+			{
+				ID:   "fire_1",
+				Type: entities.TypeFire,
+				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+			},
+			{
+				ID:   "radiusMoveSensorWithoutUpdate_1",
+				Type: entities.TypeRadiusMoveSensorWithoutUpdate,
+				Info: json.RawMessage(`{"id":"radiusMoveSensorWithoutUpdate_1","x":7.5,"y":2.5,"radius":0.5,"delay":0.0}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
 
-    fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
-    fireInput := api.EventInDTO{EntityID: "fire_1", Payload: fireStartPayload}
+	fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
+	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
 
-    sensorTriggeredAt := -1
-    var allSteps []api.SimulationStepPayload
-    for i := 1; i <= 15; i++ {
-        var inputs []api.EventInDTO
-        if i == 1 {
-            inputs = []api.EventInDTO{fireInput}
-        }
+	sensorTriggeredAt := -1
+	var allSteps []api.SimulationStepPayload
+	for i := 1; i <= 15; i++ {
+		var inputs []api.EventDTO
+		if i == 1 {
+			inputs = []api.EventDTO{fireInput}
+		}
 
-        step := tick(t, conn, reqID, i, inputs)
-        allSteps = append(allSteps, step)
+		step := tick(t, conn, reqID, i, inputs)
+		allSteps = append(allSteps, step)
 
-        if sensorTriggeredAt == -1 {
-            state, found := lastBoolStateOf(allSteps[len(allSteps)-1:], "radiusMoveSensorWithoutUpdate_1", "turn_on")
-            if found && state {
-                sensorTriggeredAt = i
-            }
-        }
-    }
+		if sensorTriggeredAt == -1 {
+			state, found := lastBoolStateOf(allSteps[len(allSteps)-1:], "radiusMoveSensorWithoutUpdate_1", "turn_on")
+			if found && state {
+				sensorTriggeredAt = i
+			}
+		}
+	}
 
-    if sensorTriggeredAt == -1 {
-        t.Fatal("fire sensor in room_2 was never triggered")
-    }
+	if sensorTriggeredAt == -1 {
+		t.Fatal("fire sensor in room_2 was never triggered")
+	}
 
-    if sensorTriggeredAt < 10 {
-        t.Fatalf("fire sensor triggered too early at tick %d, expected >= 10", sensorTriggeredAt)
-    }
+	if sensorTriggeredAt < 10 {
+		t.Fatalf("fire sensor triggered too early at tick %d, expected >= 10", sensorTriggeredAt)
+	}
 }

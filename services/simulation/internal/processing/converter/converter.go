@@ -81,6 +81,13 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = human
+		case entities.TypeFire:
+			fire, err := actors.NewFire(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = fire
 		case entities.TypeSmartDimmer:
 			dimmer, err := devices.NewSmartDimmer(entityDTO.Info, engineAPI)
 			if err != nil {

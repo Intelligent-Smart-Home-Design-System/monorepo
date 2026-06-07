@@ -78,7 +78,7 @@ func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 					smartSirenFilters.VolumeDB *= CoeffDB
 				}
 
-				layout.AddDeviceToLayout(deviceType, ss.track, zr.OrigRoom.ID, zoneCenter, smartSirenFilters)
+				layout.AddDeviceToLayout(deviceType, ss.track, zr.OrigRoom.ID, zoneCenter, nil, smartSirenFilters)
 				deviceCnt++
 			}
 		}

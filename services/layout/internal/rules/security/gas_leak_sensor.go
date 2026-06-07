@@ -83,7 +83,7 @@ func (gl *GasLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 			zoneCenter := point.GetCenter(gasZone.Points)
 
 			if deviceCnt < maxCount {
-				layout.AddDeviceToLayout(deviceType, gl.track, zr.OrigRoom.ID, zoneCenter, gasLeakSensorFilters)
+				layout.AddDeviceToLayout(deviceType, gl.track, zr.OrigRoom.ID, zoneCenter, nil, gasLeakSensorFilters)
 				deviceCnt++
 			}
 		}

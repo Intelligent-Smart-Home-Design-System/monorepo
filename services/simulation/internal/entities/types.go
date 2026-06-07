@@ -31,13 +31,36 @@ type EntityWithProcess interface {
 
 	// GetProcessFunc возвращает функция процесс
 	GetProcessFunc() func(process simgo.Process)
+}
 
-	// Process реализует функцию процесса устройства.
-	Process(process simgo.Process)
+type Observer interface {
+	Entity
+	GetPosition() (x, y float64)
+	GetObservedKinds() []string // ["human:move"], ["fire:spread"] и тд
 }
 
 const (
-	TypeLamp                 = "lamp"
-	TypeLampSwitcher         = "lampSwitcher"
-	TypeLightSwitchOffSensor = "lightSwitchOffSensor"
+	TypeLamp                          = "lamp"
+	TypeSmartLamp                     = "smartLamp"
+	TypeSmartDimmer                   = "smartDimmer"
+	TypeSwitcher                      = "switcher"
+	TypeSensorWithUpdate              = "sensorWithUpdate"
+	TypeSensorWithoutUpdate           = "sensorWithoutUpdate"
+	TypeSensorWithIntStatus           = "sensorWithIntStatus"
+	TypeRadiusMoveSensorWithUpdate    = "radiusMoveSensorWithUpdate"
+	TypeRadiusMoveSensorWithoutUpdate = "radiusMoveSensorWithoutUpdate"
+	TypeSiren                         = "siren"
+	TypeWindow                        = "window"
+	TypeDoor                          = "door"
+	TypeSmartLock                     = "smartLock"
+	TypeSmartDoorbell                 = "smartDoorbell"
+	TypeSmartCurtains                 = "smartCurtains"
+	TypeCamera                        = "camera"
+	TypeAirConditioner                = "airConditioner"
+	TypeThermostat                    = "thermostat"
+	TypeSmartFloor                    = "smartFloor"
+	TypeTV                            = "tv"
+	TypeSubwoofer                     = "subwoofer"
+
+	TypeHuman = "human"
 )

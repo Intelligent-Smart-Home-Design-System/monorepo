@@ -118,7 +118,7 @@ func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			}
 		}
 
-		layout.AddDeviceToLayout(ac.Type(), track, zr.OrigRoom.ID, &p, deviceFilter)
+		layout.AddDeviceToLayout(ac.Type(), track, zr.OrigRoom.ID, &p, nil, deviceFilter)
 	}
 
 	return nil
@@ -128,7 +128,7 @@ func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 func collectNoWindZones(furniture []*apartment.Furniture) []*apartment.Zone {
 	zones := make([]*apartment.Zone, 0)
 	for _, f := range furniture {
-		if f.Name == apartment.FirnitureBed {
+		if f.Name == apartment.Bed {
 			zones = append(zones, apartment.NewZone(f.Points))
 		}
 	}

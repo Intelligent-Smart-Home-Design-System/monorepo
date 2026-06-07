@@ -95,6 +95,7 @@ export type ApiPlanSummary = {
 export type ApiCreatePlanRequest = {
     budget: number;
     main_ecosystem_id: string;
+    preset_id?: string;
     allowed_ecosystems?: string[] | null;
     excluded_ecosystems?: string[] | null;
     requirements: Omit<ApiRequirement, "id">[];
@@ -110,7 +111,19 @@ export type ApiPlanStatus = {
     plan_id: number;
     status: "queued" | "generating" | "completed" | "failed";
     progress?: number | null;
+    stages?: ApiPlanStageArtifact[] | null;
     error?: ApiErrorResponse | null;
+};
+
+export type ApiPlanStageArtifact = {
+    key: string;
+    name?: string | null;
+    title?: string | null;
+    status?: "pending" | "running" | "completed" | "failed" | string | null;
+    progress?: number | null;
+    data?: unknown;
+    payload?: unknown;
+    updated_at?: string | null;
 };
 
 export type ApiConnectionInfo = {
@@ -159,10 +172,44 @@ export type ApiHomePlan = {
     excluded_ecosystems?: string[] | null;
     requirements: ApiRequirement[];
     bundles: ApiBundle[];
+    stages?: ApiPlanStageArtifact[] | null;
+    artifacts?: ApiPlanStageArtifact[] | null;
 };
 
 export type ApiErrorResponse = {
     message: string;
     code?: string | null;
     details?: string | null;
+};
+
+export type AuthTokens = {
+    access_token: string;
+    refresh_token: string;
+    token_type?: string;
+};
+
+export type AuthUser = {
+    id?: string | number;
+    email: string;
+    name?: string | null;
+};
+
+export type LoginRequest = {
+    email: string;
+    password: string;
+};
+
+export type RegisterRequest = {
+    email: string;
+    password: string;
+    name?: string;
+};
+
+export type RefreshTokenRequest = {
+    refresh_token: string;
+};
+
+export type AuthResponse = AuthTokens & {
+    user?: AuthUser | null;
+    message?: string;
 };

@@ -255,23 +255,30 @@ func (s *RadiusMoveSensorWithUpdate) GetPosition() (float64, float64) {
 }
 
 func (s *RadiusMoveSensorWithUpdate) HandleInDTO(dto []byte) error {
-	var move struct {
-		Kind string `json:"kind"`
-		To   struct {
-			X float64 `json:"x"`
-			Y float64 `json:"y"`
-		} `json:"to"`
-	}
-	if err := json.Unmarshal(dto, &move); err != nil {
-		return err
-	}
+    var raw struct {
+        Kind string  `json:"kind"`
+        To *struct {
+            X float64 `json:"x"`
+            Y float64 `json:"y"`
+        } `json:"to"`
+        X      *float64 `json:"x"`
+        Y      *float64 `json:"y"`
+        Radius *float64 `json:"radius"`
+    }
+    if err := json.Unmarshal(dto, &raw); err != nil {
+        return err
+    }
 
-	s.Put(RadiusSensorData{
-		Kind:   move.Kind,
-		TurnOn: field.IsInRadius(s.X, s.Y, move.To.X, move.To.Y, s.Radius),
-	})
+    var inRadius bool
+    switch raw.Kind {
+    case "fire:spread":
+        inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
+    default:
+        inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+    }
 
-	return nil
+    s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
+    return nil
 }
 
 func (s *RadiusMoveSensorWithUpdate) GetProcessFunc() func(process simgo.Process) {
@@ -339,7 +346,7 @@ func (s *RadiusMoveSensorWithUpdate) HandleEvent(inData RadiusSensorData) Radius
 }
 
 func (s *RadiusMoveSensorWithUpdate) GetObservedKinds() []string {
-	return []string{"human:move", "device:move"}
+	return []string{"human:move", "device:move", "fire:spread"}
 }
 
 // RadiusMoveSensorWithoutUpdate — датчик с радиусом без таймаута.
@@ -370,23 +377,30 @@ func (s *RadiusMoveSensorWithoutUpdate) GetPosition() (float64, float64) {
 }
 
 func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
-	var move struct {
-		Kind string `json:"kind"`
-		To   struct {
-			X float64 `json:"x"`
-			Y float64 `json:"y"`
-		} `json:"to"`
-	}
-	if err := json.Unmarshal(dto, &move); err != nil {
-		return err
-	}
+    var raw struct {
+        Kind string  `json:"kind"`
+        To *struct {
+            X float64 `json:"x"`
+            Y float64 `json:"y"`
+        } `json:"to"`
+        X      *float64 `json:"x"`
+        Y      *float64 `json:"y"`
+        Radius *float64 `json:"radius"`
+    }
+    if err := json.Unmarshal(dto, &raw); err != nil {
+        return err
+    }
 
-	s.Put(RadiusSensorData{
-		Kind:   move.Kind,
-		TurnOn: field.IsInRadius(s.X, s.Y, move.To.X, move.To.Y, s.Radius),
-	})
+    var inRadius bool
+    switch raw.Kind {
+    case "fire:spread":
+        inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
+    default:
+        inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+    }
 
-	return nil
+    s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
+    return nil
 }
 
 func (s *RadiusMoveSensorWithoutUpdate) HandleEvent(inData RadiusSensorData) RadiusSensorData {
@@ -399,5 +413,5 @@ func (s *RadiusMoveSensorWithoutUpdate) HandleEvent(inData RadiusSensorData) Rad
 }
 
 func (s *RadiusMoveSensorWithoutUpdate) GetObservedKinds() []string {
-	return []string{"human:move", "device:move"}
+	return []string{"human:move", "device:move", "fire:spread"}
 }

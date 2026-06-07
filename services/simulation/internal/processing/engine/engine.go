@@ -215,3 +215,7 @@ func (s *SimEngine) NotifyObservers(roomID string, kind string, payload []byte) 
 func (s *SimEngine) GetFloor() *api.Floor {
 	return s.Floor
 }
+
+func (s *SimEngine) GetEntity(id string) entities.Entity {
+    return s.IDToEntity[id]
+}

@@ -63,4 +63,5 @@ const (
 	TypeSubwoofer                     = "subwoofer"
 
 	TypeHuman = "human"
+	TypeFire = "fire"
 )

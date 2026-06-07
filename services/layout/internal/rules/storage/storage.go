@@ -53,6 +53,12 @@ func (s *Storage) LoadAllLightingRules() {
 		lighting.NewSmartBulbRule(),
 		lighting.NewMotionSensorRule(),
 		lighting.NewIlluminationSensorRule(),
+		lighting.NewCurtainsRule(),
+		lighting.NewWirelessButtonSwitchRule(),
+		lighting.NewSmartDimmerRule(),
+		lighting.NewPresenceSensorRule(),
+		lighting.NewBuiltInBacklightRule(),
+		lighting.NewDecorativeLuminaireRule(),
 	}
 
 	for _, rule := range storageRules {

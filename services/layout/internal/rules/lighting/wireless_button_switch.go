@@ -32,7 +32,7 @@ func (r *WirelessButtonSwitchRule) Apply(zonedAp *apartment.ZonedApartment, leve
 			return err
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil, nil)
 	}
 
 	return nil

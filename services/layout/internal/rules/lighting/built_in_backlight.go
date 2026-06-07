@@ -33,7 +33,7 @@ func (r *BuiltInBacklightRule) Apply(zonedAp *apartment.ZonedApartment, levelNum
 			continue
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil, nil)
 	}
 
 	return nil

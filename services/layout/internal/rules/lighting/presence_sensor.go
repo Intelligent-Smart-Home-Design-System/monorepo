@@ -35,8 +35,8 @@ func (r *PresenceSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 				return err
 			}
 
-			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p1, nil)
-			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p2, nil)
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p1, nil, nil)
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p2, nil, nil)
 			continue
 		}
 
@@ -45,7 +45,7 @@ func (r *PresenceSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 			return err
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil, nil)
 	}
 
 	return nil

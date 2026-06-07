@@ -23,7 +23,7 @@ func TestCalculateLayoutPrice_DuplicateDeviceTypeKeys(t *testing.T) {
 	st := storage.NewStorage()
 	e := engine.NewEngine(st)
 
-	layout := apartment.NewApartmentResult()
+	layout := apartment.NewLayout()
 	layout.Placements["room-1"] = []*device.Placement{
 		{
 			Device:   &device.Device{ID: "d1", Type: "motion_sensor", Track: "lighting"},

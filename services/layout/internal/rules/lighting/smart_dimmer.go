@@ -32,7 +32,7 @@ func (r *SmartDimmerRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			return err
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil, nil)
 	}
 
 	return nil

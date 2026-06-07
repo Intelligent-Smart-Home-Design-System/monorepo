@@ -33,7 +33,7 @@ func (r *CurtainsRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string,
 		roomID := w.Rooms[0]
 		windowCenter := point.GetObjectCenter(w.Points)
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &windowCenter, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &windowCenter, nil, nil)
 	}
 
 	return nil

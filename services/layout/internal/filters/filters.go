@@ -2,8 +2,6 @@ package filters
 
 import (
 	"encoding/json"
-
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DeviceFilter interface{}
@@ -29,8 +27,6 @@ type SmartDoorBellFilter struct {
 	Angle       float64 `json:"angle,omitempty"`
 	NightVision bool    `json:"night_vision,omitempty"`
 	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
-
-	Direction *point.Point `json:"direction,omitempty"`
 }
 
 type DoorSensorFilter struct{}
@@ -40,8 +36,6 @@ type WindowSensorFilter struct{}
 type MotionSensorFilter struct {
 	Angle float64 `json:"angle,omitempty"`
 	Range float64 `json:"range,omitempty"`
-
-	Direction *point.Point
 }
 
 type CameraFilter struct {
@@ -51,7 +45,6 @@ type CameraFilter struct {
 	Resolution  string  `json:"resolution,omitempty"`
 
 	RecommendedRangeM float64      `json:"recommended_range_m,omitempty"`
-	Direction         *point.Point `json:"direction,omitempty"`
 }
 
 type SmartSirenFilter struct {

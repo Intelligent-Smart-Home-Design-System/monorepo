@@ -680,6 +680,104 @@
           }
         }
       }
+    },
+    "media": {
+      "name": "Медиа и развлечения",
+      "levels": {
+        "1": {
+          "name":"Первый уровень",
+          "description": "Базовый набор c умной колонкой",
+          "price_range": {
+            "min": 5000,
+            "max": 50000
+          },
+          "devices": [
+            "smart_speaker"
+          ],
+          "device_rooms": {
+            "smart_speaker": [
+              "living",
+              "kitchen",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1
+          },
+          "device_filters": {
+            "smart_speaker": {}
+          }
+        },
+        "2": {
+          "name":"Второй уровень",
+          "description": "Набор для просмотра контента",
+          "price_range": {
+            "min": 25000,
+            "max": 550000
+          },
+          "devices": [
+            "smart_tv",
+            "smart_speaker"
+          ],
+          "device_rooms": {
+            "smart_speaker": [
+              "living",
+              "kitchen",
+              "bedroom"
+            ],
+            "smart_tv": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1,
+            "smart_tv": 1
+          },
+          "device_filters": {
+            "smart_speaker": {},
+            "smart_tv": {}
+          }
+        },
+        "3": {
+          "name":"Третий уровень",
+          "description": "Продвинутый набор для просмотра контента",
+          "price_range": {
+            "min": 32000,
+            "max": 580000
+          },
+          "devices": [
+            "smart_tv",
+            "smart_speaker",
+            "subwoofer"
+          ],
+          "device_rooms": {
+            "smart_speaker": [
+              "living",
+              "kitchen",
+              "bedroom"
+            ],
+            "smart_tv": [
+              "living",
+              "bedroom"
+            ],
+            "subwoofer": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1,
+            "smart_tv": 1,
+            "subwoofer": 1
+          },
+          "device_filters": {
+            "smart_speaker": {},
+            "smart_tv": {},
+            "subwoofer": {}
+          }
+        }
+      }
     }
   }
 }

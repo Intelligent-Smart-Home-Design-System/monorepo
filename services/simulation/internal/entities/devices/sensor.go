@@ -71,6 +71,10 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 		dataLamp, _ := json.Marshal(outData)
 		s.HandleOutDTO(dataLamp)
 
+		if len(s.Receivers) != 0 {
+			s.enginePort.DrainInChan()
+		}
+
 		for s.TurnOn {
 			timeoutEv := process.Timeout(s.Timeout)
 			el2 := s.inStore.Get()
@@ -106,6 +110,10 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 
 				break
 			}
+		}
+
+		if len(s.Receivers) != 0 {
+			s.enginePort.DrainInChan()
 		}
 	}
 }
@@ -313,6 +321,10 @@ func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 
 				break
 			}
+		}
+
+		if len(s.Receivers) != 0 {
+			s.enginePort.DrainInChan()
 		}
 	}
 }

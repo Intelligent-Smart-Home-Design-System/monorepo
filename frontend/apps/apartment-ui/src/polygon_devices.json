@@ -1,0 +1,30 @@
+[
+  {
+    "id": "poly_lamp_1",
+    "type": "smart_lamp",
+    "room_id": "r_pentagon",
+    "position": { "x": 2200.0, "y": 2600.0 },
+    "state": { "is_on": true }
+  },
+  {
+    "id": "poly_motion_1",
+    "type": "motion_sensor",
+    "room_id": "r_pentagon",
+    "position": { "x": 1200.0, "y": 4200.0 },
+    "state": { "detected": false }
+  },
+  {
+    "id": "poly_temp_1",
+    "type": "temperature_sensor",
+    "room_id": "r_hexagon",
+    "position": { "x": 7300.0, "y": 2800.0 },
+    "state": { "value": 23.2 }
+  },
+  {
+    "id": "poly_plug_1",
+    "type": "smart_plug",
+    "room_id": "r_hexagon",
+    "position": { "x": 8800.0, "y": 4100.0 },
+    "state": { "is_on": false }
+  }
+]

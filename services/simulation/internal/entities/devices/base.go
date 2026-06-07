@@ -51,6 +51,10 @@ func (b *BaseDevice[T]) Process(process simgo.Process) {
 		}
 
 		b.HandleOutDTO(dto)
+
+		if len(b.Receivers) != 0 {
+			b.enginePort.DrainInChan()
+		}
 	}
 }
 

@@ -21,16 +21,16 @@ type SwitcherData struct {
 }
 
 func NewSwitcher(data []byte, engineAPI engine.EnginePort) (*Switcher, error) {
-	var Switcher Switcher
-	if err := json.Unmarshal(data, &Switcher); err != nil {
+	var sw Switcher
+	if err := json.Unmarshal(data, &sw); err != nil {
 		return nil, err
 	}
 
-	Switcher.enginePort = engineAPI
-	Switcher.inStore = *simgo.NewStore[SwitcherData](engineAPI.GetSimulation())
-	Switcher.handler = Switcher.HandleEvent
+	sw.enginePort = engineAPI
+	sw.inStore = *simgo.NewStore[SwitcherData](engineAPI.GetSimulation())
+	sw.handler = sw.HandleEvent
 
-	return &Switcher, nil
+	return &sw, nil
 }
 
 func (l *Switcher) HandleInDTO(dto []byte) error {

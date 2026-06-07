@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package devices
 
 import (
@@ -302,3 +303,8 @@ func (sf *SmartFloor) HandleEvent(inData SmartFloorData) SmartFloorData {
 		TurnOn: sf.TurnOn,
 	}
 }
+=======
+package devices
+
+// Окна / ворота
+>>>>>>> 4bf54f8 (hz)

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package devices
 
 import (
@@ -120,3 +121,8 @@ func (t *Thermostat) HandleEvent(inData ThermostatData) ThermostatData {
 		Temperature: &t.Temperature,
 	}
 }
+=======
+package devices
+
+// Климат
+>>>>>>> 4bf54f8 (hz)

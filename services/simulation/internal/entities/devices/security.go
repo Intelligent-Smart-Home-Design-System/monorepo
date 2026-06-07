@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package devices
 
 import (
@@ -121,3 +122,8 @@ func (c *Camera) HandleEvent(inData CameraData) CameraData {
 func (c *Camera) GetObservedKinds() []string {
 	return []string{"human:move", "device:move"}
 }
+=======
+package devices
+
+// Безопасность
+>>>>>>> 4bf54f8 (hz)

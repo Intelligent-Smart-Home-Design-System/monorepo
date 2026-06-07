@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package devices
 
 import (
@@ -96,3 +97,8 @@ func (s *Subwoofer) HandleEvent(inData SubwooferData) SubwooferData {
 		TurnOn: s.TurnOn,
 	}
 }
+=======
+package devices
+
+// Мультимедия
+>>>>>>> 4bf54f8 (hz)

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package actors
 
 import (
@@ -462,3 +463,8 @@ func (h *Human) SetReceivers(actions []api.EdgeDTO) {
 
 	h.Receivers = receivers
 }
+=======
+package actors
+
+// Пожарный, сантехник и тд
+>>>>>>> 4bf54f8 (hz)

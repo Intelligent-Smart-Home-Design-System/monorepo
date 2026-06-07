@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Apartment UI
 
 The application exposes an imperative renderer for integration into another web
@@ -99,3 +100,8 @@ Use `?empty=1` to verify the empty-data case:
 ```text
 http://127.0.0.1:5173/?empty=1
 ```
+=======
+# apps/apartment-ui
+
+Заготовка под интерфейс квартиры. Временные материалы можно складывать сюда, а рабочую документацию держать в `apps/apartment-ui/docs`.
+>>>>>>> 4bf54f8 (hz)

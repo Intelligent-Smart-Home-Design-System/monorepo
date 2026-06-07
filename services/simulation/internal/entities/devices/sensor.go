@@ -19,11 +19,13 @@ type SensorWithUpdate struct {
 	Timeout float64 `json:"timeout"`
 }
 
+// SensorWithUpdateData - данные для SensorWithUpdate.
 type SensorWithUpdateData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSensorWithUpdate конструктор для SensorWithUpdate.
 func NewSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithUpdate, error) {
 	var switcher SensorWithUpdate
 	if err := json.Unmarshal(data, &switcher); err != nil {
@@ -36,6 +38,7 @@ func NewSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithU
 	return &switcher, nil
 }
 
+// HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *SensorWithUpdate) HandleInDTO(dto []byte) error {
 	input := SensorWithUpdateData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -47,10 +50,12 @@ func (s *SensorWithUpdate) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// GetProcessFunc возвращает функцию процесса для SensorWithUpdate.
 func (s *SensorWithUpdate) GetProcessFunc() func(process simgo.Process) {
 	return s.Process
 }
 
+// Process реализует бизнес-логику устройства с учетом обновления действия до истечения таймаута.
 func (s *SensorWithUpdate) Process(process simgo.Process) {
 	for {
 		el := s.inStore.Get()
@@ -118,6 +123,7 @@ func (s *SensorWithUpdate) Process(process simgo.Process) {
 	}
 }
 
+// HandleEvent реализует бизнес-логику устройства, обновляет состояние и возвращает данные для отправки.
 func (s *SensorWithUpdate) HandleEvent(inData SensorWithUpdateData) (SensorWithUpdateData, error) {
 	s.TurnOn = inData.TurnOn
 
@@ -127,18 +133,20 @@ func (s *SensorWithUpdate) HandleEvent(inData SensorWithUpdateData) (SensorWithU
 	}, nil
 }
 
-// SensorWithoutUpdate - датчик окна (фиксирует открытие/закрытие окна)
+// SensorWithoutUpdate - булевый датчик с функцией без обновления последнего действия.
 // реализует интерфейс entities.EntityWithProcess.
 type SensorWithoutUpdate struct {
 	BaseDevice[SensorWithoutUpdateData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// SensorWithoutUpdateData - данные для SensorWithoutUpdate.
 type SensorWithoutUpdateData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSensorWithoutUpdate конструктор для SensorWithoutUpdate.
 func NewSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWithoutUpdate, error) {
 	var sensor SensorWithoutUpdate
 
@@ -153,6 +161,7 @@ func NewSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*SensorWi
 	return &sensor, nil
 }
 
+// HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *SensorWithoutUpdate) HandleInDTO(dto []byte) error {
 	input := SensorWithoutUpdateData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -174,18 +183,20 @@ func (s *SensorWithoutUpdate) HandleEvent(inData SensorWithoutUpdateData) Sensor
 	}
 }
 
-// SensorWithIntStatus - датчик окна (фиксирует открытие/закрытие окна)
+// SensorWithIntStatus - целочисленный датчик без функции обновления последнего действия.
 // реализует интерфейс entities.EntityWithProcess.
 type SensorWithIntStatus struct {
 	BaseDevice[SensorWithIntStatusData]
 	Percents int `json:"percents"`
 }
 
+// SensorWithIntStatusData - данные для SensorWithIntStatus.
 type SensorWithIntStatusData struct {
 	Kind     string `json:"kind"`
 	Percents int    `json:"percents"`
 }
 
+// NewSensorWithIntStatus конструктор для SensorWithIntStatus.
 func NewSensorWithIntStatus(data []byte, engineAPI engine.EnginePort) (*SensorWithIntStatus, error) {
 	var sensor SensorWithIntStatus
 
@@ -200,6 +211,7 @@ func NewSensorWithIntStatus(data []byte, engineAPI engine.EnginePort) (*SensorWi
 	return &sensor, nil
 }
 
+// HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *SensorWithIntStatus) HandleInDTO(dto []byte) error {
 	input := SensorWithIntStatusData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -224,6 +236,7 @@ func (s *SensorWithIntStatus) HandleEvent(inData SensorWithIntStatusData) Sensor
 // RadiusMoveSensorWithUpdate — датчик с радиусом и таймаутом.
 // Примеры: датчик движения (движение человека/устройства), датчик присутствия.
 // Активируется когда объект входит в радиус, сбрасывается по таймауту или когда объект покидает радиус.
+// Имеет функцию обновления последнего действия, позволяет обновлять действие до истечения таймаута, старое действие игнорируется.
 type RadiusMoveSensorWithUpdate struct {
 	BaseDevice[RadiusSensorData]
 	TurnOn  bool    `json:"turn_on"`
@@ -233,11 +246,13 @@ type RadiusMoveSensorWithUpdate struct {
 	Radius  float64 `json:"radius"`
 }
 
+// RadiusSensorData - данные для RadiusMoveSensorWithUpdate и RadiusMoveSensorWithoutUpdate.
 type RadiusSensorData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewRadiusSensorWithUpdate конструктор для RadiusMoveSensorWithUpdate.
 func NewRadiusSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*RadiusMoveSensorWithUpdate, error) {
 	var s RadiusMoveSensorWithUpdate
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -250,34 +265,47 @@ func NewRadiusSensorWithUpdate(data []byte, engineAPI engine.EnginePort) (*Radiu
 	return &s, nil
 }
 
+// GetPosition возвращает координаты датчика.
 func (s *RadiusMoveSensorWithUpdate) GetPosition() (float64, float64) {
 	return s.X, s.Y
 }
 
+// HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithUpdate) HandleInDTO(dto []byte) error {
-	var move struct {
+	var raw struct {
 		Kind string `json:"kind"`
-		To   struct {
+		To   *struct {
 			X float64 `json:"x"`
 			Y float64 `json:"y"`
 		} `json:"to"`
+		X      *float64 `json:"x"`
+		Y      *float64 `json:"y"`
+		Radius *float64 `json:"radius"`
 	}
-	if err := json.Unmarshal(dto, &move); err != nil {
+	if err := json.Unmarshal(dto, &raw); err != nil {
 		return err
 	}
 
-	s.Put(RadiusSensorData{
-		Kind:   move.Kind,
-		TurnOn: field.IsInRadius(s.X, s.Y, move.To.X, move.To.Y, s.Radius),
-	})
+	var inRadius bool
+
+	switch raw.Kind {
+	case "fire:spread":
+		inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
+	default:
+		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+	}
+
+	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
 
 	return nil
 }
 
+// GetProcessFunc возвращает функцию процесса для RadiusMoveSensorWithUpdate.
 func (s *RadiusMoveSensorWithUpdate) GetProcessFunc() func(process simgo.Process) {
 	return s.Process
 }
 
+// Process реализует бизнес-логику устройства с учетом обновления действия до истечения таймаута.
 func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 	for {
 		el := s.inStore.Get()
@@ -329,6 +357,7 @@ func (s *RadiusMoveSensorWithUpdate) Process(process simgo.Process) {
 	}
 }
 
+// HandleEvent реализует бизнес-логику устройства, обновляет состояние и возвращает данные для отправки.
 func (s *RadiusMoveSensorWithUpdate) HandleEvent(inData RadiusSensorData) RadiusSensorData {
 	s.TurnOn = inData.TurnOn
 
@@ -338,11 +367,12 @@ func (s *RadiusMoveSensorWithUpdate) HandleEvent(inData RadiusSensorData) Radius
 	}
 }
 
+// GetObservedKinds возвращает список видов событий, которые наблюдает датчик.
 func (s *RadiusMoveSensorWithUpdate) GetObservedKinds() []string {
-	return []string{"human:move", "device:move"}
+	return []string{"human:move", "device:move", "fire:spread"}
 }
 
-// RadiusMoveSensorWithoutUpdate — датчик с радиусом без таймаута.
+// RadiusMoveSensorWithoutUpdate - датчик с радиусом без таймаута.
 // Просто фиксирует факт попадания в радиус без сброса по таймауту.
 type RadiusMoveSensorWithoutUpdate struct {
 	BaseDevice[RadiusSensorData]
@@ -352,6 +382,7 @@ type RadiusMoveSensorWithoutUpdate struct {
 	Radius float64 `json:"radius"`
 }
 
+// NewRadiusSensorWithoutUpdate конструктор для RadiusMoveSensorWithoutUpdate.
 func NewRadiusSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*RadiusMoveSensorWithoutUpdate, error) {
 	var s RadiusMoveSensorWithoutUpdate
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -365,30 +396,42 @@ func NewRadiusSensorWithoutUpdate(data []byte, engineAPI engine.EnginePort) (*Ra
 	return &s, nil
 }
 
+// GetPosition возвращает координаты датчика.
 func (s *RadiusMoveSensorWithoutUpdate) GetPosition() (float64, float64) {
 	return s.X, s.Y
 }
 
+// HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
-	var move struct {
+	var raw struct {
 		Kind string `json:"kind"`
-		To   struct {
+		To   *struct {
 			X float64 `json:"x"`
 			Y float64 `json:"y"`
 		} `json:"to"`
+		X      *float64 `json:"x"`
+		Y      *float64 `json:"y"`
+		Radius *float64 `json:"radius"`
 	}
-	if err := json.Unmarshal(dto, &move); err != nil {
+	if err := json.Unmarshal(dto, &raw); err != nil {
 		return err
 	}
 
-	s.Put(RadiusSensorData{
-		Kind:   move.Kind,
-		TurnOn: field.IsInRadius(s.X, s.Y, move.To.X, move.To.Y, s.Radius),
-	})
+	var inRadius bool
+
+	switch raw.Kind {
+	case "fire:spread":
+		inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
+	default:
+		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+	}
+
+	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
 
 	return nil
 }
 
+// HandleEvent реализует бизнес-логику устройства, обновляет состояние и возвращает данные для отправки.
 func (s *RadiusMoveSensorWithoutUpdate) HandleEvent(inData RadiusSensorData) RadiusSensorData {
 	s.TurnOn = inData.TurnOn
 
@@ -398,6 +441,7 @@ func (s *RadiusMoveSensorWithoutUpdate) HandleEvent(inData RadiusSensorData) Rad
 	}
 }
 
+// GetObservedKinds возвращает список видов событий, которые наблюдает датчик.
 func (s *RadiusMoveSensorWithoutUpdate) GetObservedKinds() []string {
-	return []string{"human:move", "device:move"}
+	return []string{"human:move", "device:move", "fire:spread"}
 }

@@ -1,6 +1,18 @@
 import type { Room, SmartDevice } from '../types';
 import { getConstrainedPointOnDragPath, isPointInPolygon } from './polygon';
 
+export const addSmartDevice = (
+  devices: SmartDevice[],
+  device: SmartDevice,
+): SmartDevice[] => [...devices, device];
+
+export const removeSmartDevice = (
+  devices: SmartDevice[],
+  deviceId: string,
+): SmartDevice[] => devices.filter((device) => device.id !== deviceId);
+
+export const clearSmartDevices = (): SmartDevice[] => [];
+
 export const isSmartDevicePositionAllowed = (
   device: SmartDevice,
   position: SmartDevice['position'],

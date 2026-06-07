@@ -10,11 +10,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 )
 
-// В пакете реализовано управление симуляциями через соответствующие компоненты.
-// Пакет связывает логику компонентов (fetcher, sender, engine, ...) между собой и
-// старается как можно меньше реализовывать логику самостоятельно.
-
-// Simulations - структура, которая усправляет всеми симуляциями.
+// Simulations - структура, которая усправляет всеми движками.
 type Simulations struct {
 	mu         sync.RWMutex
 	IDToEngine map[string]engine.Engine // engineID <-> engine

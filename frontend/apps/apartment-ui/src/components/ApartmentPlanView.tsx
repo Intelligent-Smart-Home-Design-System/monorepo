@@ -9,6 +9,7 @@ interface ApartmentPlanViewProps {
   plan: FloorPlan;
   devices: SmartDevice[];
   zones: Zone[];
+  onDevicesChange?: (devices: SmartDevice[]) => void;
 }
 
 interface DeviceState {
@@ -21,7 +22,12 @@ interface ZoneState {
   current: Zone[];
 }
 
-export function ApartmentPlanView({ plan, devices, zones }: ApartmentPlanViewProps) {
+export function ApartmentPlanView({
+  plan,
+  devices,
+  zones,
+  onDevicesChange,
+}: ApartmentPlanViewProps) {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [deviceState, setDeviceState] = useState<DeviceState>(() => ({
@@ -60,12 +66,19 @@ export function ApartmentPlanView({ plan, devices, zones }: ApartmentPlanViewPro
   }, []);
   const handleMoveDevice = useCallback(
     (deviceId: string, position: SmartDevice['position']) => {
+      const nextDevices = updateSmartDevicePosition(
+        visibleDevices,
+        deviceId,
+        position,
+      );
+
       setDeviceState({
         basis: devices,
-        current: updateSmartDevicePosition(visibleDevices, deviceId, position),
+        current: nextDevices,
       });
+      onDevicesChange?.(nextDevices);
     },
-    [devices, visibleDevices],
+    [devices, onDevicesChange, visibleDevices],
   );
   const handleMoveZonePoint = useCallback(
     (zoneId: string, pointIndex: number, point: Zone['points'][number]) => {

@@ -88,7 +88,6 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 		deviceFilter := &filters.MotionSensorFilter{
 			Angle: motionSensorFilters.Angle,
 			Range: motionSensorFilters.Range,
-			Direction: &direction,
 		}
 
 		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, &direction, deviceFilter)

@@ -3,6 +3,7 @@ package storage
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/climate"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/household"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/media"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
@@ -26,8 +27,7 @@ func (s *Storage) LoadAllRules() {
 	s.LoadAllLightingRules()
 	s.LoadAllClimateRules()
 	s.LoadAllMediaRules()
-
-	// TODO: добавить оставшиеся треки
+	s.LoadAllHouseholdRules()
 }
 
 func (s *Storage) LoadAllSecurityRules() {
@@ -53,6 +53,12 @@ func (s *Storage) LoadAllLightingRules() {
 		lighting.NewSmartBulbRule(),
 		lighting.NewMotionSensorRule(),
 		lighting.NewIlluminationSensorRule(),
+		lighting.NewCurtainsRule(),
+		lighting.NewWirelessButtonSwitchRule(),
+		lighting.NewSmartDimmerRule(),
+		lighting.NewPresenceSensorRule(),
+		lighting.NewBuiltInBacklightRule(),
+		lighting.NewDecorativeLuminaireRule(),
 	}
 
 	for _, rule := range storageRules {
@@ -63,6 +69,16 @@ func (s *Storage) LoadAllLightingRules() {
 func (s *Storage) LoadAllClimateRules() {
 	storageRules := []rules.Rule{
 		climate.NewAirConditionerRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+}
+
+func (s *Storage) LoadAllHouseholdRules() {
+	storageRules := []rules.Rule{
+		household.NewRobotVacuumRule(),
 	}
 
 	for _, rule := range storageRules {

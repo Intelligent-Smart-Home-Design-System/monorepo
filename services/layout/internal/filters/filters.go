@@ -2,8 +2,6 @@ package filters
 
 import (
 	"encoding/json"
-
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DeviceFilter interface{}
@@ -29,8 +27,6 @@ type SmartDoorBellFilter struct {
 	Angle       float64 `json:"angle,omitempty"`
 	NightVision bool    `json:"night_vision,omitempty"`
 	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
-
-	Direction *point.Point `json:"direction,omitempty"`
 }
 
 type DoorSensorFilter struct{}
@@ -40,8 +36,6 @@ type WindowSensorFilter struct{}
 type MotionSensorFilter struct {
 	Angle float64 `json:"angle,omitempty"`
 	Range float64 `json:"range,omitempty"`
-
-	Direction *point.Point
 }
 
 type CameraFilter struct {
@@ -51,7 +45,6 @@ type CameraFilter struct {
 	Resolution  string  `json:"resolution,omitempty"`
 
 	RecommendedRangeM float64      `json:"recommended_range_m,omitempty"`
-	Direction         *point.Point `json:"direction,omitempty"`
 }
 
 type SmartSirenFilter struct {
@@ -65,6 +58,18 @@ type AirConditionerFilter struct {
 	CoolingPowerWatts  float64 `json:"cooling_power_watts,omitempty"`
 	IndoorUnitLengthMM float64 `json:"indoor_unit_length_mm,omitempty"`
 	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
+}
+
+type RobotVacuumFilter struct {
+	NoiseLevelDB          float64 `json:"noise_level_db,omitempty"`
+	SuctionPowerPA        float64 `json:"suction_power_pa,omitempty"`
+	NavigationType        string  `json:"navigation_type,omitempty"`
+	RoomMapping           bool    `json:"room_mapping,omitempty"`
+	WetCleaning           bool    `json:"wet_cleaning,omitempty"`
+	CarpetDetection       bool    `json:"carpet_detection,omitempty"`
+	ObstacleAvoidance     bool    `json:"obstacle_avoidance,omitempty"`
+	AutoEmptyStation      bool    `json:"auto_empty_station,omitempty"`
+	VoiceAssistantSupport bool    `json:"voice_assistant_support,omitempty"`
 }
 
 type SmartTVFilter struct {
@@ -110,6 +115,10 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	// Climate-устройства
 	case "air_conditioner":
 		filter = &AirConditionerFilter{}
+    
+  // Household-устройства
+	case "robot_vacuum":
+		filter = &RobotVacuumFilter{}
 
 	// Media-устройства
 	case "smart_tv":

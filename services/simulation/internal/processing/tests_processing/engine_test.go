@@ -144,7 +144,7 @@ func TestHandleEvent(t *testing.T) {
 			e := engine.NewSimEngine(1.0)
 			e.IDToEntity["a"] = tt.entity
 			e.IDToEntity["b"] = &stubEntity{id: "b"}
-			event := api.EventInDTO{EntityID: "a"}
+			event := api.EventDTO{EntityID: "a"}
 
 			e.HandleEvent(event)
 

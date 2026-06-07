@@ -39,10 +39,12 @@ func (c *Client) ReadMessages() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				slog.Error("Error while reading message from client", "error", err)
 			}
+
 			return
 		}
 
 		var msg api.Message
+
 		err = json.Unmarshal(payload, &msg)
 		if err != nil {
 			slog.Error("Error while unmarshalling message from client", "error", err)
@@ -90,15 +92,17 @@ func (c *Client) handleSimulationStart(msg api.Message) {
 	if err := json.Unmarshal(msg.Payload, &startPayload); err != nil {
 		slog.Error("Error while unmarshalling simulation:start payload", "error", err)
 		c.sendError(msg.ReqID, "INVALID_PAYLOAD", "cannot parse simulation:start payload")
+
 		return
 	}
- 
+
 	if err := c.simService.Start(msg.ReqID, startPayload); err != nil {
 		slog.Error("Error while starting simulation", "reqID", msg.ReqID, "error", err)
 		c.sendError(msg.ReqID, "START_FAILED", err.Error())
+
 		return
 	}
- 
+
 	payload, err := json.Marshal(api.SimulationStartedPayload{
 		DtSim: startPayload.DtSim,
 		State: "running",
@@ -107,7 +111,7 @@ func (c *Client) handleSimulationStart(msg api.Message) {
 		slog.Error("Error while marshalling simulation:started payload", "error", err)
 		return
 	}
- 
+
 	c.send(api.Message{
 		Type:    "simulation:started",
 		Ts:      time.Now(),
@@ -115,28 +119,30 @@ func (c *Client) handleSimulationStart(msg api.Message) {
 		Payload: payload,
 	})
 }
- 
+
 func (c *Client) handleSimulationTick(msg api.Message) {
 	var tickPayload api.SimulationTickPayload
 	if err := json.Unmarshal(msg.Payload, &tickPayload); err != nil {
 		slog.Error("Error while unmarshalling simulation:tick payload", "error", err)
 		c.sendError(msg.ReqID, "INVALID_PAYLOAD", "cannot parse simulation:tick payload")
+
 		return
 	}
- 
+
 	stepResult, err := c.simService.Tick(msg.ReqID, tickPayload)
 	if err != nil {
 		slog.Error("Error while ticking simulation", "reqID", msg.ReqID, "error", err)
 		c.sendError(msg.ReqID, "TICK_FAILED", err.Error())
+
 		return
 	}
- 
+
 	payload, err := json.Marshal(stepResult)
 	if err != nil {
 		slog.Error("Error while marshalling simulation:step payload", "error", err)
 		return
 	}
- 
+
 	c.send(api.Message{
 		Type:    "simulation:step",
 		Ts:      time.Now(),
@@ -144,14 +150,15 @@ func (c *Client) handleSimulationTick(msg api.Message) {
 		Payload: payload,
 	})
 }
- 
+
 func (c *Client) handleSimulationStop(msg api.Message) {
 	if err := c.simService.Stop(msg.ReqID); err != nil {
 		slog.Error("Error while stopping simulation", "reqID", msg.ReqID, "error", err)
 		c.sendError(msg.ReqID, "STOP_FAILED", err.Error())
+
 		return
 	}
- 
+
 	c.send(api.Message{
 		Type:  "simulation:stopped",
 		Ts:    time.Now(),
@@ -195,6 +202,7 @@ func (c *Client) WriteMessages() {
 					slog.Error("Error while closing connection to client", "error", err)
 					return
 				}
+
 				return
 			}
 

@@ -27,15 +27,34 @@ type Rule interface {
 3. Результат сохраняется в `layout` в виде структуры `Placement`:
 ```go
 type Placement struct {
-	Device   *Device              `json:"device"`
-	Position *point.Point         `json:"position"`
-	Filters  filters.DeviceFilter `json:"filters,omitempty"`
+	Device    *Device              `json:"device"`
+	Position  *point.Point         `json:"position"`
+	Direction *point.Point         `json:"direction,omitempty"`
+	Filters   filters.DeviceFilter `json:"filters,omitempty"`
+}
+
+type Device struct {
+	ID    string `json:"id"`
+	Type  string `json:"type"` 
+	Track string `json:"track"`
 }
 ```
 
 Таким образом, сервис для каждой квартиры определяет (1) какие устройства ставить (включая тип этого устройства и возможные обязательные характеристики) и (2) его координаты.
 
-**Примечание**: Поле `Filters` опционально, так как не для всех устройств требуются фильтры
+**Примечание**: Поля `Filters` и `Direction` опциональны, так как не для всех устройств требуются фильтры и направление.
+
+## Выходные данные
+
+В результате работы программы генерируется файл `layout.json` со следующий структурой:
+
+```go
+type Layout struct {
+	Placements map[string][]*device.Placement `json:"placements"`
+}
+```
+
+Пример выходного файла можно посмотреть [здесь](./tests/testdata/layout.json) (`tests/testdata/layout.json`)
 
 ## API
 
@@ -91,7 +110,7 @@ type Placement struct {
 Для запуска тестов нужно перейти из корневой директории в директорию layout и запустить тесты:
 ```bash
 cd services/layout
-go test -v ./tests/...
+go test -v ./...
 ```
 
 ## Запуск программы

@@ -343,7 +343,8 @@
               "hall"
             ],
             "smart_siren": [
-              "hall"
+              "hall",
+              "passage"
             ]
           },
           "max_device_counts": {
@@ -921,7 +922,11 @@
           },
           "device_filters": {
             "smart_speaker": {},
-            "smart_tv": {}
+            "smart_tv": {
+              "resolution": "2K",
+              "width": 1,
+              "refresh_rate_hz": 60
+            }
           }
         },
         "3": {
@@ -958,7 +963,11 @@
           },
           "device_filters": {
             "smart_speaker": {},
-            "smart_tv": {},
+            "smart_tv": {
+              "resolution": "2K",
+              "width": 1.3,
+              "refresh_rate_hz": 120
+            },
             "subwoofer": {}
           }
         }

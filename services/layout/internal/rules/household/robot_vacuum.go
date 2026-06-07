@@ -92,7 +92,7 @@ func (r *RobotVacuumRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, r.track, zr.OrigRoom.ID, position, robotVacuumFilters)
+		layout.AddDeviceToLayout(deviceType, r.track, zr.OrigRoom.ID, position, nil, robotVacuumFilters)
 		deviceCnt++
 	}
 

@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SmartSiren",
+  "description": "A smart home siren or security alarm",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Presence Sensor FP2'"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'tuya', 'sonoff'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier as stated by the manufacturer."
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "digma",
+          "sber",
+          "vk",
+          "ekf"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems this device can connect to through any connection path."
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "ble",
+          "matter-over-wifi",
+          "matter-over-thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Wireless protocols supported by this device."
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "CR2032",
+        "CR2450",
+        "CR123A",
+        "CR1632",
+        "AA",
+        "AAA",
+        "18650"
+      ],
+      "description": "Battery type required."
+    },
+    "battery_quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Expected battery life in months."
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built-in rechargeable battery."
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress protection rating, relevant for outdoor installation."
+    },
+    "power_source": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mains",
+          "battery",
+          "rechargeable_battery",
+          "usb",
+          "poe",
+          "ac_dc_adapter"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+    },
+    "max_volume_db": {
+      "type": "integer",
+      "minimum": 80,
+      "maximum": 130,
+      "description": "Maximum siren volume in decibels, e.g. 110."
+    },
+    "has_strobe_light": {
+      "type": "boolean",
+      "description": "Whether the alarm includes a flashing strobe light."
+    },
+    "has_tamper_detection": {
+      "type": "boolean",
+      "description": "Whether the alarm triggers if someone tries to remove it from the wall."
+    },
+    "indoor_outdoor": {
+      "type": "string",
+      "enum": [
+        "indoor",
+        "outdoor",
+        "both"
+      ],
+      "description": "Whether the alarm is designed for indoor or outdoor use."
+    },
+    "type": {
+      "const": "smart_siren"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type"
+  ],
+  "additionalProperties": false
+}

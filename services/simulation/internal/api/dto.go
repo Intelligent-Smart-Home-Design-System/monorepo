@@ -15,14 +15,12 @@ type SimulationService interface {
 
 // EventInDTO структура для входящих событий от клиента в simulation:tick
 type EventInDTO struct {
-	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityId"`
 	Payload  json.RawMessage `json:"payload"`
 }
 
 // EventOutDTO структура для обработанных событий симуляции
 type EventOutDTO struct {
-	Kind     string          `json:"kind"`
 	EntityID string          `json:"entityId"`
 	Payload  json.RawMessage `json:"payload"`
 }
@@ -31,21 +29,7 @@ type EventOutDTO struct {
 type EntityDTO struct {
 	ID   string          `json:"id"`
 	Type string          `json:"type"`
-	Info json.RawMessage `json:"info"` // парсится позже в converter (метод engine)
-}
-
-// CellDTO структура для клетки поля
-type CellDTO struct {
-	X         int  `json:"x"`
-	Y         int  `json:"y"`
-	Condition bool `json:"condition"` // true - сгорело; false - дефолт
-}
-
-// FieldDTO структура для плана квартиры
-type FieldDTO struct {
-	Width  int          `json:"width"`
-	Height int          `json:"height"`
-	Cells  [][]*CellDTO `json:"cells"`
+	Info json.RawMessage `json:"info"`
 }
 
 // ScenarioDTO структура для сценария (приходит от UI в simulation:start), описывает устройство (EntityID) и
@@ -61,6 +45,7 @@ type EdgeDTO struct {
 	Action string        `json:"action"`
 	Data   []interface{} `json:"data,omitempty"` // доп параметры
 }
+
 type Message struct {
 	Type    string          `json:"type"`
 	Ts      time.Time       `json:"ts"`
@@ -76,10 +61,10 @@ type HelloPayload struct {
 }
 
 type SimulationStartPayload struct {
-	DtSim     float64       `json:"dtSim"`
-	Apartment FieldDTO      `json:"apartment"`
-	Devices   []EntityDTO   `json:"devices"`
-	Scenarios []ScenarioDTO `json:"scenarios"`
+	DtSim     float64         `json:"dtSim"`
+	Apartment json.RawMessage `json:"apartment"`
+	Devices   []EntityDTO     `json:"devices"`
+	Scenarios []ScenarioDTO   `json:"scenarios"`
 }
 
 type SimulationTickPayload struct {
@@ -123,4 +108,52 @@ type LogEventPayload struct {
 	Level   string `json:"level"`
 	Device  string `json:"device"`
 	Message string `json:"message"`
+}
+
+// api/floor.go
+type Floor struct {
+	Meta struct {
+		Units string `json:"units"`
+	} `json:"meta"`
+	Walls   []Wall   `json:"walls"`
+	Doors   []Door   `json:"doors"`
+	Windows []Window `json:"windows"`
+	Rooms   []Room   `json:"rooms"`
+	// Граф смежности: roomID → список соседних комнат.
+	Adjacency map[string][]RoomEdge
+}
+
+type Wall struct {
+	ID     string        `json:"id"`
+	Points [2][2]float64 `json:"points"`
+	Width  float64       `json:"width"`
+}
+
+type Door struct {
+	ID               string        `json:"id"`
+	Points           [2][2]float64 `json:"points"`
+	Width            float64       `json:"width"`
+	Rooms            []string      `json:"rooms"`
+	OpensTowardsRoom string        `json:"opens_towards_room,omitempty"`
+	Swing            string        `json:"swing,omitempty"`
+}
+
+type Window struct {
+	ID     string        `json:"id"`
+	Points [2][2]float64 `json:"points"`
+	Width  float64       `json:"width"`
+}
+
+type Room struct {
+	ID      string       `json:"id"`
+	Name    string       `json:"name"`
+	Area    [][2]float64 `json:"area"`
+	Walls   []string     `json:"walls"`
+	Doors   []string     `json:"doors"`
+	Windows []string     `json:"windows"`
+}
+
+type RoomEdge struct {
+	NeighborRoomID string
+	Door           *Door
 }

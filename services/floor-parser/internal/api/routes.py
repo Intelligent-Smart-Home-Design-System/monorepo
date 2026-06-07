@@ -21,10 +21,15 @@ async def parse_dxf(file: UploadFile = File(...)) -> dict[str, object]:
             detail="File name is required.",
         )
 
-    if not file.filename.lower().endswith(".dxf"):
+    try:
+        return await parse_floor(file)
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only DXF files are supported.",
-        )
-
-    return await parse_floor(file)
+            detail=str(exc),
+        ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc

@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"errors"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/fschuetz04/simgo"
@@ -23,14 +21,14 @@ type Engine interface {
 	// Возвращает true, если цикл найден.
 	CheckCircleDependencies() bool
 
-	// SetField устанавливает поле для симуляции.
+	// SetFloor устанавливает поле для симуляции.
 	SetFloor(floor *api.Floor)
 
 	// GetInChan возвращает канал для входящих событий.
-	GetInChan() chan api.EventInDTO
+	GetInChan() chan api.EventDTO
 
 	// GetOutChan возвращает канал для выходящих событий.
-	GetOutChan() chan api.EventOutDTO
+	GetOutChan() chan api.EventDTO
 
 	// Step продвигает симуляционное время на dtSim вперёд.
 	// Вызывается из Simulations.Tick после отправки всех входящих событий.
@@ -43,21 +41,29 @@ type Engine interface {
 	Stop()
 
 	// HandleEvent обрабатывает event по его entityID
-	HandleEvent(event api.EventInDTO)
+	HandleEvent(event api.EventDTO)
 }
 
 // EnginePort определяет интерфейс для взаимодействия сущностей с движком
 type EnginePort interface {
-	GetOutChan() chan api.EventOutDTO
-	GetInChan() chan api.EventInDTO
+	// GetOutChan возвращает канал для отправки событий от сущностей к движку.
+	GetOutChan() chan api.EventDTO
+
+	// GetInChan возвращает канал для получения событий от движка к сущностям.
+	GetInChan() chan api.EventDTO
+
+	// GetSimulation возвращает объект симуляции для управления временем и процессами.
 	GetSimulation() *simgo.Simulation
+
+	// GetFloor возвращает текущее поле симуляции
 	GetFloor() *api.Floor
+
+	// GetRoomObservers возвращает список ID сущностей, которые наблюдают за данным roomID.
 	GetRoomObservers(roomID string) []string
+
+	// NotifyObservers отправляет уведомление всем наблюдателям за roomID с указанным kind и payload.
 	NotifyObservers(roomID string, kind string, payload []byte)
+
+	// DrainInChan читает события из входного канала.
 	DrainInChan()
 }
-
-var (
-	ErrorFieldInvalidParameterX = errors.New("invalid parameter x")
-	ErrorFieldInvalidParameterY = errors.New("invalid parameter y")
-)

@@ -75,7 +75,7 @@ func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 
 			if deviceCnt < maxCount {
 				if zr.OrigRoom.AreaM2 >= MetersCoverage {
-					smartSirenFilters.VolumeDB *= CoeffDB
+					smartSirenFilters.MaxVolumeDB = int(float64(smartSirenFilters.MaxVolumeDB) * CoeffDB)
 				}
 
 				layout.AddDeviceToLayout(deviceType, ss.track, zr.OrigRoom.ID, zoneCenter, nil, smartSirenFilters)

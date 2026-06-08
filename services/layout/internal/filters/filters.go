@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 )
 
-type DeviceFilter interface{}
 
 // type WaterLeakSensorFilter struct {
 // 	ProbeType        string  `json:"probe_type,omitempty"`
@@ -121,11 +120,13 @@ type DeviceFilter interface{}
 // type CeilingSpeakers struct{}
 
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
+type DeviceFilter interface{}
+
+// GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
 
 	switch deviceType {
-
 	// Security-устройства
 	case "water_leak_sensor":
 		filter = &WaterLeakSensorFilter{}
@@ -134,15 +135,13 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	case "smart_lock":
 		filter = &SmartLockFilter{}
 	case "smart_doorbell":
-		filter = &SmartDoorBellFilter{}
-	case "door_sensor":
-		filter = &DoorSensorFilter{}
-	case "window_sensor":
-		filter = &WindowSensorFilter{}
+		filter = &SmartDoorbellFilter{}
+	case "door_sensor", "window_sensor":
+		filter = &DoorWindowSensorFilter{}
 	case "motion_sensor":
 		filter = &MotionSensorFilter{}
 	case "camera":
-		filter = &CameraFilter{}
+		filter = &SmartCameraFilter{}
 	case "smart_siren":
 		filter = &SmartSirenFilter{}
 
@@ -165,8 +164,8 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartFloorThermostatFilter{}
 	case "floor_temperature_sensor":
 		filter = &FloorTemperatureSensorFilter{}
-    
-  // Household-устройства
+
+	// Household-устройства
 	case "robot_vacuum":
 		filter = &RobotVacuumFilter{}
 
@@ -174,11 +173,11 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	case "smart_tv":
 		filter = &SmartTVFilter{}
 	case "smart_speaker":
-		filter = &SmartSpeaker{}
+		filter = &SmartSpeakerFilter{}
 	case "subwoofer":
-		filter = &Subwoofer{}
+		filter = &SubwooferFilter{}
 	case "ceiling_speakers":
-		filter = &CeilingSpeakers{}
+		filter = &CeilingSpeakersFilter{}
 	}
 
 	if filter == nil {
@@ -189,11 +188,9 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	if err != nil {
 		return nil, err
 	}
-
 	err = json.Unmarshal(data, filter)
 	if err != nil {
 		return nil, err
 	}
-
 	return filter, nil
 }

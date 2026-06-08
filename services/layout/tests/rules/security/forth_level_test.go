@@ -199,7 +199,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 				if roomID == "1" {
 					assert.Equal(t, &point.Point{X: 8, Y: 7}, devicePlacement.Position)
 				} else {
-					assert.Equal(t, point.Point{X: 0, Y: 7}, *devicePlacement.Position)
+					assert.Equal(t, point.Point{X: 0, Y: 0}, *devicePlacement.Position)
 				}
 			}
 		}

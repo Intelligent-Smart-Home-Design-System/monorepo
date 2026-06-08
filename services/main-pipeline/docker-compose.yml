@@ -133,11 +133,22 @@ services:
       - "2117:8080"
     restart: unless-stopped
 
+  web:
+    build:
+      context: ../../frontend
+      target: next
+      args:
+        APP: web
+    expose:
+      - "3000"
+    restart: unless-stopped
+
   nginx:
     image: nginx:1.27-alpine
     depends_on:
       - api-gateway
       - frontend-api
+      - web
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
     ports:

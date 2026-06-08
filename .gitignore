@@ -283,6 +283,11 @@ yarn-error.log*
 
 # Environment and local files
 .env*
+# но шаблоны/конфиги запуска держим в репозитории
+!*.env.example
+!**/.env.example
+!**/.env.prod.example
+!**/.env.shift
 *.pem
 .vercel
 

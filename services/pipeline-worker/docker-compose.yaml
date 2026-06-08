@@ -27,7 +27,7 @@ services:
       POSTGRES_PWD: temporal
       POSTGRES_SEEDS: temporal-postgresql
     ports:
-      - "7233:7233"
+      - "${PIPELINE_TEMPORAL_PORT:-7233}:7233"
     networks:
       - pipeline
 
@@ -38,7 +38,7 @@ services:
     environment:
       TEMPORAL_ADDRESS: temporal:7233
     ports:
-      - "8088:8080"
+      - "${PIPELINE_TEMPORAL_UI_PORT:-8088}:8080"
     networks:
       - pipeline
 
@@ -67,7 +67,7 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "5432:5432"
+      - "${PIPELINE_CATALOG_DB_PORT:-5432}:5432"
     volumes:
       - catalog-postgresql-data:/var/lib/postgresql/data
     networks:
@@ -118,7 +118,7 @@ services:
       - ./config:/app/config:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "2112:2112"
+      - "${PIPELINE_WORKER_METRICS_PORT:-2112}:2112"
     restart: unless-stopped
     networks:
       - pipeline
@@ -150,9 +150,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
+      - "${PIPELINE_JAEGER_UI_PORT:-16686}:16686"
+      - "${PIPELINE_OTLP_GRPC_PORT:-4317}:4317"
+      - "${PIPELINE_OTLP_HTTP_PORT:-4318}:4318"
     networks:
       - pipeline
 
@@ -160,7 +160,7 @@ services:
     image: grafana/loki:2.9.8
     command: -config.file=/etc/loki/local-config.yaml
     ports:
-      - "3100:3100"
+      - "${PIPELINE_LOKI_PORT:-3100}:3100"
     volumes:
       - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
@@ -183,7 +183,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     ports:
-      - "9092:9092"
+      - "${PIPELINE_PROMETHEUS_PORT:-9092}:9092"
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
@@ -198,4 +198,3 @@ volumes:
   temporal-postgresql-data:
   catalog-postgresql-data:
   loki-data:
-  grafana-data:

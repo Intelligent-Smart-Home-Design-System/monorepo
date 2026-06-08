@@ -94,24 +94,58 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		if !decodeJSON(w, r, &req) {
 			return
 		}
-		token, err := auth.register(req.Email, req.Password)
+		access, refresh, err := auth.register(req.Email, req.Password)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Warn().Str("event", "auth.register").Str("email", normalizeEmail(req.Email)).Err(err).Msg("registration rejected")
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusCreated, tokenResponse{AccessToken: token, TokenType: "Bearer"})
+		writeJSON(w, http.StatusCreated, authResponse{
+			AccessToken:  access,
+			RefreshToken: refresh,
+			TokenType:    "Bearer",
+			User:         &authUser{Email: normalizeEmail(req.Email), Name: req.Name},
+		})
 	})
 	mux.HandleFunc("POST /auth/login", func(w http.ResponseWriter, r *http.Request) {
 		var req credentialsRequest
 		if !decodeJSON(w, r, &req) {
 			return
 		}
-		token, err := auth.login(req.Email, req.Password)
+		access, refresh, err := auth.login(req.Email, req.Password)
 		if err != nil {
-			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+			log.Warn().Str("event", "auth.login").Str("email", normalizeEmail(req.Email)).Err(err).Msg("login rejected")
+			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
-		writeJSON(w, http.StatusOK, tokenResponse{AccessToken: token, TokenType: "Bearer"})
+		writeJSON(w, http.StatusOK, authResponse{
+			AccessToken:  access,
+			RefreshToken: refresh,
+			TokenType:    "Bearer",
+			User:         &authUser{Email: normalizeEmail(req.Email)},
+		})
+	})
+	mux.HandleFunc("POST /auth/refresh", func(w http.ResponseWriter, r *http.Request) {
+		var req refreshRequest
+		if !decodeJSON(w, r, &req) {
+			return
+		}
+		if req.RefreshToken == "" {
+			writeError(w, http.StatusUnauthorized, "refresh_token is required")
+			return
+		}
+		subject, access, refresh, err := auth.refresh(req.RefreshToken)
+		if err != nil {
+			log.Warn().Str("event", "auth.refresh").Err(err).Msg("refresh rejected")
+			writeError(w, http.StatusUnauthorized, "invalid refresh token")
+			return
+		}
+		writeJSON(w, http.StatusOK, authResponse{
+			AccessToken:  access,
+			RefreshToken: refresh,
+			TokenType:    "Bearer",
+			User:         &authUser{Email: subject},
+		})
 	})
 	mux.HandleFunc("POST /auth/forgot-password", func(w http.ResponseWriter, r *http.Request) {
 		var req forgotPasswordRequest
@@ -120,7 +154,8 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		}
 		resetToken, err := auth.createResetToken(req.Email)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Error().Str("event", "auth.forgot-password").Str("email", normalizeEmail(req.Email)).Err(err).Msg("reset token creation failed")
+			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		writeJSON(w, http.StatusOK, forgotPasswordResponse{
@@ -134,7 +169,8 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 			return
 		}
 		if err := auth.resetPassword(req.Email, req.ResetToken, req.NewPassword); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Warn().Str("event", "auth.reset-password").Str("email", normalizeEmail(req.Email)).Err(err).Msg("password reset rejected")
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "password reset"})
@@ -250,6 +286,11 @@ func serve(log zerolog.Logger, name string, server *http.Server) {
 type credentialsRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Name     string `json:"name,omitempty"`
+}
+
+type refreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
 type forgotPasswordRequest struct {
@@ -262,9 +303,16 @@ type resetPasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
-type tokenResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
+type authUser struct {
+	Email string `json:"email"`
+	Name  string `json:"name,omitempty"`
+}
+
+type authResponse struct {
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenType    string    `json:"token_type"`
+	User         *authUser `json:"user,omitempty"`
 }
 
 type forgotPasswordResponse struct {
@@ -273,9 +321,10 @@ type forgotPasswordResponse struct {
 }
 
 type authService struct {
-	db        *sql.DB
-	jwtSecret []byte
-	tokenTTL  time.Duration
+	db         *sql.DB
+	jwtSecret  []byte
+	tokenTTL   time.Duration
+	refreshTTL time.Duration
 }
 
 type userRecord struct {
@@ -288,16 +337,17 @@ type userRecord struct {
 
 func newAuthService(db *sql.DB, secret string, tokenTTL time.Duration) *authService {
 	return &authService{
-		db:        db,
-		jwtSecret: []byte(secret),
-		tokenTTL:  tokenTTL,
+		db:         db,
+		jwtSecret:  []byte(secret),
+		tokenTTL:   tokenTTL,
+		refreshTTL: 30 * 24 * time.Hour,
 	}
 }
 
-func (a *authService) register(email, password string) (string, error) {
+func (a *authService) register(email, password string) (string, string, error) {
 	email = normalizeEmail(email)
 	if err := validateCredentials(email, password); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -309,16 +359,16 @@ func (a *authService) register(email, password string) (string, error) {
 		VALUES ($1, $2, $3)
 	`, email, salt, hashPassword(salt, password))
 	if isUniqueViolation(err) {
-		return "", errors.New("user already exists")
+		return "", "", errors.New("user already exists")
 	}
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return a.issueJWT(email)
+	return a.issueTokens(email)
 }
 
-func (a *authService) login(email, password string) (string, error) {
+func (a *authService) login(email, password string) (string, string, error) {
 	email = normalizeEmail(email)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -326,17 +376,30 @@ func (a *authService) login(email, password string) (string, error) {
 
 	user, err := a.getUser(ctx, email)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	expected := hashPassword(user.Salt, password)
 	if subtle.ConstantTimeCompare([]byte(expected), []byte(user.PasswordHash)) != 1 {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
-	return a.issueJWT(email)
+	return a.issueTokens(email)
+}
+
+// refresh проверяет refresh-токен и выпускает новую пару токенов.
+func (a *authService) refresh(refreshToken string) (string, string, string, error) {
+	subject, err := a.validateJWT(refreshToken)
+	if err != nil {
+		return "", "", "", err
+	}
+	access, refresh, err := a.issueTokens(subject)
+	if err != nil {
+		return "", "", "", err
+	}
+	return subject, access, refresh, nil
 }
 
 func (a *authService) createResetToken(email string) (string, error) {
@@ -440,13 +503,25 @@ func (a *authService) authorized(r *http.Request) bool {
 	return err == nil
 }
 
-func (a *authService) issueJWT(subject string) (string, error) {
+func (a *authService) issueTokens(subject string) (string, string, error) {
+	access, err := a.issueJWT(subject, a.tokenTTL)
+	if err != nil {
+		return "", "", err
+	}
+	refresh, err := a.issueJWT(subject, a.refreshTTL)
+	if err != nil {
+		return "", "", err
+	}
+	return access, refresh, nil
+}
+
+func (a *authService) issueJWT(subject string, ttl time.Duration) (string, error) {
 	now := time.Now()
 	header := map[string]string{"alg": "HS256", "typ": "JWT"}
 	claims := map[string]interface{}{
 		"sub": subject,
 		"iat": now.Unix(),
-		"exp": now.Add(a.tokenTTL).Unix(),
+		"exp": now.Add(ttl).Unix(),
 	}
 	headerJSON, err := json.Marshal(header)
 	if err != nil {
@@ -538,7 +613,7 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, out interface{}) bool {
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(out); err != nil {
-		http.Error(w, "invalid json: "+err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid json: "+err.Error())
 		return false
 	}
 	return true
@@ -548,6 +623,12 @@ func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+// writeError отдаёт ошибку JSON-ом {"message": ...}, как ждёт фронтенд
+// (ApiErrorResponse), вместо text/plain от http.Error.
+func writeError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"message": msg})
 }
 
 func env(key, fallback string) string {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -647,6 +648,10 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, out interface{}) bool {
 func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+	// nil slice в Go кодируется как JSON null; фронтенд ожидает [].
+	if v := reflect.ValueOf(payload); v.IsValid() && v.Kind() == reflect.Slice && v.IsNil() {
+		payload = reflect.MakeSlice(v.Type(), 0, 0).Interface()
+	}
 	_ = json.NewEncoder(w).Encode(payload)
 }
 

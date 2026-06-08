@@ -19,7 +19,7 @@ jobs:
     - name: Generate taxonomy_schema.json from device_types.json
       run: |
           cd shared/schemas/devices
-          python schema_generator.py --combined --output ../../services/extractor/taxonomy_schema.json
+          python3 schema_generator.py --combined --output ../../services/extractor/taxonomy_schema.json
       shell: bash
 
     - name: Install uv

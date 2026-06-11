@@ -60,6 +60,40 @@ type AirConditionerFilter struct {
 	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
 }
 
+type TemperatureRange struct {
+	Min float64 `json:"min,omitempty"`
+	Max float64 `json:"max,omitempty"`
+}
+
+type TemperatureSensorFilter struct {
+	TemperatureRange TemperatureRange `json:"temperature_range,omitempty"`
+	BatteryLifeYears float64          `json:"battery_life_years,omitempty"`
+}
+
+type SmartRadiatorActuatorFilter struct{}
+
+type HumiditySensorFilter struct{}
+
+type SmartHumidifierFilter struct {
+	TankVolumeLiters float64 `json:"tank_volume_liters,omitempty"`
+	ServicedAreaM2   float64 `json:"serviced_area_m2,omitempty"`
+}
+
+type CO2SensorFilter struct{}
+
+type AirPurifierFilter struct {
+	ServicedAreaM2 float64 `json:"serviced_area_m2,omitempty"`
+	HepaFilter     bool    `json:"hepa_filter,omitempty"`
+}
+
+type SmartFloorThermostatFilter struct {
+	MaxLoadKW float64 `json:"max_load_kw,omitempty"`
+}
+
+type FloorTemperatureSensorFilter struct {
+	CableLength float64 `json:"cable_length,omitempty"`
+}
+  
 type RobotVacuumFilter struct {
 	NoiseLevelDB          float64 `json:"noise_level_db,omitempty"`
 	SuctionPowerPA        float64 `json:"suction_power_pa,omitempty"`
@@ -115,6 +149,22 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	// Climate-устройства
 	case "air_conditioner":
 		filter = &AirConditionerFilter{}
+	case "temperature_sensor":
+		filter = &TemperatureSensorFilter{}
+	case "smart_radiator_actuator":
+		filter = &SmartRadiatorActuatorFilter{}
+	case "humidity_sensor":
+		filter = &HumiditySensorFilter{}
+	case "smart_humidifier":
+		filter = &SmartHumidifierFilter{}
+	case "co2_sensor":
+		filter = &CO2SensorFilter{}
+	case "air_purifier":
+		filter = &AirPurifierFilter{}
+	case "smart_floor_thermostat":
+		filter = &SmartFloorThermostatFilter{}
+	case "floor_temperature_sensor":
+		filter = &FloorTemperatureSensorFilter{}
     
   // Household-устройства
 	case "robot_vacuum":
@@ -125,7 +175,7 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartTVFilter{}
 	case "smart_speaker":
 		filter = &SmartSpeaker{}
-	case "sub_woofer":
+	case "subwoofer":
 		filter = &Subwoofer{}
 	case "ceiling_speakers":
 		filter = &CeilingSpeakers{}

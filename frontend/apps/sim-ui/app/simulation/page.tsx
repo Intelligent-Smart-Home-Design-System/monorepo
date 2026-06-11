@@ -16,6 +16,7 @@ import {
   normalizeLogLevel,
   resolveSimulationWsUrl,
   type SimEventInput,
+  type SimStateChange,
   type SimStepPayload,
   type WsEnvelope,
   type WsStatus,
@@ -90,6 +91,10 @@ function removeStorage(key: string) {
   } catch {
     // Storage can be unavailable in some browser privacy modes.
   }
+}
+
+function getStateChangeEntityId(change: SimStateChange) {
+  return change.entityId ?? change.entity_id ?? "";
 }
 
 function loadFloorSourceFromStorage() {
@@ -801,24 +806,28 @@ export default function SimulationPage() {
 
   function applyBackendStep(payload: SimStepPayload) {
     const changes = payload.stateChanges ?? [];
-    const activeIds = changes.map((change) => change.entityId).filter(Boolean);
+    const activeIds = changes.map((change) => getStateChangeEntityId(change)).filter(Boolean);
 
     if (activeIds.length) setActiveNodes(activeIds);
     if (activeIds.length) {
       setManualDeviceState((state) => {
         const next = { ...state };
         changes.forEach((change) => {
+          const entityId = getStateChangeEntityId(change);
+          if (!entityId) return;
           const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
-          if ("turn_on" in rawPayload) next[change.entityId] = Boolean((rawPayload as { turn_on?: boolean }).turn_on);
+          if ("turn_on" in rawPayload) next[entityId] = Boolean((rawPayload as { turn_on?: boolean }).turn_on);
         });
         return next;
       });
     }
 
     changes.forEach((change) => {
+      const entityId = getStateChangeEntityId(change);
+      if (!entityId) return;
       const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
       const state = "turn_on" in rawPayload ? (rawPayload as { turn_on?: boolean }).turn_on : undefined;
-      addEvent(change.entityId, state === undefined ? "Состояние обновлено бэкендом" : `Состояние: ${state ? "включено" : "выключено"}`, "INFO");
+      addEvent(entityId, state === undefined ? "Состояние обновлено бэкендом" : `Состояние: ${state ? "включено" : "выключено"}`, "INFO");
     });
   }
 

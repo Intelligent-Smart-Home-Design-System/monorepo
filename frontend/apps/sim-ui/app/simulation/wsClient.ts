@@ -19,7 +19,8 @@ export type SimEventInput = {
 
 export type SimStateChange = {
   kind?: string;
-  entityId: string;
+  entityId?: string;
+  entity_id?: string;
   payload?: unknown;
 };
 
@@ -101,12 +102,10 @@ export function buildTickPayload(tick: number, inputs: SimEventInput[] = []) {
     inputs: inputs.map((input) => {
       const kind = input.kind ?? "user";
       return {
-        // Keep top-level kind for the current backend, while payload.kind is the new contract.
-        kind,
-        entityId: input.entityId,
-        ...(input.trigger ? { trigger: input.trigger } : {}),
+        entity_id: input.entityId,
         payload: {
           kind,
+          ...(input.trigger ? { trigger: input.trigger } : {}),
           ...input.payload,
           ...(input.devicesPayload?.length ? { devices_payload: input.devicesPayload } : {}),
         },

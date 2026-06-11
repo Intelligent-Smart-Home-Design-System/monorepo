@@ -70,11 +70,7 @@ func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*ap
 	}
 
 	for _, input := range payload.Inputs {
-		input = normalizeInput(input)
-		if input.Trigger != "" {
-			input.EntityID = input.Trigger
-		}
-		eng.GetInChan() <- input
+		eng.GetInChan() <- normalizeInput(input)
 	}
 
 	eng.Step()
@@ -82,7 +78,7 @@ func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*ap
 	return eng.CollectStep(payload.Tick), nil
 }
 
-func normalizeInput(input api.EventInDTO) api.EventInDTO {
+func normalizeInput(input api.EventDTO) api.EventDTO {
 	if len(input.Payload) == 0 {
 		return input
 	}
@@ -95,8 +91,8 @@ func normalizeInput(input api.EventInDTO) api.EventInDTO {
 		return input
 	}
 
-	if input.Trigger == "" {
-		input.Trigger = meta.Trigger
+	if meta.Trigger != "" {
+		input.EntityID = meta.Trigger
 	}
 
 	return input

@@ -9,7 +9,7 @@
 
 - **Часть 1 — пайплайн построения каталога.** Скрейпинг, извлечение данных
   (LLM), построение каталога и расчёт качества, оркестрируемые через Temporal.
-  Разворачивается через **Terraform + Docker**.
+  Разворачивается через **Docker Compose** (локально) или **Terraform + Docker** (прод).
 - **Часть 2 — фронтенд + бэкенд.** Next.js-фронтенд, `frontend-api` (отдаёт
   каталог и планы), `api-gateway` (auth + запуск Temporal-воркфлоу), воркеры и
   nginx как единая точка входа. Разворачивается через **Docker Compose**.
@@ -26,15 +26,43 @@
 
 ## Быстрый старт
 
+Для локального запуска 필요한 только Docker и Docker Compose.
+
 ```bash
-# TODO запуск через makefile
+# Посмотреть все доступные команды
+make help
+
+# ─── Каталог-пайплайн (Part 1) ────────────────────
+make pipeline-run      # собрать образы и запустить стек
+make pipeline-logs     # смотреть логи
+make pipeline-down     # остановить
+make pipeline-trigger  # вручную запустить пайплайн
+
+# ─── Фронтенд + бэкенд (Part 2) ───────────────────
+make app-run           # собрать и запустить
+make app-down          # остановить
+
+# ─── Всё сразу ────────────────────────────────────
+make build-all         # собрать все образы
+make up-all            # запустить всё
+make down-all          # остановить всё
 ```
+
+Сервисы и порты:
+
+| Сервис | Порт | Описание |
+|--------|------|----------|
+| Temporal UI | `8088` | Оркестрация и мониторинг workflow |
+| Grafana | `3000` | Дашборды (admin/admin) |
+| Jaeger | `16686` | Трассировка |
+| Prometheus | `9092` | Метрики |
+| Catalog DB | `5432` | PostgreSQL (catalog/smart_home) |
 
 ## Структура проекта
 
 ```text
 .
-├── Makefile                      # TODO
+├── Makefile                      # общий Makefile (make help)
 ├── README.md
 ├── db/
 │   └── catalog/migrations/

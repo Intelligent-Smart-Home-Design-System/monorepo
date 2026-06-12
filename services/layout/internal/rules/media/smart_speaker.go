@@ -125,7 +125,7 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 	if nearestWall != nil {
 		wallCenter := point.GetObjectCenter(nearestWall.Points)
 		if tvPosition.X < wallCenter.X {
-			res := point.MovePointInDirectionPlusOffset(*tvPosition, *direction, totalShift)
+			res := point.MovePointInDirection(*tvPosition, *direction, totalShift)
 			if !isBlockedPoint(ap, room, res) {
 				return &res
 			}
@@ -135,7 +135,7 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 			X: -direction.X,
 			Y: -direction.Y,
 		}
-		res := point.MovePointInDirectionPlusOffset(*tvPosition, reverseDirection, totalShift)
+		res := point.MovePointInDirection(*tvPosition, reverseDirection, totalShift)
 		if !isBlockedPoint(ap, room, res) {
 			return &res
 		}
@@ -143,7 +143,7 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 		return &res
 	}
 
-	res := point.MovePointInDirectionPlusOffset(*tvPosition, *direction, totalShift)
+	res := point.MovePointInDirection(*tvPosition, *direction, totalShift)
 	return &res
 }
 

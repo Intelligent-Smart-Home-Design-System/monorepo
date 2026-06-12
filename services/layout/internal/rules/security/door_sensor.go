@@ -1,11 +1,10 @@
 package security
 
 import (
-	"fmt"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type DoorSensorRule struct {
@@ -18,29 +17,62 @@ func NewDoorSensorRule() *DoorSensorRule {
 	}
 }
 
-func (gl *DoorSensorRule) Type() string {
+func (ds *DoorSensorRule) Type() string {
 	return "door_sensor"
 }
 
-func (gl *DoorSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	frontDoor := apartmentStruct.GetFrontDoor()
-	if frontDoor == nil {
-		return fmt.Errorf("no front door")
+func (ds *DoorSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
+	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
 	}
 
-	roomID := frontDoor.Rooms[0]
-	_, ok := apartmentLayout.Placements[roomID]
-	if !ok {
-		apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
+	roomsSet := make(map[string]struct{})
+	for _, r := range rooms {
+		roomsSet[r.Name] = struct{}{}
 	}
 
-	doorCenter := apartment.GetObjectCenter(frontDoor.Points)
+	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
+			zr.EntryDoorZone = collectEntryDoorZone(zonedAp.OrigAp, zr.OrigRoom)
+		}
+	}
 
-	deviceID := uuid.NewString()
-	newDevice := device.NewDevice(deviceID, "door_sensor", "security")
-	placement := device.NewPlacement(newDevice, roomID, &doorCenter)
+	return nil
+}
 
-	apartmentLayout.Placements[roomID][newDevice.Type] = placement
+func (ds *DoorSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	deviceType := ds.Type()
+
+	err := ds.Transform(zonedAp, deviceRooms)
+	if err != nil {
+		return err
+	}
+
+	tracksConfig := configs.GetGlobalTracksConfig()
+	configFilters, err := tracksConfig.GetDeviceFilter(ds.track, levelNum, deviceType)
+	if err != nil {
+		return err
+	}
+
+	if configFilters == nil {
+		configFilters = &filters.DoorSensorFilter{}
+	}
+	doorSensorFilters := configFilters.(*filters.DoorSensorFilter)
+
+	deviceCnt := 0
+	for _, zr := range zonedAp.ZonedRooms {
+		if zr.EntryDoorZone == nil {
+			continue
+		}
+	
+		zoneCenter := point.GetObjectCenter(zr.EntryDoorZone.Points)
+
+		if deviceCnt < maxCount {
+			layout.AddDeviceToLayout(deviceType, ds.track, zr.OrigRoom.ID, &zoneCenter, doorSensorFilters)
+			deviceCnt++
+		}
+	}
 
 	return nil
 }

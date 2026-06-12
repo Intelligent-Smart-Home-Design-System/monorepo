@@ -44,3 +44,11 @@ jobs:
     - name: Test_scraper
       run: go test -v ./...
       working-directory: services/scraper
+
+    - name: Build_catalog-builder
+      run: go build -v ./...
+      working-directory: services/catalog-builder
+
+    - name: Test_catalog-builder
+      run: go test -v ./...
+      working-directory: services/catalog-builder

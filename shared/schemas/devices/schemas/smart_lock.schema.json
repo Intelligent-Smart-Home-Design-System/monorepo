@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SmartLock",
+  "description": "A smart home door lock",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name as it appears in the listing, e.g. 'Aqara Smart Lock U100'"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Normalized lowercase brand name, e.g. 'aqara', 'xiaomi', 'yale'"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier as stated by the manufacturer."
+    },
+    "ecosystem": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "yandex",
+          "apple",
+          "google",
+          "aqara",
+          "tuya",
+          "xiaomi",
+          "digma",
+          "sber",
+          "vk",
+          "ekf"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Smart home ecosystems this device can connect to through any connection path."
+    },
+    "protocol": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "zigbee",
+          "z-wave",
+          "wifi",
+          "bluetooth",
+          "ble",
+          "matter-over-wifi",
+          "matter-over-thread"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Wireless protocols supported by this device."
+    },
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "CR2032",
+        "CR2450",
+        "CR123A",
+        "CR1632",
+        "AA",
+        "AAA",
+        "18650"
+      ],
+      "description": "Battery type required."
+    },
+    "battery_quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Number of disposable batteries required, e.g. 6 for '6 x AA'. Only relevant if battery is in power_source."
+    },
+    "battery_life_months": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 300,
+      "description": "Expected battery life in months as stated by manufacturer."
+    },
+    "rechargeable": {
+      "type": "boolean",
+      "description": "Whether the device has a built-in rechargeable battery."
+    },
+    "ip_rating": {
+      "type": "string",
+      "pattern": "^IP([0-6]|X)([0-9]|X)([A-D])?([HMSW])?$",
+      "description": "Ingress protection rating for outdoor use, e.g. 'IP65'."
+    },
+    "power_source": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mains",
+          "battery",
+          "rechargeable_battery",
+          "usb",
+          "poe",
+          "ac_dc_adapter"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed"
+    },
+    "access_methods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "keypad",
+          "fingerprint",
+          "rfid_card",
+          "app",
+          "key",
+          "face_recognition"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Methods supported for unlocking. keypad = PIN code entry, rfid_card = NFC or RFID card."
+    },
+    "auto_lock": {
+      "type": "boolean",
+      "description": "Whether the lock automatically re-locks after a set time."
+    },
+    "tamper_alert": {
+      "type": "boolean",
+      "description": "Whether the lock sends an alert if someone tries to tamper with or force it."
+    },
+    "door_thickness_min_mm": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 120,
+      "description": "Minimum supported door thickness in millimeters."
+    },
+    "door_thickness_max_mm": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 200,
+      "description": "Maximum supported door thickness in millimeters."
+    },
+    "type": {
+      "const": "smart_lock"
+    }
+  },
+  "required": [
+    "name",
+    "brand",
+    "model",
+    "ecosystem",
+    "protocol",
+    "type"
+  ],
+  "additionalProperties": false
+}

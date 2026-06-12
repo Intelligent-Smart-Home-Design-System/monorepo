@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/climate"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/lighting"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/security"
 )
@@ -47,4 +48,14 @@ func (s *Storage) LoadAllLightingRules() {
 	for _, rule := range storageRules {
 		s.LoadRule(rule)
 	}
-} 
+}
+
+func (s *Storage) LoadAllClimateRules() {
+	storageRules := []rules.Rule{
+		climate.NewAirConditionerRule(),
+	}
+
+	for _, rule := range storageRules {
+		s.LoadRule(rule)
+	}
+}

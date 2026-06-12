@@ -2,8 +2,9 @@ package security
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
-	"github.com/google/uuid"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type WindowSensorRule struct {
@@ -16,30 +17,82 @@ func NewWindowSensorRule() *WindowSensorRule {
 	}
 }
 
-func (gl *WindowSensorRule) Type() string {
+func (ws *WindowSensorRule) Type() string {
 	return "window_sensor"
 }
 
-func (gl *WindowSensorRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	for _, window := range apartmentStruct.Windows {
-		if len(window.Rooms) > 1 {
-			continue
+func (ws *WindowSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
+	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
+	if err != nil {
+		return err
+	}
+
+	roomsSet := make(map[string]struct{})
+	for _, r := range rooms {
+		roomsSet[r.Name] = struct{}{}
+	}
+
+	for _, zr := range zonedAp.ZonedRooms {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+			zr.WindowZones, err = collectWindowZones(zonedAp.OrigAp, zr.OrigRoom)
+			if err != nil {
+				return err
+			}
 		}
-
-		roomID := window.Rooms[0]
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
-
-		windowCenter := apartment.GetObjectCenter(window.Points)
-
-		deviceID := uuid.NewString()
-		newDevice := device.NewDevice(deviceID, "window_sensor", "security")
-		placement := device.NewPlacement(newDevice, roomID, &windowCenter)
-
-		apartmentLayout.Placements[roomID][newDevice.Type] = placement
 	}
 
 	return nil
+}
+
+func (ws *WindowSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	deviceType := ws.Type()
+	
+	err := ws.Transform(zonedAp, deviceRooms)
+	if err != nil {
+		return err
+	}
+
+	tracksConfig := configs.GetGlobalTracksConfig()
+	configFilters, err := tracksConfig.GetDeviceFilter(ws.track, levelNum, deviceType)
+	if err != nil {
+		return err
+	}
+
+	if configFilters == nil {
+		configFilters = &filters.WindowSensorFilter{}
+	}
+	windowSensorFilters := configFilters.(*filters.WindowSensorFilter)
+
+	deviceCnt := 0
+	for _, zr := range zonedAp.ZonedRooms {
+		for _, windowZone := range zr.WindowZones {
+			if windowZone == nil {
+				continue
+			}
+			zoneCenter := point.GetCenter(windowZone.Points)
+
+			if deviceCnt < maxCount {
+				layout.AddDeviceToLayout(deviceType, ws.track, zr.OrigRoom.ID, zoneCenter, windowSensorFilters)
+				deviceCnt++
+			}
+		}
+	}
+
+	return nil
+}
+
+func collectWindowZones(ap *apartment.Apartment, room *apartment.Room) ([]*apartment.Zone, error) {
+	zones := make([]*apartment.Zone, 0)
+
+
+	for _, wID := range room.Windows {
+		window, err := ap.GetWindowByID(wID)
+		if err != nil {
+			return nil, err
+		}
+
+		zones = append(zones, apartment.NewZone(window.Points))
+	}
+
+	return zones, nil
 }

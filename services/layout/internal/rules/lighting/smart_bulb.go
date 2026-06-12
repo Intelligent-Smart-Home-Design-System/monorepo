@@ -2,9 +2,7 @@ package lighting
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/device"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
-	"github.com/google/uuid"
 )
 
 type SmartBulbRule struct {
@@ -21,8 +19,9 @@ func (r *SmartBulbRule) Type() string {
 	return "smart_bulb"
 }
 
-func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms []string, apartmentLayout *apartment.ApartmentLayout) error {
-	devicesRooms, err := apartmentStruct.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomBedroom, apartment.RoomKitchen, apartment.RoomPassage, apartment.RoomBathroom})
+func (r *SmartBulbRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+	ap := zonedAp.OrigAp
+	devicesRooms, err := ap.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomBedroom, apartment.RoomKitchen, apartment.RoomPassage, apartment.RoomBathroom})
 	if err != nil {
 		return err
 	}
@@ -30,15 +29,7 @@ func (r *SmartBulbRule) Apply(apartmentStruct *apartment.Apartment, deviceRooms 
 	for _, room := range devicesRooms {
 		roomID := room.ID
 
-		_, ok := apartmentLayout.Placements[roomID]
-		if !ok {
-			apartmentLayout.Placements[roomID] = make(map[string]*device.Placement)
-		}
-
-		deviceID := uuid.NewString()
-		dev := device.NewDevice(deviceID, r.Type(), r.track)
-		placement := device.NewPlacement(dev, roomID, &point.Point{X: 0, Y: 0})
-		apartmentLayout.Placements[roomID][dev.Type] = placement
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &point.Point{X: 0, Y: 0}, nil)
 	}
 
 	return nil

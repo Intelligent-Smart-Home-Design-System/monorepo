@@ -19,8 +19,8 @@ namespace {
         using power_planner::model::PowerSource;
 
         std::vector<Device> devices{
-            {"cam_1", "camera", "mains", "", 0.0, 5.0, 7.0, 220.0},
-            {"hub_1", "hub", "mains", "", 0.0, 10.0, 12.0, 220.0}
+            {"cam_1", "camera", "mains", "", 0.0, "", 0.0, 5.0, 7.0, 220.0},
+            {"hub_1", "hub", "mains", "", 0.0, "", 0.0, 10.0, 12.0, 220.0}
         };
 
         std::vector<PowerSource> power_sources{
@@ -54,9 +54,9 @@ namespace {
         using power_planner::model::PowerSource;
 
         std::vector<Device> devices{
-            {"cam_1", "camera", "mains", "", 0.0, 20.0, 25.0, 220.0},
-            {"cam_2", "camera", "mains", "", 0.0, 20.0, 25.0, 220.0},
-            {"hub_1", "hub", "mains", "", 0.0, 30.0, 35.0, 220.0}
+            {"cam_1", "camera", "mains", "", 0.0, "", 0.0, 20.0, 25.0, 220.0},
+            {"cam_2", "camera", "mains", "", 0.0, "", 0.0, 20.0, 25.0, 220.0},
+            {"hub_1", "hub", "mains", "", 0.0, "", 0.0, 30.0, 35.0, 220.0}
         };
 
         std::vector<PowerSource> power_sources{
@@ -86,8 +86,8 @@ namespace {
         using power_planner::model::PowerSource;
 
         std::vector<Device> devices{
-            {"cam_1", "camera", "mains", "", 0.0, 5.0, 7.0, 220.0},
-            {"hub_1", "hub", "mains", "", 0.0, 10.0, 12.0, 220.0}
+            {"cam_1", "camera", "mains", "", 0.0, "", 0.0, 5.0, 7.0, 220.0},
+            {"hub_1", "hub", "mains", "", 0.0, "", 0.0, 10.0, 12.0, 220.0}
         };
 
         std::vector<PowerSource> power_sources{

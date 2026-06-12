@@ -1339,7 +1339,7 @@
             "device_attributes": {
                 "name": "Умная сирена Zigbee EKF Connect подключение через хаб, дальность обнаружения 50м",
                 "brand": "ps-link",
-                "model": null,
+                "model": "WSA01",
                 "ecosystem": [
                     "tuya",
                     "yandex",

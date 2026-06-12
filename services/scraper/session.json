@@ -1,0 +1,19 @@
+{
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "cookies": [
+    {
+      "name": "x_wbaas_token",
+      "value": "1.1000.3aba42dd436049b2933a5de1b12653a2.MHwyYTAzOmQwMDA6NDQwNDo0OWIyOjY2YjM6ZTczODo1OGFiOmE4Y2R8TW96aWxsYS81LjAgKFgxMTsgVWJ1bnR1OyBMaW51eCB4ODZfNjQ7IHJ2OjE1MC4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE1MC4wfDE3NzkyODcwNTV8cmV1c2FibGV8MnxleUpvWVhOb0lqb2lJbjA9fDB8M3wxNzc4NjgyMjU1fDE=.MEUCIDn6jIiH8qwk5gow+qvA4htACxdPJMPfl+DtKQaUVqu2AiEAweE+yKAb5o/5bS05r9rZaUr11kmErR0raBijaMaIDE0=",
+      "domain": ".wildberries.ru",
+      "path": "/"
+    },
+    {
+      "name": "_wbauid",
+      "value": "6144880321778077457",
+      "domain": ".wildberries.ru",
+      "path": "/"
+    }
+  ],
+  "token": "",
+  "updatedAt": "2026-05-12T00:45:00+03:00"
+}

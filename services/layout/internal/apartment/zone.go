@@ -18,14 +18,17 @@ func NewZone(p []point.Point) *Zone {
 // ZonedRoom комната, обогащённая зонами после обработки правилами.
 type ZonedRoom struct {
 	OrigRoom          *Room
-	NoWindZones       []*Zone `json:"no_wind_zones"`
-	WetZones          []*Zone `json:"wet_zones"`
-	GasZones          []*Zone `json:"gas_zones"`
-	EntryDoorZone     *Zone   `json:"entry_doors_zones"`
-	HighTrafficZones  []*Zone `json:"high_traffic_zones"`
-	WindowZones       []*Zone `json:"window_zones"`
-	ViewedZones       []*Zone `json:"viewed_zones"`
-	SirenZones        []*Zone `json:"siren_zones"`
+	NoWindZones       []*Zone            `json:"no_wind_zones"`
+	WetZones          []*Zone            `json:"wet_zones"`
+	GasZones          []*Zone            `json:"gas_zones"`
+	EntryDoorZone     *Zone              `json:"entry_doors_zones"`
+	HighTrafficZones  []*Zone            `json:"high_traffic_zones"`
+	WindowZones       []*Zone            `json:"window_zones"`
+	ViewedZones       []*Zone            `json:"viewed_zones"`
+	SirenZones        []*Zone            `json:"siren_zones"`
+	PollutionZones    []*Zone            `json:"pollution_zones"`
+  CleaningZones    []*Zone             `json:"cleaning_zones"`
+	RestrictedZones   []*Zone            `json:"restricted_zones"`
 	ListeningPosition *point.Point
 	TVPosition        *point.Point
 	ACAvailableWalls  map[string]struct{} // nil = все стены доступны
@@ -91,4 +94,13 @@ func Build(ap *Apartment) *ZonedApartment {
 	}
 
 	return zoned
+}
+
+// ContainsPoint проверяет, находится ли точка внутри зоны.
+func (z *Zone) ContainsPoint(p point.Point) bool {
+	if z == nil {
+		return false
+	}
+
+	return point.IsPointInPolygon(p, z.Points)
 }

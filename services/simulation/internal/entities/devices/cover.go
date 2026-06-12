@@ -9,17 +9,19 @@ import (
 
 // Окна / ворота
 
-// Window реализует интерфейс entities.EntityWithProcess.
+// Window — исполнительное устройство.
 type Window struct {
 	BaseDevice[WindowData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// WindowData — данные для управления окном.
 type WindowData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewWindow - конструктор окна. Парсит JSON-конфигурацию и инициализирует устройство.
 func NewWindow(data []byte, engineAPI engine.EnginePort) (*Window, error) {
 	var window Window
 
@@ -34,6 +36,7 @@ func NewWindow(data []byte, engineAPI engine.EnginePort) (*Window, error) {
 	return &window, nil
 }
 
+// HandleInDTO - парсит входящие данные и кладет их в simgo.Store устройства для последующей обработки.
 func (w *Window) HandleInDTO(dto []byte) error {
 	input := WindowData{}
 
@@ -56,18 +59,19 @@ func (w *Window) HandleEvent(inData WindowData) WindowData {
 	}
 }
 
-// Door — исполнительное устройство (актуатор).
-// Получает команды от датчика/логики и меняет состояние двери.
+// Door — исполнительное устройство.
 type Door struct {
 	BaseDevice[DoorData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// DoorData - данные для управления дверью.
 type DoorData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewDoor - конструктор двери. Парсит JSON-конфигурацию и инициализирует устройство.
 func NewDoor(data []byte, engineAPI engine.EnginePort) (*Door, error) {
 	var d Door
 
@@ -82,6 +86,7 @@ func NewDoor(data []byte, engineAPI engine.EnginePort) (*Door, error) {
 	return &d, nil
 }
 
+// HandleInDTO - парсит входящие данные и кладет их в simgo.Store устройства для последующей обработки.
 func (d *Door) HandleInDTO(dto []byte) error {
 	input := DoorData{}
 
@@ -94,7 +99,7 @@ func (d *Door) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-// HandleEvent — бизнес-логика двери.
+// HandleEvent - бизнес-логика двери.
 func (d *Door) HandleEvent(inData DoorData) DoorData {
 	d.TurnOn = inData.TurnOn
 
@@ -104,18 +109,19 @@ func (d *Door) HandleEvent(inData DoorData) DoorData {
 	}
 }
 
-// SmartLock — исполнительное устройство (замок).
-// Управляет состоянием "заблокирован / разблокирован".
+// SmartLock — исполнительное устройство.
 type SmartLock struct {
 	BaseDevice[LockData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// LockData - данные для управления замком.
 type LockData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSmartLock - конструктор замка. Парсит JSON-конфигурацию и инициализирует устройство.
 func NewSmartLock(data []byte, engineAPI engine.EnginePort) (*SmartLock, error) {
 	var l SmartLock
 
@@ -130,6 +136,7 @@ func NewSmartLock(data []byte, engineAPI engine.EnginePort) (*SmartLock, error) 
 	return &l, nil
 }
 
+// HandleInDTO - парсит входящие данные и кладет их в simgo.Store устройства для последующей обработки.
 func (l *SmartLock) HandleInDTO(dto []byte) error {
 	input := LockData{}
 
@@ -142,7 +149,7 @@ func (l *SmartLock) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-// HandleEvent — бизнес-логика замка.
+// HandleEvent - бизнес-логика замка.
 func (l *SmartLock) HandleEvent(inData LockData) LockData {
 	l.TurnOn = inData.TurnOn
 
@@ -152,18 +159,19 @@ func (l *SmartLock) HandleEvent(inData LockData) LockData {
 	}
 }
 
-// SmartDoorbell — исполнительное устройство (умный дверной звонок).
-// Получает событие нажатия и генерирует сигнал/уведомление.
+// SmartDoorbell - исполнительное устройство.
 type SmartDoorbell struct {
 	BaseDevice[DoorbellData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// DoorbellData - данные для управления дверным звонком.
 type DoorbellData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSmartDoorbell - конструктор дверного звонка. Парсит JSON-конфигурацию и инициализирует устройство.
 func NewSmartDoorbell(data []byte, engineAPI engine.EnginePort) (*SmartDoorbell, error) {
 	var d SmartDoorbell
 
@@ -178,6 +186,7 @@ func NewSmartDoorbell(data []byte, engineAPI engine.EnginePort) (*SmartDoorbell,
 	return &d, nil
 }
 
+// HandleInDTO - парсит входящие данные и кладет их в simgo.Store устройства для последующей обработки.
 func (d *SmartDoorbell) HandleInDTO(dto []byte) error {
 	input := DoorbellData{}
 
@@ -190,7 +199,7 @@ func (d *SmartDoorbell) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-// HandleEvent — бизнес-логика дверного звонка.
+// HandleEvent - бизнес-логика дверного звонка.
 func (d *SmartDoorbell) HandleEvent(inData DoorbellData) DoorbellData {
 	d.TurnOn = inData.TurnOn
 
@@ -200,18 +209,20 @@ func (d *SmartDoorbell) HandleEvent(inData DoorbellData) DoorbellData {
 	}
 }
 
-// SmartCurtains — исполнительное устройство (умные шторы).
+// SmartCurtains - исполнительное устройство (умные шторы).
 // Управляет положением штор: 0 = закрыты, 100 = открыты.
 type SmartCurtains struct {
 	BaseDevice[CurtainsData]
 	Percents int `json:"percents"`
 }
 
+// CurtainsData - данные для управления шторами.
 type CurtainsData struct {
 	Kind     string `json:"kind"`
 	Percents int    `json:"percents"`
 }
 
+// NewSmartCurtains - конструктор штор. Парсит JSON-конфигурацию и инициализирует устройство.
 func NewSmartCurtains(data []byte, engineAPI engine.EnginePort) (*SmartCurtains, error) {
 	var c SmartCurtains
 
@@ -226,6 +237,7 @@ func NewSmartCurtains(data []byte, engineAPI engine.EnginePort) (*SmartCurtains,
 	return &c, nil
 }
 
+// HandleInDTO - парсит входящие данные и кладет их в simgo.Store устройства для последующей обработки.
 func (c *SmartCurtains) HandleInDTO(dto []byte) error {
 	input := CurtainsData{}
 
@@ -238,7 +250,7 @@ func (c *SmartCurtains) HandleInDTO(dto []byte) error {
 	return nil
 }
 
-// HandleEvent — бизнес-логика штор.
+// HandleEvent - бизнес-логика штор.
 func (c *SmartCurtains) HandleEvent(inData CurtainsData) CurtainsData {
 	pos := inData.Percents
 
@@ -258,18 +270,22 @@ func (c *SmartCurtains) HandleEvent(inData CurtainsData) CurtainsData {
 	}
 }
 
-// SmartFloor — умный тёплый пол (вкл/выкл + полигон зоны обогрева).
+// SmartFloor - умный тёплый пол (вкл/выкл + полигон зоны обогрева).
 type SmartFloor struct {
 	BaseDevice[SmartFloorData]
-	TurnOn bool         `json:"turn_on"`
-	Area   [][2]float64 `json:"area"` // полигон зоны обогрева
+	TurnOn      bool         `json:"turn_on"`
+	Temperature int          `json:"temperature"`
+	Area        [][2]float64 `json:"area"` // полигон зоны обогрева
 }
 
+// SmartFloorData - данные для управления тёплым полом.
 type SmartFloorData struct {
-	Kind   string `json:"kind"`
-	TurnOn bool   `json:"turn_on"`
+	Kind        string `json:"kind"`
+	TurnOn      *bool  `json:"turn_on"`
+	Temperature *int   `json:"temperature"`
 }
 
+// NewSmartFloor - конструктор тёплого пола. Парсит JSON-конфигурацию и инициализирует устройство.
 func NewSmartFloor(data []byte, engineAPI engine.EnginePort) (*SmartFloor, error) {
 	var sf SmartFloor
 	if err := json.Unmarshal(data, &sf); err != nil {
@@ -283,6 +299,7 @@ func NewSmartFloor(data []byte, engineAPI engine.EnginePort) (*SmartFloor, error
 	return &sf, nil
 }
 
+// HandleInDTO - парсит входящие данные и кладет их в simgo.Store устройства для последующей обработки.
 func (sf *SmartFloor) HandleInDTO(dto []byte) error {
 	input := SmartFloorData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -294,11 +311,19 @@ func (sf *SmartFloor) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// HandleEvent - бизнес-логика тёплого пола.
 func (sf *SmartFloor) HandleEvent(inData SmartFloorData) SmartFloorData {
-	sf.TurnOn = inData.TurnOn
+	if inData.TurnOn != nil {
+		sf.TurnOn = *inData.TurnOn
+	}
+
+	if inData.Temperature != nil {
+		sf.Temperature = *inData.Temperature
+	}
 
 	return SmartFloorData{
-		Kind:   inData.Kind,
-		TurnOn: sf.TurnOn,
+		Kind:        inData.Kind,
+		TurnOn:      &sf.TurnOn,
+		Temperature: &sf.Temperature,
 	}
 }

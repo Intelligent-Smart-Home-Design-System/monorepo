@@ -1,0 +1,6 @@
+{
+  "name": "reputation_only",
+  "description": "Только средний рейтинг (без поправки на число отзывов). Базовая линия маркетплейса.",
+  "weights": { "reputation": 1.0, "specs": 0.0, "ecosystem": 0.0 },
+  "reputation_mode": "mean"
+}

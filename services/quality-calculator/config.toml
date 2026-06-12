@@ -1,0 +1,21 @@
+# База данных каталога (золотой слой). Пароль задаётся через
+# переменную окружения QUALITY_CALCULATOR_DATABASE__PASSWORD.
+[database]
+host = "localhost"
+port = 5432
+name = "smart_home"
+user = "quality_calculator"
+password = "secret"
+
+[logging]
+level = "INFO"
+format = "json"  # "json" | "console"
+
+[scoring]
+# Стратегия смешивания сигналов (файл config/strategies/<strategy>.json)
+strategy = "full"
+# Размер батча выборки устройств из БД
+batch_size = 200
+# true — пересчитать quality для всех устройств (после смены модели/весов),
+# false — только для свежепостроенных (quality IS NULL)
+recompute_all = false

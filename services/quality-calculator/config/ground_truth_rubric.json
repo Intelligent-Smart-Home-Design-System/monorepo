@@ -1,0 +1,86 @@
+{
+  "_doc": "Эталон качества (ground truth) для обучения спек-стратегий. Каждая категория задаёт оси (характеристики) с порогами на 3 класса: bad / good / excellent. Классы агрегируются по правилу combine (mean = среднее тиров доступных осей, округление до ближайшего). Поле sourced=true помечает порог авторитетным внешним источником; sourced=false — provisional (выведен из диапазона таксономии / доменной эвристики, заменить при наличии источника). Оси с отсутствующими в устройстве данными игнорируются; если данных нет вовсе — устройство не размечается и выпадает из обучения.",
+  "labels": ["bad", "good", "excellent"],
+  "categories": {
+    "smart_lamp": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "brightness_lm", "kind": "numeric", "thresholds": [800, 1600], "inverse": false,
+         "sourced": true, "source": "US DOE Lighting Facts: 800 lm ~ 60W (baseline room bulb), 1600 lm ~ 100W (bright primary)."},
+        {"spec": "cri", "kind": "numeric", "thresholds": [80, 90], "inverse": false,
+         "sourced": true, "source": "Lighting industry (Westinghouse / Waveform): CRI<80 poor, 80-90 good, 90+ excellent."}
+      ]
+    },
+    "smart_camera": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "resolution", "kind": "ordinal", "map": {"720p": 0, "1080p": 1, "2K": 2, "4K": 2},
+         "sourced": true, "source": "Consumer security-camera resolution tiering: 720p entry, 1080p standard, 2K/4K high-detail."},
+        {"spec": "field_of_view_deg", "kind": "numeric", "thresholds": [90, 180], "inverse": false,
+         "sourced": false, "source": "Provisional: <90 narrow, 90-180 standard, >=180 panoramic."}
+      ]
+    },
+    "smart_doorbell": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "resolution", "kind": "ordinal", "map": {"720p": 0, "1080p": 1, "2K": 2, "4K": 2},
+         "sourced": true, "source": "Same resolution tiering as cameras."}
+      ]
+    },
+    "smart_lock": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "access_methods", "kind": "count", "thresholds": [2, 4],
+         "sourced": false, "source": "Provisional: number of independent unlock methods (<2 minimal, 2-3 versatile, >=4 premium)."}
+      ]
+    },
+    "gas_leak_sensor": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "detected_gas", "kind": "count", "thresholds": [2, 3],
+         "sourced": false, "source": "Provisional: number of detectable gases (1 single-gas, 2 dual, 3+ multi)."},
+        {"spec": "audio_alert_volume_db", "kind": "numeric", "thresholds": [75, 85], "inverse": false,
+         "sourced": false, "source": "Provisional: alarm audibility band in dB."}
+      ]
+    },
+    "smart_hub": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "max_connected_devices", "kind": "numeric", "thresholds": [50, 150], "inverse": false,
+         "sourced": false, "source": "Provisional: device capacity (<50 small, 50-150 mid, >150 large)."}
+      ]
+    },
+    "motion_sensor": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "detection_range_m", "kind": "numeric", "thresholds": [5, 10], "inverse": false,
+         "sourced": false, "source": "Provisional: PIR effective range band."},
+        {"spec": "detection_angle_deg", "kind": "numeric", "thresholds": [90, 180], "inverse": false,
+         "sourced": false, "source": "Provisional: coverage angle band."}
+      ]
+    },
+    "door_window_sensor": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "battery_life_months", "kind": "numeric", "thresholds": [12, 36], "inverse": false,
+         "sourced": false, "source": "Provisional: battery longevity for unattended sensors."}
+      ]
+    },
+    "water_leak_sensor": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "min_detected_water_level_mm", "kind": "numeric", "thresholds": [0.5, 1.5], "inverse": true,
+         "sourced": false, "source": "Provisional: lower minimal detected level = more sensitive (inverse)."},
+        {"spec": "battery_life_months", "kind": "numeric", "thresholds": [12, 36], "inverse": false,
+         "sourced": false, "source": "Provisional: battery longevity."}
+      ]
+    },
+    "smart_siren": {
+      "combine": "mean",
+      "axes": [
+        {"spec": "max_volume_db", "kind": "numeric", "thresholds": [100, 110], "inverse": false,
+         "sourced": false, "source": "Provisional: alarm loudness band in dB."}
+      ]
+    }
+  }
+}

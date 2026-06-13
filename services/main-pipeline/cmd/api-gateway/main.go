@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/otellog"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
 	"github.com/lib/pq"
@@ -29,9 +30,27 @@ import (
 )
 
 func main() {
-	log := zerolog.New(os.Stdout).With().Timestamp().Str("service", "api-gateway").Logger()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	// Set up OTLP log writer: if OTEL_EXPORTER_OTLP_ENDPOINT is set, logs are
+	// sent both to stdout and to the centralized OpenTelemetry Collector.
+	otelShutdown, otelWriter, err := otellog.NewOTLPWriter(ctx, "api-gateway")
+	if err != nil {
+		// Fall back to stdout-only logging if OTLP setup fails.
+		fallback := zerolog.New(os.Stdout).With().Timestamp().Str("service", "api-gateway").Logger()
+		fallback.Warn().Err(err).Msg("failed to initialize OTLP log writer, falling back to stdout")
+		otelShutdown = func(context.Context) error { return nil }
+		otelWriter = &otellog.Writer{}
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = otelShutdown(shutdownCtx)
+	}()
+
+	log := zerolog.New(zerolog.MultiLevelWriter(os.Stdout, otelWriter)).
+		With().Timestamp().Str("service", "api-gateway").Logger()
 
 	temporalClient, err := client.Dial(client.Options{
 		HostPort:      env("TEMPORAL_ADDRESS", "localhost:7233"),

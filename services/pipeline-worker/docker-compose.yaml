@@ -102,15 +102,11 @@ services:
         condition: service_started
       catalog-db-migrate:
         condition: service_completed_successfully
-      jaeger:
-        condition: service_started
-      prometheus:
-        condition: service_started
     environment:
       PIPELINE_CONFIG: /app/config/pipeline.toml
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRACING_ENABLED: ${TRACING_ENABLED:-true}
-      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
       CATALOG_DATABASE_PASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-dummy-yandex-api-key}
@@ -122,6 +118,7 @@ services:
     restart: unless-stopped
     networks:
       - pipeline
+      - monorepo-monitoring
 
   pipeline-trigger:
     image: pipeline-trigger:latest
@@ -135,7 +132,7 @@ services:
       PIPELINE_CONFIG: /app/config/pipeline.toml
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRACING_ENABLED: ${TRACING_ENABLED:-true}
-      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
       WAIT_FOR_COMPLETION: ${WAIT_FOR_COMPLETION:-true}
     volumes:
@@ -144,57 +141,15 @@ services:
       - tools
     networks:
       - pipeline
-
-  jaeger:
-    image: jaegertracing/all-in-one:1.57
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    ports:
-      - "${PIPELINE_JAEGER_UI_PORT:-16686}:16686"
-      - "${PIPELINE_OTLP_GRPC_PORT:-4317}:4317"
-      - "${PIPELINE_OTLP_HTTP_PORT:-4318}:4318"
-    networks:
-      - pipeline
-
-  loki:
-    image: grafana/loki:2.9.8
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "${PIPELINE_LOKI_PORT:-3100}:3100"
-    volumes:
-      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - loki-data:/loki
-    networks:
-      - pipeline
-
-  promtail:
-    image: grafana/promtail:2.9.8
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
-    volumes:
-      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - pipeline
-
-  prometheus:
-    image: prom/prometheus:v2.54.1
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-    ports:
-      - "${PIPELINE_PROMETHEUS_PORT:-9092}:9092"
-    volumes:
-      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    networks:
-      - pipeline
+      - monorepo-monitoring
 
 networks:
   pipeline:
     name: catalog-pipeline-network
     driver: bridge
+  monorepo-monitoring:
+    external: true
 
 volumes:
   temporal-postgresql-data:
   catalog-postgresql-data:
-  loki-data:

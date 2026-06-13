@@ -1,0 +1,63 @@
+# OpenTelemetry Collector configuration
+# Centralized collector for all monorepo services (catalog-pipeline + main-pipeline).
+# Receives OTLP signals (logs, traces, metrics) and fans them out to
+# Loki (logs), Jaeger (traces) and Prometheus (metrics).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 1s
+
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: local
+        action: upsert
+
+exporters:
+  # Logs → Loki via OTLP/HTTP
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp"
+
+  # Traces → Jaeger via OTLP/gRPC (Jaeger all-in-one accepts OTLP natively)
+  otlp/jaeger:
+    endpoint: "jaeger:4317"
+    tls:
+      insecure: true
+
+  # Metrics → Prometheus via remote-write
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+    tls:
+      insecure: true
+
+  # Debug exporter for troubleshooting (writes to collector stdout)
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlphttp/loki, debug]
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlp/jaeger, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [prometheusremotewrite, debug]
+
+  telemetry:
+    logs:
+      level: info

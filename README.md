@@ -50,7 +50,7 @@ make deploy        # git pull + пересобрать prod
 
 > **Важно:** стек мониторинга создаёт Docker-сеть `monorepo-monitoring`, к которой
 > подключаются сервисы обеих частей. Поэтому `make monitoring-up` нужно запускать
-> **до** `make pipeline-up` / `make app-up`. Команды `make up` и `make app-up` делают это
+> **до** `make pipeline-up` / `make app-up`. Команды `make up` и `make up-test` делают это
 > автоматически в правильном порядке.
 
 Сервисы и порты:

@@ -27,7 +27,7 @@ services:
       POSTGRES_PWD: temporal
       POSTGRES_SEEDS: temporal-postgresql
     ports:
-      - "7233:7233"
+      - "${PIPELINE_TEMPORAL_PORT:-7233}:7233"
     networks:
       - pipeline
 
@@ -38,7 +38,7 @@ services:
     environment:
       TEMPORAL_ADDRESS: temporal:7233
     ports:
-      - "8088:8080"
+      - "${PIPELINE_TEMPORAL_UI_PORT:-8088}:8080"
     networks:
       - pipeline
 
@@ -67,7 +67,7 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "5432:5432"
+      - "${PIPELINE_CATALOG_DB_PORT:-5432}:5432"
     volumes:
       - catalog-postgresql-data:/var/lib/postgresql/data
     networks:
@@ -102,15 +102,11 @@ services:
         condition: service_started
       catalog-db-migrate:
         condition: service_completed_successfully
-      jaeger:
-        condition: service_started
-      prometheus:
-        condition: service_started
     environment:
       PIPELINE_CONFIG: /app/config/pipeline.toml
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRACING_ENABLED: ${TRACING_ENABLED:-true}
-      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
       CATALOG_DATABASE_PASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-dummy-yandex-api-key}
@@ -118,10 +114,11 @@ services:
       - ./config:/app/config:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "2112:2112"
+      - "${PIPELINE_WORKER_METRICS_PORT:-2112}:2112"
     restart: unless-stopped
     networks:
       - pipeline
+      - monorepo-monitoring
 
   pipeline-trigger:
     image: pipeline-trigger:latest
@@ -135,7 +132,7 @@ services:
       PIPELINE_CONFIG: /app/config/pipeline.toml
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRACING_ENABLED: ${TRACING_ENABLED:-true}
-      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
       WAIT_FOR_COMPLETION: ${WAIT_FOR_COMPLETION:-true}
     volumes:
@@ -144,58 +141,15 @@ services:
       - tools
     networks:
       - pipeline
-
-  jaeger:
-    image: jaegertracing/all-in-one:1.57
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
-    networks:
-      - pipeline
-
-  loki:
-    image: grafana/loki:2.9.8
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - loki-data:/loki
-    networks:
-      - pipeline
-
-  promtail:
-    image: grafana/promtail:2.9.8
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
-    volumes:
-      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - pipeline
-
-  prometheus:
-    image: prom/prometheus:v2.54.1
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-    ports:
-      - "9092:9092"
-    volumes:
-      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    networks:
-      - pipeline
+      - monorepo-monitoring
 
 networks:
   pipeline:
     name: catalog-pipeline-network
     driver: bridge
+  monorepo-monitoring:
+    external: true
 
 volumes:
   temporal-postgresql-data:
   catalog-postgresql-data:
-  loki-data:
-  grafana-data:

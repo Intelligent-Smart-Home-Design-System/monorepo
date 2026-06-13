@@ -24,14 +24,14 @@ func NewSnapshotRepo(db *sql.DB, log zerolog.Logger) *SnapshotRepo {
 }
 
 func (r *SnapshotRepo) SaveResult(trackedPageID int, result domain.ScrapeResult, durationMs int) error {
-	fmt.Printf("[DEBUG] SaveResult: called for task %d, resources count = %d\n", trackedPageID, len(result.Resources))
+	r.log.Debug().Int("task_id", trackedPageID).Int("resources", len(result.Resources)).Msg("SaveResult: called for task")
 
 	buf := new(bytes.Buffer)
 	gzipWriter := gzip.NewWriter(buf)
 	tarWriter := tar.NewWriter(gzipWriter)
 
 	for i, res := range result.Resources {
-		fmt.Printf("[DEBUG] SaveResult: writing resource %d, name=%s, body len=%d\n", i, res.Name, len(res.ResponseBody))
+		r.log.Debug().Int("resource_idx", i).Str("name", res.Name).Int("body_len", len(res.ResponseBody)).Msg("SaveResult: writing resource")
 		header := &tar.Header{
 			Name:    res.Name,
 			Size:    int64(len(res.ResponseBody)),
@@ -53,7 +53,7 @@ func (r *SnapshotRepo) SaveResult(trackedPageID int, result domain.ScrapeResult,
 		return fmt.Errorf("close gzip: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] SaveResult: archive size = %d bytes\n", buf.Len())
+	r.log.Debug().Int("archive_bytes", buf.Len()).Msg("SaveResult: archive built")
 
 	_, err := r.db.Exec(`
         INSERT INTO page_snapshots (tracked_page, scraped_at, warc_bundle_archive, scrape_duration_ms)
@@ -62,7 +62,7 @@ func (r *SnapshotRepo) SaveResult(trackedPageID int, result domain.ScrapeResult,
 	if err != nil {
 		return fmt.Errorf("db insert: %w", err)
 	}
-	fmt.Printf("[DEBUG] SaveResult: successfully inserted\n")
+	r.log.Debug().Msg("SaveResult: successfully inserted")
 	return nil
 }
 

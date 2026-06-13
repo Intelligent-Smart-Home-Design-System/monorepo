@@ -52,7 +52,7 @@ func (a *App) Run() error {
 	g, gCtx := errgroup.WithContext(rootCtx)
 
 	g.Go(func() error {
-		slog.Info("Starting WebSocket API on :8080")
+		slog.Info("starting websocket api", "addr", ":8080")
 
 		err := a.server.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
@@ -64,7 +64,7 @@ func (a *App) Run() error {
 	g.Go(func() error {
 		<-gCtx.Done()
 
-		slog.Debug("stopping server")
+		slog.Debug("stopping server", "reason", "context cancelled")
 
 		shutdownCtx, cancel := context.WithTimeout(
 			context.Background(),

@@ -1,0 +1,12 @@
+# Порты со сдвигом (co-run с частью 2 на одной машине).
+# Использование:
+#   terraform apply -var-file=shift.tfvars.example
+#
+# Или скопируйте в terraform.tfvars:
+#   cp shift.tfvars.example terraform.tfvars
+
+project_name       = "pipeline-worker"
+env_file           = "services/pipeline-worker/.env.shift"
+temporal_ui_port   = 18088
+temporal_grpc_port = 17233
+catalog_db_port    = 15432

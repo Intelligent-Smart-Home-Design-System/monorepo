@@ -68,6 +68,7 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 
 	printerScraper := printer.NewPrinterScraper()
 	wildberriesScraper := wbScraper.NewScraper(
+		logger,
 		cfg.Scraping.Timeout,
 		cfg.Scraping.Proxy,
 		cfg.Scraping.WBCardBasket,
@@ -200,7 +201,7 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	go worker.Run(ctx, tasksCh)
 
 	for result := range resultsCh {
-		fmt.Printf("[DEBUG] run: received result for task %d, err=%v, resources=%d\n", result.TrackedPageID, result.Err, len(result.Resources))
+		logger.Debug().Int("task_id", result.TrackedPageID).Int("resources", len(result.Resources)).Err(result.Err).Msg("run: received result for task")
 		if result.Err != nil {
 			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
 			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
@@ -216,7 +217,7 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 				logger.Error().Err(err).Msg("update status")
 			}
 		}
-		fmt.Printf("[DEBUG] run: finished processing task %d\n", result.TrackedPageID)
+		logger.Debug().Int("task_id", result.TrackedPageID).Msg("run: finished processing task")
 	}
 
 	logger.Info().Msg("all tasks processed, exiting")

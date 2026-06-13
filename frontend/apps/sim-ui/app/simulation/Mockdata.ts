@@ -20,6 +20,8 @@ export type DeviceStatus = "idle" | "active" | "error";
 
 export type Device = {
   id: string;
+  name?: string;
+  type?: string;
   status: DeviceStatus;
 };
 
@@ -43,7 +45,7 @@ export const initialDevices: Device[] = [
 
 export const rooms: Room[] = [
   { id: "kitchen", title: "кухня", x: 0.68, y: 0.15, w: 0.30, h: 0.35 },
-  { id: "bedroom", title: "спальня", x: 0.04, y: 0.35, w: 0.30, h: 0.40 },
+  { id: "bedroom_1", title: "спальня", x: 0.04, y: 0.35, w: 0.30, h: 0.40 },
   { id: "bedroom_2", title: "спальня 2", x: 0.04, y: 0.05, w: 0.30, h: 0.40 },
   { id: "living", title: "гостиная", x: 0.25, y: 0.15, w: 0.56, h: 0.45 },
   { id: "hall", title: "прихожая", x: 0.10, y: 0.59, w: 0.56, h: 0.45 },

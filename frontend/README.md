@@ -46,10 +46,52 @@
 Из корня workspace:
 
 ```bash
-npm install
+npm ci
 npm run dev:sim-ui
 npm run lint
 ```
+
+Если в dev-режиме страница открылась, но клики не меняют состояние, запусти
+production-preview:
+
+```bash
+npm run preview:sim-ui
+```
+
+## Симуляция и WebSocket backend
+
+Для полной проверки симуляции нужно отдельно поднять Go-сервис:
+
+```bash
+cd ../services/simulation
+go run cmd/simulation/main.go
+```
+
+Затем из `frontend`:
+
+```bash
+npm ci
+npm run dev:sim-ui
+```
+
+Для финальной ручной проверки можно использовать production-preview:
+
+```bash
+npm run preview:sim-ui
+```
+
+Симуляция откроется на `http://127.0.0.1:3000/simulation` и подключится к
+`ws://127.0.0.1:8080`. Для быстрой проверки WebSocket-контракта:
+
+```bash
+npm run test:ws --workspace @smart-home/sim-ui
+```
+
+Страница симуляции сохраняет расстановку устройств в `localStorage`
+(`simulation-plan-layout`) и автоматически активирует сценарии по устройствам, которые
+реально перетащены на план. Пользователь на странице симуляции сценарии вручную не
+собирает и не выбирает. Если WebSocket-бэк временно недоступен, интерфейс явно пишет это
+в консоль событий и продолжает работать в локальном режиме.
 
 ## Дальше по структуре
 

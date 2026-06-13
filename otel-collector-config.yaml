@@ -2,6 +2,9 @@
 # Centralized collector for all monorepo services (catalog-pipeline + main-pipeline).
 # Receives OTLP signals (logs, traces, metrics) and fans them out to
 # Loki (logs), Jaeger (traces) and Prometheus (metrics).
+#
+# Environment variables:
+#   DEPLOYMENT_ENVIRONMENT — sets deployment.environment label (default: local)
 
 receivers:
   otlp:
@@ -19,9 +22,8 @@ processors:
   resource:
     attributes:
       - key: deployment.environment
-        value: local
+        value: ${env:DEPLOYMENT_ENVIRONMENT}
         action: upsert
-
 exporters:
   # Logs → Loki via OTLP/HTTP
   otlphttp/loki:

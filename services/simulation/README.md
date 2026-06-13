@@ -177,6 +177,29 @@ type ActionDTO struct {
 go run cmd/simulation/main.go
 ```
 
+## Логирование
+
+Сервис использует `log/slog` со структурированными JSON-логами. Формат и уровень логирования настраиваются через переменные окружения:
+
+| Переменная | Описание | Значение по умолчанию |
+|------------|----------|-----------------------|
+| `LOG_FORMAT` | Формат вывода логов: `json` или `console` | `json` |
+| `LOG_LEVEL` | Уровень логирования: `DEBUG`, `INFO`, `WARN`, `ERROR` | `INFO` |
+
+Пример запуска с настройками по умолчанию (JSON, INFO):
+
+```bash
+go run cmd/simulation/main.go
+```
+
+Для разработки с читаемым выводом в консоль:
+
+```bash
+LOG_FORMAT=console LOG_LEVEL=DEBUG go run cmd/simulation/main.go
+```
+
+В JSON-режиме каждый лог — это JSON-строка с полями `time`, `level`, `msg`, `service` и дополнительными контекстными полями (`id`, `error`, `reqID` и т.д.). Это позволяет парсить логи в системах агрегации (ELK, Loki, Cloud Logging).
+
 ## Зависимости
 
 - `github.com/fschuetz04/simgo` — дискретно-событийное моделирование

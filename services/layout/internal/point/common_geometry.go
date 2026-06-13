@@ -14,7 +14,6 @@ func (p *Point) DotProduct(vector Point) float64 {
 	return p.X*vector.X + p.Y*vector.Y
 }
 
-// TODO x1, y1, x2, y2 float64 переместить в сегмент
 // IsInInterval проверяет, находится ли точка на отрезке
 func (p *Point) IsInInterval(x1, y1, x2, y2 float64) bool {
 	return p.IsInRay(x1, y1, x2, y2) && p.IsInRay(x2, y2, x1, y1)
@@ -63,20 +62,5 @@ func MovePointInDirection(p Point, direction Point, offset float64) Point {
 	return Point{
 		X: p.X + (direction.X / size) * offset,
 		Y: p.Y + (direction.Y / size) * offset,
-	}
-}
-
-// MovePointInDirectionPlusOffset сдвигает точку/вектор по направлению на offset раз
-func MovePointInDirectionPlusOffset(p Point, direction Point, offset float64) Point {
-	size := math.Sqrt(direction.X * direction.X + direction.Y * direction.Y)
-	if size == 0 {
-		return p
-	}
-
-	total := size + offset 
-
-	return Point{
-		X: p.X + (direction.X / size) * total,
-		Y: p.Y + (direction.Y / size) * total,
 	}
 }

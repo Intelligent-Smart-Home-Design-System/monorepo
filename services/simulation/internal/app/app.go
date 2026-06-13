@@ -17,10 +17,12 @@ import (
 
 const timeoutGraceful = 5 * time.Second
 
+// App структура приложения, которая содержит HTTP сервер
 type App struct {
 	server *http.Server
 }
 
+// New создает App с настроенным HTTP сервером и маршрутом для WebSocket API
 func New() *App {
 	simService := simulations.NewSimulation()
 	manager := ws.NewManager(simService)
@@ -38,6 +40,7 @@ func New() *App {
 	}
 }
 
+// Run запускает HTTP сервер и обрабатывает сигналы для корректного завершения работы
 func (a *App) Run() error {
 	rootCtx, stop := signal.NotifyContext(
 		context.Background(),

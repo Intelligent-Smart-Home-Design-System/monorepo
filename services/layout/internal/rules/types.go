@@ -5,9 +5,8 @@ import (
 )
 
 type Rule interface {
-	// Type возвращает тип устройства, относящегося к этому правилу
 	Type() string
 
-	// Apply расставляет устройство в квартире
-	Apply(zonedAP *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error
+	Apply(zonedAp *apartment.ZonedApartment, levelNum string, 
+		deviceRooms []string, maxCount int, layout *apartment.Layout) error
 }

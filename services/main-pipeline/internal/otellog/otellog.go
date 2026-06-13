@@ -65,7 +65,7 @@ func NewOTLPWriter(ctx context.Context, serviceName string) (ShutdownFunc, *Writ
 		sdklog.WithResource(res),
 	)
 
-	logger := provider.Logger(serviceName)
+	logger := provider.Logger("otellog")
 
 	shutdown := func(ctx context.Context) error {
 		if err := provider.Shutdown(ctx); err != nil {

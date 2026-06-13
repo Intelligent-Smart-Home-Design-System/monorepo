@@ -33,33 +33,24 @@
 Для локального запуска нужны только Docker и Docker Compose.
 
 ```bash
-# Посмотреть все доступные команды
-make help
+make help          # все команды
 
-# ─── Мониторинг (запускать первым!) ────────────────
-make monitoring-up     # запустить OTEL Collector, Jaeger, Loki, Prometheus, Grafana
-make monitoring-logs   # смотреть логи мониторинга
-make monitoring-down   # остановить
+make up            # полный стек: мониторинг + pipeline-worker + app (prod)
+make down          # остановить всё
 
-# ─── Каталог-пайплайн (Part 1) ────────────────────
-make pipeline-run      # собрать образы и запустить стек
-make pipeline-logs     # смотреть логи
-make pipeline-down     # остановить
-make pipeline-trigger  # вручную запустить пайплайн
+make up-test       # мониторинг + main-pipeline (--profile test, с seed БД)
+make down-test     # остановить
 
-# ─── Фронтенд + бэкенд (Part 2) ───────────────────
-make app-run           # собрать и запустить
-make app-down          # остановить
+make monitoring-up # только мониторинг
+make pipeline-up   # только pipeline-worker
+make app-up        # только main-pipeline (prod)
 
-# ─── Всё сразу ────────────────────────────────────
-make up-all            # запустить всё (мониторинг → пайплайн → приложение)
-make down-all          # остановить всё
-make build-all         # собрать все образы
+make deploy        # git pull + пересобрать prod
 ```
 
 > **Важно:** стек мониторинга создаёт Docker-сеть `monorepo-monitoring`, к которой
 > подключаются сервисы обеих частей. Поэтому `make monitoring-up` нужно запускать
-> **до** `make pipeline-up` / `make app-up`. Команда `make up-all` делает это
+> **до** `make pipeline-up` / `make app-up`. Команды `make up` и `make app-up` делают это
 > автоматически в правильном порядке.
 
 Сервисы и порты:

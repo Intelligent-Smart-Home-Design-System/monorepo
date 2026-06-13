@@ -24,6 +24,7 @@ processors:
       - key: deployment.environment
         value: ${env:DEPLOYMENT_ENVIRONMENT}
         action: upsert
+
 exporters:
   # Logs → Loki via OTLP/HTTP
   otlphttp/loki:

@@ -1,92 +1,60 @@
 COMPOSE_MONITORING := docker compose -f docker-compose.monitoring.yaml
-COMPOSE_PIPELINE := docker compose -f services/pipeline-worker/docker-compose.yaml
-COMPOSE_APP := docker compose -f services/main-pipeline/docker-compose.yml
+COMPOSE_PIPELINE  := docker compose -f services/pipeline-worker/docker-compose.yaml
+COMPOSE_APP       := docker compose -f services/main-pipeline/docker-compose.yml
+COMPOSE_APP_PROD      := docker compose -f services/main-pipeline/docker-compose_prod.yml
 
 .PHONY: help \
-        monitoring-up monitoring-down monitoring-logs monitoring-ps \
-        pipeline-build pipeline-up pipeline-run pipeline-down pipeline-logs pipeline-ps pipeline-trigger pipeline-migrate \
-        app-build app-up app-run app-down app-logs app-ps \
-        build-all up-all down-all
+        monitoring-up monitoring-down \
+        pipeline-up pipeline-down \
+        app-up app-down \
+        up down \
+        up-test down-test \
+        up-prod down-prod \
+        deploy
 
-help: ## Показать все команды
-	@echo "Использование: make <target>"
-	@echo ""
-	@echo "Мониторинг (общий стек):"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^monitoring-/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "Каталог-пайплайн (Part 1):"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^pipeline-/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "Фронтенд + бэкенд (Part 2):"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^app-/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "Общие:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^(build-all|up-all|down-all)/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+help: ## Показать команды
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-# ─── Monitoring (shared stack) ───────────────────────────────────────
+# ─── По отдельности ─────────────────────────────────────────────────
 
-monitoring-up: ## Запустить централизованный стек мониторинга (OTEL Collector, Jaeger, Loki, Prometheus, Grafana)
-	$(COMPOSE_MONITORING) up -d
+monitoring-up: ## Поднять мониторинг (OTEL, Jaeger, Loki, Prometheus, Grafana)
+	$(COMPOSE_MONITORING) up -d --build
 
-monitoring-down: ## Остановить стек мониторинга
+monitoring-down: ## Остановить мониторинг
 	$(COMPOSE_MONITORING) down
 
-monitoring-logs: ## Логи стека мониторинга
-	$(COMPOSE_MONITORING) logs -f
+pipeline-up: ## Поднять pipeline-worker
+	$(COMPOSE_PIPELINE) up -d --build
 
-monitoring-ps: ## Статус контейнеров мониторинга
-	$(COMPOSE_MONITORING) ps
-
-# ─── Pipeline (Part 1) ──────────────────────────────────────────────
-
-pipeline-build: ## Собрать все Docker-образы пайплайна
-	$(MAKE) -C services/pipeline-worker build
-
-pipeline-up: ## Запустить стек пайплайна
-	$(COMPOSE_PIPELINE) up -d
-
-pipeline-run: ## Собрать образы и запустить стек
-	$(MAKE) -C services/pipeline-worker run
-
-pipeline-down: ## Остановить стек пайплайна
+pipeline-down: ## Остановить pipeline-worker
 	$(COMPOSE_PIPELINE) down
 
-pipeline-logs: ## Логи пайплайна
-	$(COMPOSE_PIPELINE) logs -f pipeline-worker temporal catalog-postgresql
+app-up: ## Поднять main-pipeline (без тестового профиля)
+	$(COMPOSE_APP_PROD) up -d --build
 
-pipeline-ps: ## Статус контейнеров пайплайна
-	$(COMPOSE_PIPELINE) ps
+app-down: ## Остановить main-pipeline
+	$(COMPOSE_APP_PROD) down
 
-pipeline-trigger: ## Ручной запуск пайплайна
-	$(MAKE) -C services/pipeline-worker trigger
+# ─── Полный стек ────────────────────────────────────────────────────
 
-pipeline-migrate: ## Запустить миграции БД каталога
-	$(MAKE) -C services/pipeline-worker migrate
+up: monitoring-up pipeline-up app-up ## Поднять всё: мониторинг + pipeline + app
 
-# ─── App (Part 2) ───────────────────────────────────────────────────
+down: ## Остановить всё: app + pipeline + мониторинг
+	$(COMPOSE_APP_PROD) down
+	$(COMPOSE_PIPELINE) down
+	$(COMPOSE_MONITORING) down
 
-app-build: ## Собрать Docker-образы фронтенда и бэкенда
-	$(COMPOSE_APP) build
+# ─── Тест (мониторинг + app --profile test) ─────────────────────────
 
-app-up: ## Запустить стек фронтенда и бэкенда
-	$(COMPOSE_APP) up -d
+up-test: monitoring-up ## Поднять мониторинг + main-pipeline (--profile test)
+	$(COMPOSE_APP) --profile test up -d --build
 
-app-run: ## Собрать образы и запустить стек
-	$(COMPOSE_APP) up -d --build
+down-test: ## Остановить main-pipeline (test) + мониторинг
+	$(COMPOSE_APP) --profile test down
+	$(COMPOSE_MONITORING) down
+# ─── Деплой ─────────────────────────────────────────────────────────
 
-app-down: ## Остановить стек фронтенда и бэкенда
-	$(COMPOSE_APP) down
-
-app-logs: ## Логи фронтенда и бэкенда
-	$(COMPOSE_APP) logs -f
-
-app-ps: ## Статус контейнеров фронтенда и бэкенда
-	$(COMPOSE_APP) ps
-
-# ─── Общие ──────────────────────────────────────────────────────────
-
-build-all: pipeline-build app-build ## Собрать все Docker-образы
-
-up-all: monitoring-up pipeline-up app-up ## Запустить все стеки (мониторинг → пайплайн → приложение)
-
-down-all: app-down pipeline-down monitoring-down ## Остановить все стеки
+deploy: ## git pull + пересобрать и перезапустить (prod)
+	git pull
+	up

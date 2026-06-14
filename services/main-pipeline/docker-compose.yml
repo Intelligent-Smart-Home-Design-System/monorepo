@@ -88,7 +88,7 @@ services:
       TEMPORAL_NAMESPACE: default
       METRICS_ADDRESS: :2112
       LOG_LEVEL: info
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "2112:2112"
@@ -118,7 +118,7 @@ services:
       METRICS_ADDRESS: :2116
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
       LOG_LEVEL: info
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "2116:2116"

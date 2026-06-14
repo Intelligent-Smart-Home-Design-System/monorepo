@@ -19,14 +19,19 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/otellog"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/oteltrace"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
 	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/contrib/opentelemetry"
+	"go.temporal.io/sdk/interceptor"
 )
 
 func main() {
@@ -49,15 +54,40 @@ func main() {
 		_ = otelShutdown(shutdownCtx)
 	}()
 
+	// Set up OTLP trace provider: spans are exported to the OTEL Collector
+	// and forwarded to Jaeger for distributed tracing visualisation.
+	traceShutdown, err := oteltrace.Init(ctx, "api-gateway")
+	if err != nil {
+		fallback := zerolog.New(os.Stdout).With().Timestamp().Str("service", "api-gateway").Logger()
+		fallback.Warn().Err(err).Msg("failed to initialize OTLP trace provider, tracing disabled")
+		traceShutdown = func(context.Context) error { return nil }
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = traceShutdown(shutdownCtx)
+	}()
+
 	log := zerolog.New(zerolog.MultiLevelWriter(os.Stdout, otelWriter)).
+		Hook(tracingHook{}).
 		With().Timestamp().Str("service", "api-gateway").Logger()
 
-	temporalClient, err := client.Dial(client.Options{
+	tracingInterceptor, err := opentelemetry.NewTracingInterceptor(opentelemetry.TracerOptions{})
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to create Temporal tracing interceptor, tracing disabled for workflows")
+	}
+
+	dialOpts := client.Options{
 		HostPort:      env("TEMPORAL_ADDRESS", "localhost:7233"),
 		Namespace:     env("TEMPORAL_NAMESPACE", "default"),
 		Logger:        temporalLogger{log: log},
 		DataConverter: pipeline.NewDataConverter(),
-	})
+	}
+	if tracingInterceptor != nil {
+		dialOpts.Interceptors = []interceptor.ClientInterceptor{tracingInterceptor}
+	}
+
+	temporalClient, err := client.Dial(dialOpts)
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect temporal")
 	}
@@ -115,7 +145,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		}
 		access, refresh, err := auth.register(req.Email, req.Password)
 		if err != nil {
-			log.Warn().Str("event", "auth.register").Str("email", normalizeEmail(req.Email)).Err(err).Msg("registration rejected")
+			log.Warn().Ctx(r.Context()).Str("event", "auth.register").Str("email", normalizeEmail(req.Email)).Err(err).Msg("registration rejected")
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -133,7 +163,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		}
 		access, refresh, err := auth.login(req.Email, req.Password)
 		if err != nil {
-			log.Warn().Str("event", "auth.login").Str("email", normalizeEmail(req.Email)).Err(err).Msg("login rejected")
+			log.Warn().Ctx(r.Context()).Str("event", "auth.login").Str("email", normalizeEmail(req.Email)).Err(err).Msg("login rejected")
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
@@ -155,7 +185,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		}
 		subject, access, refresh, err := auth.refresh(req.RefreshToken)
 		if err != nil {
-			log.Warn().Str("event", "auth.refresh").Err(err).Msg("refresh rejected")
+			log.Warn().Ctx(r.Context()).Str("event", "auth.refresh").Err(err).Msg("refresh rejected")
 			writeError(w, http.StatusUnauthorized, "invalid refresh token")
 			return
 		}
@@ -173,7 +203,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		}
 		resetToken, err := auth.createResetToken(req.Email)
 		if err != nil {
-			log.Error().Str("event", "auth.forgot-password").Str("email", normalizeEmail(req.Email)).Err(err).Msg("reset token creation failed")
+			log.Error().Ctx(r.Context()).Str("event", "auth.forgot-password").Str("email", normalizeEmail(req.Email)).Err(err).Msg("reset token creation failed")
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -188,7 +218,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 			return
 		}
 		if err := auth.resetPassword(req.Email, req.ResetToken, req.NewPassword); err != nil {
-			log.Warn().Str("event", "auth.reset-password").Str("email", normalizeEmail(req.Email)).Err(err).Msg("password reset rejected")
+			log.Warn().Ctx(r.Context()).Str("event", "auth.reset-password").Str("email", normalizeEmail(req.Email)).Err(err).Msg("password reset rejected")
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -229,7 +259,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		}
 
 		startedTotal.WithLabelValues("success").Inc()
-		log.Info().Str("workflow_id", run.GetID()).Str("run_id", run.GetRunID()).Msg("workflow started")
+		log.Info().Ctx(r.Context()).Str("workflow_id", run.GetID()).Str("run_id", run.GetRunID()).Msg("workflow started")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
 		_ = json.NewEncoder(w).Encode(map[string]string{"workflow_id": run.GetID(), "run_id": run.GetRunID()})
@@ -279,7 +309,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 	}
 	mux.HandleFunc("GET /result", resultHandler)
 	mux.HandleFunc("GET /result/{workflow_id}", resultHandler)
-	return mux
+	return otelhttp.NewHandler(mux, "api-gateway")
 }
 
 func validate(req pipeline.PipelineRequest) error {
@@ -655,6 +685,19 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// tracingHook is a zerolog.Hook that injects trace_id and span_id from the
+// OpenTelemetry span context into every log event.  The span context is
+// obtained from the Go context attached to the event via Event.Ctx().
+type tracingHook struct{}
+
+func (h tracingHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
+	ctx := e.GetCtx()
+	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+		e.Str("trace_id", span.SpanContext().TraceID().String())
+		e.Str("span_id", span.SpanContext().SpanID().String())
+	}
 }
 
 type temporalLogger struct{ log zerolog.Logger }

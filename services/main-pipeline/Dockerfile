@@ -1,8 +1,17 @@
 FROM golang:1.25-alpine AS build
 WORKDIR /src
-COPY go.mod go.sum ./
+
+COPY shared/telemetry/go/go.mod shared/telemetry/go/go.sum ./shared/telemetry/go/
+COPY services/main-pipeline/go.mod services/main-pipeline/go.sum ./services/main-pipeline/
+
+WORKDIR /src/services/main-pipeline
 RUN go mod download
-COPY . .
+
+WORKDIR /src
+COPY shared/ ./shared/
+COPY services/main-pipeline/ ./services/main-pipeline/
+
+WORKDIR /src/services/main-pipeline
 RUN go build -o /out/main-pipeline ./cmd/main-pipeline
 RUN go build -o /out/api-gateway ./cmd/api-gateway
 

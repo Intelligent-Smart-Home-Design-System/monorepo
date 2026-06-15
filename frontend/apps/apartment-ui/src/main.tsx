@@ -23,6 +23,7 @@ const params = new URLSearchParams(window.location.search);
 const shouldUseEmbedRenderer = params.has('embed') || params.has('empty');
 const shouldUsePolygonExample = params.has('polygon');
 const shouldUseResponseExample = params.has('response');
+const shouldShowOpeningHitboxes = params.has('hitboxes');
 const activePlan = shouldUseResponseExample
   ? (rawResponsePlanData as unknown as FloorPlan)
   : shouldUsePolygonExample
@@ -47,6 +48,7 @@ if (shouldUseEmbedRenderer) {
         activePlan,
         activeDevices,
         activeZones,
+        { showOpeningHitboxes: shouldShowOpeningHitboxes },
       );
 
   if (import.meta.hot) {
@@ -70,6 +72,7 @@ if (shouldUseEmbedRenderer) {
         plan={activePlan}
         devices={activeDevices}
         zones={activeZones}
+        showOpeningHitboxes={shouldShowOpeningHitboxes}
       />
     </StrictMode>,
   );

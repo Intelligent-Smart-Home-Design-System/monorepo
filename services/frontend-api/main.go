@@ -731,6 +731,7 @@ type RequirementFilter struct {
 type CreatePlanRequest struct {
 	Budget             float64             `json:"budget"`
 	MainEcosystemID    string              `json:"main_ecosystem_id"`
+	PresetID           string              `json:"preset_id,omitempty"`
 	AllowedEcosystems  []string            `json:"allowed_ecosystems"`
 	ExcludedEcosystems []string            `json:"excluded_ecosystems"`
 	Requirements       []CreateRequirement `json:"requirements"`

@@ -26,10 +26,17 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   const submit = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail.includes("@")) {
+      setError("Введите корректный email.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     try {
-      await auth.login({ email, password });
+      await auth.login({ email: trimmedEmail, password });
       router.push(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Не удалось выполнить вход.");
@@ -41,7 +48,7 @@ export default function LoginPage() {
   return (
     <AuthPageShell
       title="Вход"
-      subtitle="Введите email и пароль, чтобы frontend начал отправлять JWT токены в backend-запросы."
+      subtitle="Введите email и пароль, чтобы продолжить создание плана."
     >
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}

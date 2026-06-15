@@ -95,7 +95,6 @@ export type ApiPlanSummary = {
 export type ApiCreatePlanRequest = {
     budget: number;
     main_ecosystem_id: string;
-    preset_id?: string;
     allowed_ecosystems?: string[] | null;
     excluded_ecosystems?: string[] | null;
     requirements: Omit<ApiRequirement, "id">[];

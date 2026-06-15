@@ -28,6 +28,7 @@ import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import type { ApiHomePlan, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
+import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
 type UploadedPlanState = {
   fileName?: string;
@@ -36,6 +37,7 @@ type UploadedPlanState = {
   floorJson?: unknown;
   parsedFloor?: unknown;
   floor?: unknown;
+  zones?: unknown;
 };
 
 type ResultTabKey = "final" | "zones" | "energy" | "stages";
@@ -200,9 +202,7 @@ function PlanPageContent() {
                 План умного дома #{Number.isFinite(planId) ? planId : "—"}
               </Typography>
               <Typography sx={{ color: "rgba(255,255,255,0.72)", maxWidth: 620 }}>
-                Эта страница работает с backend: статус берётся из
-                {" /api/v1/plans/{plan_id}/status, "}
-                а готовый результат — из {" /api/v1/plans/{plan_id}."}
+                Следите за готовностью плана и просматривайте подобранные наборы устройств.
               </Typography>
             </Box>
 
@@ -299,7 +299,7 @@ function PlanPageContent() {
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                       {typeof status.progress === "number"
                         ? `Прогресс: ${(status.progress * 100).toFixed(0)}%`
-                        : "Backend ещё рассчитывает план, страница обновится автоматически."}
+                        : "Система рассчитывает план, страница обновится автоматически."}
                     </Typography>
                   </Box>
                 ) : null}
@@ -315,7 +315,7 @@ function PlanPageContent() {
                         Результаты по этапам
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Данные этапов не теряются: когда backend присылает новый артефакт, он появляется отдельной вкладкой.
+                        Новые результаты расчёта появляются здесь отдельными вкладками.
                       </Typography>
                     </Box>
 
@@ -349,9 +349,9 @@ function PlanPageContent() {
                       <PreviewArea uploadedPlan={uploadedPlan} />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
-                        <Chip label={`Main ecosystem: ${plan.main_ecosystem_id}`} />
+                        <Chip label={`Основная экосистема: ${plan.main_ecosystem_id}`} />
                         <Chip label={`Требований: ${plan.requirements.length}`} />
-                        <Chip label={`Bundles: ${plan.bundles.length}`} />
+                        <Chip label={`Наборов: ${plan.bundles.length}`} />
                       </Stack>
 
                       <Box>
@@ -428,7 +428,7 @@ function PlanPageContent() {
                       </Box>
                     </Stack>
                   ) : (
-                    <Typography color="text.secondary">Ожидаем готовый план от backend.</Typography>
+                    <Typography color="text.secondary">Ожидаем готовый план.</Typography>
                   )}
                 </CardContent>
               </Card>
@@ -608,6 +608,25 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null }) {
     );
   }
 
+  const floor = props.uploadedPlan.floorJson ?? props.uploadedPlan.parsedFloor ?? props.uploadedPlan.floor;
+  if (floor) {
+    return (
+      <Box
+        sx={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "16 / 10",
+          borderRadius: 4,
+          overflow: "hidden",
+          border: "1px solid rgba(148,163,184,0.24)",
+          background: "#f4f6f8",
+        }}
+      >
+        <ApartmentPlanPreview floor={floor} zones={props.uploadedPlan.zones} />
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -626,7 +645,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null }) {
         <Typography sx={{ fontWeight: 800, color: "#1e293b" }}>DXF-файл загружен</Typography>
         <Typography color="text.secondary">{props.uploadedPlan.fileName}</Typography>
         <Typography variant="body2" color="text.secondary">
-          Для DXF пока показываем только факт загрузки, а сам подбор идёт через backend API.
+          Для DXF пока показываем только факт загрузки.
         </Typography>
       </Stack>
     </Box>
@@ -696,7 +715,7 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
     return (
       <Card sx={surfaceCardSx}>
         <CardContent>
-          <Typography color="text.secondary">Данные этого этапа пока не пришли от backend.</Typography>
+          <Typography color="text.secondary">Данные этого этапа пока не готовы.</Typography>
         </CardContent>
       </Card>
     );

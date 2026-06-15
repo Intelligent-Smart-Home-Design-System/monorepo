@@ -4,7 +4,7 @@
 #   docker compose -f docker-compose.monitoring.yaml up -d
 #
 # All application services should set:
-#   OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+#   OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4318
 #   OTEL_EXPORTER_OTLP_INSECURE=true
 #
 # The stack exposes:
@@ -35,6 +35,16 @@ services:
       - monitoring
     restart: unless-stopped
 
+  # ── Jaeger init (fix volume permissions for non-root Jaeger) ───────
+  jaeger-init:
+    image: busybox:1.36
+    command: ["sh", "-c", "mkdir -p /badger/data /badger/key && chown -R 10001:10001 /badger"]
+    volumes:
+      - jaeger-data:/badger
+    networks:
+      - monitoring
+    restart: "no"
+
   # ── Jaeger (distributed tracing) ───────────────────────────────────
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -48,9 +58,15 @@ services:
       - jaeger-data:/badger
     ports:
       - "${JAEGER_UI_PORT:-16686}:16686"   # Jaeger UI
+    expose:
+      - "4317"   # OTLP gRPC (internal, for otel-collector → jaeger)
+      - "4318"   # OTLP HTTP
     networks:
       - monitoring
     restart: unless-stopped
+    depends_on:
+      jaeger-init:
+        condition: service_completed_successfully
 
   # ── Grafana Loki (log aggregation) ─────────────────────────────────
   loki:

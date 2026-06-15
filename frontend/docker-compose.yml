@@ -1,7 +1,8 @@
 services:
   sim-ui:
     build:
-      context: .
+      context: ..
+      dockerfile: frontend/Dockerfile
       args:
         APP: sim-ui
       target: next
@@ -10,7 +11,8 @@ services:
 
   web:
     build:
-      context: .
+      context: ..
+      dockerfile: frontend/Dockerfile
       args:
         APP: web
       target: next
@@ -19,7 +21,8 @@ services:
 
   apartment-ui:
     build:
-      context: .
+      context: ..
+      dockerfile: frontend/Dockerfile
       args:
         APP: apartment-ui
       target: vite

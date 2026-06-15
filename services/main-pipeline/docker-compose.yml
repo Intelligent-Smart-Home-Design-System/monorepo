@@ -144,7 +144,8 @@ services:
 
   web:
     build:
-      context: ../../frontend
+      context: ../..
+      dockerfile: frontend/Dockerfile
       target: next
       args:
         APP: web

@@ -27,7 +27,7 @@ import {
 import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import type { ApiHomePlan, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
+import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
 import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
 type UploadedPlanState = {
@@ -46,6 +46,12 @@ type ResultTab = {
   key: ResultTabKey;
   label: string;
   artifact?: ApiPlanStageArtifact;
+};
+
+type PipelineStatusResponse = {
+  workflow_id: string;
+  run_id?: string;
+  status: string;
 };
 
 export default function PlanPage() {
@@ -77,7 +83,12 @@ function PlanPageContent() {
   const [activeResultTab, setActiveResultTab] = useState<ResultTabKey>("final");
 
   const planId = Number(searchParams.get("id") ?? "");
-  const invalidPlanId = !Number.isFinite(planId) || planId <= 0;
+  const workflowId = searchParams.get("workflow_id") ?? "";
+  const runId = searchParams.get("run_id") ?? "";
+  const hasWorkflowTarget = workflowId.trim().length > 0;
+  const hasLegacyPlanTarget = Number.isFinite(planId) && planId > 0;
+  const invalidPlanId = !hasWorkflowTarget && !hasLegacyPlanTarget;
+  const displayPlanId = hasLegacyPlanTarget ? String(planId) : workflowId || "—";
 
   useEffect(() => {
     if (auth.loading || !auth.isAuthenticated) {
@@ -96,6 +107,48 @@ function PlanPageContent() {
 
     const loadStatus = async () => {
       try {
+        if (hasWorkflowTarget) {
+          const currentResult = await api.getPipelineResult(workflowId, runId || undefined);
+          if (!active) return;
+
+          if (isPipelinePending(currentResult)) {
+            const normalizedStatus = normalizePipelineStatus(currentResult.status);
+            setStatus({
+              plan_id: 0,
+              status: normalizedStatus,
+              progress: null,
+              stages: [
+                {
+                  key: "workflow",
+                  title: "Pipeline",
+                  status: currentResult.status,
+                  payload: currentResult,
+                },
+              ],
+            });
+            setLoading(false);
+            if (normalizedStatus === "failed") {
+              setError("Pipeline завершился с ошибкой. Подробности статуса показаны в промежуточных этапах.");
+              return;
+            }
+            timer = setTimeout(loadStatus, 4000);
+            return;
+          }
+
+          const fullPlan = pipelineResultToPlan(currentResult, Number(budgetFromStorage()) || 0);
+          setStatus({
+            plan_id: 0,
+            status: "completed",
+            progress: 1,
+            stages: pipelineResultToStageArtifacts(currentResult),
+          });
+          setPlan(fullPlan);
+          setSelectedBundleId(fullPlan.bundles[0]?.id ?? null);
+          setSelectedListingId(fullPlan.bundles[0]?.listings[0]?.id ?? null);
+          setLoading(false);
+          return;
+        }
+
         const currentStatus = await api.getPlanStatus(planId);
         if (!active) return;
         setStatus(currentStatus);
@@ -131,7 +184,7 @@ function PlanPageContent() {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [auth.isAuthenticated, auth.loading, invalidPlanId, planId]);
+  }, [auth.isAuthenticated, auth.loading, hasWorkflowTarget, invalidPlanId, planId, runId, workflowId]);
 
   const selectedBundle = useMemo(
     () => plan?.bundles.find((bundle) => bundle.id === selectedBundleId) ?? plan?.bundles[0] ?? null,
@@ -198,8 +251,8 @@ function PlanPageContent() {
             spacing={2.5}
           >
             <Box>
-              <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: "-0.04em", mb: 0.8 }}>
-                План умного дома #{Number.isFinite(planId) ? planId : "—"}
+              <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: 0, mb: 0.8 }}>
+                План умного дома #{displayPlanId}
               </Typography>
               <Typography sx={{ color: "rgba(255,255,255,0.72)", maxWidth: 620 }}>
                 Следите за готовностью плана и просматривайте подобранные наборы устройств.
@@ -213,7 +266,7 @@ function PlanPageContent() {
                   if (selectedBundle) {
                     openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan));
                   } else {
-                    openSimulationFromPlan(planId, collectSimulationFloorData(uploadedPlan, status, plan));
+                    openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, collectSimulationFloorData(uploadedPlan, status, plan));
                   }
                 }}
                 sx={{
@@ -249,7 +302,7 @@ function PlanPageContent() {
           <Alert
             severity="warning"
             action={
-              <Button color="inherit" size="small" onClick={() => router.push(`/login?next=/plan?id=${planId}`)}>
+              <Button color="inherit" size="small" onClick={() => router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)}>
                 Войти
               </Button>
             }
@@ -877,14 +930,18 @@ function loadUploadedPlan(): UploadedPlanState | null {
 
 type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
 
-function openSimulationFromPlan(planId: number, floor?: unknown) {
+function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
 
   const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
   const url = new URL(simUrl, window.location.origin);
-  if (Number.isFinite(planId) && planId > 0) url.searchParams.set("plan_id", String(planId));
+  if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
+    url.searchParams.set("plan_id", String(planId));
+  } else if (typeof planId === "string" && planId) {
+    url.searchParams.set("workflow_id", planId);
+  }
   url.searchParams.set("returnTo", window.location.href);
   window.location.href = url.toString();
 }
@@ -946,7 +1003,7 @@ function findFloorPayload(value: unknown): unknown {
     return value;
   }
 
-  for (const key of ["floor", "floorJson", "parsedFloor", "apartment", "layout", "plan"]) {
+  for (const key of ["floor", "floor_plan", "floorJson", "parsedFloor", "parsed_floor_plan", "apartment", "layout", "plan"]) {
     const nested = record[key];
     if (!nested) continue;
     const match = findFloorPayload(nested);
@@ -973,6 +1030,60 @@ function findPayloadByKeys(value: unknown, keys: string[]): unknown {
   }
 
   return null;
+}
+
+function isPipelinePending(value: ApiPipelineResult | PipelineStatusResponse): value is PipelineStatusResponse {
+  return "status" in value && typeof value.status === "string" && !("parsed_floor_plan" in value);
+}
+
+function normalizePipelineStatus(status: string): ApiPlanStatus["status"] {
+  const normalized = status.toLowerCase();
+  if (normalized.includes("failed") || normalized.includes("terminated") || normalized.includes("canceled") || normalized.includes("timed_out")) {
+    return "failed";
+  }
+  if (normalized.includes("completed")) {
+    return "completed";
+  }
+  if (normalized.includes("queued")) {
+    return "queued";
+  }
+  return "generating";
+}
+
+function pipelineResultToStageArtifacts(result: ApiPipelineResult): ApiPlanStageArtifact[] {
+  const stages: ApiPlanStageArtifact[] = [];
+  if (result.parsed_floor_plan) {
+    stages.push({ key: "parsed_floor_plan", title: "Распознанный план", status: "completed", payload: result.parsed_floor_plan });
+  }
+  if (result.layout) {
+    stages.push({ key: "layout", title: "Расстановка устройств", status: "completed", payload: result.layout });
+  }
+  if (result.device_selection) {
+    stages.push({ key: "device_selection", title: "Подбор устройств", status: "completed", payload: result.device_selection });
+  }
+  return stages;
+}
+
+function pipelineResultToPlan(result: ApiPipelineResult, budget: number): ApiHomePlan {
+  return {
+    plan_id: 0,
+    budget,
+    main_ecosystem_id: "",
+    requirements: [],
+    bundles: [],
+    stages: pipelineResultToStageArtifacts(result),
+    artifacts: pipelineResultToStageArtifacts(result),
+  };
+}
+
+function budgetFromStorage() {
+  if (typeof window === "undefined") return "";
+  try {
+    const raw = localStorage.getItem("planner-last-budget");
+    return raw ?? "";
+  } catch {
+    return "";
+  }
 }
 
 function makeSimulationDeviceId(listing: ApiHomePlan["bundles"][number]["listings"][number], index: number) {

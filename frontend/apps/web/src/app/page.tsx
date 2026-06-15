@@ -18,7 +18,7 @@ import type { ApiPlanSummary } from "./lib/types";
 const steps = [
   "Загрузите план квартиры и выберите основную экосистему.",
   "Соберите требования к устройствам и запустите генерацию плана.",
-  "Следите за прогрессом и просматривайте реальные наборы устройств из backend.",
+  "Следите за прогрессом и просматривайте готовые наборы устройств.",
 ];
 
 export default function Home() {
@@ -136,8 +136,8 @@ export default function Home() {
                   color: "#475569",
                 }}
               >
-                Сервис работает с реальным backend API: можно создать план, следить за его
-                статусом и просматривать готовые наборы устройств.
+                Создайте план, отслеживайте его готовность и просматривайте подобранные
+                наборы устройств для квартиры.
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
                 {auth.isAuthenticated ? (
@@ -187,8 +187,8 @@ export default function Home() {
                     Новый план умного дома
                   </Typography>
                   <Typography sx={{ color: "rgba(255,255,255,0.74)" }}>
-                    Начните с выбора экосистемы и требований, после чего frontend отправит
-                    реальный запрос на создание нового плана.
+                    Начните с выбора экосистемы и требований, а затем запустите подбор
+                    подходящих устройств.
                   </Typography>
                   {auth.isAuthenticated ? (
                     <Link href="/settings">
@@ -210,8 +210,7 @@ export default function Home() {
                     </Link>
                   ) : (
                     <Alert severity="info" sx={{ maxWidth: 520 }}>
-                      Перед созданием плана войдите или зарегистрируйтесь, чтобы frontend мог
-                      отправлять JWT-токен в backend-запросы.
+                      Перед созданием плана войдите или зарегистрируйтесь.
                     </Alert>
                   )}
                 </Stack>
@@ -220,18 +219,18 @@ export default function Home() {
               <Stack spacing={2} sx={{ flex: 1 }}>
                 <PreviewCard
                   icon={<HomeWorkRoundedIcon />}
-                  title="Реальные планы из API"
-                  text="На главной отображаются planning sessions из GET /api/v1/plans."
+                  title="История планов"
+                  text="На главной отображаются последние созданные планы."
                 />
                 <PreviewCard
                   icon={<ChecklistRoundedIcon />}
                   title="Живые требования"
-                  text="Настройки подтягивают экосистемы, пресеты и типы устройств из backend."
+                  text="Настройте экосистему, уровень подбора и состав устройств."
                 />
                 <PreviewCard
                   icon={<TimelineRoundedIcon />}
                   title="Статус генерации"
-                  text="Страница плана опрашивает статус генерации и показывает готовые bundles."
+                  text="Страница плана показывает прогресс и готовый результат."
                 />
               </Stack>
             </Stack>
@@ -247,7 +246,7 @@ export default function Home() {
                 </Box>
               ) : !auth.isAuthenticated ? (
                 <Alert severity="info">
-                  Войдите в аккаунт, чтобы видеть список своих планов и отправлять авторизованные запросы в backend.
+                  Войдите в аккаунт, чтобы видеть список своих планов.
                 </Alert>
               ) : error ? (
                 <Alert severity="error">{error}</Alert>

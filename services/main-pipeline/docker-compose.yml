@@ -157,6 +157,7 @@ services:
     depends_on:
       - api-gateway
       - frontend-api
+      - floor-parser-api
       - web
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -176,6 +177,17 @@ services:
       METRICS_PORT: 2113
     ports:
       - "2113:2113"
+    restart: unless-stopped
+
+  floor-parser-api:
+    build:
+      context: ../floor-parser
+    command: ["python", "-m", "app.floor_parser.main"]
+    environment:
+      PARSER_HOST: 0.0.0.0
+      PARSER_PORT: 8080
+    expose:
+      - "8080"
     restart: unless-stopped
 
   layout-worker:

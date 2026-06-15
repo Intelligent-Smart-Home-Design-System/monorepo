@@ -13,9 +13,12 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
+    "konva": "^10.3.0",
     "next": "^16.2.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-konva": "^19.2.4",
+    "smart-plan-demo": "file:../apartment-ui"
   },
   "devDependencies": {
     "@types/node": "^20",

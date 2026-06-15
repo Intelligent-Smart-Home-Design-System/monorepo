@@ -1,0 +1,1395 @@
+{
+  "tracks": {
+    "security": {
+      "name": "Безопасность",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Защита от протечек и утечек газа",
+          "price_range": {
+            "min": 5000,
+            "max": 8000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor"
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 2,
+            "gas_leak_sensor": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "contact",
+              "alarm_vulume_db": 65,
+              "battery_life_years": 1
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane"
+              ],
+              "alarm_volume_db": 65,
+              "battery_life_years": 1
+            }
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Защита входа",
+          "price_range": {
+            "min": 32000,
+            "max": 40000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_doorbell",
+            "smart_lock"
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 2,
+            "gas_leak_sensor": 1,
+            "smart_doorbell": 1,
+            "smart_lock": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "contact",
+              "alarm_vulume_db": 75,
+              "battery_life_years": 2
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas"
+              ],
+              "alarm_volume_db": 75,
+              "battery_life_years": 2
+            },
+            "smart_doorbell": {
+              "resolution": "720p",
+              "angle": 90,
+              "night_vision": false,
+              "two_way_audio": false
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint"
+              ]
+            }
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Контроль периметра",
+          "price_range": {
+            "min": 44000,
+            "max": 55000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_doorbell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor"
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ],
+            "door_sensor": [
+              "hall"
+            ],
+            "window_sensor": [
+              "living",
+              "bedroom"
+            ],
+            "motion_sensor": [
+              "living",
+              "hall"
+            ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 1,
+            "door_sensor": 1,
+            "window_sensor": 3,
+            "motion_sensor": 1
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "cable",
+              "alarm_vulume_db": 85,
+              "battery_life_years": 2
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas"
+              ],
+              "alarm_volume_db": 85,
+              "battery_life_years": 2
+            },
+            "smart_doorbell": {
+              "resolution": "1080p",
+              "angle": 105,
+              "night_vision": false,
+              "two_way_audio": true
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint",
+                "app"
+              ]
+            },
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {
+              "angle": 110,
+              "range": 4
+            }
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Видеонаблюдение",
+          "price_range": {
+            "min": 52000,
+            "max": 68000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_doorbell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera"
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ],
+            "door_sensor": [
+              "hall"
+            ],
+            "window_sensor": [
+              "living",
+              "bedroom"
+            ],
+            "motion_sensor": [
+              "living",
+              "hall"
+            ],
+            "camera": [
+              "living",
+              "hall"
+            ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 2,
+            "door_sensor": 2,
+            "window_sensor": 4,
+            "motion_sensor": 1,
+            "camera": 2
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "cable",
+              "alarm_vulume_db": 100,
+              "battery_life_years": 3
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas",
+                "propan"
+              ],
+              "alarm_volume_db": 100,
+              "battery_life_years": 3
+            },
+            "smart_doorbell": {
+              "resolution": "2K",
+              "angle": 130,
+              "night_vision": true,
+              "two_way_audio": true
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint",
+                "app",
+                "face_recognition"
+              ]
+            },
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {
+              "angle": 130,
+              "range": 8
+            },
+            "camera": {
+              "angle": 110,
+              "range": 10,
+              "night_vision": true,
+              "resolution": "2K"
+            }
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Охранная сигнализация",
+          "price_range": {
+            "min": 55000,
+            "max": 74000
+          },
+          "devices": [
+            "water_leak_sensor",
+            "gas_leak_sensor",
+            "smart_doorbell",
+            "smart_lock",
+            "door_sensor",
+            "window_sensor",
+            "motion_sensor",
+            "camera",
+            "smart_siren"
+          ],
+          "device_rooms": {
+            "water_leak_sensor": [
+              "kitchen",
+              "bathroom",
+              "toilet"
+            ],
+            "gas_leak_sensor": [
+              "kitchen"
+            ],
+            "smart_doorbell": [
+              "hall"
+            ],
+            "smart_lock": [
+              "hall"
+            ],
+            "door_sensor": [
+              "hall"
+            ],
+            "window_sensor": [
+              "living",
+              "bedroom"
+            ],
+            "motion_sensor": [
+              "living",
+              "hall"
+            ],
+            "camera": [
+              "living",
+              "hall"
+            ],
+            "smart_siren": [
+              "hall",
+              "passage"
+            ]
+          },
+          "max_device_counts": {
+            "water_leak_sensor": 3,
+            "gas_leak_sensor": 2,
+            "smart_doorbell": 1,
+            "smart_lock": 2,
+            "door_sensor": 2,
+            "window_sensor": 4,
+            "motion_sensor": 2,
+            "camera": 2,
+            "smart_siren": 2
+          },
+          "device_filters": {
+            "water_leak_sensor": {
+              "probe_type": "cable",
+              "alarm_vulume_db": 100,
+              "battery_life_years": 4
+            },
+            "gas_leak_sensor": {
+              "gas_types": [
+                "methane",
+                "natural_gas",
+                "propan",
+                "carbon_monoxide"
+              ],
+              "alarm_volume_db": 100,
+              "battery_life_years": 4
+            },
+            "smart_doorbell": {
+              "resolution": "4K",
+              "angle": 150,
+              "night_vision": true,
+              "two_way_audio": true
+            },
+            "smart_lock": {
+              "unlock_methods": [
+                "password",
+                "fingerprint",
+                "app",
+                "face_recognition"
+              ]
+            },
+            "door_sensor": {},
+            "window_sensor": {},
+            "motion_sensor": {
+              "angle": 150,
+              "range": 10
+            },
+            "camera": {
+              "angle": 110,
+              "range": 10,
+              "night_vision": true,
+              "resolution": "2K"
+            },
+            "smart_siren": {
+              "volume_db": 85
+            }
+          }
+        }
+      }
+    },
+    "lighting": {
+      "name": "Освещение",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Основной свет в жилых комнатах и кухне (smart_bulb или inwall_relay_module)",
+          "price_range": {
+            "min": 2000,
+            "max": 6000
+          },
+          "devices": [
+            "smart_bulb"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 3
+          },
+          "device_filters": {
+            "smart_bulb": {}
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Основной свет в проходных и санузлах (smart_bulb или inwall_relay_module)",
+          "price_range": {
+            "min": 3500,
+            "max": 10000
+          },
+          "devices": [
+            "smart_bulb"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5
+          },
+          "device_filters": {
+            "smart_bulb": {}
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Автоматизация по движению и освещённости",
+          "price_range": {
+            "min": 6000,
+            "max": 20000
+          },
+          "devices": [
+            "smart_bulb",
+            "motion_sensor",
+            "illumination_sensor"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "motion_sensor": {},
+            "illumination_sensor": {}
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Управление естественным светом (curtains или blinds)",
+          "price_range": {
+            "min": 16000,
+            "max": 55000
+          },
+          "devices": [
+            "smart_bulb",
+            "motion_sensor",
+            "illumination_sensor",
+            "curtains"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2,
+            "curtains": 3
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "motion_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {}
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Интерфейсы управления освещением",
+          "price_range": {
+            "min": 21000,
+            "max": 70000
+          },
+          "devices": [
+            "smart_bulb",
+            "motion_sensor",
+            "illumination_sensor",
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "motion_sensor": [
+              "passage",
+              "bathroom"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "motion_sensor": 2,
+            "illumination_sensor": 2,
+            "curtains": 3,
+            "wireless_button_switch": 3,
+            "smart_dimmer": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "motion_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {},
+            "wireless_button_switch": {},
+            "smart_dimmer": {}
+          }
+        },
+        "6": {
+          "name": "Шестой уровень",
+          "description": "Навигационный свет и датчики присутствия (built_in_backlight или decorative_luminaire)",
+          "price_range": {
+            "min": 25000,
+            "max": 85000
+          },
+          "devices": [
+            "smart_bulb",
+            "presence_sensor",
+            "illumination_sensor",
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer",
+            "built_in_backlight"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "presence_sensor": [
+              "passage",
+              "bathroom",
+              "cabinet"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ],
+            "built_in_backlight": [
+              "passage",
+              "bathroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "presence_sensor": 3,
+            "illumination_sensor": 2,
+            "curtains": 3,
+            "wireless_button_switch": 3,
+            "smart_dimmer": 2,
+            "built_in_backlight": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "presence_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {},
+            "wireless_button_switch": {},
+            "smart_dimmer": {},
+            "built_in_backlight": {}
+          }
+        },
+        "7": {
+          "name": "Седьмой уровень",
+          "description": "Акцентный и декоративный свет",
+          "price_range": {
+            "min": 30000,
+            "max": 100000
+          },
+          "devices": [
+            "smart_bulb",
+            "presence_sensor",
+            "illumination_sensor",
+            "curtains",
+            "wireless_button_switch",
+            "smart_dimmer",
+            "built_in_backlight",
+            "decorative_luminaire"
+          ],
+          "device_rooms": {
+            "smart_bulb": [
+              "living",
+              "kitchen",
+              "passage",
+              "bathroom"
+            ],
+            "presence_sensor": [
+              "passage",
+              "bathroom",
+              "cabinet"
+            ],
+            "illumination_sensor": [
+              "living",
+              "kitchen"
+            ],
+            "curtains": [
+              "windows"
+            ],
+            "wireless_button_switch": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_dimmer": [
+              "living",
+              "bedroom"
+            ],
+            "built_in_backlight": [
+              "living",
+              "kitchen",
+              "cabinet"
+            ],
+            "decorative_luminaire": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "smart_bulb": 5,
+            "presence_sensor": 3,
+            "illumination_sensor": 2,
+            "curtains": 3,
+            "wireless_button_switch": 3,
+            "smart_dimmer": 2,
+            "built_in_backlight": 4,
+            "decorative_luminaire": 2
+          },
+          "device_filters": {
+            "smart_bulb": {},
+            "presence_sensor": {},
+            "illumination_sensor": {},
+            "curtains": {},
+            "wireless_button_switch": {},
+            "smart_dimmer": {},
+            "built_in_backlight": {},
+            "decorative_luminaire": {}
+          }
+        }
+      }
+    },
+    "household": {
+      "name": "Бытовая техника",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Базовая автоматизация уборки",
+          "price_range": {
+            "min": 20000,
+            "max": 25000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 75,
+              "suction_power_pa": 2000,
+              "navigation_type": "basic",
+              "room_mapping": false,
+              "wet_cleaning": false,
+              "carpet_detection": false,
+              "obstacle_avoidance": false,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Улучшенная навигация и построение карты помещения",
+          "price_range": {
+            "min": 30000,
+            "max": 40000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 72,
+              "suction_power_pa": 3500,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": false,
+              "carpet_detection": false,
+              "obstacle_avoidance": false,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Влажная уборка",
+          "price_range": {
+            "min": 40000,
+            "max": 50000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 70,
+              "suction_power_pa": 5000,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": false,
+              "obstacle_avoidance": true,
+              "auto_empty_station": false,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Автономная станция",
+          "price_range": {
+            "min": 55000,
+            "max": 65000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 68,
+              "suction_power_pa": 7000,
+              "navigation_type": "lidar",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": true,
+              "obstacle_avoidance": true,
+              "auto_empty_station": true,
+              "voice_assistant_support": false
+            }
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Продвинутый робот-пылесос",
+          "price_range": {
+            "min": 70000,
+            "max": 80000
+          },
+          "devices": [
+            "robot_vacuum"
+          ],
+          "device_rooms": {
+            "robot_vacuum": [
+              "living",
+              "bedroom",
+              "passage",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "robot_vacuum": 1
+          },
+          "device_filters": {
+            "robot_vacuum": {
+              "noise_level_db": 65,
+              "suction_power_pa": 11000,
+              "navigation_type": "lidar_ai",
+              "room_mapping": true,
+              "wet_cleaning": true,
+              "carpet_detection": true,
+              "obstacle_avoidance": true,
+              "auto_empty_station": true,
+              "voice_assistant_support": true
+            }
+          }
+        }
+      }
+    },
+    "climate": {
+      "name": "Климат",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Управление отоплением",
+          "price_range": {
+            "min": 4500,
+            "max": 9450
+          },
+          "devices": [
+            "temperature_sensor",
+            "smart_radiator_actuator"
+          ],
+          "device_rooms": {
+            "temperature_sensor": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "smart_radiator_actuator": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "temperature_sensor": 4,
+            "smart_radiator_actuator": 4
+          },
+          "device_filters": {
+            "temperature_sensor": {
+              "temperature_range": {
+                "min": -10,
+                "max": 50
+              },
+              "battery_life_years": 2
+            },
+            "smart_radiator_actuator": {}
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Контроль влажности",
+          "price_range": {
+            "min": 11400,
+            "max": 25950
+          },
+          "devices": [
+            "temperature_sensor",
+            "smart_radiator_actuator",
+            "humidity_sensor",
+            "smart_humidifier"
+          ],
+          "device_rooms": {
+            "temperature_sensor": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "smart_radiator_actuator": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "humidity_sensor": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_humidifier": [
+              "living",
+              "bedroom"
+            ]
+          },
+          "max_device_counts": {
+            "temperature_sensor": 4,
+            "smart_radiator_actuator": 4,
+            "humidity_sensor": 3,
+            "smart_humidifier": 2
+          },
+          "device_filters": {
+            "temperature_sensor": {
+              "temperature_range": {
+                "min": -10,
+                "max": 50
+              },
+              "battery_life_years": 2
+            },
+            "smart_radiator_actuator": {},
+            "humidity_sensor": {},
+            "smart_humidifier": {
+              "tank_volume_liters": 4,
+              "serviced_area_m2": 25
+            }
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Контроль качества воздуха",
+          "price_range": {
+            "min": 24900,
+            "max": 66450
+          },
+          "devices": [
+            "temperature_sensor",
+            "smart_radiator_actuator",
+            "humidity_sensor",
+            "smart_humidifier",
+            "co2_sensor",
+            "air_purifier"
+          ],
+          "device_rooms": {
+            "temperature_sensor": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "smart_radiator_actuator": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "humidity_sensor": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_humidifier": [
+              "living",
+              "bedroom"
+            ],
+            "co2_sensor": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ],
+            "air_purifier": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "temperature_sensor": 4,
+            "smart_radiator_actuator": 4,
+            "humidity_sensor": 3,
+            "smart_humidifier": 2,
+            "co2_sensor": 3,
+            "air_purifier": 2
+          },
+          "device_filters": {
+            "temperature_sensor": {
+              "temperature_range": {
+                "min": -10,
+                "max": 50
+              },
+              "battery_life_years": 2
+            },
+            "smart_radiator_actuator": {},
+            "humidity_sensor": {},
+            "smart_humidifier": {
+              "tank_volume_liters": 4,
+              "serviced_area_m2": 25
+            },
+            "co2_sensor": {},
+            "air_purifier": {
+              "serviced_area_m2": 35,
+              "hepa_filter": true
+            }
+          }
+        },
+        "4": {
+          "name": "Четвертый уровень",
+          "description": "Тёплый пол",
+          "price_range": {
+            "min": 29400,
+            "max": 78150
+          },
+          "devices": [
+            "temperature_sensor",
+            "smart_radiator_actuator",
+            "humidity_sensor",
+            "smart_humidifier",
+            "co2_sensor",
+            "air_purifier",
+            "smart_floor_thermostat",
+            "floor_temperature_sensor"
+          ],
+          "device_rooms": {
+            "temperature_sensor": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "smart_radiator_actuator": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "humidity_sensor": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_humidifier": [
+              "living",
+              "bedroom"
+            ],
+            "co2_sensor": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ],
+            "air_purifier": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ],
+            "smart_floor_thermostat": [
+              "bathroom",
+              "kitchen"
+            ],
+            "floor_temperature_sensor": [
+              "bathroom",
+              "kitchen"
+            ]
+          },
+          "max_device_counts": {
+            "temperature_sensor": 4,
+            "smart_radiator_actuator": 4,
+            "humidity_sensor": 3,
+            "smart_humidifier": 2,
+            "co2_sensor": 3,
+            "air_purifier": 2,
+            "smart_floor_thermostat": 2,
+            "floor_temperature_sensor": 2
+          },
+          "device_filters": {
+            "temperature_sensor": {
+              "temperature_range": {
+                "min": -10,
+                "max": 50
+              },
+              "battery_life_years": 2
+            },
+            "smart_radiator_actuator": {},
+            "humidity_sensor": {},
+            "smart_humidifier": {
+              "tank_volume_liters": 4,
+              "serviced_area_m2": 25
+            },
+            "co2_sensor": {},
+            "air_purifier": {
+              "serviced_area_m2": 35,
+              "hepa_filter": true
+            },
+            "smart_floor_thermostat": {
+              "max_load_kw": 3.5
+            },
+            "floor_temperature_sensor": {
+              "cable_length": 3
+            }
+          }
+        },
+        "5": {
+          "name": "Пятый уровень",
+          "description": "Охлаждение",
+          "price_range": {
+            "min": 54400,
+            "max": 258150
+          },
+          "devices": [
+            "temperature_sensor",
+            "smart_radiator_actuator",
+            "humidity_sensor",
+            "smart_humidifier",
+            "co2_sensor",
+            "air_purifier",
+            "smart_floor_thermostat",
+            "floor_temperature_sensor",
+            "air_conditioner"
+          ],
+          "device_rooms": {
+            "temperature_sensor": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "smart_radiator_actuator": [
+              "living",
+              "bedroom",
+              "kitchen",
+              "cabinet"
+            ],
+            "humidity_sensor": [
+              "living",
+              "bedroom",
+              "kitchen"
+            ],
+            "smart_humidifier": [
+              "living",
+              "bedroom"
+            ],
+            "co2_sensor": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ],
+            "air_purifier": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ],
+            "smart_floor_thermostat": [
+              "bathroom",
+              "kitchen"
+            ],
+            "floor_temperature_sensor": [
+              "bathroom",
+              "kitchen"
+            ],
+            "air_conditioner": [
+              "living",
+              "bedroom",
+              "cabinet"
+            ]
+          },
+          "max_device_counts": {
+            "temperature_sensor": 4,
+            "smart_radiator_actuator": 4,
+            "humidity_sensor": 3,
+            "smart_humidifier": 2,
+            "co2_sensor": 3,
+            "air_purifier": 2,
+            "smart_floor_thermostat": 2,
+            "floor_temperature_sensor": 2,
+            "air_conditioner": 3
+          },
+          "device_filters": {
+            "temperature_sensor": {
+              "temperature_range": {
+                "min": -10,
+                "max": 50
+              },
+              "battery_life_years": 2
+            },
+            "smart_radiator_actuator": {},
+            "humidity_sensor": {},
+            "smart_humidifier": {
+              "tank_volume_liters": 4,
+              "serviced_area_m2": 25
+            },
+            "co2_sensor": {},
+            "air_purifier": {
+              "serviced_area_m2": 35,
+              "hepa_filter": true
+            },
+            "smart_floor_thermostat": {
+              "max_load_kw": 3.5
+            },
+            "floor_temperature_sensor": {
+              "cable_length": 3
+            },
+            "air_conditioner": {
+              "max_noise_level_db": 45,
+              "indoor_unit_length_mm": 800,
+              "recommended_area_m2": 35
+            }
+          }
+        }
+      }
+    },
+    "media": {
+      "name": "Медиа и развлечения",
+      "levels": {
+        "1": {
+          "name": "Первый уровень",
+          "description": "Базовый набор c умной колонкой",
+          "price_range": {
+            "min": 5000,
+            "max": 50000
+          },
+          "devices": ["smart_speaker"],
+          "device_rooms": {
+            "smart_speaker": ["living", "kitchen", "bedroom"]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1
+          },
+          "device_filters": {
+            "smart_speaker": {}
+          }
+        },
+        "2": {
+          "name": "Второй уровень",
+          "description": "Набор для просмотра контента",
+          "price_range": {
+            "min": 25000,
+            "max": 550000
+          },
+          "devices": ["smart_tv", "smart_speaker"],
+          "device_rooms": {
+            "smart_speaker": ["living", "kitchen", "bedroom"],
+            "smart_tv": ["living", "bedroom"]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1,
+            "smart_tv": 1
+          },
+          "device_filters": {
+            "smart_speaker": {},
+            "smart_tv": {
+              "resolution": "2K",
+              "width": 1,
+              "refresh_rate_hz": 60
+            }
+          }
+        },
+        "3": {
+          "name": "Третий уровень",
+          "description": "Продвинутый набор для просмотра контента",
+          "price_range": {
+            "min": 32000,
+            "max": 580000
+          },
+          "devices": ["smart_tv", "smart_speaker", "subwoofer"],
+          "device_rooms": {
+            "smart_speaker": ["living", "kitchen", "bedroom"],
+            "smart_tv": ["living", "bedroom"],
+            "subwoofer": ["living", "bedroom"]
+          },
+          "max_device_counts": {
+            "smart_speaker": 1,
+            "smart_tv": 1,
+            "subwoofer": 1
+          },
+          "device_filters": {
+            "smart_speaker": {},
+            "smart_tv": {
+              "resolution": "2K",
+              "width": 1.3,
+              "refresh_rate_hz": 120
+            },
+            "subwoofer": {}
+          }
+        }
+      }
+    }
+  }
+}

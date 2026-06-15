@@ -19,6 +19,7 @@ if (container) {
     plan as FloorPlan,
     devices as SmartDevice[],
     zones as Zone[],
+    { showOpeningHitboxes: true },
   );
 
   renderer.addDevice(device);
@@ -86,6 +87,19 @@ Use `?polygon=1` to inspect the separate polygon test files:
 
 ```text
 http://127.0.0.1:5173/?polygon=1
+```
+
+Use `?response=1` to inspect `src/response.json`:
+
+```text
+http://127.0.0.1:5173/?response=1
+```
+
+Add `hitboxes=1` to render red debug outlines for door/window opening
+hitboxes:
+
+```text
+http://127.0.0.1:5173/?response=1&hitboxes=1
 ```
 
 The polygon test data lives in:

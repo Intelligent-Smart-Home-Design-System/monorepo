@@ -9,6 +9,7 @@ interface ApartmentPlanViewProps {
   plan: FloorPlan;
   devices: SmartDevice[];
   zones: Zone[];
+  showOpeningHitboxes?: boolean;
   onDevicesChange?: (devices: SmartDevice[]) => void;
 }
 
@@ -26,6 +27,7 @@ export function ApartmentPlanView({
   plan,
   devices,
   zones,
+  showOpeningHitboxes = false,
   onDevicesChange,
 }: ApartmentPlanViewProps) {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -95,6 +97,7 @@ export function ApartmentPlanView({
       plan={plan}
       devices={visibleDevices}
       zones={visibleZones}
+      showOpeningHitboxes={showOpeningHitboxes}
       selectedDeviceId={visibleSelectedDeviceId}
       selectedZoneId={visibleSelectedZoneId}
       onSelectDevice={handleSelectDevice}

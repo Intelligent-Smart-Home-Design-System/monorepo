@@ -8,6 +8,7 @@ import rawPlanData from './image_apartment_plan.json';
 import rawPolygonDevicesData from './polygon_devices.json';
 import rawPolygonPlanData from './polygon_plan.json';
 import rawPolygonZonesData from './polygon_zones.json';
+import rawResponsePlanData from './response.json';
 import { renderApartmentPlan } from './renderApartmentPlan';
 import type { FloorPlan, SmartDevice, Zone } from './types';
 import rawZonesData from './zones.json';
@@ -21,13 +22,21 @@ if (!container) {
 const params = new URLSearchParams(window.location.search);
 const shouldUseEmbedRenderer = params.has('embed') || params.has('empty');
 const shouldUsePolygonExample = params.has('polygon');
-const activePlan = shouldUsePolygonExample
+const shouldUseResponseExample = params.has('response');
+const shouldShowOpeningHitboxes = params.has('hitboxes');
+const activePlan = shouldUseResponseExample
+  ? (rawResponsePlanData as unknown as FloorPlan)
+  : shouldUsePolygonExample
   ? (rawPolygonPlanData as unknown as FloorPlan)
   : (rawPlanData as unknown as FloorPlan);
-const activeDevices = shouldUsePolygonExample
+const activeDevices = shouldUseResponseExample
+  ? []
+  : shouldUsePolygonExample
   ? (rawPolygonDevicesData as unknown as SmartDevice[])
   : (rawDevicesData as unknown as SmartDevice[]);
-const activeZones = shouldUsePolygonExample
+const activeZones = shouldUseResponseExample
+  ? []
+  : shouldUsePolygonExample
   ? (rawPolygonZonesData as unknown as Zone[])
   : (rawZonesData as unknown as Zone[]);
 
@@ -39,6 +48,7 @@ if (shouldUseEmbedRenderer) {
         activePlan,
         activeDevices,
         activeZones,
+        { showOpeningHitboxes: shouldShowOpeningHitboxes },
       );
 
   if (import.meta.hot) {
@@ -52,10 +62,17 @@ if (shouldUseEmbedRenderer) {
   root.render(
     <StrictMode>
       <App
-        key={shouldUsePolygonExample ? 'polygon-example' : 'default-example'}
+        key={
+          shouldUseResponseExample
+            ? 'response-example'
+            : shouldUsePolygonExample
+              ? 'polygon-example'
+              : 'default-example'
+        }
         plan={activePlan}
         devices={activeDevices}
         zones={activeZones}
+        showOpeningHitboxes={shouldShowOpeningHitboxes}
       />
     </StrictMode>,
   );

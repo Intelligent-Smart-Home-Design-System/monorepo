@@ -49,6 +49,18 @@ class ParseFloorIntegrationTest(unittest.TestCase):
             "apartment_second_floor_insert_blocks.expected.json",
         )
 
+    def test_apartment_third_floor_insert_blocks(self):
+        self._assert_floor_summary_matches_expected(
+            "apartment_third_floor_insert_blocks.dxf",
+            "apartment_third_floor_insert_blocks.expected.json",
+        )
+
+    def test_apartment_fourth_floor_insert_blocks(self):
+        self._assert_floor_summary_matches_expected(
+            "apartment_fourth_floor_insert_blocks.dxf",
+            "apartment_fourth_floor_insert_blocks.expected.json",
+        )
+
     def test_insert_backed_entities_are_extracted_from_blocks(self):
         service_dir = Path(__file__).resolve().parents[1]
         raw_plan = self._read_and_extract(service_dir / "data" / "apartment_first_floor_insert_blocks.dxf")

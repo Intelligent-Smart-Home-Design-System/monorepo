@@ -1,5 +1,8 @@
 export { renderApartmentPlan } from './renderApartmentPlan';
-export type { ApartmentPlanRenderHandle } from './renderApartmentPlan';
+export type {
+  ApartmentPlanRenderHandle,
+  ApartmentPlanRenderOptions,
+} from './renderApartmentPlan';
 export {
   addSmartDevice,
   clearSmartDevices,

@@ -28,11 +28,16 @@ import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import type { ApiHomePlan, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
+import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
 type UploadedPlanState = {
   fileName?: string;
   planDataUrl?: string;
   planFileType?: "dxf" | "png" | "";
+  floorJson?: unknown;
+  parsedFloor?: unknown;
+  floor?: unknown;
+  zones?: unknown;
 };
 
 type ResultTabKey = "final" | "zones" | "energy" | "stages";
@@ -197,16 +202,20 @@ function PlanPageContent() {
                 План умного дома #{Number.isFinite(planId) ? planId : "—"}
               </Typography>
               <Typography sx={{ color: "rgba(255,255,255,0.72)", maxWidth: 620 }}>
-                Эта страница работает с backend: статус берётся из
-                {" /api/v1/plans/{plan_id}/status, "}
-                а готовый результат — из {" /api/v1/plans/{plan_id}."}
+                Следите за готовностью плана и просматривайте подобранные наборы устройств.
               </Typography>
             </Box>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
               <Button
                 variant="contained"
-                onClick={() => router.push(`/simulation?plan_id=${planId}`)}
+                onClick={() => {
+                  if (selectedBundle) {
+                    openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan));
+                  } else {
+                    openSimulationFromPlan(planId, collectSimulationFloorData(uploadedPlan, status, plan));
+                  }
+                }}
                 sx={{
                   borderRadius: 3,
                   fontWeight: 900,
@@ -290,7 +299,7 @@ function PlanPageContent() {
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                       {typeof status.progress === "number"
                         ? `Прогресс: ${(status.progress * 100).toFixed(0)}%`
-                        : "Backend ещё рассчитывает план, страница обновится автоматически."}
+                        : "Система рассчитывает план, страница обновится автоматически."}
                     </Typography>
                   </Box>
                 ) : null}
@@ -306,7 +315,7 @@ function PlanPageContent() {
                         Результаты по этапам
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Данные этапов не теряются: когда backend присылает новый артефакт, он появляется отдельной вкладкой.
+                        Новые результаты расчёта появляются здесь отдельными вкладками.
                       </Typography>
                     </Box>
 
@@ -340,9 +349,9 @@ function PlanPageContent() {
                       <PreviewArea uploadedPlan={uploadedPlan} />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
-                        <Chip label={`Main ecosystem: ${plan.main_ecosystem_id}`} />
+                        <Chip label={`Основная экосистема: ${plan.main_ecosystem_id}`} />
                         <Chip label={`Требований: ${plan.requirements.length}`} />
-                        <Chip label={`Bundles: ${plan.bundles.length}`} />
+                        <Chip label={`Наборов: ${plan.bundles.length}`} />
                       </Stack>
 
                       <Box>
@@ -419,7 +428,7 @@ function PlanPageContent() {
                       </Box>
                     </Stack>
                   ) : (
-                    <Typography color="text.secondary">Ожидаем готовый план от backend.</Typography>
+                    <Typography color="text.secondary">Ожидаем готовый план.</Typography>
                   )}
                 </CardContent>
               </Card>
@@ -542,6 +551,15 @@ function PlanPageContent() {
                       <Typography variant="body2" color="text.secondary">
                         Сейчас выбрано устройств в наборе: {bundleTotalListings}
                       </Typography>
+
+                      <Button
+                        variant="outlined"
+                        disabled={!selectedBundle.listings.length}
+                        onClick={() => openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan))}
+                        sx={{ fontWeight: 900, borderRadius: 3 }}
+                      >
+                        Открыть в симуляции
+                      </Button>
                     </Stack>
                   )}
                 </CardContent>
@@ -590,6 +608,25 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null }) {
     );
   }
 
+  const floor = props.uploadedPlan.floorJson ?? props.uploadedPlan.parsedFloor ?? props.uploadedPlan.floor;
+  if (floor) {
+    return (
+      <Box
+        sx={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "16 / 10",
+          borderRadius: 4,
+          overflow: "hidden",
+          border: "1px solid rgba(148,163,184,0.24)",
+          background: "#f4f6f8",
+        }}
+      >
+        <ApartmentPlanPreview floor={floor} zones={props.uploadedPlan.zones} />
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -608,7 +645,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null }) {
         <Typography sx={{ fontWeight: 800, color: "#1e293b" }}>DXF-файл загружен</Typography>
         <Typography color="text.secondary">{props.uploadedPlan.fileName}</Typography>
         <Typography variant="body2" color="text.secondary">
-          Для DXF пока показываем только факт загрузки, а сам подбор идёт через backend API.
+          Для DXF пока показываем только факт загрузки.
         </Typography>
       </Stack>
     </Box>
@@ -678,7 +715,7 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
     return (
       <Card sx={surfaceCardSx}>
         <CardContent>
-          <Typography color="text.secondary">Данные этого этапа пока не пришли от backend.</Typography>
+          <Typography color="text.secondary">Данные этого этапа пока не готовы.</Typography>
         </CardContent>
       </Card>
     );
@@ -836,4 +873,111 @@ function loadUploadedPlan(): UploadedPlanState | null {
   } catch {
     return null;
   }
+}
+
+type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
+
+function openSimulationFromPlan(planId: number, floor?: unknown) {
+  if (floor) {
+    localStorage.setItem("simulation-floor", JSON.stringify(floor));
+  }
+
+  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
+  const url = new URL(simUrl, window.location.origin);
+  if (Number.isFinite(planId) && planId > 0) url.searchParams.set("plan_id", String(planId));
+  url.searchParams.set("returnTo", window.location.href);
+  window.location.href = url.toString();
+}
+
+function openSimulation(bundle: SimulationBundle, floor?: unknown) {
+  const devices = bundle.listings.map((listing, index) => {
+    const type = listing.device_attributes?.device_type;
+    return {
+      id: makeSimulationDeviceId(listing, index),
+      name: listing.name,
+      type: typeof type === "string" ? type : listing.name,
+    };
+  });
+
+  localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  if (floor) {
+    localStorage.setItem("simulation-floor", JSON.stringify(floor));
+  }
+
+  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
+  const url = new URL(simUrl, window.location.origin);
+  url.searchParams.set("devices", JSON.stringify(devices));
+  window.location.href = url.toString();
+}
+
+function collectSimulationFloorData(
+  uploadedPlan: UploadedPlanState | null,
+  status: ApiPlanStatus | null,
+  plan: ApiHomePlan | null
+) {
+  const fromUpload = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
+  let floor: unknown = fromUpload ?? null;
+  let zones: unknown = null;
+  let layout: unknown = null;
+
+  const artifacts = collectStageArtifacts(status, plan);
+  for (const artifact of artifacts) {
+    const payload = artifact.data ?? artifact.payload;
+    floor ??= findFloorPayload(payload);
+    zones ??= findPayloadByKeys(payload, ["zones", "zone"]);
+    layout ??= findPayloadByKeys(payload, ["layout", "placements"]);
+  }
+
+  if (!floor && !zones && !layout) return null;
+  if (floor && !zones && !layout) return floor;
+
+  return {
+    floor,
+    zones,
+    layout,
+  };
+}
+
+function findFloorPayload(value: unknown): unknown {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  if (Array.isArray(record.walls) || Array.isArray(record.rooms) || record.layout || record.apartment) {
+    return value;
+  }
+
+  for (const key of ["floor", "floorJson", "parsedFloor", "apartment", "layout", "plan"]) {
+    const nested = record[key];
+    if (!nested) continue;
+    const match = findFloorPayload(nested);
+    if (match) return match;
+  }
+
+  return null;
+}
+
+function findPayloadByKeys(value: unknown, keys: string[]): unknown {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+
+  for (const [key, nested] of Object.entries(record)) {
+    const normalized = key.toLowerCase();
+    if (keys.some((candidate) => normalized === candidate || normalized.includes(candidate))) {
+      return nested;
+    }
+  }
+
+  for (const nested of Object.values(record)) {
+    const match = findPayloadByKeys(nested, keys);
+    if (match) return match;
+  }
+
+  return null;
+}
+
+function makeSimulationDeviceId(listing: ApiHomePlan["bundles"][number]["listings"][number], index: number) {
+  const rawType = listing.device_attributes?.device_type;
+  const type = typeof rawType === "string" && rawType.trim() ? rawType : listing.name;
+  const safeType = type.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, "_").replace(/^_+|_+$/g, "");
+  return `${safeType || "device"}_${listing.id}_${index + 1}`;
 }

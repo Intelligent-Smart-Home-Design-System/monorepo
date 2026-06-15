@@ -1,0 +1,39 @@
+{
+  "request_id": "lighting-plus-security",
+  "selected_levels": {
+    "security": "1",
+    "lighting": "1"
+  },
+  "floor_plan": {
+    "schema_version": "1.0",
+    "meta": { "source": "example", "units": "m" },
+    "walls": [],
+    "doors": [],
+    "windows": [],
+    "rooms": [
+      { "id": "room-kitchen", "name": "kitchen", "area": [[0, 0], [4, 0], [4, 3], [0, 3]], "area_m2": 12, "windows": [], "doors": [], "walls": [], "furniture": [], "plumbing": ["sink-kitchen"], "appliances": ["stove-kitchen"] },
+      { "id": "room-bathroom", "name": "bathroom", "area": [[4, 0], [6, 0], [6, 2], [4, 2]], "area_m2": 4, "windows": [], "doors": [], "walls": [], "furniture": [], "plumbing": ["sink-bathroom"], "appliances": [] },
+      { "id": "room-living", "name": "living", "area": [[0, 3], [4, 3], [4, 7], [0, 7]], "area_m2": 16, "windows": [], "doors": [], "walls": [], "furniture": [], "plumbing": [], "appliances": [] },
+      { "id": "room-bedroom", "name": "bedroom", "area": [[4, 3], [7, 3], [7, 7], [4, 7]], "area_m2": 12, "windows": [], "doors": [], "walls": [], "furniture": [], "plumbing": [], "appliances": [] },
+      { "id": "room-passage", "name": "passage", "area": [[6, 0], [7, 0], [7, 3], [6, 3]], "area_m2": 3, "windows": [], "doors": [], "walls": [], "furniture": [], "plumbing": [], "appliances": [] }
+    ],
+    "plumbing": [
+      { "id": "sink-kitchen", "name": "sink", "points": [[0.5, 0.5], [1, 0.5], [1, 1], [0.5, 1]], "room": "room-kitchen" },
+      { "id": "sink-bathroom", "name": "sink", "points": [[4.5, 0.5], [5, 0.5], [5, 1], [4.5, 1]], "room": "room-bathroom" }
+    ],
+    "appliances": [
+      { "id": "stove-kitchen", "name": "stove", "points": [[2, 0.5], [2.5, 0.5], [2.5, 1], [2, 1]], "room": "room-kitchen" }
+    ]
+  },
+  "device_selection": {
+    "main_ecosystem": "yandex",
+    "budget": 12000,
+    "requirements": [
+      { "requirement_id": 1, "device_type": "water_leak_sensor", "count": 1, "connect_to_main_ecosystem": true },
+      { "requirement_id": 2, "device_type": "gas_leak_sensor", "count": 1, "connect_to_main_ecosystem": true },
+      { "requirement_id": 3, "device_type": "smart_lamp", "count": 2, "connect_to_main_ecosystem": true }
+    ],
+    "max_solutions": 5,
+    "time_budget_seconds": 10
+  }
+}

@@ -21,7 +21,7 @@ run: build
 	$(COMPOSE) up -d
 
 down:
-	$(COMPOSE) down -v
+	$(COMPOSE) down
 
 logs:
 	$(COMPOSE) logs -f pipeline-worker temporal temporal-ui catalog-postgresql
@@ -34,3 +34,9 @@ trigger:
 
 migrate:
 	$(COMPOSE) run --rm catalog-db-migrate
+
+deploy:
+	git pull
+	make build
+	make migrate
+	make up

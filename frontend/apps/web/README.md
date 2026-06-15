@@ -47,12 +47,25 @@
 
 Frontend ожидает от backend поля `access_token` и `refresh_token`. Также поддерживаются camelCase-поля `accessToken`/`refreshToken` и вложенный объект `tokens`.
 
+## Переход в симуляцию
+
+На странице готового плана есть кнопка «Открыть в симуляции». Она сериализует выбранный
+bundle устройств и передает его в `apps/sim-ui` через query-параметр `devices`.
+
+URL симуляции можно задать переменной:
+
+```bash
+NEXT_PUBLIC_SIM_UI_URL=http://127.0.0.1:3000/simulation
+```
+
+Если переменная не задана, используется `http://127.0.0.1:3000/simulation`.
+
 ## Запуск
 
 Из директории `frontend`:
 
 ```bash
-npm install
+npm ci
 npm run dev --workspace @smart-home/web
 ```
 

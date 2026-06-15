@@ -11,10 +11,9 @@ type Props = {
 
   filter?: Filter;
   search?: string;
-  autoscroll?: boolean;
 };
 
-export function EventConsole({ title, events, filter = "ALL", search = "", autoscroll = true }: Props) {
+export function EventConsole({ title, events, filter = "ALL", search = "" }: Props) {
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   const filtered = useMemo(() => {
@@ -28,36 +27,29 @@ export function EventConsole({ title, events, filter = "ALL", search = "", autos
   }, [events, filter, search]);
 
   useEffect(() => {
-    if (!autoscroll) return;
     const el = boxRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [filtered, autoscroll]);
+  }, [filtered]);
 
   return (
-    <section className="glass-card p-5">
-      <div className="text-3xl font-semibold text-white mb-4">{title}</div>
+    <section className="glass-card event-console">
+      <div className="event-console-title">{title}</div>
 
       <div
         ref={boxRef}
-        className={[
-          "rounded-2xl border border-white/10 bg-black/30",
-          "max-h-[260px] overflow-auto",
-          "p-4",
-          "font-mono text-lg",
-        ].join(" ")}
+        className="console-surface event-console-box"
       >
         {filtered.length === 0 ? (
-          <div className="text-white/60 text-lg">—</div>
+          <div className="event-console-empty">Событий пока нет</div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="event-log-list">
             {filtered.map((e) => (
-              <div key={e.id} className="flex gap-3 items-start">
-                <span className="text-white/60 w-28">{e.ts}</span>
-                <span className="text-white/80">[{e.level}]</span>
-                <span className="text-white/90">{e.device}</span>
-                <span className="text-white/50">—</span>
-                <span className="text-white break-words">{e.message}</span>
+              <div key={e.id} className={`event-log-row event-log-${e.level.toLowerCase()}`}>
+                <span className="event-log-time">{e.ts}</span>
+                <span className="event-log-level">[{e.level}]</span>
+                <span className="event-log-device">{e.device}</span>
+                <span className="event-log-message">{e.message}</span>
               </div>
             ))}
           </div>

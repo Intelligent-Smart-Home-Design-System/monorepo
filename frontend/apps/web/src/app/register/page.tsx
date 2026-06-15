@@ -28,6 +28,19 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   const submit = async () => {
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedEmail.includes("@")) {
+      setError("Введите корректный email.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Пароль должен быть не короче 8 символов.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Пароли не совпадают.");
       return;
@@ -36,7 +49,7 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError("");
     try {
-      await auth.register({ email, password, name });
+      await auth.register({ email: trimmedEmail, password, name: trimmedName });
       router.push(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Не удалось зарегистрироваться.");
@@ -48,7 +61,7 @@ export default function RegisterPage() {
   return (
     <AuthPageShell
       title="Регистрация"
-      subtitle="Создайте пользователя, чтобы получить access_token и refresh_token для последующих запросов."
+      subtitle="Создайте аккаунт, чтобы продолжить работу с планировщиком."
     >
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}

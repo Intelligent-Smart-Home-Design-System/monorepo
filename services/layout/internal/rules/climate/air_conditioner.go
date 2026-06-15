@@ -21,7 +21,7 @@ const powerMargin float64 = 1.2
 // wattToBTU — коэффициент перевода Вт в BTU/ч.
 const wattToBTU float64 = 3.412
 
-type AirConditioner struct {}
+type AirConditioner struct{}
 
 func NewAirConditionerRule() *AirConditioner {
 	return &AirConditioner{}

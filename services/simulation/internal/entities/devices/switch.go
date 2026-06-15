@@ -15,11 +15,13 @@ type Switcher struct {
 	TurnOn bool `json:"turn_on"`
 }
 
+// SwitcherData - данные для переключателя
 type SwitcherData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSwitcher - конструктор для Switcher
 func NewSwitcher(data []byte, engineAPI engine.EnginePort) (*Switcher, error) {
 	var sw Switcher
 	if err := json.Unmarshal(data, &sw); err != nil {
@@ -33,6 +35,7 @@ func NewSwitcher(data []byte, engineAPI engine.EnginePort) (*Switcher, error) {
 	return &sw, nil
 }
 
+// HandleInDTO - обработка входящих данных для Switcher
 func (l *Switcher) HandleInDTO(dto []byte) error {
 	input := SwitcherData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -44,6 +47,7 @@ func (l *Switcher) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// HandleEvent - обработка события для Switcher
 func (l *Switcher) HandleEvent(inData SwitcherData) SwitcherData {
 	l.TurnOn = inData.TurnOn
 

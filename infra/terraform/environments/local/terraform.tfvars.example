@@ -1,0 +1,8 @@
+# Дефолтные порты (без сдвига). Скопируйте в terraform.tfvars:
+#   cp terraform.tfvars.example terraform.tfvars
+
+project_name      = "pipeline-worker"
+env_file          = ""
+temporal_ui_port  = 8088
+temporal_grpc_port = 7233
+catalog_db_port   = 5432

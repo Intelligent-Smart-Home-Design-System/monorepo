@@ -1,5 +1,5 @@
 // Package otellog provides a zerolog io.Writer that sends log records to an
-// OpenTelemetry Collector via OTLP/gRPC.
+// OpenTelemetry Collector via OTLP/HTTP.
 //
 // Usage:
 //
@@ -17,13 +17,11 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // ShutdownFunc gracefully flushes and shuts down the OTLP log pipeline.
@@ -39,16 +37,14 @@ func NewOTLPWriter(ctx context.Context, serviceName string) (ShutdownFunc, *Writ
 		return func(context.Context) error { return nil }, &Writer{}, nil
 	}
 
-	conn, err := grpc.NewClient(endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	// Use OTLP/HTTP exporter.  The exporter manages its own HTTP client
+	// lifecycle — no manual connection setup required.
+	exporter, err := otlploghttp.New(ctx,
+		otlploghttp.WithEndpoint(endpoint),
+		otlploghttp.WithInsecure(),
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("otellog: grpc dial %s: %w", endpoint, err)
-	}
-
-	exporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
-	if err != nil {
-		return nil, nil, fmt.Errorf("otellog: create exporter: %w", err)
+		return nil, nil, fmt.Errorf("otellog: create exporter for %s: %w", endpoint, err)
 	}
 
 	res, err := resource.New(ctx,
@@ -68,10 +64,7 @@ func NewOTLPWriter(ctx context.Context, serviceName string) (ShutdownFunc, *Writ
 	logger := provider.Logger("otellog")
 
 	shutdown := func(ctx context.Context) error {
-		if err := provider.Shutdown(ctx); err != nil {
-			return err
-		}
-		return conn.Close()
+		return provider.Shutdown(ctx)
 	}
 
 	return shutdown, &Writer{logger: logger}, nil

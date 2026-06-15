@@ -18,16 +18,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/otellog"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/oteltrace"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelsetup"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelzerolog"
 	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/trace"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/opentelemetry"
@@ -38,39 +37,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	// Set up OTLP log writer: if OTEL_EXPORTER_OTLP_ENDPOINT is set, logs are
-	// sent both to stdout and to the centralized OpenTelemetry Collector.
-	otelShutdown, otelWriter, err := otellog.NewOTLPWriter(ctx, "api-gateway")
-	if err != nil {
-		// Fall back to stdout-only logging if OTLP setup fails.
-		fallback := zerolog.New(os.Stdout).With().Timestamp().Str("service", "api-gateway").Logger()
-		fallback.Warn().Err(err).Msg("failed to initialize OTLP log writer, falling back to stdout")
-		otelShutdown = func(context.Context) error { return nil }
-		otelWriter = &otellog.Writer{}
-	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = otelShutdown(shutdownCtx)
-	}()
-
-	// Set up OTLP trace provider: spans are exported to the OTEL Collector
-	// and forwarded to Jaeger for distributed tracing visualisation.
-	traceShutdown, err := oteltrace.Init(ctx, "api-gateway")
-	if err != nil {
-		fallback := zerolog.New(os.Stdout).With().Timestamp().Str("service", "api-gateway").Logger()
-		fallback.Warn().Err(err).Msg("failed to initialize OTLP trace provider, tracing disabled")
-		traceShutdown = func(context.Context) error { return nil }
-	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = traceShutdown(shutdownCtx)
-	}()
-
-	log := zerolog.New(zerolog.MultiLevelWriter(os.Stdout, otelWriter)).
-		Hook(tracingHook{}).
-		With().Timestamp().Str("service", "api-gateway").Logger()
+	telemetry := otelsetup.New(ctx, "api-gateway")
+	defer telemetry.Shutdown()
+	log := telemetry.Log
 
 	tracingInterceptor, err := opentelemetry.NewTracingInterceptor(opentelemetry.TracerOptions{})
 	if err != nil {
@@ -80,7 +49,7 @@ func main() {
 	dialOpts := client.Options{
 		HostPort:      env("TEMPORAL_ADDRESS", "localhost:7233"),
 		Namespace:     env("TEMPORAL_NAMESPACE", "default"),
-		Logger:        temporalLogger{log: log},
+		Logger:        otelzerolog.NewTemporal(log),
 		DataConverter: pipeline.NewDataConverter(),
 	}
 	if tracingInterceptor != nil {
@@ -685,42 +654,4 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-// tracingHook is a zerolog.Hook that injects trace_id and span_id from the
-// OpenTelemetry span context into every log event.  The span context is
-// obtained from the Go context attached to the event via Event.Ctx().
-type tracingHook struct{}
-
-func (h tracingHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
-	ctx := e.GetCtx()
-	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
-		e.Str("trace_id", span.SpanContext().TraceID().String())
-		e.Str("span_id", span.SpanContext().SpanID().String())
-	}
-}
-
-type temporalLogger struct{ log zerolog.Logger }
-
-func (l temporalLogger) Debug(msg string, keyvals ...interface{}) {
-	l.log.Debug().Fields(fields(keyvals...)).Msg(msg)
-}
-func (l temporalLogger) Info(msg string, keyvals ...interface{}) {
-	l.log.Info().Fields(fields(keyvals...)).Msg(msg)
-}
-func (l temporalLogger) Warn(msg string, keyvals ...interface{}) {
-	l.log.Warn().Fields(fields(keyvals...)).Msg(msg)
-}
-func (l temporalLogger) Error(msg string, keyvals ...interface{}) {
-	l.log.Error().Fields(fields(keyvals...)).Msg(msg)
-}
-
-func fields(keyvals ...interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(keyvals)/2)
-	for i := 0; i+1 < len(keyvals); i += 2 {
-		if key, ok := keyvals[i].(string); ok {
-			out[key] = keyvals[i+1]
-		}
-	}
-	return out
 }

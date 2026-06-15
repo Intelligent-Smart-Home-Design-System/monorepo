@@ -1,12 +1,5 @@
 // Package otellog provides a zerolog io.Writer that sends log records to an
 // OpenTelemetry Collector via OTLP/HTTP.
-//
-// Usage:
-//
-//	shutdown, writer, err := otellog.NewOTLPWriter(ctx, "api-gateway")
-//	if err != nil { ... }
-//	defer shutdown(context.Background())
-//	log := zerolog.New(zerolog.MultiLevelWriter(os.Stdout, writer)).With().Timestamp().Logger()
 package otellog
 
 import (
@@ -24,21 +17,14 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
-// ShutdownFunc gracefully flushes and shuts down the OTLP log pipeline.
 type ShutdownFunc func(ctx context.Context) error
 
-// NewOTLPWriter creates an io.Writer that forwards zerolog JSON lines to the
-// OTEL Collector specified by OTEL_EXPORTER_OTLP_ENDPOINT (env var).
-// If the env var is empty, it returns a no-op writer so the service still works
-// without the monitoring stack.
 func NewOTLPWriter(ctx context.Context, serviceName string) (ShutdownFunc, *Writer, error) {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
 		return func(context.Context) error { return nil }, &Writer{}, nil
 	}
 
-	// Use OTLP/HTTP exporter.  The exporter manages its own HTTP client
-	// lifecycle — no manual connection setup required.
 	exporter, err := otlploghttp.New(ctx,
 		otlploghttp.WithEndpoint(endpoint),
 		otlploghttp.WithInsecure(),
@@ -70,23 +56,18 @@ func NewOTLPWriter(ctx context.Context, serviceName string) (ShutdownFunc, *Writ
 	return shutdown, &Writer{logger: logger}, nil
 }
 
-// Writer implements io.Writer. Each Write call is expected to receive a single
-// zerolog JSON line. It parses the JSON, extracts standard fields (level,
-// message, time) and forwards the rest as OTLP log attributes.
 type Writer struct {
 	logger otellog.Logger
 	mu     sync.Mutex
 }
 
-// Write parses a zerolog JSON line and emits it as an OTLP log record.
 func (w *Writer) Write(p []byte) (int, error) {
 	if w.logger == nil {
-		return len(p), nil // no-op when OTLP is not configured
+		return len(p), nil
 	}
 
 	var fields map[string]interface{}
 	if err := json.Unmarshal(p, &fields); err != nil {
-		// If we can't parse the JSON, send the raw line as body.
 		var rec otellog.Record
 		rec.SetBody(otellog.StringValue(string(p)))
 		rec.SetTimestamp(time.Now())
@@ -96,20 +77,17 @@ func (w *Writer) Write(p []byte) (int, error) {
 
 	var rec otellog.Record
 
-	// Extract and set the log body (message).
 	if msg, ok := fields["message"].(string); ok {
 		rec.SetBody(otellog.StringValue(msg))
 		delete(fields, "message")
 	}
 
-	// Extract and set severity from zerolog level field.
 	if lvl, ok := fields["level"].(string); ok {
 		rec.SetSeverity(mapSeverity(lvl))
 		rec.SetSeverityText(lvl)
 		delete(fields, "level")
 	}
 
-	// Extract and set timestamp.
 	if ts, ok := fields["time"].(string); ok {
 		if t, err := time.Parse(time.RFC3339, ts); err == nil {
 			rec.SetTimestamp(t)
@@ -121,7 +99,6 @@ func (w *Writer) Write(p []byte) (int, error) {
 		rec.SetTimestamp(time.Now())
 	}
 
-	// All remaining fields become OTLP attributes.
 	attrs := make([]otellog.KeyValue, 0, len(fields))
 	for k, v := range fields {
 		attrs = append(attrs, otellog.KeyValue{

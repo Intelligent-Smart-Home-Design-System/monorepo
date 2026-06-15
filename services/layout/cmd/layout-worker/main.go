@@ -9,18 +9,24 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/temporalworker"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelsetup"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelzerolog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/contrib/opentelemetry"
+	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 )
 
 func main() {
-	log := zerolog.New(os.Stdout).With().Timestamp().Str("service", "layout-worker").Logger()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	telemetry := otelsetup.New(ctx, "layout-worker")
+	defer telemetry.Shutdown()
+	log := telemetry.Log
 
 	activities, err := temporalworker.NewActivities(
 		env("LAYOUT_TRACKS_CONFIG", "internal/configs/tracks.json"),
@@ -43,16 +49,32 @@ func main() {
 		}
 	}()
 
-	temporalClient, err := client.Dial(client.Options{
+	tracingInterceptor, err := opentelemetry.NewTracingInterceptor(opentelemetry.TracerOptions{})
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to create Temporal tracing interceptor, tracing disabled for activities")
+	}
+
+	dialOpts := client.Options{
 		HostPort:  env("TEMPORAL_ADDRESS", "localhost:7233"),
 		Namespace: env("TEMPORAL_NAMESPACE", "default"),
-	})
+		Logger:    otelzerolog.NewTemporal(log),
+	}
+	if tracingInterceptor != nil {
+		dialOpts.Interceptors = []interceptor.ClientInterceptor{tracingInterceptor}
+	}
+
+	temporalClient, err := client.Dial(dialOpts)
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect temporal")
 	}
 	defer temporalClient.Close()
 
-	layoutWorker := worker.New(temporalClient, env("TEMPORAL_TASK_QUEUE", "layout"), worker.Options{})
+	workerOpts := worker.Options{}
+	if tracingInterceptor != nil {
+		workerOpts.Interceptors = []interceptor.WorkerInterceptor{tracingInterceptor}
+	}
+
+	layoutWorker := worker.New(temporalClient, env("TEMPORAL_TASK_QUEUE", "layout"), workerOpts)
 	layoutWorker.RegisterActivityWithOptions(activities.PlaceDevices, activity.RegisterOptions{Name: "place_devices"})
 
 	go func() {

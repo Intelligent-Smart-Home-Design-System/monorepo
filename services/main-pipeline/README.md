@@ -32,20 +32,20 @@ make deploy        # git pull + пересобрать prod
 
 ## Переменные окружения
 
-### main-pipeline (`docker-compose.yml` / `docker-compose_prod.yml`)
+### main-pipeline (`docker-compose.apps.yaml` / `docker-compose.apps.prod.yaml`)
 
 | Переменная | Дефолт | Где задан дефолт | Описание | Менять для прода? |
 |------------|--------|------------------|----------|:-:|
-| `CATALOG_DB_USER` | `catalog` | `docker-compose.yml` | Пользователь PostgreSQL | ✅ |
-| `CATALOG_DB_PASSWORD` | `catalog` | `docker-compose.yml` | Пароль PostgreSQL | ✅ |
-| `CATALOG_DB_NAME` | `smart_home` | `docker-compose.yml` | Имя базы данных | — |
-| `CATALOG_DB_HOST` | `catalog-postgresql` | `docker-compose_prod.yml` | Хост БД (прод — внешний) | ✅ |
-| `CATALOG_DB_PORT` | `5432` | `docker-compose_prod.yml` | Порт БД | — |
-| `CATALOG_DB_SSLMODE` | `disable` | `docker-compose_prod.yml` | SSL-режим PostgreSQL | ✅ `require` |
-| `JWT_SECRET` | `dev-jwt-secret` | `docker-compose.yml` | Секрет для JWT-токенов | ✅ |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel-collector:4317` | `docker-compose.yml` | Адрес OTEL Collector | — |
-| `TEMPORAL_DB_USER` | `temporal` | `docker-compose.yml` | Пользователь Temporal DB | — |
-| `TEMPORAL_DB_PASSWORD` | `temporal` | `docker-compose.yml` | Пароль Temporal DB | ✅ |
+| `CATALOG_DB_USER` | `catalog` | `docker-compose.apps.yaml` | Пользователь PostgreSQL | ✅ |
+| `CATALOG_DB_PASSWORD` | `catalog` | `docker-compose.apps.yaml` | Пароль PostgreSQL | ✅ |
+| `CATALOG_DB_NAME` | `smart_home` | `docker-compose.apps.yaml` | Имя базы данных | — |
+| `CATALOG_DB_HOST` | `catalog-postgresql` | `docker-compose.apps.prod.yaml` | Хост БД (прод — внешний) | ✅ |
+| `CATALOG_DB_PORT` | `5432` | `docker-compose.apps.prod.yaml` | Порт БД | — |
+| `CATALOG_DB_SSLMODE` | `disable` | `docker-compose.apps.prod.yaml` | SSL-режим PostgreSQL | ✅ `require` |
+| `JWT_SECRET` | `dev-jwt-secret` | `docker-compose.apps.yaml` | Секрет для JWT-токенов | ✅ |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel-collector:4318` | `docker-compose.apps.yaml` | Адрес OTEL Collector | — |
+| `TEMPORAL_DB_USER` | `temporal` | `docker-compose.apps.yaml` | Пользователь Temporal DB | — |
+| `TEMPORAL_DB_PASSWORD` | `temporal` | `docker-compose.apps.yaml` | Пароль Temporal DB | ✅ |
 
 ### pipeline-worker (`services/pipeline-worker/docker-compose.yaml`)
 
@@ -66,23 +66,25 @@ make deploy        # git pull + пересобрать prod
 ### Как задавать
 
 - **Локально**: дефолты работают из коробки, ничего менять не нужно.
-- **Тестинг/прод**: создать `.env` файл рядом с compose-файлом (см. `.env.example`) или задать через `export`.
+- **Тестинг/прод**: создать `.env` в корне монорепозитория (см. `services/main-pipeline/.env.example`) или задать через `export`.
 
-## Подключение OTLP к новому сервису
+## Подключение OTLP к новому Go-сервису
 
 В `main()`:
 
 ```go
-shutdown, writer, _ := otellog.NewOTLPWriter(ctx, "service-name")
-defer shutdown(context.Background())
-logger := zerolog.New(zerolog.MultiLevelWriter(os.Stdout, writer)).With().Timestamp().Logger()
+telemetry := otelsetup.New(ctx, "service-name")
+defer telemetry.Shutdown()
+log := telemetry.Log
 ```
 
-В `docker-compose.yml`:
+Пакеты: `shared/telemetry/go/{otelsetup,otellog,oteltrace,otelzerolog}`.
+
+В `docker-compose.apps.yaml`:
 
 ```yaml
 environment:
-  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4317}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
   OTEL_EXPORTER_OTLP_INSECURE: "true"
 networks:
   - default

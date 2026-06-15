@@ -40,7 +40,7 @@ type UploadedPlanState = {
   zones?: unknown;
 };
 
-type ResultTabKey = "final" | "zones" | "energy" | "stages";
+type ResultTabKey = string;
 
 type ResultTab = {
   key: ResultTabKey;
@@ -52,6 +52,11 @@ type PipelineStatusResponse = {
   workflow_id: string;
   run_id?: string;
   status: string;
+  stages?: ApiPlanStageArtifact[] | null;
+  artifacts?: ApiPlanStageArtifact[] | null;
+  parsed_floor_plan?: unknown;
+  layout?: unknown;
+  device_selection?: unknown;
 };
 
 export default function PlanPage() {
@@ -113,19 +118,23 @@ function PlanPageContent() {
 
           if (isPipelinePending(currentResult)) {
             const normalizedStatus = normalizePipelineStatus(currentResult.status);
+            const stages = pipelineResultToStageArtifacts(currentResult);
             setStatus({
               plan_id: 0,
               status: normalizedStatus,
               progress: null,
-              stages: [
-                {
-                  key: "workflow",
-                  title: "Pipeline",
-                  status: currentResult.status,
-                  payload: currentResult,
-                },
-              ],
+              stages: stages.length
+                ? stages
+                : [
+                    {
+                      key: "workflow",
+                      title: "Pipeline",
+                      status: currentResult.status,
+                      payload: currentResult,
+                    },
+                  ],
             });
+            setPlan(pipelineResultToPlan(currentResult, Number(budgetFromStorage()) || 0));
             setLoading(false);
             if (normalizedStatus === "failed") {
               setError("Pipeline завершился с ошибкой. Подробности статуса показаны в промежуточных этапах.");
@@ -311,14 +320,14 @@ function PlanPageContent() {
           </Alert>
         ) : invalidPlanId ? (
           <Alert severity="error">Не передан корректный plan_id.</Alert>
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
         ) : loading && !status ? (
           <Box sx={{ py: 8, display: "grid", placeItems: "center" }}>
             <CircularProgress />
           </Box>
         ) : (
           <Stack spacing={2.5}>
+            {error && <Alert severity="error">{error}</Alert>}
+
             <Card sx={surfaceCardSx}>
               <CardContent>
                 <Stack
@@ -399,7 +408,10 @@ function PlanPageContent() {
 
                   {plan ? (
                     <Stack spacing={2}>
-                      <PreviewArea uploadedPlan={uploadedPlan} />
+                      <PreviewArea
+                        uploadedPlan={uploadedPlan}
+                        floorData={collectSimulationFloorData(uploadedPlan, status, plan)}
+                      />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
                         <Chip label={`Основная экосистема: ${plan.main_ecosystem_id}`} />
@@ -626,7 +638,26 @@ function PlanPageContent() {
   );
 }
 
-function PreviewArea(props: { uploadedPlan: UploadedPlanState | null }) {
+function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown }) {
+  const floorFromStages = normalizeFloorPreviewData(props.floorData);
+  if (floorFromStages.floor) {
+    return (
+      <Box
+        sx={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "16 / 10",
+          borderRadius: 4,
+          overflow: "hidden",
+          border: "1px solid rgba(148,163,184,0.24)",
+          background: "#f4f6f8",
+        }}
+      >
+        <ApartmentPlanPreview floor={floorFromStages.floor} zones={floorFromStages.zones} />
+      </Box>
+    );
+  }
+
   if (!props.uploadedPlan) {
     return (
       <Box
@@ -726,7 +757,11 @@ function buildResultTabs(stageArtifacts: ApiPlanStageArtifact[], hasFinalPlan: b
   const tabs: ResultTab[] = [];
   const zones = findStageArtifact(stageArtifacts, ["zones", "zoning", "rooms", "layout_zones"]);
   const energy = findStageArtifact(stageArtifacts, ["energy", "energy_report", "power", "consumption"]);
-  const extraStages = stageArtifacts.filter((artifact) => artifact !== zones && artifact !== energy);
+  const floor = findStageArtifact(stageArtifacts, ["parsed_floor_plan", "floor_plan", "floor", "apartment"]);
+  const layout = findStageArtifact(stageArtifacts, ["layout", "placement", "placements"]);
+  const deviceSelection = findStageArtifact(stageArtifacts, ["device_selection", "pareto", "bundle", "bundles"]);
+  const promoted = new Set([zones, energy, floor, layout, deviceSelection].filter(Boolean));
+  const extraStages = stageArtifacts.filter((artifact) => !promoted.has(artifact));
 
   if (hasFinalPlan) {
     tabs.push({ key: "final", label: "Финал" });
@@ -740,15 +775,23 @@ function buildResultTabs(stageArtifacts: ApiPlanStageArtifact[], hasFinalPlan: b
     tabs.push({ key: "energy", label: "Энергопотребление", artifact: energy });
   }
 
-  if (extraStages.length) {
+  if (floor) {
+    tabs.push({ key: "parsed_floor_plan", label: "Квартира", artifact: floor });
+  }
+
+  if (layout) {
+    tabs.push({ key: "layout", label: "Расстановка", artifact: layout });
+  }
+
+  if (deviceSelection) {
+    tabs.push({ key: "device_selection", label: "Подбор устройств", artifact: deviceSelection });
+  }
+
+  for (const artifact of extraStages) {
     tabs.push({
-      key: "stages",
-      label: "Этапы",
-      artifact: {
-        key: "stages",
-        title: "Промежуточные этапы",
-        data: extraStages,
-      },
+      key: artifact.key,
+      label: artifact.title ?? artifact.name ?? artifact.key,
+      artifact,
     });
   }
 
@@ -775,6 +818,8 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
   }
 
   const payload = props.artifact.data ?? props.artifact.payload ?? props.artifact;
+  const floorPreview = normalizeFloorPreviewData(payload);
+  const bundles = normalizeDeviceSelectionBundles(payload);
 
   return (
     <Card sx={surfaceCardSx}>
@@ -801,10 +846,66 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
             </Box>
           )}
 
+          {floorPreview.floor && (
+            <Box
+              sx={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "16 / 10",
+                borderRadius: 4,
+                overflow: "hidden",
+                border: "1px solid rgba(148,163,184,0.24)",
+                background: "#f4f6f8",
+              }}
+            >
+              <ApartmentPlanPreview floor={floorPreview.floor} zones={floorPreview.zones} />
+            </Box>
+          )}
+
+          {bundles.length > 0 && <DeviceSelectionSummary bundles={bundles} />}
+
           <StagePayloadView payload={payload} />
         </Stack>
       </CardContent>
     </Card>
+  );
+}
+
+function DeviceSelectionSummary(props: { bundles: ApiHomePlan["bundles"] }) {
+  return (
+    <Stack spacing={1.2}>
+      <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+        Наборы из device_selection
+      </Typography>
+      {props.bundles.map((bundle) => (
+        <Box
+          key={bundle.id}
+          sx={{
+            borderRadius: 3,
+            p: 1.5,
+            background: bundle.is_recommended ? "#ecfdf5" : "#f8fafc",
+            border: "1px solid rgba(148,163,184,0.22)",
+          }}
+        >
+          <Stack spacing={0.8}>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+              <Chip size="small" label={`Набор #${bundle.id}`} />
+              {bundle.is_recommended && <Chip size="small" color="success" label="Рекомендованный" />}
+              <Chip size="small" label={`${Math.round(bundle.total_cost).toLocaleString("ru-RU")} ₽`} />
+              <Chip size="small" label={`Качество ${bundle.quality_score.toFixed(2)}`} />
+              <Chip size="small" label={`Устройств ${bundle.listings.length}`} />
+            </Stack>
+            <Stack spacing={0.5}>
+              {bundle.listings.slice(0, 5).map((listing) => (
+                <Typography key={listing.id} variant="body2" color="text.secondary">
+                  {listing.name} · {listing.units_to_buy} шт.
+                </Typography>
+              ))}
+            </Stack>
+          </Stack>
+        </Box>
+      ))}
+    </Stack>
   );
 }
 
@@ -1050,8 +1151,112 @@ function normalizePipelineStatus(status: string): ApiPlanStatus["status"] {
   return "generating";
 }
 
-function pipelineResultToStageArtifacts(result: ApiPipelineResult): ApiPlanStageArtifact[] {
+function normalizeFloorPreviewData(value: unknown): { floor: unknown | null; zones?: unknown } {
+  const floor = findFloorPayload(value);
+  const zones = findPayloadByKeys(value, ["zones", "zone"]);
+  return { floor: floor ?? null, zones: zones ?? undefined };
+}
+
+function normalizeDeviceSelectionBundles(value: unknown): ApiHomePlan["bundles"] {
+  const record = asRecord(value);
+  if (!record) return [];
+
+  const source = asRecord(record.device_selection) ?? record;
+  const directBundles = asArray(source.bundles) ?? asArray(source.solutions);
+  if (directBundles) {
+    return directBundles.map((bundle, index) => normalizeBundle(bundle, index)).filter(Boolean) as ApiHomePlan["bundles"];
+  }
+
+  const paretoPoints = asArray(source.pareto_points) ?? asArray(source.points) ?? asArray(source.result);
+  if (!paretoPoints) return [];
+
+  return paretoPoints.map((point, index) => normalizeBundle(point, index)).filter(Boolean) as ApiHomePlan["bundles"];
+}
+
+function normalizeBundle(value: unknown, index: number): ApiHomePlan["bundles"][number] | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const rawItems = asArray(record.listings) ?? asArray(record.items) ?? asArray(record.devices) ?? [];
+  const listings = rawItems
+    .flatMap((item, itemIndex) => normalizeListingsFromItem(item, index, itemIndex))
+    .filter(Boolean) as ApiHomePlan["bundles"][number]["listings"];
+
+  return {
+    id: toNumber(record.id, index + 1),
+    total_cost: toNumber(record.total_cost ?? record.cost, listings.reduce((sum, listing) => sum + listing.price * listing.units_to_buy, 0)),
+    quality_score: toNumber(record.quality_score ?? record.avg_quality ?? record.quality, 0),
+    extra_ecosystems_used: toNumber(record.extra_ecosystems_used ?? record.num_ecosystems, 0),
+    hubs_used: toNumber(record.hubs_used ?? record.num_hubs, 0),
+    is_recommended: Boolean(record.is_recommended ?? index === 0),
+    ecosystems_used: asStringArray(record.ecosystems_used),
+    listings,
+  };
+}
+
+function normalizeListingsFromItem(
+  value: unknown,
+  bundleIndex: number,
+  itemIndex: number
+): ApiHomePlan["bundles"][number]["listings"] {
+  const record = asRecord(value);
+  if (!record) return [];
+
+  if (record.best_listing || record.listings) {
+    const bestListing = asRecord(record.best_listing);
+    const listings = asArray(record.listings);
+    const listingSource = bestListing ?? asRecord(listings?.[0]) ?? record;
+    return [normalizeListing(listingSource, record, bundleIndex, itemIndex)];
+  }
+
+  return [normalizeListing(record, record, bundleIndex, itemIndex)];
+}
+
+function normalizeListing(
+  source: Record<string, unknown>,
+  item: Record<string, unknown>,
+  bundleIndex: number,
+  itemIndex: number
+): ApiHomePlan["bundles"][number]["listings"][number] {
+  const sourceId = source.id ?? source.listing_id ?? source.source_listing_id ?? item.device_id;
+  const id = toNumber(sourceId, (bundleIndex + 1) * 1000 + itemIndex + 1);
+  const brand = toText(source.brand ?? item.brand, "Неизвестный бренд");
+  const model = toText(source.model ?? item.model, "");
+  const category = toText(item.category ?? item.device_type ?? item.type, "Устройство");
+  const name = toText(source.name ?? source.title, [brand, model].filter(Boolean).join(" ") || category);
+  const price = toNumber(source.price ?? source.price_each ?? item.price_each ?? item.price, 0);
+  const quantity = toNumber(item.quantity ?? item.count ?? source.quantity, 1);
+  const connection = asRecord(item.connection) ?? asRecord(source.connection_info);
+
+  return {
+    id,
+    name,
+    device_brand: brand,
+    device_model: model,
+    device_quality_score: toNumber(item.quality ?? source.quality ?? source.device_quality_score, 0),
+    price,
+    url: toText(source.url ?? source.product_url, "#"),
+    image_url: toNullableText(source.image_url ?? item.image_url),
+    devices_per_listing: toNumber(source.devices_per_listing, 1),
+    units_to_buy: quantity,
+    requirement_id: toNumber(item.requirement_id ?? source.requirement_id, itemIndex + 1),
+    device_attributes: (asRecord(item.device_attributes) ?? asRecord(source.device_attributes) ?? { device_type: category }) as Record<string, unknown>,
+    connection_info: {
+      direct_ecosystem: toText(connection?.ecosystem ?? connection?.direct_ecosystem ?? connection?.bridge_ecosystem, ""),
+      direct_protocol: toText(connection?.protocol ?? connection?.direct_protocol ?? connection?.method, ""),
+      direct_description: toNullableText(connection?.method),
+      final_ecosystem: toText(connection?.final_ecosystem ?? connection?.ecosystem ?? connection?.bridge_ecosystem, ""),
+      final_protocol: toText(connection?.final_protocol ?? connection?.protocol ?? connection?.method, ""),
+      final_description: toNullableText(connection?.bridge_ecosystem),
+    },
+  };
+}
+
+function pipelineResultToStageArtifacts(result: ApiPipelineResult | PipelineStatusResponse): ApiPlanStageArtifact[] {
   const stages: ApiPlanStageArtifact[] = [];
+  for (const artifact of [...(result.stages ?? []), ...(result.artifacts ?? [])]) {
+    if (artifact.key) stages.push(artifact);
+  }
   if (result.parsed_floor_plan) {
     stages.push({ key: "parsed_floor_plan", title: "Распознанный план", status: "completed", payload: result.parsed_floor_plan });
   }
@@ -1064,16 +1269,65 @@ function pipelineResultToStageArtifacts(result: ApiPipelineResult): ApiPlanStage
   return stages;
 }
 
-function pipelineResultToPlan(result: ApiPipelineResult, budget: number): ApiHomePlan {
+function pipelineResultToPlan(result: ApiPipelineResult | PipelineStatusResponse, budget: number): ApiHomePlan {
+  const bundles = normalizeDeviceSelectionBundles(result.device_selection ?? result);
+  const requirements = collectRequirementsFromBundles(bundles);
+
   return {
     plan_id: 0,
     budget,
     main_ecosystem_id: "",
-    requirements: [],
-    bundles: [],
+    requirements,
+    bundles,
     stages: pipelineResultToStageArtifacts(result),
     artifacts: pipelineResultToStageArtifacts(result),
   };
+}
+
+function collectRequirementsFromBundles(bundles: ApiHomePlan["bundles"]): ApiHomePlan["requirements"] {
+  const byId = new Map<number, ApiHomePlan["requirements"][number]>();
+  for (const bundle of bundles) {
+    for (const listing of bundle.listings) {
+      if (!byId.has(listing.requirement_id)) {
+        byId.set(listing.requirement_id, {
+          id: listing.requirement_id,
+          device_type: toText(listing.device_attributes?.device_type, listing.name),
+          quantity: listing.units_to_buy,
+          filters: [],
+        });
+      }
+    }
+  }
+  return Array.from(byId.values());
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function asArray(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
+function asStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : undefined;
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function toText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function toNullableText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function budgetFromStorage() {

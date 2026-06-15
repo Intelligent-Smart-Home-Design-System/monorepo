@@ -10,17 +10,23 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelsetup"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelzerolog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/contrib/opentelemetry"
+	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 )
 
 func main() {
-	log := zerolog.New(os.Stdout).With().Timestamp().Str("service", "main-pipeline").Logger()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	telemetry := otelsetup.New(ctx, "main-pipeline")
+	defer telemetry.Shutdown()
+	log := telemetry.Log
 
 	temporalAddress := env("TEMPORAL_ADDRESS", "localhost:7233")
 	namespace := env("TEMPORAL_NAMESPACE", "default")
@@ -29,20 +35,36 @@ func main() {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(prometheus.NewGoCollector(), prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 
-	temporalClient, err := client.Dial(client.Options{
+	tracingInterceptor, err := opentelemetry.NewTracingInterceptor(opentelemetry.TracerOptions{})
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to create Temporal tracing interceptor, tracing disabled for workflows")
+	}
+
+	dialOpts := client.Options{
 		HostPort:      temporalAddress,
 		Namespace:     namespace,
-		Logger:        temporalLogger{log: log},
+		Logger:        otelzerolog.NewTemporal(log),
 		DataConverter: pipeline.NewDataConverter(),
-	})
+	}
+	if tracingInterceptor != nil {
+		dialOpts.Interceptors = []interceptor.ClientInterceptor{tracingInterceptor}
+	}
+
+	temporalClient, err := client.Dial(dialOpts)
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect temporal")
 	}
 	defer temporalClient.Close()
 
-	workflowWorker := worker.New(temporalClient, workflows.MainPipelineTaskQueue, worker.Options{})
+	workerOpts := worker.Options{}
+	if tracingInterceptor != nil {
+		workerOpts.Interceptors = []interceptor.WorkerInterceptor{tracingInterceptor}
+	}
+
+	workflowWorker := worker.New(temporalClient, workflows.MainPipelineTaskQueue, workerOpts)
 	workflowWorker.RegisterWorkflow(workflows.MainPipelineWorkflow)
 	go func() {
+		log.Info().Msg("workflow worker started")
 		if err := workflowWorker.Run(worker.InterruptCh()); err != nil {
 			log.Fatal().Err(err).Msg("run workflow worker")
 		}
@@ -73,29 +95,4 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-type temporalLogger struct{ log zerolog.Logger }
-
-func (l temporalLogger) Debug(msg string, keyvals ...interface{}) {
-	l.log.Debug().Fields(fields(keyvals...)).Msg(msg)
-}
-func (l temporalLogger) Info(msg string, keyvals ...interface{}) {
-	l.log.Info().Fields(fields(keyvals...)).Msg(msg)
-}
-func (l temporalLogger) Warn(msg string, keyvals ...interface{}) {
-	l.log.Warn().Fields(fields(keyvals...)).Msg(msg)
-}
-func (l temporalLogger) Error(msg string, keyvals ...interface{}) {
-	l.log.Error().Fields(fields(keyvals...)).Msg(msg)
-}
-
-func fields(keyvals ...interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(keyvals)/2)
-	for i := 0; i+1 < len(keyvals); i += 2 {
-		if key, ok := keyvals[i].(string); ok {
-			out[key] = keyvals[i+1]
-		}
-	}
-	return out
 }

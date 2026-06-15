@@ -12,7 +12,8 @@
   Разворачивается через **Docker Compose** (локально) или **Terraform + Docker** (прод).
 - **Часть 2 — фронтенд + бэкенд.** Next.js-фронтенд, `frontend-api` (отдаёт
   каталог и планы), `api-gateway` (auth + запуск Temporal-воркфлоу), воркеры и
-  nginx как единая точка входа. Разворачивается через **Docker Compose**.
+  nginx как единая точка входа. Разворачивается через **Docker Compose**
+  (`docker-compose.apps.yaml` / `docker-compose.apps.prod.yaml` в корне).
   Все сервисы части 2 ходят в **одну БД `smart_home`**.
 - **Мониторинг — централизованный стек.** OpenTelemetry Collector принимает
   логи, трейсы и метрики от всех сервисов по OTLP и маршрутизирует в Loki
@@ -97,6 +98,8 @@ make deploy        # git pull + пересобрать prod
 ├── Makefile                      # общий Makefile (make help)
 ├── README.md
 ├── docker-compose.monitoring.yaml # централизованный стек мониторинга
+├── docker-compose.apps.yaml       # часть 2: dev/test (с локальной БД и seed)
+├── docker-compose.apps.prod.yaml  # часть 2: prod (внешняя БД)
 ├── otel-collector-config.yaml    # конфигурация OTEL Collector
 ├── observability/                # конфиги Loki, Prometheus, Grafana
 │   ├── loki/loki-config.yaml
@@ -118,11 +121,9 @@ make deploy        # git pull + пересобрать prod
 ├── services/
 │   ├── main-pipeline/
 │   │   ├── cmd/{main-pipeline,api-gateway}/
-│   │   ├── internal/otellog/       # zerolog → OTLP bridge
 │   │   ├── nginx/
 │   │   ├── config/
-│   │   ├── docker-compose.yml
-│   │   └── docker-compose_prod.yml
+│   │   └── Dockerfile
 │   ├── frontend-api/
 │   ├── layout/
 │   ├── floor-parser/

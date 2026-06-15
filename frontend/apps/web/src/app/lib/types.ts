@@ -116,6 +116,8 @@ export type ApiPipelineResult = {
     parsed_floor_plan?: unknown;
     layout?: unknown;
     device_selection?: unknown;
+    stages?: ApiPlanStageArtifact[] | null;
+    artifacts?: ApiPlanStageArtifact[] | null;
 };
 
 export type ApiPlanStatus = {

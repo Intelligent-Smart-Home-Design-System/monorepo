@@ -3,8 +3,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: temporal
-      POSTGRES_USER: ${TEMPORAL_DB_USER:-temporal}
-      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:-temporal}
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
       interval: 5s
@@ -21,8 +21,8 @@ services:
     environment:
       DB: postgresql
       DB_PORT: 5432
-      POSTGRES_USER: ${TEMPORAL_DB_USER:-temporal}
-      POSTGRES_PWD: ${TEMPORAL_DB_PASSWORD:-temporal}
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
       POSTGRES_SEEDS: temporal-postgresql
     ports:
       - "7233:7233"
@@ -36,48 +36,17 @@ services:
     ports:
       - "8088:8080"
 
-  catalog-postgresql:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${CATALOG_DB_NAME:-smart_home}
-      POSTGRES_USER: ${CATALOG_DB_USER:-catalog}
-      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD:-catalog}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CATALOG_DB_USER:-catalog} -d ${CATALOG_DB_NAME:-smart_home}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-    ports:
-      - "5432:5432"
-    volumes:
-      - catalog-postgresql-data:/var/lib/postgresql/data
-
   catalog-db-migrate:
     image: migrate/migrate:v4.18.3
-    depends_on:
-      catalog-postgresql:
-        condition: service_healthy
-    command: ["-path", "/migrations", "-database", "postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@catalog-postgresql:5432/${CATALOG_DB_NAME:-smart_home}?sslmode=disable", "up"]
+    command: ["-path", "/migrations", "-database", "postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@${CATALOG_DB_HOST:-catalog-postgresql}:${CATALOG_DB_PORT:-5432}/${CATALOG_DB_NAME:-smart_home}?sslmode=${CATALOG_DB_SSLMODE:-disable}", "up"]
     volumes:
-      - ../../db/catalog/migrations:/migrations:ro
-    restart: "no"
-
-  catalog-db-seed:
-    image: postgres:16-alpine
-    profiles: [test]
-    depends_on:
-      catalog-db-migrate:
-        condition: service_completed_successfully
-    environment:
-      PGPASSWORD: ${CATALOG_DB_PASSWORD:-catalog}
-    command: ["psql", "-h", "catalog-postgresql", "-U", "${CATALOG_DB_USER:-catalog}", "-d", "${CATALOG_DB_NAME:-smart_home}", "-f", "/seed/seed_catalog.sql"]
-    volumes:
-      - ./config/seed_catalog.sql:/seed/seed_catalog.sql:ro
+      - ./db/catalog/migrations:/migrations:ro
     restart: "no"
 
   main-pipeline:
     build:
       context: .
+      dockerfile: services/main-pipeline/Dockerfile
     depends_on:
       - temporal
       - floor-parser-worker
@@ -100,10 +69,9 @@ services:
   api-gateway:
     build:
       context: .
+      dockerfile: services/main-pipeline/Dockerfile
     entrypoint: ["api-gateway"]
     depends_on:
-      catalog-postgresql:
-        condition: service_healthy
       temporal:
         condition: service_started
       main-pipeline:
@@ -113,7 +81,7 @@ services:
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
-      DATABASE_DSN: postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@catalog-postgresql:5432/${CATALOG_DB_NAME:-smart_home}?sslmode=disable
+      DATABASE_DSN: postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@${CATALOG_DB_HOST:-catalog-postgresql}:${CATALOG_DB_PORT:-5432}/${CATALOG_DB_NAME:-smart_home}?sslmode=${CATALOG_DB_SSLMODE:-disable}
       HTTP_ADDRESS: :8080
       METRICS_ADDRESS: :2116
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
@@ -129,14 +97,12 @@ services:
 
   frontend-api:
     build:
-      context: ../frontend-api
+      context: services/frontend-api
     depends_on:
-      catalog-postgresql:
-        condition: service_healthy
       catalog-db-migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_DSN: postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@catalog-postgresql:5432/${CATALOG_DB_NAME:-smart_home}?sslmode=disable
+      DATABASE_DSN: postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@${CATALOG_DB_HOST:-catalog-postgresql}:${CATALOG_DB_PORT:-5432}/${CATALOG_DB_NAME:-smart_home}?sslmode=${CATALOG_DB_SSLMODE:-disable}
       HTTP_ADDRESS: :8080
     ports:
       - "2117:8080"
@@ -144,7 +110,7 @@ services:
 
   web:
     build:
-      context: ../..
+      context: .
       dockerfile: frontend/Dockerfile
       target: next
       args:
@@ -158,17 +124,16 @@ services:
     depends_on:
       - api-gateway
       - frontend-api
-      - floor-parser-api
       - web
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./services/main-pipeline/nginx/conf.d:/etc/nginx/conf.d:ro
     ports:
       - "8090:80"
     restart: unless-stopped
 
   floor-parser-worker:
     build:
-      context: ../floor-parser
+      context: services/floor-parser
     depends_on:
       - temporal
     environment:
@@ -180,20 +145,10 @@ services:
       - "2113:2113"
     restart: unless-stopped
 
-  floor-parser-api:
-    build:
-      context: ../floor-parser
-    command: ["python", "-m", "app.floor_parser.main"]
-    environment:
-      PARSER_HOST: 0.0.0.0
-      PARSER_PORT: 8080
-    expose:
-      - "8080"
-    restart: unless-stopped
-
   layout-worker:
     build:
-      context: ../layout
+      context: .
+      dockerfile: services/layout/Dockerfile
     depends_on:
       - temporal
     environment:
@@ -201,16 +156,19 @@ services:
       TEMPORAL_NAMESPACE: default
       TEMPORAL_TASK_QUEUE: layout
       METRICS_ADDRESS: :2114
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "2114:2114"
+    networks:
+      - default
+      - monorepo-monitoring
     restart: unless-stopped
 
   device-selection-worker:
     build:
-      context: ../device-selection
+      context: services/device-selection
     depends_on:
-      catalog-postgresql:
-        condition: service_healthy
       catalog-db-migrate:
         condition: service_completed_successfully
       temporal:
@@ -219,7 +177,7 @@ services:
     environment:
       METRICS_PORT: 2115
     volumes:
-      - ./config/device-selection.toml:/config/device-selection.toml:ro
+      - ./services/main-pipeline/config/device-selection.toml:/config/device-selection.toml:ro
     ports:
       - "2115:2115"
     restart: unless-stopped
@@ -230,4 +188,3 @@ networks:
 
 volumes:
   temporal-postgresql-data:
-  catalog-postgresql-data:

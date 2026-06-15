@@ -88,6 +88,12 @@ Use `?polygon=1` to inspect the separate polygon test files:
 http://127.0.0.1:5173/?polygon=1
 ```
 
+Use `?response=1` to inspect `src/response.json`:
+
+```text
+http://127.0.0.1:5173/?response=1
+```
+
 The polygon test data lives in:
 
 - `src/polygon_plan.json`

@@ -7,6 +7,8 @@ interface DoorsProps {
   walls: FloorPlan['walls'];
 }
 
+const OPENING_MARKER_STROKE_WIDTH = 2;
+
 export function Doors({ doors, walls }: DoorsProps) {
   return (
     <Group id="doors-layer">
@@ -42,7 +44,7 @@ export function Doors({ doors, walls }: DoorsProps) {
             <Line
               points={extendedPoints}
               stroke="#8e44ad"
-              strokeWidth={wallWidth * 0.3}
+              strokeWidth={OPENING_MARKER_STROKE_WIDTH}
               lineCap="butt"
             />
           </Group>

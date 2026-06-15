@@ -7,6 +7,8 @@ interface WindowsProps {
   walls: FloorPlan['walls'];
 }
 
+const OPENING_MARKER_STROKE_WIDTH = 2;
+
 export function Windows({ windows, walls }: WindowsProps) {
   return (
     <Group id="windows-layer">
@@ -42,7 +44,7 @@ export function Windows({ windows, walls }: WindowsProps) {
             <Line
               points={extendedPoints}
               stroke="#3498db"
-              strokeWidth={wallWidth * 0.15}
+              strokeWidth={OPENING_MARKER_STROKE_WIDTH}
               lineCap="butt"
             />
           </Group>

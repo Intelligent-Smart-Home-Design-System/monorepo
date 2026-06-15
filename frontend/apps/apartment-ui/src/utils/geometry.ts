@@ -1,6 +1,6 @@
 import type { FloorPlan, Point, Wall } from '../types';
 
-export const WALL_WIDTH_FALLBACK = 150;
+export const WALL_WIDTH_FALLBACK = 1;
 
 export interface InitialView {
   scale: number;

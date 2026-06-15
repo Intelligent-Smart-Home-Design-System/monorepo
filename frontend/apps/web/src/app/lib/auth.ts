@@ -52,7 +52,7 @@ export function clearAuthState() {
 
 export function normalizeAuthResponse(response: unknown): AuthResponse {
   if (!response || typeof response !== "object") {
-    throw new Error("Backend не вернул JWT-токены.");
+    throw new Error("Сервер вернул неожиданный ответ. Попробуйте ещё раз.");
   }
 
   const value = response as Record<string, unknown>;
@@ -68,7 +68,7 @@ export function normalizeAuthResponse(response: unknown): AuthResponse {
     pickString((value.tokens as Record<string, unknown> | undefined)?.refreshToken);
 
   if (!accessToken || !refreshToken) {
-    throw new Error("Backend не вернул обязательные access_token и refresh_token.");
+    throw new Error("Не удалось завершить вход. Попробуйте ещё раз.");
   }
 
   const user = normalizeUser(value.user);

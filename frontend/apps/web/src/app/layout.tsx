@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Smart Home Planner",
-  description: "Frontend for smart home planning with backend integration and JWT auth",
+  description: "Smart home planning service for apartment layouts and device selection",
 };
 
 export default function RootLayout({

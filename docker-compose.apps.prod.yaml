@@ -101,9 +101,13 @@ services:
     depends_on:
       catalog-db-migrate:
         condition: service_completed_successfully
+      temporal:
+        condition: service_started
     environment:
       DATABASE_DSN: postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@${CATALOG_DB_HOST:-catalog-postgresql}:${CATALOG_DB_PORT:-5432}/${CATALOG_DB_NAME:-smart_home}?sslmode=${CATALOG_DB_SSLMODE:-disable}
       HTTP_ADDRESS: :8080
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
     ports:
       - "2117:8080"
     restart: unless-stopped

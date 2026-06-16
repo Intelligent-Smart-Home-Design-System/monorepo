@@ -101,15 +101,9 @@ func collectClimateRestrictedZones(zr *apartment.ZonedRoom) []*apartment.Zone {
 		}
 	}
 
-	for _, p := range zr.GetPlumbing() {
+	for _, p := range zr.GetFurniture() {
 		if len(p.Points) > 0 {
 			zones = append(zones, apartment.NewZone(p.Points))
-		}
-	}
-
-	for _, a := range zr.GetAppliances() {
-		if len(a.Points) > 0 {
-			zones = append(zones, apartment.NewZone(a.Points))
 		}
 	}
 

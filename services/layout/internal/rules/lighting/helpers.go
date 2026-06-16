@@ -5,15 +5,12 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-func getRoomWindows(apartmentStruct *apartment.Apartment, roomID string) []apartment.Window {
+func getRoomWindows(apartmentStruct *apartment.Apartment, roomName string) []apartment.Window {
 	windows := make([]apartment.Window, 0)
 
 	for _, w := range apartmentStruct.Windows {
-		for _, connectedRoomID := range w.Rooms {
-			if connectedRoomID == roomID {
-				windows = append(windows, w)
-				break
-			}
+		if w.Room == roomName {
+			windows = append(windows, w)
 		}
 	}
 

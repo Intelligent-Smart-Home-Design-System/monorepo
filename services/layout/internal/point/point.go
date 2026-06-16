@@ -1,10 +1,26 @@
 package point
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 type Point struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
+}
+
+func (p *Point) UnmarshalJSON(data []byte) error {
+	var coords [2]float64
+	
+	if err := json.Unmarshal(data, &coords); err != nil {
+		return err
+	}
+	
+	p.X = coords[0]
+	p.Y = coords[1]
+	
+	return nil
 }
 
 func NewVector(p1, p2 Point) Point {

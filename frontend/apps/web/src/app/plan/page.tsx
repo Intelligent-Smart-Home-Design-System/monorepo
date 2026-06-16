@@ -846,7 +846,7 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
             </Box>
           )}
 
-          {floorPreview.floor && (
+          {Boolean(floorPreview.floor) && (
             <Box
               sx={{
                 position: "relative",

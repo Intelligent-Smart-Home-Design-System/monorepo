@@ -6,7 +6,7 @@ build:
 	docker build -t scraper:latest ../scraper
 	docker build -t extractor:latest ../extractor
 	docker build -t catalog-builder:latest ../catalog-builder
-	docker build -t quality-calculator:latest ../quality-calculator
+	docker build -t quality-calculator:latest -f ../quality-calculator/Dockerfile ../..
 	docker build --target worker -t pipeline-worker:latest .
 	docker build --target trigger -t pipeline-trigger:latest .
 

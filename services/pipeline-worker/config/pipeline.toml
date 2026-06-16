@@ -35,6 +35,7 @@ job_names = [
   "scraper-parse",
   "extractor",
   "catalog-builder",
+  "quality-calculator",
 ]
 
 [[jobs]]
@@ -78,3 +79,10 @@ image = "catalog-builder:latest"
 config_path = "catalog-builder/config.toml"
 command = ["/catalog-builder", "run", "--config", "{{config_path}}"]
 env_mapping = { CATALOG_BUILDER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "quality-calculator"
+image = "quality-calculator:latest"
+config_path = "quality-calculator/config.toml"
+command = ["/app/services/quality-calculator/.venv/bin/quality-calculator", "run", "--config", "{{config_path}}"]
+env_mapping = { QUALITY_CALCULATOR_DATABASE__PASSWORD = "CATALOG_DATABASE_PASSWORD" }

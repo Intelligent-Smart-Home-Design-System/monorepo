@@ -40,14 +40,9 @@ func (ss *SmartSpeakerRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 	}
 	smartSpeakerFilters := configFilters.(*filters.SmartSpeaker)
 
-	smartSpeakerRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range smartSpeakerRooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0

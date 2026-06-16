@@ -43,14 +43,9 @@ func (sw *SubwooferRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 	}
 	subwooferFilters := configFilters.(*filters.Subwoofer)
 
-	subwofferRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range subwofferRooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0

@@ -45,14 +45,9 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 	}
 	smartTVFilters := configFilters.(*filters.SmartTVFilter)
 
-	smartTVRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range smartTVRooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0

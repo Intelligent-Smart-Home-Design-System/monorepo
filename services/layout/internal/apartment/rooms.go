@@ -7,7 +7,7 @@ const (
 	RoomPassage  = "passage"
 	RoomBathroom = "bathroom"
 	RoomCabinet  = "cabinet"
-	RoomHall     = "hall"
+	RoomHall     = "hallway"
 )
 
 // GetFurniture возвращает объекты мебели комнаты, разрешая ID через индекс квартиры.

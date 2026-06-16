@@ -8,22 +8,21 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/events/engine"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"github.com/stretchr/testify/assert"
 )
 
-func mmToM(val float64) float64 {
-	return val / 1000.0
-}
+// func mmToM(val float64) float64 {
+// 	return val / 1000.0
+// }
 
-func convertPoints(points [][2]float64) []point.Point {
-	res := make([]point.Point, len(points))
-	for i, p := range points {
-		res[i] = point.Point{X: mmToM(p[0]), Y: mmToM(p[1])}
-	}
-	return res
-}
+// func convertPoints(points [][2]float64) []point.Point {
+// 	res := make([]point.Point, len(points))
+// 	for i, p := range points {
+// 		res[i] = point.Point{X: mmToM(p[0]), Y: mmToM(p[1])}
+// 	}
+// 	return res
+// }
 
 func TestComplexApartmentPlacement(t *testing.T) {
 	err1 := configs.LoadTracksConfig("../../internal/configs/tracks.json")
@@ -39,8 +38,7 @@ func TestComplexApartmentPlacement(t *testing.T) {
 	assert.NoError(t, err)
 
 	storage := storage.NewStorage()
-	storage.LoadAllSecurityRules()
-	storage.LoadAllMediaRules()
+	storage.LoadAllRules()
 
 	eng := engine.NewEngine(storage)
 	selectedLevels := map[string]string{
@@ -53,12 +51,8 @@ func TestComplexApartmentPlacement(t *testing.T) {
 	assert.NotNil(t, layout)
 
 	totalPlacements := 0
-	for roomID, placements := range layout.Placements {
-		t.Logf("Room %s: %d devices", roomID, len(placements))
+	for _, placements := range layout.Placements {
 		totalPlacements += len(placements)
-		for _, p := range placements {
-			t.Logf("  - %s at (%.2f, %.2f)", p.Device.Type, p.Position.X, p.Position.Y)
-		}
 	}
-	assert.Greater(t, totalPlacements, 4)
+	assert.Greater(t, totalPlacements, 5)
 }

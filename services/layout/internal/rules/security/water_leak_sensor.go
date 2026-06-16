@@ -1,6 +1,8 @@
 package security
 
 import (
+	"strings"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
@@ -31,7 +33,7 @@ func (wl *WaterLeakSensorRule) Transform(zonedAp *apartment.ZonedApartment, devi
 
 	for _, zr := range zonedAp.ZonedRooms {
 		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
-			zr.WetZones = collectWetZones(zr.GetPlumbing(), zr.GetAppliances())
+			zr.WetZones = collectWetZones(zr.GetFurniture())
 		}
 	}
 
@@ -89,20 +91,14 @@ func (wl *WaterLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum
 	return nil
 }
 
-func collectWetZones(plumbing []*apartment.Plumbing, appliances []*apartment.Appliances) []*apartment.Zone {
+func collectWetZones(furniture []*apartment.Furniture) []*apartment.Zone {
 	zones := make([]*apartment.Zone, 0)
 
-	for _, p := range plumbing {
-		switch p.Name {
+	for _, f := range furniture {
+		name := strings.ToLower(f.Category)
+		switch name {
 		case apartment.Toilet, apartment.Sink, apartment.Bathtub, apartment.Shower:
-			zones = append(zones, apartment.NewZone(p.Points))
-		}
-	}
-
-	for _, a := range appliances {
-		switch a.Name {
-		case apartment.Washer, apartment.DishWasher:
-			zones = append(zones, apartment.NewZone(a.Points))
+			zones = append(zones, apartment.NewZone(f.Points))
 		}
 	}
 

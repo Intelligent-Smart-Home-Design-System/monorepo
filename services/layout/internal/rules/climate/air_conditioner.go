@@ -128,7 +128,7 @@ func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 func collectNoWindZones(furniture []*apartment.Furniture) []*apartment.Zone {
 	zones := make([]*apartment.Zone, 0)
 	for _, f := range furniture {
-		if f.Name == apartment.Bed {
+		if f.Category == apartment.Bed {
 			zones = append(zones, apartment.NewZone(f.Points))
 		}
 	}

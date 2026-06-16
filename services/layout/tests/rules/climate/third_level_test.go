@@ -13,7 +13,7 @@ import (
 )
 
 func TestClimateLevel3(t *testing.T) {
-	window := apartment.Window{ID: "win1", Points: []point.Point{{X: 0, Y: 1}, {X: 0, Y: 2}}, Width: 1, Rooms: []string{"r1"}}
+	window := apartment.Window{ID: "win1", Points: []point.Point{{X: 0, Y: 1}, {X: 0, Y: 2}}, Width: 1, Room: apartment.RoomLiving}
 	apartmentStruct := &apartment.Apartment{
 		Windows: []apartment.Window{window},
 		Walls: []apartment.Wall{

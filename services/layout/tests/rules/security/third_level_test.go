@@ -20,7 +20,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			{X: 0, Y: 1.2},
 			{X: 0, Y: 1.6},
 		},
-		Rooms: []string{"1"},
+		Room: "livingroom",
 		Width: 0.4,
 	}
 
@@ -118,7 +118,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
-			Name: "living",
+			Name: "livingroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 12, Y: 0},
@@ -220,7 +220,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 			{X: 0, Y: 1.2},
 			{X: 0, Y: 1.6},
 		},
-		Rooms: []string{"1"},
+		Room: "livingroom",
 	}
 
 	doors := []apartment.Door{
@@ -315,7 +315,7 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
-			Name: "living",
+			Name: "livingroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 12, Y: 0},

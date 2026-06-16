@@ -200,14 +200,14 @@ func getTVFurnitureInRoom(ap *apartment.Apartment, room *apartment.Room) []*apar
 			continue
 		}
 
-		switch furniture.Name {
+		switch furniture.Category {
 		case apartment.Sofa, apartment.Bed:
 			result = append(result, furniture)
 		}
 	}
 
 	slices.SortFunc(result, func(f1, f2 *apartment.Furniture) int {
-		if f1.Name == apartment.Sofa {
+		if f1.Category == apartment.Sofa {
 			return -1
 		}
 

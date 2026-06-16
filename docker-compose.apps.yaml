@@ -178,8 +178,12 @@ services:
       TEMPORAL_NAMESPACE: default
       TEMPORAL_TASK_QUEUE: floor-parser
       METRICS_PORT: 2113
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
     ports:
       - "2113:2113"
+    networks:
+      - default
+      - monorepo-monitoring
     restart: unless-stopped
 
   floor-parser-api:
@@ -189,8 +193,12 @@ services:
     environment:
       PARSER_HOST: 0.0.0.0
       PARSER_PORT: 8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
     expose:
       - "8080"
+    networks:
+      - default
+      - monorepo-monitoring
     restart: unless-stopped
 
   layout-worker:

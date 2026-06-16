@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from internal.api.routes import router as api_router
 from internal.logging_config import setup_logging
+from internal.telemetry import setup_telemetry
 
 log = structlog.get_logger("floor-parser")
 
@@ -20,6 +21,7 @@ def create_app() -> FastAPI:
 
 def main() -> None:
     setup_logging(service="floor-parser")
+    setup_telemetry("floor-parser")
     app = create_app()
     host = os.getenv("PARSER_HOST", "0.0.0.0")
     port = int(os.getenv("PARSER_PORT", "8080"))

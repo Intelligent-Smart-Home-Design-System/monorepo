@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
@@ -40,27 +41,71 @@ func NewActivities(tracksPath, devicesPath string) (*Activities, error) {
 }
 
 func (a *Activities) PlaceDevices(ctx context.Context, input PlaceDevicesInput) (PlaceDevicesOutput, error) {
-	activity.GetLogger(ctx).Info("layout request received", "request_id", input.RequestID)
+	startedAt := time.Now()
+	logger := activity.GetLogger(ctx)
+	logger.Info("layout activity started",
+		"request_id", input.RequestID,
+		"selected_levels", input.SelectedLevels,
+		"tracks", len(input.SelectedLevels),
+	)
+
 	apartmentModel, err := toApartment(input.FloorPlan)
 	if err != nil {
+		logger.Error("failed to parse floor plan", "request_id", input.RequestID, "error", err)
 		return PlaceDevicesOutput{}, err
 	}
 	apartmentModel.Index()
 
+	logger.Info("floor plan loaded",
+		"request_id", input.RequestID,
+		"rooms", len(apartmentModel.Rooms),
+		"walls", len(apartmentModel.Walls),
+		"doors", len(apartmentModel.Doors),
+		"windows", len(apartmentModel.Windows),
+	)
+
 	layout, err := a.engine.PlaceDevices(apartmentModel, input.SelectedLevels)
 	if err != nil {
+		logger.Error("device placement failed", "request_id", input.RequestID, "error", err)
 		return PlaceDevicesOutput{}, err
 	}
 
+	devicesPlaced := countPlacements(layout)
+	roomsWithDevices := len(layout.Placements)
+	logger.Info("devices placed",
+		"request_id", input.RequestID,
+		"devices_placed", devicesPlaced,
+		"rooms_with_devices", roomsWithDevices,
+	)
+
 	raw, err := json.Marshal(layout)
 	if err != nil {
+		logger.Error("failed to marshal layout", "request_id", input.RequestID, "error", err)
 		return PlaceDevicesOutput{}, err
 	}
 	var out map[string]interface{}
 	if err := json.Unmarshal(raw, &out); err != nil {
+		logger.Error("failed to decode layout", "request_id", input.RequestID, "error", err)
 		return PlaceDevicesOutput{}, err
 	}
+
+	logger.Info("layout activity completed",
+		"request_id", input.RequestID,
+		"devices_placed", devicesPlaced,
+		"duration_ms", time.Since(startedAt).Milliseconds(),
+	)
 	return PlaceDevicesOutput{Layout: out}, nil
+}
+
+func countPlacements(layout *apartment.Layout) int {
+	if layout == nil {
+		return 0
+	}
+	total := 0
+	for _, placements := range layout.Placements {
+		total += len(placements)
+	}
+	return total
 }
 
 func toApartment(plan map[string]interface{}) (*apartment.Apartment, error) {

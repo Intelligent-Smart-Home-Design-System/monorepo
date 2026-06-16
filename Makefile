@@ -1,7 +1,7 @@
 COMPOSE_MONITORING := docker compose -f docker-compose.monitoring.yaml
 COMPOSE_PIPELINE  := docker compose -f services/pipeline-worker/docker-compose.yaml
-COMPOSE_APP       := docker compose -f services/main-pipeline/docker-compose.yml
-COMPOSE_APP_PROD      := docker compose -f services/main-pipeline/docker-compose_prod.yml
+COMPOSE_APP       := docker compose -f docker-compose.apps.yaml
+COMPOSE_APP_PROD  := docker compose -f docker-compose.apps.prod.yaml
 
 .PHONY: help \
         monitoring-up monitoring-down \

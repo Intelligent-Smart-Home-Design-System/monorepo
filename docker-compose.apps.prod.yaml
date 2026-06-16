@@ -40,12 +40,13 @@ services:
     image: migrate/migrate:v4.18.3
     command: ["-path", "/migrations", "-database", "postgres://${CATALOG_DB_USER:-catalog}:${CATALOG_DB_PASSWORD:-catalog}@${CATALOG_DB_HOST:-catalog-postgresql}:${CATALOG_DB_PORT:-5432}/${CATALOG_DB_NAME:-smart_home}?sslmode=${CATALOG_DB_SSLMODE:-disable}", "up"]
     volumes:
-      - ../../db/catalog/migrations:/migrations:ro
+      - ./db/catalog/migrations:/migrations:ro
     restart: "no"
 
   main-pipeline:
     build:
       context: .
+      dockerfile: services/main-pipeline/Dockerfile
     depends_on:
       - temporal
       - floor-parser-worker
@@ -68,6 +69,7 @@ services:
   api-gateway:
     build:
       context: .
+      dockerfile: services/main-pipeline/Dockerfile
     entrypoint: ["api-gateway"]
     depends_on:
       temporal:
@@ -95,7 +97,7 @@ services:
 
   frontend-api:
     build:
-      context: ../frontend-api
+      context: services/frontend-api
     depends_on:
       catalog-db-migrate:
         condition: service_completed_successfully
@@ -108,7 +110,7 @@ services:
 
   web:
     build:
-      context: ../../frontend
+      context: frontend
       target: next
       args:
         APP: web
@@ -123,14 +125,14 @@ services:
       - frontend-api
       - web
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./services/main-pipeline/nginx/conf.d:/etc/nginx/conf.d:ro
     ports:
       - "8090:80"
     restart: unless-stopped
 
   floor-parser-worker:
     build:
-      context: ../floor-parser
+      context: services/floor-parser
     depends_on:
       - temporal
     environment:
@@ -144,7 +146,8 @@ services:
 
   layout-worker:
     build:
-      context: ../layout
+      context: .
+      dockerfile: services/layout/Dockerfile
     depends_on:
       - temporal
     environment:
@@ -152,13 +155,18 @@ services:
       TEMPORAL_NAMESPACE: default
       TEMPORAL_TASK_QUEUE: layout
       METRICS_ADDRESS: :2114
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "2114:2114"
+    networks:
+      - default
+      - monorepo-monitoring
     restart: unless-stopped
 
   device-selection-worker:
     build:
-      context: ../device-selection
+      context: services/device-selection
     depends_on:
       catalog-db-migrate:
         condition: service_completed_successfully
@@ -168,7 +176,7 @@ services:
     environment:
       METRICS_PORT: 2115
     volumes:
-      - ./config/device-selection.toml:/config/device-selection.toml:ro
+      - ./services/main-pipeline/config/device-selection.toml:/config/device-selection.toml:ro
     ports:
       - "2115:2115"
     restart: unless-stopped

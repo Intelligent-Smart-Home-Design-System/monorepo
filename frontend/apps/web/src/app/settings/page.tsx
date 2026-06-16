@@ -26,13 +26,13 @@ import {
 } from "@mui/material";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import tracksConfig from "../lib/tracks.json";
+import tracksConfig from "../../../../../../services/layout/internal/configs/tracks.json";
 import type {
-  ApiCreatePlanRequest,
   ApiDeviceType,
   ApiEcosystem,
   ApiFilterOperation,
   ApiRequirementFilter,
+  ApiStartPipelineRequest,
 } from "../lib/types";
 
 type RequirementDraft = {
@@ -153,6 +153,7 @@ export default function SettingsPage() {
     Number(budget) > 0 &&
     mainEcosystemId.length > 0 &&
     !parsingFloor &&
+    Boolean(parsedFloor) &&
     selectedRequirements.some((item) => item.device_type && item.quantity > 0);
 
   const planPreviewState: UploadedPlanState = useMemo(
@@ -204,26 +205,46 @@ export default function SettingsPage() {
     setError("");
 
     try {
-      const payload: ApiCreatePlanRequest = {
-        budget: Number(budget),
-        main_ecosystem_id: mainEcosystemId,
-        requirements: selectedRequirements
-          .filter((item) => item.device_type && item.quantity > 0)
-          .map((item) => ({
-            device_type: item.device_type,
-            quantity: item.quantity,
-            filters: item.filters,
-          })),
+      if (!parsedFloor || typeof parsedFloor !== "object") {
+        setError("Загрузите и распознайте DXF-план перед запуском подбора.");
+        return;
+      }
+
+      const selectedLevels = Object.fromEntries(
+        Object.entries(selectedLevelByTrack).filter(([, levelId]) => levelId)
+      );
+      const payload: ApiStartPipelineRequest = {
+        request_id: crypto.randomUUID(),
+        floor_plan: parsedFloor as Record<string, unknown>,
+        selected_levels: selectedLevels,
+        device_selection: {
+          main_ecosystem: mainEcosystemId,
+          budget: Number(budget),
+          max_solutions: 5,
+          time_budget_seconds: 10,
+          requirements: selectedRequirements
+            .filter((item) => item.device_type && item.quantity > 0)
+            .map((item, index) => ({
+              requirement_id: index + 1,
+              device_type: item.device_type,
+              count: item.quantity,
+              connect_to_main_ecosystem: true,
+              filters: item.filters,
+            })),
+        },
       };
 
-      const created = await api.createPlan(payload);
+      const started = await api.startPipeline(payload);
 
       localStorage.setItem(
         "planner-uploaded-plan",
         JSON.stringify(planPreviewState)
       );
+      localStorage.setItem("planner-last-budget", budget);
 
-      router.push(`/plan?id=${created.plan_id}`);
+      const params = new URLSearchParams({ workflow_id: started.workflow_id });
+      if (started.run_id) params.set("run_id", started.run_id);
+      router.push(`/plan?${params.toString()}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Не удалось создать новый план.");
     } finally {
@@ -709,7 +730,12 @@ export default function SettingsPage() {
                 </Button>
                 {selectedTrackSelections.length === 0 && (
                   <Typography variant="body2" color="text.secondary" textAlign="center">
-                    Кнопка активируется после выбора уровня хотя бы в одном треке.
+                    Кнопка активируется после выбора уровня и распознавания DXF-плана.
+                  </Typography>
+                )}
+                {selectedTrackSelections.length > 0 && !parsedFloor && (
+                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                    Загрузите DXF-файл, чтобы передать план квартиры в pipeline.
                   </Typography>
                 )}
               </>

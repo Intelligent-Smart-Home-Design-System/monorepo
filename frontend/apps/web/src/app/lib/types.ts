@@ -70,13 +70,6 @@ export type ApiRequirement = {
     filters: ApiRequirementFilter[];
 };
 
-export type ApiPreset = {
-    id: string;
-    name: string;
-    description?: string | null;
-    requirements: ApiRequirement[];
-};
-
 export type ApiEcosystem = {
     id: string;
     name: string;
@@ -92,18 +85,39 @@ export type ApiPlanSummary = {
     status: "queued" | "generating" | "completed" | "failed";
 };
 
-export type ApiCreatePlanRequest = {
-    budget: number;
-    main_ecosystem_id: string;
-    allowed_ecosystems?: string[] | null;
-    excluded_ecosystems?: string[] | null;
-    requirements: Omit<ApiRequirement, "id">[];
+export type ApiStartPipelineRequirement = {
+    requirement_id: number;
+    device_type: string;
+    count: number;
+    connect_to_main_ecosystem: boolean;
+    filters?: ApiRequirementFilter[];
 };
 
-export type ApiCreatePlanResponse = {
-    plan_id: number;
-    status: "accepted";
-    message?: string;
+export type ApiStartPipelineRequest = {
+    request_id?: string;
+    floor_plan: Record<string, unknown>;
+    selected_levels: Record<string, string>;
+    device_selection: {
+        main_ecosystem: string;
+        budget: number;
+        requirements: ApiStartPipelineRequirement[];
+        max_solutions?: number;
+        time_budget_seconds?: number;
+    };
+};
+
+export type ApiStartPipelineResponse = {
+    workflow_id: string;
+    run_id?: string;
+};
+
+export type ApiPipelineResult = {
+    request_id?: string;
+    parsed_floor_plan?: unknown;
+    layout?: unknown;
+    device_selection?: unknown;
+    stages?: ApiPlanStageArtifact[] | null;
+    artifacts?: ApiPlanStageArtifact[] | null;
 };
 
 export type ApiPlanStatus = {

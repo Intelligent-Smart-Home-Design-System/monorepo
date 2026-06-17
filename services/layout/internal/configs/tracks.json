@@ -66,10 +66,12 @@
               "kitchen"
             ],
             "smart_doorbell": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "smart_lock": [
-              "hall"
+              "hall",
+              "hallway"
             ]
           },
           "max_device_counts": {
@@ -132,21 +134,25 @@
               "kitchen"
             ],
             "smart_doorbell": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "smart_lock": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "door_sensor": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "window_sensor": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "motion_sensor": [
-              "living",
-              "hall"
+              "livingroom",
+              "hall",
+              "hallway"
             ]
           },
           "max_device_counts": {
@@ -220,25 +226,30 @@
               "kitchen"
             ],
             "smart_doorbell": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "smart_lock": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "door_sensor": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "window_sensor": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "motion_sensor": [
-              "living",
-              "hall"
+              "livingroom",
+              "hall",
+              "hallway"
             ],
             "camera": [
-              "living",
-              "hall"
+              "livingroom",
+              "hall",
+              "hallway"
             ]
           },
           "max_device_counts": {
@@ -322,28 +333,34 @@
               "kitchen"
             ],
             "smart_doorbell": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "smart_lock": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "door_sensor": [
-              "hall"
+              "hall",
+              "hallway"
             ],
             "window_sensor": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "motion_sensor": [
-              "living",
-              "hall"
+              "livingroom",
+              "hall",
+              "hallway"
             ],
             "camera": [
-              "living",
-              "hall"
+              "livingroom",
+              "hall",
+              "hallway"
             ],
             "smart_siren": [
               "hall",
+              "hallway",
               "passage"
             ]
           },
@@ -422,7 +439,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen"
             ]
           },
@@ -445,7 +462,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen",
               "passage",
               "bathroom"
@@ -472,7 +489,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen",
               "passage",
               "bathroom"
@@ -482,7 +499,7 @@
               "bathroom"
             ],
             "illumination_sensor": [
-              "living",
+              "livingroom",
               "kitchen"
             ]
           },
@@ -512,7 +529,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen",
               "passage",
               "bathroom"
@@ -522,7 +539,7 @@
               "bathroom"
             ],
             "illumination_sensor": [
-              "living",
+              "livingroom",
               "kitchen"
             ],
             "curtains": [
@@ -559,7 +576,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen",
               "passage",
               "bathroom"
@@ -569,19 +586,19 @@
               "bathroom"
             ],
             "illumination_sensor": [
-              "living",
+              "livingroom",
               "kitchen"
             ],
             "curtains": [
               "windows"
             ],
             "wireless_button_switch": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_dimmer": [
-              "living",
+              "livingroom",
               "bedroom"
             ]
           },
@@ -620,7 +637,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen",
               "passage",
               "bathroom"
@@ -631,19 +648,19 @@
               "cabinet"
             ],
             "illumination_sensor": [
-              "living",
+              "livingroom",
               "kitchen"
             ],
             "curtains": [
               "windows"
             ],
             "wireless_button_switch": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_dimmer": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "built_in_backlight": [
@@ -689,7 +706,7 @@
           ],
           "device_rooms": {
             "smart_bulb": [
-              "living",
+              "livingroom",
               "kitchen",
               "passage",
               "bathroom"
@@ -700,28 +717,28 @@
               "cabinet"
             ],
             "illumination_sensor": [
-              "living",
+              "livingroom",
               "kitchen"
             ],
             "curtains": [
               "windows"
             ],
             "wireless_button_switch": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_dimmer": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "built_in_backlight": [
-              "living",
+              "livingroom",
               "kitchen",
               "cabinet"
             ],
             "decorative_luminaire": [
-              "living",
+              "livingroom",
               "bedroom"
             ]
           },
@@ -763,7 +780,7 @@
           ],
           "device_rooms": {
             "robot_vacuum": [
-              "living",
+              "livingroom",
               "bedroom",
               "passage",
               "kitchen",
@@ -799,7 +816,7 @@
           ],
           "device_rooms": {
             "robot_vacuum": [
-              "living",
+              "livingroom",
               "bedroom",
               "passage",
               "kitchen",
@@ -835,7 +852,7 @@
           ],
           "device_rooms": {
             "robot_vacuum": [
-              "living",
+              "livingroom",
               "bedroom",
               "passage",
               "kitchen",
@@ -871,7 +888,7 @@
           ],
           "device_rooms": {
             "robot_vacuum": [
-              "living",
+              "livingroom",
               "bedroom",
               "passage",
               "kitchen",
@@ -907,7 +924,7 @@
           ],
           "device_rooms": {
             "robot_vacuum": [
-              "living",
+              "livingroom",
               "bedroom",
               "passage",
               "kitchen",
@@ -949,13 +966,13 @@
           ],
           "device_rooms": {
             "temperature_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "smart_radiator_actuator": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
@@ -991,24 +1008,24 @@
           ],
           "device_rooms": {
             "temperature_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "smart_radiator_actuator": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "humidity_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_humidifier": [
-              "living",
+              "livingroom",
               "bedroom"
             ]
           },
@@ -1051,33 +1068,33 @@
           ],
           "device_rooms": {
             "temperature_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "smart_radiator_actuator": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "humidity_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_humidifier": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "co2_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ],
             "air_purifier": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ]
@@ -1130,33 +1147,33 @@
           ],
           "device_rooms": {
             "temperature_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "smart_radiator_actuator": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "humidity_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_humidifier": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "co2_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ],
             "air_purifier": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ],
@@ -1226,33 +1243,33 @@
           ],
           "device_rooms": {
             "temperature_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "smart_radiator_actuator": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen",
               "cabinet"
             ],
             "humidity_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "kitchen"
             ],
             "smart_humidifier": [
-              "living",
+              "livingroom",
               "bedroom"
             ],
             "co2_sensor": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ],
             "air_purifier": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ],
@@ -1265,7 +1282,7 @@
               "kitchen"
             ],
             "air_conditioner": [
-              "living",
+              "livingroom",
               "bedroom",
               "cabinet"
             ]
@@ -1327,7 +1344,11 @@
           },
           "devices": ["smart_speaker"],
           "device_rooms": {
-            "smart_speaker": ["living", "kitchen", "bedroom"]
+            "smart_speaker": [
+              "livingroom",
+              "kitchen",
+              "bedroom"
+            ]
           },
           "max_device_counts": {
             "smart_speaker": 1
@@ -1345,8 +1366,15 @@
           },
           "devices": ["smart_tv", "smart_speaker"],
           "device_rooms": {
-            "smart_speaker": ["living", "kitchen", "bedroom"],
-            "smart_tv": ["living", "bedroom"]
+            "smart_speaker": [
+              "livingroom",
+              "kitchen",
+              "bedroom"
+            ],
+            "smart_tv": [
+              "livingroom",
+              "bedroom"
+            ]
           },
           "max_device_counts": {
             "smart_speaker": 1,
@@ -1370,9 +1398,19 @@
           },
           "devices": ["smart_tv", "smart_speaker", "subwoofer"],
           "device_rooms": {
-            "smart_speaker": ["living", "kitchen", "bedroom"],
-            "smart_tv": ["living", "bedroom"],
-            "subwoofer": ["living", "bedroom"]
+            "smart_speaker": [
+              "livingroom",
+              "kitchen",
+              "bedroom"
+            ],
+            "smart_tv": [
+              "livingroom",
+              "bedroom"
+            ],
+            "subwoofer": [
+              "livingroom",
+              "bedroom"
+            ]
           },
           "max_device_counts": {
             "smart_speaker": 1,

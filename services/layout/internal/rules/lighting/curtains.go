@@ -23,14 +23,11 @@ func (r *CurtainsRule) Type() string {
 func (r *CurtainsRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	apartmentStruct := zonedAp.OrigAp
 	for _, w := range apartmentStruct.Windows {
-		if len(w.Rooms) == 0 {
-			continue
-		}
 		if len(w.Points) == 0 {
 			continue
 		}
 
-		roomID := w.Rooms[0]
+		roomID := w.Room
 		windowCenter := point.GetObjectCenter(w.Points)
 
 		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &windowCenter, nil, nil)

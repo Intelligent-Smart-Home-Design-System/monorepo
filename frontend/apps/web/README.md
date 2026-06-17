@@ -55,10 +55,10 @@ bundle устройств и передает его в `apps/sim-ui` через
 URL симуляции можно задать переменной:
 
 ```bash
-NEXT_PUBLIC_SIM_UI_URL=http://127.0.0.1:3000/simulation
+NEXT_PUBLIC_SIM_UI_URL=http://127.0.0.1:3001/simulation
 ```
 
-Если переменная не задана, используется `http://127.0.0.1:3000/simulation`.
+Если переменная не задана, используется `http://127.0.0.1:3001/simulation`.
 
 ## Запуск
 

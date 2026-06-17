@@ -90,9 +90,9 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		Rooms: []string{"3"},
 	}
 
-	bathroomSink := apartment.Plumbing{
+	bathroomSink := apartment.Furniture{
 		ID: "1",
-		Name: apartment.Sink,
+		Category: apartment.Sink,
 		Points: []point.Point{
 			{X: 0, Y: 0},
 			{X: 1, Y: 0},
@@ -102,9 +102,9 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		Room: "1",
 	}
 
-	kitchenSink := apartment.Plumbing{
+	kitchenSink := apartment.Furniture{
 		ID: "2",
-		Name: apartment.Sink,
+		Category: apartment.Sink,
 		Points: []point.Point{
 			{X: 1, Y: 2},
 			{X: 1, Y: 0},
@@ -124,7 +124,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 				{X: 2, Y: 2},
 				{X: 0, Y: 2},
 			},
-			Plumbing: []string{"1"},
+			Furniture: []string{"1"},
 		},
 		{
 			ID:   "2",
@@ -135,7 +135,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
-			Plumbing: []string{"2"},
+			Furniture: []string{"2"},
 		},
 		{
 			ID:   "3",
@@ -153,7 +153,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 	ap := &apartment.Apartment{
 		Doors: []apartment.Door{door},
 		Rooms: rooms,
-		Plumbing: []apartment.Plumbing{kitchenSink, bathroomSink},
+		Furniture: []apartment.Furniture{kitchenSink, bathroomSink},
 	}
 
 	selectedLevels := map[string]string{

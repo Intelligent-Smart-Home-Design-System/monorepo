@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type { ApartmentPlanRenderHandle, FloorPlan, SmartDevice, SmartDeviceType, Zone } from "smart-plan-demo";
-import { renderApartmentPlan } from "smart-plan-demo";
+import type { ApartmentPlanRenderHandle, ApartmentPlanSidebarRenderHandle, FloorPlan, SmartDevice, SmartDeviceType, Zone } from "smart-plan-demo";
+import { renderApartmentPlan, renderApartmentPlanSidebar } from "smart-plan-demo";
 
 type ApartmentPlanPreviewProps = {
   floor: unknown;
   devices?: unknown;
   zones?: unknown;
+  onRendererReady?: (renderer: ApartmentPlanRenderHandle | null) => void;
 };
 
-export function ApartmentPlanPreview({ floor, devices, zones }: ApartmentPlanPreviewProps) {
+export function ApartmentPlanPreview({ floor, devices, zones, onRendererReady }: ApartmentPlanPreviewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const handleRef = useRef<ApartmentPlanRenderHandle | null>(null);
   const plan = useMemo(() => normalizeFloorPlan(floor), [floor]);
@@ -23,18 +24,20 @@ export function ApartmentPlanPreview({ floor, devices, zones }: ApartmentPlanPre
 
     if (!handleRef.current) {
       handleRef.current = renderApartmentPlan(container, plan, normalizedDevices, normalizedZones);
+      onRendererReady?.(handleRef.current);
       return;
     }
 
     handleRef.current.update(plan, normalizedDevices, normalizedZones);
-  }, [normalizedDevices, normalizedZones, plan]);
+  }, [normalizedDevices, normalizedZones, onRendererReady, plan]);
 
   useEffect(
     () => () => {
+      onRendererReady?.(null);
       handleRef.current?.destroy();
       handleRef.current = null;
     },
-    []
+    [onRendererReady]
   );
 
   if (!plan) {
@@ -195,4 +198,41 @@ function toNumber(value: unknown, fallback: number): number {
     if (Number.isFinite(parsed)) return parsed;
   }
   return fallback;
+}
+
+
+type ApartmentPlanSidebarPreviewProps = {
+  renderer: ApartmentPlanRenderHandle | null;
+};
+
+export function ApartmentPlanSidebarPreview({ renderer }: ApartmentPlanSidebarPreviewProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const sidebarHandleRef = useRef<ApartmentPlanSidebarRenderHandle | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container || !renderer) {
+      return;
+    }
+
+    sidebarHandleRef.current = renderApartmentPlanSidebar(container, renderer);
+
+    return () => {
+      sidebarHandleRef.current?.destroy();
+      sidebarHandleRef.current = null;
+    };
+  }, [renderer]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    />
+  );
 }

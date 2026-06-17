@@ -1,7 +1,11 @@
-export { renderApartmentPlan } from './renderApartmentPlan';
+export {
+  renderApartmentPlan,
+  renderApartmentPlanSidebar,
+} from './renderApartmentPlan';
 export type {
   ApartmentPlanRenderHandle,
   ApartmentPlanRenderOptions,
+  ApartmentPlanSidebarRenderHandle,
 } from './renderApartmentPlan';
 export {
   addSmartDevice,

@@ -4,20 +4,14 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
   CardContent,
   Chip,
   CircularProgress,
-  Divider,
   LinearProgress,
   Stack,
   Tab,
@@ -28,7 +22,8 @@ import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
-import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
+import { ApartmentPlanPreview, ApartmentPlanSidebarPreview } from "./ApartmentPlanPreview";
+import type { ApartmentPlanRenderHandle } from "smart-plan-demo";
 
 type UploadedPlanState = {
   fileName?: string;
@@ -105,8 +100,8 @@ function PlanPageContent() {
   const [error, setError] = useState("");
   const [uploadedPlan] = useState<UploadedPlanState | null>(() => loadUploadedPlan());
   const [selectedBundleId, setSelectedBundleId] = useState<number | null>(null);
-  const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
   const [activeResultTab, setActiveResultTab] = useState<ResultTabKey>("final");
+  const [apartmentPlanRenderer, setApartmentPlanRenderer] = useState<ApartmentPlanRenderHandle | null>(null);
 
   const planId = Number(searchParams.get("id") ?? "");
   const workflowId = searchParams.get("workflow_id") ?? "";
@@ -174,7 +169,6 @@ function PlanPageContent() {
           });
           setPlan(fullPlan);
           setSelectedBundleId(fullPlan.bundles[0]?.id ?? null);
-          setSelectedListingId(fullPlan.bundles[0]?.listings[0]?.id ?? null);
           setLoading(false);
           return;
         }
@@ -188,7 +182,6 @@ function PlanPageContent() {
           if (!active) return;
           setPlan(fullPlan);
           setSelectedBundleId(fullPlan.bundles[0]?.id ?? null);
-          setSelectedListingId(fullPlan.bundles[0]?.listings[0]?.id ?? null);
           setLoading(false);
           return;
         }
@@ -221,14 +214,6 @@ function PlanPageContent() {
     [plan, selectedBundleId]
   );
 
-  const selectedListing = useMemo(
-    () =>
-      selectedBundle?.listings.find((listing) => listing.id === selectedListingId) ??
-      selectedBundle?.listings[0] ??
-      null,
-    [selectedBundle, selectedListingId]
-  );
-
   const simulationFloorData = useMemo(
     () => collectSimulationFloorData(uploadedPlan, status, plan),
     [plan, status, uploadedPlan]
@@ -238,8 +223,6 @@ function PlanPageContent() {
     () => (selectedBundle ? simulationDevicesFromBundle(selectedBundle, simulationFloorData) : []),
     [selectedBundle, simulationFloorData]
   );
-
-  const bundleTotalListings = selectedBundle?.listings.length ?? 0;
 
   const stageArtifacts = useMemo(
     () => collectStageArtifacts(status, plan),
@@ -443,6 +426,7 @@ function PlanPageContent() {
                         uploadedPlan={uploadedPlan}
                         floorData={simulationFloorData}
                         devices={selectedSimulationDevices}
+                        onApartmentRendererReady={setApartmentPlanRenderer}
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -485,7 +469,6 @@ function PlanPageContent() {
                               key={bundle.id}
                               onClick={() => {
                                 setSelectedBundleId(bundle.id);
-                                setSelectedListingId(bundle.listings[0]?.id ?? null);
                               }}
                               sx={{
                                 cursor: "pointer",
@@ -530,165 +513,9 @@ function PlanPageContent() {
                 </CardContent>
               </Card>
 
-              <Card sx={{ ...surfaceCardSx, width: { xs: "100%", md: 430 } }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 900, color: "#0f172a", mb: 1 }}>
-                    Карточка набора / устройства
-                  </Typography>
-                  <Divider sx={{ mb: 2 }} />
-
-                  {!selectedBundle ? (
-                    <Typography color="text.secondary">Пока нет доступных наборов.</Typography>
-                  ) : (
-                    <Stack spacing={2}>
-                      <Box>
-                        <Typography sx={{ fontWeight: 800 }}>Набор #{selectedBundle.id}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Стоимость: {Math.round(selectedBundle.total_cost).toLocaleString("ru-RU")} ₽ ·
-                          качество {selectedBundle.quality_score.toFixed(2)}
-                        </Typography>
-                      </Box>
-
-                      <Stack spacing={1}>
-                        {selectedBundle.listings.map((listing) => (
-                          <Stack
-                            key={listing.id}
-                            direction="row"
-                            spacing={1.4}
-                            alignItems="center"
-                            onClick={() => setSelectedListingId(listing.id)}
-                            sx={{
-                              p: 1.2,
-                              borderRadius: 3,
-                              cursor: "pointer",
-                              border:
-                                listing.id === selectedListing?.id
-                                  ? "2px solid #2563eb"
-                                  : "1px solid rgba(148,163,184,0.18)",
-                              background:
-                                listing.id === selectedListing?.id
-                                  ? "linear-gradient(135deg, rgba(37,99,235,0.08), rgba(239,246,255,0.9))"
-                                  : "#fff",
-                            }}
-                          >
-                            <Avatar
-                              src={listing.image_url ?? undefined}
-                              alt={listing.name}
-                              sx={{ width: 52, height: 52 }}
-                            />
-                            <Box sx={{ flex: 1 }}>
-                              <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                                {listing.name}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {listing.device_brand} {listing.device_model}
-                              </Typography>
-                            </Box>
-                            <Typography sx={{ fontWeight: 800 }}>
-                              {Math.round(listing.price).toLocaleString("ru-RU")} ₽
-                            </Typography>
-                          </Stack>
-                        ))}
-                      </Stack>
-
-                      {selectedSimulationDevices.length > 0 && (
-                        <Stack spacing={1}>
-                          <Typography sx={{ fontWeight: 800 }}>Устройства на плане</Typography>
-                          {selectedSimulationDevices.slice(0, 8).map((device) => (
-                            <Box
-                              key={device.id}
-                              sx={{
-                                p: 1.2,
-                                borderRadius: 3,
-                                background: "#f8fafc",
-                                border: "1px solid rgba(148,163,184,0.18)",
-                              }}
-                            >
-                              <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                                {device.name}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {device.type} · комната {device.room_id}
-                                {device.position ? ` · x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}` : ""}
-                              </Typography>
-                            </Box>
-                          ))}
-                          {selectedSimulationDevices.length > 8 && (
-                            <Typography variant="body2" color="text.secondary">
-                              И ещё {selectedSimulationDevices.length - 8} устройств.
-                            </Typography>
-                          )}
-                        </Stack>
-                      )}
-
-                      {selectedListing && (
-                        <>
-                          <Divider />
-                          <Stack spacing={1.2}>
-                            <Typography sx={{ fontWeight: 800 }}>{selectedListing.name}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {selectedListing.device_brand} {selectedListing.device_model}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Купить: {selectedListing.units_to_buy} шт. · В одном листинге: {selectedListing.devices_per_listing} шт.
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Quality: {selectedListing.device_quality_score.toFixed(2)}
-                            </Typography>
-
-                            <Accordion disableGutters elevation={0} sx={{ borderRadius: 3, border: "1px solid rgba(148,163,184,0.18)" }}>
-                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Typography sx={{ fontWeight: 800 }}>Информация о подключении</Typography>
-                              </AccordionSummary>
-                              <AccordionDetails>
-                                <Stack spacing={1}>
-                                  <Typography variant="body2">
-                                    Шаг 1: {selectedListing.connection_info.direct_ecosystem} · {selectedListing.connection_info.direct_protocol}
-                                  </Typography>
-                                  {selectedListing.connection_info.direct_description && (
-                                    <Typography variant="body2" color="text.secondary">
-                                      {selectedListing.connection_info.direct_description}
-                                    </Typography>
-                                  )}
-                                  {selectedListing.connection_info.final_description && (
-                                    <>
-                                      <Typography variant="body2">
-                                        Шаг 2: {selectedListing.connection_info.final_ecosystem} · {selectedListing.connection_info.final_protocol}
-                                      </Typography>
-                                      <Typography variant="body2" color="text.secondary">
-                                        {selectedListing.connection_info.final_description}
-                                      </Typography>
-                                    </>
-                                  )}
-                                </Stack>
-                              </AccordionDetails>
-                            </Accordion>
-
-                            <Button
-                              variant="contained"
-                              onClick={() => window.open(selectedListing.url, "_blank", "noopener,noreferrer")}
-                              sx={{ fontWeight: 900, borderRadius: 3 }}
-                            >
-                              Открыть товар
-                            </Button>
-                          </Stack>
-                        </>
-                      )}
-
-                      <Typography variant="body2" color="text.secondary">
-                        Сейчас выбрано устройств в наборе: {bundleTotalListings}
-                      </Typography>
-
-                      <Button
-                        variant="outlined"
-                        disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle, simulationFloorData)}
-                        sx={{ fontWeight: 900, borderRadius: 3 }}
-                      >
-                        Открыть в симуляции
-                      </Button>
-                    </Stack>
-                  )}
+              <Card sx={{ ...surfaceCardSx, width: { xs: "100%", md: 430 }, minHeight: { xs: 520, md: 680 } }}>
+                <CardContent sx={{ height: "100%", minHeight: 0, p: 0 }}>
+                  <ApartmentPlanSidebarPreview renderer={apartmentPlanRenderer} />
                 </CardContent>
               </Card>
               </Stack>
@@ -700,7 +527,7 @@ function PlanPageContent() {
   );
 }
 
-function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown; devices?: unknown[] }) {
+function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown; devices?: unknown[]; onApartmentRendererReady?: (renderer: ApartmentPlanRenderHandle | null) => void }) {
   const floorFromStages = normalizeFloorPreviewData(props.floorData);
   if (floorFromStages.floor) {
     return (
@@ -715,7 +542,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?
           background: "#f4f6f8",
         }}
       >
-        <ApartmentPlanPreview floor={floorFromStages.floor} devices={props.devices} zones={floorFromStages.zones} />
+        <ApartmentPlanPreview floor={floorFromStages.floor} devices={props.devices} zones={floorFromStages.zones} onRendererReady={props.onApartmentRendererReady} />
       </Box>
     );
   }
@@ -768,7 +595,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?
           background: "#f4f6f8",
         }}
       >
-        <ApartmentPlanPreview floor={floor} devices={props.devices} zones={props.uploadedPlan.zones} />
+        <ApartmentPlanPreview floor={floor} devices={props.devices} zones={props.uploadedPlan.zones} onRendererReady={props.onApartmentRendererReady} />
       </Box>
     );
   }

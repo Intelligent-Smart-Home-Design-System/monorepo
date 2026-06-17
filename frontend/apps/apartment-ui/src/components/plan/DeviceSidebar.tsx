@@ -33,7 +33,7 @@ export function DeviceSidebar({
     <aside
       style={{
         width: '320px',
-        height: '100vh',
+        height: '100%',
         minHeight: 0,
         backgroundColor: '#ffffff',
         borderLeft: '2px solid #ecf0f1',

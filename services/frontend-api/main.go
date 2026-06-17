@@ -16,6 +16,8 @@ import (
 
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
+	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/sdk/client"
 )
 
 func main() {
@@ -29,7 +31,16 @@ func main() {
 		panic(err)
 	}
 
-	api := &apiServer{db: db}
+	temporalClient, err := client.Dial(client.Options{
+		HostPort:  env("TEMPORAL_ADDRESS", "localhost:7233"),
+		Namespace: env("TEMPORAL_NAMESPACE", "default"),
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer temporalClient.Close()
+
+	api := &apiServer{db: db, temporalClient: temporalClient}
 	server := &http.Server{
 		Addr:              env("HTTP_ADDRESS", ":8080"),
 		Handler:           api.routes(),
@@ -52,7 +63,8 @@ func main() {
 }
 
 type apiServer struct {
-	db *sql.DB
+	db            *sql.DB
+	temporalClient client.Client
 }
 
 func (s *apiServer) routes() http.Handler {
@@ -67,6 +79,7 @@ func (s *apiServer) routes() http.Handler {
 	mux.HandleFunc("POST /api/v1/plans", s.createPlan)
 	mux.HandleFunc("GET /api/v1/plans/{plan_id}", s.getPlan)
 	mux.HandleFunc("GET /api/v1/plans/{plan_id}/status", s.getPlanStatus)
+	mux.HandleFunc("GET /api/v1/result/{workflow_id}", s.getResult)
 	return withCORS(mux)
 }
 
@@ -290,6 +303,68 @@ func (s *apiServer) getPlanStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, status)
+}
+
+func (s *apiServer) getResult(w http.ResponseWriter, r *http.Request) {
+	workflowID := r.PathValue("workflow_id")
+	if workflowID == "" {
+		writeError(w, http.StatusBadRequest, "bad_request", "workflow_id is required")
+		return
+	}
+	runID := r.URL.Query().Get("run_id")
+
+	description, err := s.temporalClient.DescribeWorkflowExecution(r.Context(), workflowID, runID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "not_found", "workflow not found: "+err.Error())
+		return
+	}
+
+	execStatus := description.WorkflowExecutionInfo.Status
+	actualRunID := description.WorkflowExecutionInfo.Execution.RunId
+
+	if execStatus != enumspb.WORKFLOW_EXECUTION_STATUS_COMPLETED {
+		var stages []PipelineStage
+		progress := 0.0
+
+		queryResp, err := s.temporalClient.QueryWorkflow(r.Context(), workflowID, actualRunID, "pipeline_stages", nil)
+		if err == nil {
+			_ = queryResp.Get(&stages)
+			progress = calcProgress(stages)
+		}
+
+		writeJSON(w, http.StatusAccepted, PipelineStagesResult{
+			WorkflowID: workflowID,
+			RunID:      actualRunID,
+			Status:     execStatus.String(),
+			Progress:   progress,
+			Stages:     stages,
+		})
+		return
+	}
+
+	var result interface{}
+	if err := s.temporalClient.GetWorkflow(r.Context(), workflowID, actualRunID).Get(r.Context(), &result); err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "failed to get workflow result: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+func calcProgress(stages []PipelineStage) float64 {
+	if len(stages) == 0 {
+		return 0
+	}
+	var sum float64
+	for _, stage := range stages {
+		switch stage.Status {
+		case "completed":
+			sum += 1.0
+		case "running":
+			sum += 0.5
+		}
+	}
+	return sum / float64(len(stages))
 }
 
 func (s *apiServer) buildBundles(ctx context.Context, budget float64, mainEcosystem string, allowedEcosystems, excludedEcosystems []string, requirements []Requirement) ([]Bundle, error) {
@@ -808,4 +883,19 @@ type ErrorResponse struct {
 	Message string  `json:"message"`
 	Code    *string `json:"code"`
 	Details *string `json:"details"`
+}
+
+type PipelineStage struct {
+	Key     string      `json:"key"`
+	Title   string      `json:"title"`
+	Status  string      `json:"status"`
+	Payload interface{} `json:"payload,omitempty"`
+}
+
+type PipelineStagesResult struct {
+	WorkflowID string          `json:"workflow_id"`
+	RunID      string          `json:"run_id"`
+	Status     string          `json:"status"`
+	Progress   float64         `json:"progress"`
+	Stages     []PipelineStage `json:"stages"`
 }

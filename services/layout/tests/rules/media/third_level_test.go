@@ -16,7 +16,7 @@ import (
 func TestSimpleThirdLevelScript(t *testing.T) {
 	sofaFurniture := apartment.Furniture{
 		ID:     "1",
-		Name:   apartment.Sofa,
+		Category:   apartment.Sofa,
 		Points: []point.Point{
 			{X: 3, Y: 5},
 			{X: 6, Y: 5},

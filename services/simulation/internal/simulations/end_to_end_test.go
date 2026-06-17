@@ -573,7 +573,7 @@ func TestDevice_DoorSensor_TriggersLampLockSiren(t *testing.T) {
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "sensorWithoutUpdate_1", Type: "door_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
-			{ID: "lamp_1", Type: "smart_lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
 			{ID: "smartLock_1", Type: "smart_lock", Info: json.RawMessage(`{"id":"smartLock_1","delay":0.0}`)},
 			{ID: "siren_1", Type: "smart_siren", Info: json.RawMessage(`{"id":"siren_1","delay":0.0}`)},
 		},

@@ -21,6 +21,10 @@ export interface ApartmentPlanRenderHandle {
   destroy(): void;
 }
 
+export interface ApartmentPlanRenderOptions {
+  showOpeningHitboxes?: boolean;
+}
+
 const createEmptyPlan = (): FloorPlan => ({
   walls: [],
   doors: [],
@@ -33,6 +37,7 @@ export function renderApartmentPlan(
   plan?: FloorPlan | null,
   devices?: SmartDevice[] | null,
   zones?: Zone[] | null,
+  options: ApartmentPlanRenderOptions = {},
 ): ApartmentPlanRenderHandle {
   if (container instanceof HTMLCanvasElement) {
     throw new TypeError(
@@ -56,6 +61,7 @@ export function renderApartmentPlan(
         plan: currentPlan,
         devices: currentDevices,
         zones: currentZones,
+        showOpeningHitboxes: options.showOpeningHitboxes ?? false,
         onDevicesChange: (nextDevices: SmartDevice[]) => {
           currentDevices = nextDevices;
         },

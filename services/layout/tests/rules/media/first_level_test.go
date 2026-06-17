@@ -21,7 +21,7 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 			{X: 5, Y: 0},
 		},
 		Width:  2.0,
-		Rooms:  []string{"living_room"},
+		Room:  "livingroom",
 	}
 
 	walls := []apartment.Wall{

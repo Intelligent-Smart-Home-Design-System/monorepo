@@ -16,6 +16,7 @@ interface FloorPlanStageProps {
   plan: FloorPlan;
   devices: SmartDevice[];
   zones?: Zone[];
+  showOpeningHitboxes?: boolean;
   selectedDeviceId: string | null;
   selectedZoneId: string | null;
   onSelectDevice: (id: string | null) => void;
@@ -48,6 +49,7 @@ export function FloorPlanStage({
   plan,
   devices,
   zones = EMPTY_ZONES,
+  showOpeningHitboxes = false,
   selectedDeviceId,
   selectedZoneId,
   onSelectDevice,
@@ -228,8 +230,16 @@ export function FloorPlanStage({
             onMoveZonePoint={onMoveZonePoint}
           />
           <Walls walls={plan.walls} hatchPattern={hatchPattern} />
-          <Doors doors={plan.doors} walls={plan.walls} />
-          <Windows windows={plan.windows} walls={plan.walls} />
+          <Doors
+            doors={plan.doors}
+            walls={plan.walls}
+            showHitboxes={showOpeningHitboxes}
+          />
+          <Windows
+            windows={plan.windows}
+            walls={plan.walls}
+            showHitboxes={showOpeningHitboxes}
+          />
           <SmartDevices
             devices={devices}
             rooms={plan.rooms}

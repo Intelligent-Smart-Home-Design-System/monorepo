@@ -3,15 +3,17 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+import structlog
 from fastapi import UploadFile
 
 from internal.classification.classifier import SemanticClassifier
-from internal.entities.warnings import ParseWarning
 from internal.export.floor_exporter import FloorExporter
 from internal.normalization.geometry_normalizer import GeometryNormalizer
 from internal.readers.dxf.extractor import DxfExtractor
 from internal.readers.dxf.reader import DxfReader
 from internal.topology.topology_builder import TopologyBuilder
+
+log = structlog.get_logger("floor-parser.pipeline")
 
 
 async def parse_floor(file: UploadFile) -> dict[str, object]:
@@ -23,20 +25,21 @@ async def parse_floor(file: UploadFile) -> dict[str, object]:
 
 async def parse_dxf_floor(file: UploadFile) -> dict[str, object]:
     contents = await file.read()
-    warnings: list[ParseWarning] = []
 
     with NamedTemporaryFile(suffix=".dxf", delete=False) as temp_file:
         temp_file.write(contents)
         temp_path = Path(temp_file.name)
     try:
-        reader = DxfReader()
+        log.info("processing dxf file", filename=file.filename, size=len(contents))
+
+        dxf_reader = DxfReader()
         extractor = DxfExtractor()
         normalizer = GeometryNormalizer()
         classifier = SemanticClassifier()
         topology_builder = TopologyBuilder()
         exporter = FloorExporter()
 
-        read_result = reader.read_path(temp_path)
+        read_result = dxf_reader.read_path(temp_path)
         raw_plan = extractor.extract(read_result)
         normalized_entities = normalizer.normalize(raw_plan)
         classified_entities = classifier.classify(normalized_entities, units=raw_plan.metadata.units)
@@ -45,11 +48,30 @@ async def parse_dxf_floor(file: UploadFile) -> dict[str, object]:
             classified_entities=classified_entities,
             units=raw_plan.metadata.units,
         )
-        return exporter.export(
+        result = exporter.export(
             floor_plan,
             source=raw_plan.metadata.source_format.value,
             units=raw_plan.metadata.units,
-            warnings=warnings,
         )
+
+        floor_plan_data = result.get("floor_plan", {})
+        rooms = floor_plan_data.get("rooms", [])
+
+        if len(rooms) == 0:
+            log.warning("no rooms detected in floor plan", filename=file.filename)
+        if not floor_plan_data.get("doors"):
+            log.warning("no doors detected in floor plan", filename=file.filename)
+        if not floor_plan_data.get("windows"):
+            log.warning("no windows detected in floor plan", filename=file.filename)
+        if not floor_plan_data.get("furniture"):
+            log.warning("no furniture detected in floor plan", filename=file.filename)
+        if len(contents) < 1024:
+            log.warning("dxf file is suspiciously small", filename=file.filename, size=len(contents))
+
+        log.info("dxf processing completed", filename=file.filename, rooms=len(rooms))
+        return result
+    except Exception:
+        log.exception("dxf processing failed", filename=file.filename)
+        raise
     finally:
         temp_path.unlink(missing_ok=True)

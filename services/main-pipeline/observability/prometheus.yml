@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: main-pipeline
+    static_configs:
+      - targets: ["main-pipeline:2112"]
+  - job_name: api-gateway
+    static_configs:
+      - targets: ["api-gateway:2116"]
+  - job_name: floor-parser-worker
+    static_configs:
+      - targets: ["floor-parser-worker:2113"]
+  - job_name: layout-worker
+    static_configs:
+      - targets: ["layout-worker:2114"]
+  - job_name: device-selection-worker
+    static_configs:
+      - targets: ["device-selection-worker:2115"]

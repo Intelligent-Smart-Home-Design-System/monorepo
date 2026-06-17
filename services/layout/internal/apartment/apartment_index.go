@@ -1,6 +1,9 @@
 package apartment
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Index создает вспомогающую зависимость в квартире
 func (a *Apartment) Index() {
@@ -9,8 +12,8 @@ func (a *Apartment) Index() {
 	a.IndexWindows()
 	a.IndexDoors()
 	a.IndexFurniture()
-	a.IndexPlumbing()
-	a.IndexAppliances()
+	// a.IndexPlumbing()
+	// a.IndexAppliances()
 	a.bindRooms()
 }
 
@@ -19,8 +22,23 @@ func (a *Apartment) Index() {
 func (a *Apartment) IndexRooms() {
 	a.roomsByName = make(map[string][]*Room)
 
-	for _, room := range a.Rooms {
-		a.roomsByName[room.Name] = append(a.roomsByName[room.Name], &room)
+	for i := range a.Rooms {
+		a.Rooms[i].Name = strings.ToLower(a.Rooms[i].Name)
+
+		name := a.Rooms[i].Name
+		a.roomsByName[name] = append(a.roomsByName[name], &a.Rooms[i])
+		switch name {
+		case "hall":
+			a.roomsByName["hallway"] = append(a.roomsByName["hallway"], &a.Rooms[i])
+			a.Rooms[i].Name = RoomHall
+		case "hallway":
+			a.roomsByName["hall"] = append(a.roomsByName["hall"], &a.Rooms[i])
+		case "livingroom":
+			a.roomsByName["living"] = append(a.roomsByName["living"], &a.Rooms[i])
+		case "living":
+			a.roomsByName["livingroom"] = append(a.roomsByName["livingroom"], &a.Rooms[i])
+			a.Rooms[i].Name = RoomLiving
+		}
 	}
 }
 
@@ -56,33 +74,34 @@ func (a *Apartment) IndexFurniture() {
 	a.furnitureByID = make(map[string]*Furniture)
 
 	for i := range a.Furniture {
+		a.Furniture[i].Category = strings.ToLower(a.Furniture[i].Category)
 		a.furnitureByID[a.Furniture[i].ID] = &a.Furniture[i]
 	}
 }
 
-// IndexPlumbing создает словарь зависимости ID сантехники с его структурой
-func (a *Apartment) IndexPlumbing() {
-	a.plumbingByID = make(map[string]*Plumbing)
-	if a.Plumbing == nil {
-		return
-	}
+// // IndexPlumbing создает словарь зависимости ID сантехники с его структурой
+// func (a *Apartment) IndexPlumbing() {
+// 	a.plumbingByID = make(map[string]*Plumbing)
+// 	if a.Plumbing == nil {
+// 		return
+// 	}
 
-	for i := range a.Plumbing {
-		a.plumbingByID[a.Plumbing[i].ID] = &a.Plumbing[i]
-	}
-}
+// 	for i := range a.Plumbing {
+// 		a.plumbingByID[a.Plumbing[i].ID] = &a.Plumbing[i]
+// 	}
+// }
 
-// IndexAppliances создает словарь зависимости ID бытовой техники с его структурой
-func (a *Apartment) IndexAppliances() {
-	a.appliancesByID = make(map[string]*Appliances)
-	if a.Appliances == nil {
-		return
-	}
+// // IndexAppliances создает словарь зависимости ID бытовой техники с его структурой
+// func (a *Apartment) IndexAppliances() {
+// 	a.appliancesByID = make(map[string]*Appliances)
+// 	if a.Appliances == nil {
+// 		return
+// 	}
 
-	for i := range a.Appliances {
-		a.appliancesByID[a.Appliances[i].ID] = &a.Appliances[i]
-	}
-}
+// 	for i := range a.Appliances {
+// 		a.appliancesByID[a.Appliances[i].ID] = &a.Appliances[i]
+// 	}
+// }
 
 // bindRooms устанавливает обратную ссылку на квартиру для каждой комнаты
 func (a *Apartment) bindRooms() {
@@ -139,23 +158,23 @@ func (a *Apartment) GetFurnitureByID(id string) (*Furniture, error) {
 	return f, nil
 }
 
-// GetPlumbingByID возвращает сантехнику по ID
-func (a *Apartment) GetPlumbingByID(id string) (*Plumbing, error) {
-	p, ok := a.plumbingByID[id]
-	if !ok {
-		return nil, fmt.Errorf("plumbing with id %s not found", id)
-	}
-	return p, nil
-}
+// // GetPlumbingByID возвращает сантехнику по ID
+// func (a *Apartment) GetPlumbingByID(id string) (*Plumbing, error) {
+// 	p, ok := a.plumbingByID[id]
+// 	if !ok {
+// 		return nil, fmt.Errorf("plumbing with id %s not found", id)
+// 	}
+// 	return p, nil
+// }
 
-// GetAppliancesByID возвращает бытовую технику по ID
-func (a *Apartment) GetAppliancesByID(id string) (*Appliances, error) {
-	app, ok := a.appliancesByID[id]
-	if !ok {
-		return nil, fmt.Errorf("appliance with id %s not found", id)
-	}
-	return app, nil
-}
+// // GetAppliancesByID возвращает бытовую технику по ID
+// func (a *Apartment) GetAppliancesByID(id string) (*Appliances, error) {
+// 	app, ok := a.appliancesByID[id]
+// 	if !ok {
+// 		return nil, fmt.Errorf("appliance with id %s not found", id)
+// 	}
+// 	return app, nil
+// }
 
 // GetFrontDoor возвращает входную дверь в квартиру
 func (a *Apartment) GetFrontDoor() *Door {

@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "preview": "next build --webpack && next start",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:ws": "node scripts/ws-smoke.mjs"
   },
   "dependencies": {
     "next": "^16.2.6",

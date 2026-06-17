@@ -41,6 +41,7 @@ ROOM_LABEL_KEYWORDS = frozenset(
         "garage",
         "great",
         "hall",
+        "hallway",
         "kitchen",
         "laundry",
         "living",

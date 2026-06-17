@@ -21,7 +21,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 				{X: 3, Y: 0},
 				{X: 5, Y: 0},
 			},
-			Rooms: []string{"1"},
+			Room: "hall",
 			Width: 2,
 		},
 		{
@@ -30,7 +30,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 				{X: 8, Y: 3},
 				{X: 8, Y: 6},
 			},
-			Rooms: []string{"1"},
+			Room: "hall",
 			Width: 3,
 		},
 		{
@@ -39,7 +39,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 				{X: 3, Y: 12},
 				{X: 5, Y: 12},
 			},
-			Rooms: []string{"2"},
+			Room: "livingroom",
 			Width: 2,
 		},
 	}
@@ -151,7 +151,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 		},
 		{
 			ID:   "2",
-			Name: "living",
+			Name: "livingroom",
 			Area: []point.Point{
 				{X: 0, Y: 7},
 				{X: 6, Y: 7},
@@ -238,7 +238,7 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 				{X: 0, Y: 1},
 				{X: 0, Y: 2},
 			},
-			Rooms: []string{"1"},
+			Room: "livingroom",
 		},
 		{
 			ID: "2",
@@ -246,7 +246,7 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 				{X: 5, Y: 0},
 				{X: 5, Y: 2},
 			},
-			Rooms: []string{"1"},
+			Room: "livingroom",
 		},
 	}
 
@@ -315,7 +315,7 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
-			Name: "living",
+			Name: "livingroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
 				{X: 5, Y: 0},

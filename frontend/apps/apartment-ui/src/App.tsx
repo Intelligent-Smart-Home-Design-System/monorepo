@@ -16,12 +16,14 @@ interface AppProps {
   plan?: FloorPlan;
   devices?: SmartDevice[];
   zones?: Zone[];
+  showOpeningHitboxes?: boolean;
 }
 
 export default function App({
   plan = currentPlan,
   devices: initialDevices = currentDevices,
   zones = currentZones,
+  showOpeningHitboxes = false,
 }: AppProps) {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export default function App({
           plan={plan}
           devices={devices}
           zones={editableZones}
+          showOpeningHitboxes={showOpeningHitboxes}
           selectedDeviceId={selectedDeviceId}
           selectedZoneId={selectedZoneId}
           onSelectDevice={handleSelectDevice}

@@ -1,6 +1,7 @@
 package simulations
 
 import (
+	"encoding/json"
 	"errors"
 	"sync"
 
@@ -69,12 +70,32 @@ func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*ap
 	}
 
 	for _, input := range payload.Inputs {
-		eng.GetInChan() <- input
+		eng.GetInChan() <- normalizeInput(input)
 	}
 
 	eng.Step()
 
 	return eng.CollectStep(payload.Tick), nil
+}
+
+func normalizeInput(input api.EventDTO) api.EventDTO {
+	if len(input.Payload) == 0 {
+		return input
+	}
+
+	var meta struct {
+		Trigger string `json:"trigger"`
+	}
+
+	if err := json.Unmarshal(input.Payload, &meta); err != nil {
+		return input
+	}
+
+	if meta.Trigger != "" {
+		input.EntityID = meta.Trigger
+	}
+
+	return input
 }
 
 // Stop останавливает и удаляет движок симуляции.

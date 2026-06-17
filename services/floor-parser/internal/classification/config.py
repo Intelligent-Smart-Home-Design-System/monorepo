@@ -62,7 +62,7 @@ class WallDetectorConfig:
     max_closed_polyline_width_mm: float = 1500.0
     parallel_cross_tolerance: float = 0.01
     min_overlap_ratio: float = 0.4
-    max_width_to_length: float = 0.35
+    max_width_to_length: float = 0.4
     closed_polyline_width_to_length: float = 0.9
     closed_polyline_offset_tolerance_ratio: float = 0.07
     line_offset_tolerance_mm: float = 2.0

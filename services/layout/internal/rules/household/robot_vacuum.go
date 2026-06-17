@@ -24,14 +24,9 @@ func (r *RobotVacuumRule) Type() string {
 }
 
 func (r *RobotVacuumRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, rm := range rooms {
-		roomsSet[rm.ID] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -67,14 +62,9 @@ func (r *RobotVacuumRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 		robotVacuumFilters = &filters.RobotVacuumFilter{}
 	}
 
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, rm := range rooms {
-		roomsSet[rm.ID] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0
@@ -83,7 +73,7 @@ func (r *RobotVacuumRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.ID]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
 			continue
 		}
 
@@ -121,13 +111,7 @@ func collectRobotRestrictedZones(zr *apartment.ZonedRoom) []*apartment.Zone {
 		}
 	}
 
-	for _, p := range zr.GetPlumbing() {
-		if len(p.Points) > 0 {
-			zones = append(zones, apartment.NewZone(p.Points))
-		}
-	}
-
-	for _, a := range zr.GetAppliances() {
+	for _, a := range zr.GetFurniture() {
 		if len(a.Points) > 0 {
 			zones = append(zones, apartment.NewZone(a.Points))
 		}

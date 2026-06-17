@@ -46,22 +46,6 @@ func (zr *ZonedRoom) GetFurniture() []*Furniture {
 	return zr.OrigRoom.GetFurniture()
 }
 
-// GetPlumbing возвращает сантехнику оригинальной комнаты
-func (zr *ZonedRoom) GetPlumbing() []*Plumbing {
-	if zr.OrigRoom == nil {
-		return nil
-	}
-	return zr.OrigRoom.GetPlumbing()
-}
-
-// GetAppliances возвращает бытовую технику оригинальной комнаты
-func (zr *ZonedRoom) GetAppliances() []*Appliances {
-	if zr.OrigRoom == nil {
-		return nil
-	}
-	return zr.OrigRoom.GetAppliances()
-}
-
 // GetWalls возвращает стены оригинальной комнаты
 func (zr *ZonedRoom) GetWalls() []*Wall {
 	if zr.OrigRoom == nil {

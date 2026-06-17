@@ -35,14 +35,9 @@ func (r *SmartFloorThermostatRule) Apply(zonedAp *apartment.ZonedApartment, leve
 		smartFloorThermostatFilters = &filters.SmartFloorThermostatFilter{}
 	}
 
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, room := range rooms {
-		roomsSet[room.ID] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0
@@ -51,7 +46,7 @@ func (r *SmartFloorThermostatRule) Apply(zonedAp *apartment.ZonedApartment, leve
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.ID]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
 			continue
 		}
 

@@ -10,10 +10,8 @@ import (
 
 const (
 	MainPipelineTaskQueue     = "main-pipeline"
-	FloorParserTaskQueue      = "floor-parser"
 	LayoutTaskQueue           = "layout"
 	DeviceSelectionTaskQueue  = "device-selection"
-	ParseFloorActivityName    = "parse_floor_json"
 	PlaceDevicesActivityName  = "place_devices"
 	SelectDevicesActivityName = "select_devices"
 )
@@ -29,19 +27,6 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 		MaximumAttempts:    3,
 	}
 
-	var parsed pipeline.FloorParserOutput
-	parseCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		TaskQueue:           FloorParserTaskQueue,
-		StartToCloseTimeout: 2 * time.Minute,
-		RetryPolicy:         retryPolicy,
-	})
-	if err := workflow.ExecuteActivity(parseCtx, ParseFloorActivityName, pipeline.FloorParserInput{
-		RequestID: input.RequestID,
-		FloorPlan: input.FloorPlan,
-	}).Get(ctx, &parsed); err != nil {
-		return nil, err
-	}
-
 	var placed pipeline.LayoutOutput
 	layoutCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		TaskQueue:           LayoutTaskQueue,
@@ -50,7 +35,7 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 	})
 	if err := workflow.ExecuteActivity(layoutCtx, PlaceDevicesActivityName, pipeline.LayoutInput{
 		RequestID:      input.RequestID,
-		FloorPlan:      parsed.FloorPlan,
+		FloorPlan:      input.FloorPlan,
 		SelectedLevels: input.SelectedLevels,
 	}).Get(ctx, &placed); err != nil {
 		return nil, err
@@ -79,7 +64,7 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 	logger.Info("main pipeline workflow completed", "request_id", input.RequestID)
 	return &pipeline.PipelineResult{
 		RequestID:       input.RequestID,
-		ParsedFloorPlan: parsed.FloorPlan,
+		ParsedFloorPlan: input.FloorPlan,
 		Layout:          placed.Layout,
 		DeviceSelection: deviceSelectionResult,
 	}, nil

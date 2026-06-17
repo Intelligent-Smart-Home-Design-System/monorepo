@@ -43,6 +43,7 @@ func PolygonIntersectsCircle(polygon [][2]float64, cx, cy, radius float64) bool 
 	return false
 }
 
+// segmentIntersectsCircle проверяет пересекает ли отрезок (a, b) окружность с центром (cx, cy) и радиусом radius.
 func segmentIntersectsCircle(a, b [2]float64, cx, cy, radius float64) bool {
 	dx := b[0] - a[0]
 	dy := b[1] - a[1]
@@ -65,6 +66,7 @@ func segmentIntersectsCircle(a, b [2]float64, cx, cy, radius float64) bool {
 	return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1)
 }
 
+// pointInPolygon проверяет находится ли точка (x, y) внутри многоугольника, заданного массивом вершин polygon.
 func pointInPolygon(x, y float64, polygon [][2]float64) bool {
 	n := len(polygon)
 	inside := false
@@ -92,4 +94,10 @@ func IsInRadius(xCenter, yCenter, xPoint, yPoint, radius float64) bool {
 	dy := yPoint - yCenter
 
 	return dx*dx+dy*dy <= radius*radius
+}
+
+// CirclesIntersect возвращает true если две окружности пересекаются или одна содержит другую.
+func CirclesIntersect(x1, y1, r1, x2, y2, r2 float64) bool {
+    distSq := (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1)
+    return distSq <= (r1 + r2)*(r1 + r2)
 }

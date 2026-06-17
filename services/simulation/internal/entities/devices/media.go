@@ -15,11 +15,13 @@ type TV struct {
 	TurnOn bool `json:"turn_on"`
 }
 
+// TVData — данные для телевизора.
 type TVData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewTV — конструктор телевизора.
 func NewTV(data []byte, engineAPI engine.EnginePort) (*TV, error) {
 	var tv TV
 	if err := json.Unmarshal(data, &tv); err != nil {
@@ -33,6 +35,7 @@ func NewTV(data []byte, engineAPI engine.EnginePort) (*TV, error) {
 	return &tv, nil
 }
 
+// HandleInDTO - обработка входящих данных для телевизора.
 func (tv *TV) HandleInDTO(dto []byte) error {
 	input := TVData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -44,6 +47,7 @@ func (tv *TV) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// HandleEvent - обработка события для телевизора.
 func (tv *TV) HandleEvent(inData TVData) TVData {
 	tv.TurnOn = inData.TurnOn
 
@@ -53,17 +57,19 @@ func (tv *TV) HandleEvent(inData TVData) TVData {
 	}
 }
 
-// Subwoofer — сабвуфер (вкл/выкл).
+// Subwoofer - сабвуфер (вкл/выкл).
 type Subwoofer struct {
 	BaseDevice[SubwooferData]
 	TurnOn bool `json:"turn_on"`
 }
 
+// SubwooferData - данные для сабвуфера.
 type SubwooferData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
 }
 
+// NewSubwoofer - конструктор сабвуфера.
 func NewSubwoofer(data []byte, engineAPI engine.EnginePort) (*Subwoofer, error) {
 	var s Subwoofer
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -77,6 +83,7 @@ func NewSubwoofer(data []byte, engineAPI engine.EnginePort) (*Subwoofer, error) 
 	return &s, nil
 }
 
+// HandleInDTO - обработка входящих данных для сабвуфера.
 func (s *Subwoofer) HandleInDTO(dto []byte) error {
 	input := SubwooferData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -88,6 +95,7 @@ func (s *Subwoofer) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// HandleEvent - обработка события для сабвуфера.
 func (s *Subwoofer) HandleEvent(inData SubwooferData) SubwooferData {
 	s.TurnOn = inData.TurnOn
 

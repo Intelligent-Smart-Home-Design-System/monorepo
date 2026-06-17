@@ -16,6 +16,7 @@ import (
 )
 
 // ===== Helper =====
+// dialSim устанавливает WebSocket-соединение
 func dialSim(t *testing.T, server *httptest.Server) *websocket.Conn {
 	t.Helper()
 
@@ -33,6 +34,7 @@ func dialSim(t *testing.T, server *httptest.Server) *websocket.Conn {
 	return conn
 }
 
+// sendMsg отправляет сообщение msg через websocket соединение conn. Если возникает ошибка, тест завершается с фатальной ошибкой.
 func sendMsg(t *testing.T, conn *websocket.Conn, msg api.Message) {
 	t.Helper()
 
@@ -46,6 +48,7 @@ func sendMsg(t *testing.T, conn *websocket.Conn, msg api.Message) {
 	}
 }
 
+// recvMsg читает сообщение из websocket соединения conn, десериализует его в api.Message и возвращает. Если возникает ошибка при чтении или десериализации, тест завершается с фатальной ошибкой.
 func recvMsg(t *testing.T, conn *websocket.Conn) api.Message {
 	t.Helper()
 
@@ -65,6 +68,9 @@ func recvMsg(t *testing.T, conn *websocket.Conn) api.Message {
 	return msg
 }
 
+// recvStep читает сообщение из websocket соединения conn, проверяет что его тип "simulation:step",
+// десериализует полезную нагрузку в api.SimulationStepPayload и возвращает её. Если тип сообщения
+// не соответствует ожидаемому или возникает ошибка при чтении или десериализации, тест завершается с фатальной ошибкой.
 func recvStep(t *testing.T, conn *websocket.Conn) api.SimulationStepPayload {
 	t.Helper()
 
@@ -83,6 +89,7 @@ func recvStep(t *testing.T, conn *websocket.Conn) api.SimulationStepPayload {
 	return step
 }
 
+// newSimServer создает новый тестовый HTTP сервер, который обрабатывает WebSocket соединения с помощью ws.Manager.
 func newSimServer(t *testing.T) *httptest.Server {
 	t.Helper()
 
@@ -94,6 +101,8 @@ func newSimServer(t *testing.T) *httptest.Server {
 	return server
 }
 
+// startSim отправляет команду "simulation:start" с заданным reqID и полезной нагрузкой payload через
+// websocket соединение conn.
 func startSim(t *testing.T, conn *websocket.Conn, reqID string, payload api.SimulationStartPayload) {
 	t.Helper()
 
@@ -110,7 +119,8 @@ func startSim(t *testing.T, conn *websocket.Conn, reqID string, payload api.Simu
 	}
 }
 
-func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []api.EventInDTO) api.SimulationStepPayload {
+// tick отправляет команду "simulation:tick" с заданным reqID
+func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []api.EventDTO) api.SimulationStepPayload {
 	t.Helper()
 
 	raw, err := json.Marshal(api.SimulationTickPayload{Tick: tickN, Inputs: inputs})
@@ -128,7 +138,8 @@ func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []
 	return recvStep(t, conn)
 }
 
-func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventInDTO {
+// inputEvent создает событие для включения или выключения устройства с данным entityID.
+func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventDTO {
 	t.Helper()
 
 	deviceName := strings.Split(entityID, "_")[0]
@@ -138,12 +149,13 @@ func inputEvent(t *testing.T, entityID string, turnOn bool) api.EventInDTO {
 		t.Fatalf("inputEvent: %v", err)
 	}
 
-	return api.EventInDTO{
+	return api.EventDTO{
 		EntityID: entityID,
 		Payload:  payload,
 	}
 }
 
+// mockApartmentRaw создает простое описание квартиры в виде json.RawMessage для использования в тестах.
 func mockApartmentRaw(t *testing.T) json.RawMessage {
 	t.Helper()
 
@@ -226,9 +238,9 @@ func TestSimulation_Default(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "switcher_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "switcher_2", true)}))
-	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "switcher_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{inputEvent(t, "switcher_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventDTO{inputEvent(t, "switcher_2", true)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventDTO{inputEvent(t, "switcher_1", false)}))
 	steps = append(steps, tick(t, conn, reqID, 4, nil))
 	steps = append(steps, tick(t, conn, reqID, 5, nil))
 	steps = append(steps, tick(t, conn, reqID, 6, nil))
@@ -252,7 +264,7 @@ func TestWS_Simulation_UserIntervention(t *testing.T) {
 	const reqID = "sim-intervention"
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
-		DtSim:     10.0,
+		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "switcher_1", Type: "switcher", Info: json.RawMessage(`{"id":"switcher_1","delay":0.0}`)},
@@ -268,13 +280,9 @@ func TestWS_Simulation_UserIntervention(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "switcher_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "switcher_1", false)}))
-	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{inputEvent(t, "switcher_2", true)}))
-	steps = append(steps, tick(t, conn, reqID, 4, nil))
-	steps = append(steps, tick(t, conn, reqID, 5, nil))
-	steps = append(steps, tick(t, conn, reqID, 6, nil))
-	steps = append(steps, tick(t, conn, reqID, 7, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{inputEvent(t, "switcher_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventDTO{inputEvent(t, "switcher_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventDTO{inputEvent(t, "switcher_2", true)}))
 
 	lamp1State, _ := lastStateOf(steps, "lamp_1")
 	lamp2State, _ := lastStateOf(steps, "lamp_2")
@@ -310,10 +318,8 @@ func TestSimulation_SensorWithUpdate_NoInterruption(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", false)}))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
-	steps = append(steps, tick(t, conn, reqID, 4, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{inputEvent(t, "sensorWithUpdate_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventDTO{inputEvent(t, "sensorWithUpdate_1", false)}))
 
 	got := statesFrom(steps, "sensorWithUpdate_1")
 	want := []bool{true, false}
@@ -350,14 +356,14 @@ func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{inputEvent(t, "sensorWithUpdate_1", false)}))
-	steps = append(steps, tick(t, conn, reqID, 3, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{inputEvent(t, "sensorWithUpdate_1", true)}))
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventDTO{inputEvent(t, "sensorWithUpdate_1", false)}))
+	steps = append(steps, tick(t, conn, reqID, 3, []api.EventDTO{
 		inputEvent(t, "sensorWithUpdate_1", true),
 		inputEvent(t, "sensorWithUpdate_1", false),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 4, nil))
-	steps = append(steps, tick(t, conn, reqID, 5, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 5, []api.EventDTO{
 		inputEvent(t, "sensorWithUpdate_1", true),
 		inputEvent(t, "sensorWithUpdate_1", false),
 	}))
@@ -383,7 +389,8 @@ func TestSimulation_SensorWithUpdate_TwoInterruptions(t *testing.T) {
 
 // ===== Device interaction helpers =====
 
-func boolEvent(t *testing.T, entityID string, field string, value bool) api.EventInDTO {
+// boolEvent создает событие для устройства с данным entityID, устанавливая поле field в значение value.
+func boolEvent(t *testing.T, entityID string, field string, value bool) api.EventDTO {
 	t.Helper()
 
 	payload, err := json.Marshal(map[string]bool{field: value})
@@ -391,10 +398,11 @@ func boolEvent(t *testing.T, entityID string, field string, value bool) api.Even
 		t.Fatalf("boolEvent: %v", err)
 	}
 
-	return api.EventInDTO{EntityID: entityID, Payload: payload}
+	return api.EventDTO{EntityID: entityID, Payload: payload}
 }
 
-func intEvent(t *testing.T, entityID string, field string, value int) api.EventInDTO {
+// intEvent создает событие для устройства с данным entityID, устанавливая поле field в значение value.
+func intEvent(t *testing.T, entityID string, field string, value int) api.EventDTO {
 	t.Helper()
 
 	payload, err := json.Marshal(map[string]int{field: value})
@@ -402,12 +410,15 @@ func intEvent(t *testing.T, entityID string, field string, value int) api.EventI
 		t.Fatalf("intEvent: %v", err)
 	}
 
-	return api.EventInDTO{EntityID: entityID, Payload: payload}
+	return api.EventDTO{EntityID: entityID, Payload: payload}
 }
 
+// lastBoolStateOf возвращает последнее значение поля field для entityID из всех шагов. Если такого поля не найдено, возвращает false и false.
 func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field string) (bool, bool) {
 	for i := len(steps) - 1; i >= 0; i-- {
-		for _, change := range steps[i].StateChanges {
+		changes := steps[i].StateChanges
+		for j := len(changes) - 1; j >= 0; j-- {
+			change := changes[j]
 			if change.EntityID != entityID {
 				continue
 			}
@@ -428,9 +439,12 @@ func lastBoolStateOf(steps []api.SimulationStepPayload, entityID string, field s
 	return false, false
 }
 
+// lastIntStateOf возвращает последнее значение поля field для entityID из всех шагов. Если такого поля не найдено, возвращает 0 и false.
 func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field string) (int, bool) {
 	for i := len(steps) - 1; i >= 0; i-- {
-		for _, change := range steps[i].StateChanges {
+		changes := steps[i].StateChanges
+		for j := len(changes) - 1; j >= 0; j-- {
+			change := changes[j]
 			if change.EntityID != entityID {
 				continue
 			}
@@ -453,8 +467,8 @@ func lastIntStateOf(steps []api.SimulationStepPayload, entityID string, field st
 
 // ===== Individual device tests =====
 
-// TestDevice_MotionSensor_TriggersBulbAndSiren проверяет что датчик движения тригерит лампу и сирену.
-func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
+// TestDevice_MotionSensor_TriggersLampAndSiren проверяет что датчик движения тригерит лампу и сирену.
+func TestDevice_MotionSensor_TriggersLampAndSiren(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
 
@@ -464,7 +478,7 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "sensorWithUpdate_1", Type: "motion_sensor", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0}`)},
+			{ID: "sensorWithUpdate_1", Type: "motion_sensor", Info: json.RawMessage(`{"id":"sensorWithUpdate_1","delay":0.0, "timeout": 1000}`)},
 			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
 			{ID: "siren_1", Type: "smart_siren", Info: json.RawMessage(`{"id":"siren_1","delay":0.0}`)},
 		},
@@ -475,14 +489,12 @@ func TestDevice_MotionSensor_TriggersBulbAndSiren(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithUpdate_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{boolEvent(t, "sensorWithUpdate_1", "turn_on", true)}))
 
-	bulbState, bulbFound := lastBoolStateOf(steps, "lamp_1", "turn_on")
+	lampState, lampFound := lastBoolStateOf(steps, "lamp_1", "turn_on")
 	sirenState, sirenFound := lastBoolStateOf(steps, "siren_1", "turn_on")
 
-	if !bulbFound || !bulbState {
+	if !lampFound || !lampState {
 		t.Fatal("lamp_1 should be ON after motion sensor trigger")
 	}
 
@@ -502,7 +514,7 @@ func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "smartLamp_1", Type: "smart_bulb", Info: json.RawMessage(`{"id":"smartLamp_1","delay":0.0}`)},
+			{ID: "smartLamp_1", Type: "smart_lamp", Info: json.RawMessage(`{"id":"smartLamp_1","delay":0.0}`)},
 			{ID: "smartDimmer_1", Type: "smart_dimmer", Info: json.RawMessage(`{"id":"smartDimmer_1","delay":0.0,"percents":0}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
@@ -512,9 +524,7 @@ func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{intEvent(t, "smartDimmer_1", "percents", 60)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{intEvent(t, "smartDimmer_1", "percents", 60)}))
 
 	smartLampState, smartLampFound := lastIntStateOf(steps, "smartLamp_1", "percents")
 	if smartLampState != 60 || !smartLampFound {
@@ -522,7 +532,7 @@ func TestDevice_SmartDimmer_TriggersSmartLamp(t *testing.T) {
 	}
 }
 
-// TestDevice_SensorWithIntStatus_TriggersCurtains проверяет умные шторы.
+// TestDevice_SensorWithIntStatus_TriggersCurtains проверяет умные шторы через сенсор полем int.
 func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -543,9 +553,7 @@ func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{intEvent(t, "sensorWithIntStatus_1", "percents", 80)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{intEvent(t, "sensorWithIntStatus_1", "percents", 80)}))
 
 	smartCurtainsState, smartCurtainsFound := lastIntStateOf(steps, "smartCurtains_1", "percents")
 	if smartCurtainsState != 80 || !smartCurtainsFound {
@@ -553,8 +561,8 @@ func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 	}
 }
 
-// TestDevice_DoorSensor_TriggersBulbLockSiren проверяет датчик двери.
-func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
+// TestDevice_DoorSensor_TriggersLampLockSiren проверяет сенсор, лампу, дверной замок и сирену.
+func TestDevice_DoorSensor_TriggersLampLockSiren(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
 
@@ -565,7 +573,7 @@ func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
 			{ID: "sensorWithoutUpdate_1", Type: "door_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
-			{ID: "lamp_1", Type: "smart_bulb", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
 			{ID: "smartLock_1", Type: "smart_lock", Info: json.RawMessage(`{"id":"smartLock_1","delay":0.0}`)},
 			{ID: "siren_1", Type: "smart_siren", Info: json.RawMessage(`{"id":"siren_1","delay":0.0}`)},
 		},
@@ -580,9 +588,7 @@ func TestDevice_DoorSensor_TriggersBulbLockSiren(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
 
 	state, found := lastBoolStateOf(steps, "lamp_1", "turn_on")
 	if !found || !state {
@@ -621,9 +627,7 @@ func TestDevice_WindowSensor_TriggersWindow(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
 
 	state, found := lastBoolStateOf(steps, "window_1", "turn_on")
 	if !found || !state {
@@ -652,8 +656,7 @@ func TestDevice_Doorbell_TriggersLock(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "smartDoorbell_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{boolEvent(t, "smartDoorbell_1", "turn_on", true)}))
 
 	lockState, lockFound := lastBoolStateOf(steps, "smartLock_1", "turn_on")
 	if !lockFound || !lockState {
@@ -661,6 +664,7 @@ func TestDevice_Doorbell_TriggersLock(t *testing.T) {
 	}
 }
 
+// TestDevice_AirConditioner проверяет работу кондиционера.
 func TestDevice_AirConditioner(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -676,15 +680,13 @@ func TestDevice_AirConditioner(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		boolEvent(t, "airConditioner_1", "turn_on", true),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
 
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventDTO{
 		intEvent(t, "airConditioner_1", "temperature", 25),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
 
 	on, found := lastBoolStateOf(steps, "airConditioner_1", "turn_on")
 	if !found || !on {
@@ -697,6 +699,7 @@ func TestDevice_AirConditioner(t *testing.T) {
 	}
 }
 
+// TestDevice_Thermostat проверяет работу теромостата
 func TestDevice_Thermostat(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -712,7 +715,7 @@ func TestDevice_Thermostat(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		boolEvent(t, "thermostat_1", "turn_on", true),
 		intEvent(t, "thermostat_1", "temperature", 75),
 	}))
@@ -722,16 +725,13 @@ func TestDevice_Thermostat(t *testing.T) {
 		t.Fatal("Thermostat should be turned on")
 	}
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
-		intEvent(t, "thermostat_1", "temperature", 75),
-	}))
-
 	temperature, found := lastIntStateOf(steps, "thermostat_1", "temperature")
 	if !found || temperature != 75 {
 		t.Fatal("Thermostat temperature should be 75")
 	}
 }
 
+// TestDevice_SmartFloor проверяет работу умного пола
 func TestDevice_SmartFloor(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -747,7 +747,7 @@ func TestDevice_SmartFloor(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		boolEvent(t, "smartFloor_1", "turn_on", true),
 	}))
 
@@ -757,6 +757,7 @@ func TestDevice_SmartFloor(t *testing.T) {
 	}
 }
 
+// проверяет работу телевизора.
 func TestDevice_TV(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -772,7 +773,7 @@ func TestDevice_TV(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		boolEvent(t, "tv_1", "turn_on", true),
 	}))
 
@@ -782,6 +783,7 @@ func TestDevice_TV(t *testing.T) {
 	}
 }
 
+// TestDevice_Subwoofer проверяет работу сабвуфера.
 func TestDevice_Subwoofer(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -797,7 +799,7 @@ func TestDevice_Subwoofer(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		boolEvent(t, "subwoofer_1", "turn_on", true),
 	}))
 
@@ -807,10 +809,8 @@ func TestDevice_Subwoofer(t *testing.T) {
 	}
 }
 
-// ===== Chain trigger test =====
-
 // TestDevice_ChainTrigger проверяет длинную цепочку тригеров:
-// motion_sensor -> smart_lock -> smart_lamp
+// door_sensor -> smart_lock -> lamp
 func TestDevice_ChainTrigger(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -823,30 +823,23 @@ func TestDevice_ChainTrigger(t *testing.T) {
 		Devices: []api.EntityDTO{
 			{ID: "sensorWithoutUpdate_1", Type: "door_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
 			{ID: "smartLock_1", Type: "smart_lock", Info: json.RawMessage(`{"id":"smartLock_1","delay":0.0}`)},
-			{ID: "lamp_1", Type: "smart_bulb", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
-			// door_sensor → lock, camera
 			{EntityID: "sensorWithoutUpdate_1", Edges: []api.EdgeDTO{{ToID: "smartLock_1"}}},
-			// lock → bulb
 			{EntityID: "smartLock_1", Edges: []api.EdgeDTO{{ToID: "lamp_1"}}},
 		},
 	})
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
-	steps = append(steps, tick(t, conn, reqID, 4, nil))
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{boolEvent(t, "sensorWithoutUpdate_1", "turn_on", true)}))
 
-	// уровень 1: door_sensor тригерит lock и camera
 	state, found := lastBoolStateOf(steps, "smartLock_1", "turn_on")
 	if !found || !state {
 		t.Fatal("smartLock_1 should have received state change (chain level 1)")
 	}
 
-	// уровень 2: lock тригерит lamp
 	state, found = lastBoolStateOf(steps, "lamp_1", "turn_on")
 	if !found || !state {
 		t.Fatal("lamp_1 should have received state change (chain level 2 via lock)")
@@ -910,7 +903,8 @@ func mockFloorTwoRooms(t *testing.T) json.RawMessage {
 
 // ===== Human input helpers =====
 
-func humanMoveInput(t *testing.T, humanID string, x, y float64) api.EventInDTO {
+// humanMoveInput возвращает событие для пережвижение человека на основе входных humanID, x и y.
+func humanMoveInput(t *testing.T, humanID string, x, y float64) api.EventDTO {
 	t.Helper()
 
 	payload, err := json.Marshal(map[string]any{
@@ -921,13 +915,14 @@ func humanMoveInput(t *testing.T, humanID string, x, y float64) api.EventInDTO {
 		t.Fatalf("humanMoveInput: %v", err)
 	}
 
-	return api.EventInDTO{
+	return api.EventDTO{
 		EntityID: humanID,
 		Payload:  payload,
 	}
 }
 
-func humanInteractionInput(t *testing.T, humanID string, deviceID string, devicePayload any) api.EventInDTO {
+// humanInteractionInput возвращает событие для взаимодействия человека на основе входных humanID, deviceID и devicePayload.
+func humanInteractionInput(t *testing.T, humanID string, deviceID string, devicePayload any) api.EventDTO {
 	t.Helper()
 
 	rawDevice, err := json.Marshal(devicePayload)
@@ -948,7 +943,7 @@ func humanInteractionInput(t *testing.T, humanID string, deviceID string, device
 		t.Fatalf("humanInteractionInput: %v", err)
 	}
 
-	return api.EventInDTO{
+	return api.EventDTO{
 		EntityID: humanID,
 		Payload:  payload,
 	}
@@ -1011,7 +1006,7 @@ func humanRoomFrom(steps []api.SimulationStepPayload, humanID string) (roomID st
 	return "", false
 }
 
-// ===== Tests for human =====
+// ===== Тесты для человека =====
 
 // TestHuman_NormalMove проверяет нормальное движение внутри комнаты.
 func TestHuman_NormalMove(t *testing.T) {
@@ -1035,18 +1030,15 @@ func TestHuman_NormalMove(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	// двигаем человека в центр room_1
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		humanMoveInput(t, "human_1", 2.5, 2.5),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
 
 	x, y, found := humanPositionFrom(steps, "human_1")
 	if !found {
 		t.Fatal("no position found for human_1")
 	}
 
-	// человек должен дойти до целевой точки
 	if x != 2.5 || y != 2.5 {
 		t.Fatalf("expected position (2.5, 2.5), got (%.2f, %.2f)", x, y)
 	}
@@ -1075,7 +1067,7 @@ func TestHuman_BlockedByWall(t *testing.T) {
 	var steps []api.SimulationStepPayload
 
 	// пытаемся пройти через стену x=5
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		humanMoveInput(t, "human_1", 7.5, 4.0),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
@@ -1120,7 +1112,7 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 	var steps []api.SimulationStepPayload
 
 	// двигаемся через дверь (5,2)-(5,3) в room_2
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		humanMoveInput(t, "human_1", 7.5, 2.5),
 	}))
 	steps = append(steps, tick(t, conn, reqID, 2, nil))
@@ -1130,7 +1122,6 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 		t.Fatal("no position found for human_1")
 	}
 
-	// человек должен оказаться в room_2 (x > 5)
 	if x <= 5.0 {
 		t.Fatalf("human should have passed through door into room_2, got x=%.2f", x)
 	}
@@ -1145,6 +1136,7 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 	}
 }
 
+// TestHuman_InteractionWithLamp проверяет взаимодействия человека с лампой
 func TestHuman_InteractionWithLamp(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1171,14 +1163,12 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		humanInteractionInput(t, "human_1", "lamp_1", map[string]any{
 			"kind":    "lamp:state",
 			"turn_on": true,
 		}),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
 	lampState, found := lastStateOf(steps, "lamp_1")
 	if !found {
@@ -1190,6 +1180,7 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 	}
 }
 
+// TestHuman_InteractionThenMove проверяет взаимодействие с лампой и послежующее передвижение.
 func TestHuman_InteractionThenMove(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1216,17 +1207,16 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 
 	var steps []api.SimulationStepPayload
 
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		humanInteractionInput(t, "human_1", "lamp_1", map[string]any{
 			"kind":    "lamp:state",
 			"turn_on": true,
 		}),
 	}))
 
-	steps = append(steps, tick(t, conn, reqID, 2, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 2, []api.EventDTO{
 		humanMoveInput(t, "human_1", 3.0, 3.0),
 	}))
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
 	lampState, found := lastStateOf(steps, "lamp_1")
 	if !found {
@@ -1247,6 +1237,8 @@ func TestHuman_InteractionThenMove(t *testing.T) {
 	}
 }
 
+// TestObserver_Sensor_And_Camera проверяет взаимодействие человека с камерой и сенсором,
+// у которого есть зона взаимодействия в виде радиуса.
 func TestObserver_Sensor_And_Camera(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1279,11 +1271,9 @@ func TestObserver_Sensor_And_Camera(t *testing.T) {
 	var steps []api.SimulationStepPayload
 
 	// тик 1: человек (1,1)
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
 		humanMoveInput(t, "human_1", 1.0, 1.0),
 	}))
-
-	steps = append(steps, tick(t, conn, reqID, 3, nil))
 
 	// лампа должна быть OFF (дальность ~2.8 > 2)
 	lampState, _ := lastBoolStateOf(steps, "radiusMoveSensorWithoutUpdate_1", "turn_on")
@@ -1300,11 +1290,9 @@ func TestObserver_Sensor_And_Camera(t *testing.T) {
 	steps = nil
 
 	// тик 3: человек в лампе
-	steps = append(steps, tick(t, conn, reqID, 4, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 4, []api.EventDTO{
 		humanMoveInput(t, "human_1", 3.0, 3.0),
 	}))
-
-	steps = append(steps, tick(t, conn, reqID, 6, nil))
 
 	lampState, _ = lastBoolStateOf(steps, "radiusMoveSensorWithoutUpdate_1", "turn_on")
 	if !lampState {
@@ -1314,11 +1302,9 @@ func TestObserver_Sensor_And_Camera(t *testing.T) {
 	steps = nil
 
 	// тик 5: человек далеко
-	steps = append(steps, tick(t, conn, reqID, 7, []api.EventInDTO{
+	steps = append(steps, tick(t, conn, reqID, 7, []api.EventDTO{
 		humanMoveInput(t, "human_1", 10.0, 10.0),
 	}))
-
-	steps = append(steps, tick(t, conn, reqID, 9, nil))
 
 	lampState, _ = lastBoolStateOf(steps, "radiusMoveSensorWithoutUpdate_1", "turn_on")
 	if lampState {
@@ -1331,6 +1317,8 @@ func TestObserver_Sensor_And_Camera(t *testing.T) {
 	}
 }
 
+// TestObserver_CameraInAnotherRoom_DoesNotTrigger проверяет, что, если камера и человек в разных
+// комнатах, то радиус действия камеры игонируется и камера не считывает действия человека.
 func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1367,10 +1355,9 @@ func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
 	})
 
 	steps := []api.SimulationStepPayload{
-		tick(t, conn, reqID, 1, []api.EventInDTO{
+		tick(t, conn, reqID, 1, []api.EventDTO{
 			humanMoveInput(t, "human_1", 1.0, 1.0),
 		}),
-		tick(t, conn, reqID, 2, nil),
 	}
 
 	cameraState, cameraFound := lastBoolStateOf(
@@ -1381,5 +1368,159 @@ func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
 
 	if cameraFound && cameraState {
 		t.Fatal("camera should not trigger for human in another room")
+	}
+}
+
+// TestFire_SingleRoom проверяет что радиус огня достигает всех углов комнаты в нужный тик.
+func TestFire_SingleRoom(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-fire-single-room"
+
+	floor := api.Floor{
+		Meta: struct {
+			Units string `json:"units"`
+		}{Units: "meters"},
+		Walls:   []api.Wall{},
+		Doors:   []api.Door{},
+		Windows: []api.Window{},
+		Rooms: []api.Room{
+			{
+				ID:   "room_1",
+				Name: "Living Room",
+				Area: [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}},
+			},
+		},
+	}
+	floorRaw, _ := json.Marshal(floor)
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: floorRaw,
+		Devices: []api.EntityDTO{
+			{
+				ID:   "fire_1",
+				Type: entities.TypeFire,
+				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
+	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
+
+	corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
+	allCornersReached := false
+
+	for i := 1; i <= 8; i++ {
+		var inputs []api.EventDTO
+		if i == 1 {
+			inputs = []api.EventDTO{fireInput}
+		}
+
+		step := tick(t, conn, reqID, i, inputs)
+
+		for _, change := range step.StateChanges {
+			var out struct {
+				Kind  string `json:"kind"`
+				Fires []struct {
+					RoomID string  `json:"roomID"`
+					X      float64 `json:"x"`
+					Y      float64 `json:"y"`
+					Radius float64 `json:"radius"`
+				} `json:"fires"`
+			}
+			if err := json.Unmarshal(change.Payload, &out); err != nil {
+				continue
+			}
+
+			for _, zone := range out.Fires {
+				reached := true
+
+				for _, corner := range corners {
+					dx := corner[0] - zone.X
+
+					dy := corner[1] - zone.Y
+					if dx*dx+dy*dy > zone.Radius*zone.Radius {
+						reached = false
+						break
+					}
+				}
+
+				if reached {
+					allCornersReached = true
+
+					if i < 8 {
+						t.Fatalf("fire reached all corners too early at tick %d (radius=%.2f)", i, zone.Radius)
+					}
+				}
+			}
+		}
+	}
+
+	if !allCornersReached {
+		t.Fatal("fire never reached all 4 corners within 8 ticks")
+	}
+}
+
+// TestFire_SpreadsThroughDoor проверяет что огонь переходит через дверь
+// и триггерит датчик пожара в соседней комнате в нужный момент.
+func TestFire_SpreadsThroughDoor(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-fire-spread"
+
+	floorRaw := mockFloorTwoRooms(t)
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: floorRaw,
+		Devices: []api.EntityDTO{
+			{
+				ID:   "fire_1",
+				Type: entities.TypeFire,
+				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+			},
+			{
+				ID:   "radiusMoveSensorWithoutUpdate_1",
+				Type: entities.TypeRadiusMoveSensorWithoutUpdate,
+				Info: json.RawMessage(`{"id":"radiusMoveSensorWithoutUpdate_1","x":7.5,"y":2.5,"radius":0.5,"delay":0.0}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
+	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
+
+	sensorTriggeredAt := -1
+
+	var allSteps []api.SimulationStepPayload
+	for i := 1; i <= 15; i++ {
+		var inputs []api.EventDTO
+		if i == 1 {
+			inputs = []api.EventDTO{fireInput}
+		}
+
+		step := tick(t, conn, reqID, i, inputs)
+		allSteps = append(allSteps, step)
+
+		if sensorTriggeredAt == -1 {
+			state, found := lastBoolStateOf(allSteps[len(allSteps)-1:], "radiusMoveSensorWithoutUpdate_1", "turn_on")
+			if found && state {
+				sensorTriggeredAt = i
+			}
+		}
+	}
+
+	if sensorTriggeredAt == -1 {
+		t.Fatal("fire sensor in room_2 was never triggered")
+	}
+
+	if sensorTriggeredAt < 10 {
+		t.Fatalf("fire sensor triggered too early at tick %d, expected >= 10", sensorTriggeredAt)
 	}
 }

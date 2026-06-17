@@ -25,7 +25,10 @@ UNITS_TO_MILLIMETERS: dict[str, float] = {
 @dataclass(frozen=True)
 class WallThresholds:
     min_wall_width: float
+    max_closed_polyline_width: float
     line_offset_tolerance: float
+    collinear_snap_tolerance: float
+    snap_drift_ratio_max: float
     max_run_gap: float
     max_fallback_run_gap: float
     run_width_tolerance: float
@@ -46,15 +49,25 @@ class OpeningThresholds:
     gap_axis_offset_tolerance: float
     parallel_span_gap_max: float
     orientation_axis_tolerance: float
+    insert_hint_normal_distance: float
+    default_door_span: float
+    default_window_span: float
+    max_fallback_door_span: float
+    max_fallback_window_span: float
 
 
 @dataclass(frozen=True)
 class WallDetectorConfig:
     min_wall_width_mm: float = 2.0
+    max_closed_polyline_width_mm: float = 1500.0
     parallel_cross_tolerance: float = 0.01
     min_overlap_ratio: float = 0.4
-    max_width_to_length: float = 0.35
+    max_width_to_length: float = 0.4
+    closed_polyline_width_to_length: float = 0.9
+    closed_polyline_offset_tolerance_ratio: float = 0.07
     line_offset_tolerance_mm: float = 2.0
+    collinear_snap_tolerance_mm: float = 8.0
+    snap_drift_ratio_max: float = 0.06
     max_run_gap_mm: float = 25.0
     max_fallback_run_gap_mm: float = 10.0
     run_width_tolerance_mm: float = 20.0
@@ -83,6 +96,11 @@ class OpeningDetectorConfig:
     gap_axis_offset_tolerance_mm: float = 8.0
     parallel_span_gap_max_mm: float = 48.0
     orientation_axis_tolerance_mm: float = 1.0
+    insert_hint_normal_distance_mm: float = 400.0
+    default_door_span_mm: float = 900.0
+    default_window_span_mm: float = 1200.0
+    max_fallback_door_span_mm: float = 1800.0
+    max_fallback_window_span_mm: float = 2400.0
     vector_epsilon: float = 1e-6
     opening_layer_keywords: tuple[str, ...] = ("opening", "open", "door", "window", "wind", "glaz")
     header_layer_keywords: tuple[str, ...] = ("header", "frame")
@@ -95,8 +113,15 @@ class OpeningDetectorConfig:
     sliding_door_tokens: tuple[str, ...] = ("SGD", "SLIDING", "PATIO")
 
 
+@dataclass(frozen=True)
+class FloorExporterConfig:
+    boundary_connector_max_length_ratio: float = 1.8
+    boundary_connector_cover_ratio_max: float = 0.1
+
+
 WALL_DETECTOR_CONFIG = WallDetectorConfig()
 OPENING_DETECTOR_CONFIG = OpeningDetectorConfig()
+FLOOR_EXPORTER_CONFIG = FloorExporterConfig()
 
 
 def mm_to_units(value_mm: float, units: str | None) -> float:
@@ -116,7 +141,10 @@ def build_wall_thresholds(
 ) -> WallThresholds:
     return WallThresholds(
         min_wall_width=mm_to_units(config.min_wall_width_mm, units),
+        max_closed_polyline_width=mm_to_units(config.max_closed_polyline_width_mm, units),
         line_offset_tolerance=mm_to_units(config.line_offset_tolerance_mm, units),
+        collinear_snap_tolerance=mm_to_units(config.collinear_snap_tolerance_mm, units),
+        snap_drift_ratio_max=config.snap_drift_ratio_max,
         max_run_gap=mm_to_units(config.max_run_gap_mm, units),
         max_fallback_run_gap=mm_to_units(config.max_fallback_run_gap_mm, units),
         run_width_tolerance=mm_to_units(config.run_width_tolerance_mm, units),
@@ -146,4 +174,9 @@ def build_opening_thresholds(
         gap_axis_offset_tolerance=mm_to_units(config.gap_axis_offset_tolerance_mm, units),
         parallel_span_gap_max=mm_to_units(config.parallel_span_gap_max_mm, units),
         orientation_axis_tolerance=mm_to_units(config.orientation_axis_tolerance_mm, units),
+        insert_hint_normal_distance=mm_to_units(config.insert_hint_normal_distance_mm, units),
+        default_door_span=mm_to_units(config.default_door_span_mm, units),
+        default_window_span=mm_to_units(config.default_window_span_mm, units),
+        max_fallback_door_span=mm_to_units(config.max_fallback_door_span_mm, units),
+        max_fallback_window_span=mm_to_units(config.max_fallback_window_span_mm, units),
     )

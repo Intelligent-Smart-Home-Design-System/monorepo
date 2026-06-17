@@ -39,8 +39,13 @@ type WildberriesDiscoveryConfig struct {
 
 type WildberriesConfig struct {
     Discovery               WildberriesDiscoveryConfig `mapstructure:"discovery"`
+    Category                WildberriesCategoryConfig  `mapstructure:"category"`
     BrandAliases            map[string]string          `mapstructure:"brand_aliases"`
     SmartHomeDeviceMarkers  []string                   `mapstructure:"smart_home_device_markers"`
+}
+
+type WildberriesCategoryConfig struct {
+    CategoryURL string `mapstructure:"category_url"`
 }
 
 type YandexConfig struct {

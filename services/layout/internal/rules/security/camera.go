@@ -1,8 +1,6 @@
 package security
 
 import (
-	"fmt"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
@@ -89,12 +87,31 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 		}
 
 		// При необходимости можно вовзращать направление камеры, чтобы другим модулям легче было взаимодейстовать
-		bestPoint, _ := findBestCameraPoint(zonedAp.OrigAp, zr, cameraFilters)
+		bestPoint, direction, distance := findBestCameraPoint(zonedAp.OrigAp, zr, cameraFilters)
 		if bestPoint == nil {
 			continue
 		}
 
-		layout.AddDeviceToLayout(deviceType, c.track, zr.OrigRoom.ID, bestPoint, cameraFilters)
+		var deviceFilter *filters.CameraFilter
+		if distance != -1 {
+			deviceFilter = &filters.CameraFilter{
+				Angle: cameraFilters.Angle,
+				Range: cameraFilters.Range,
+				NightVision: cameraFilters.NightVision,
+				Resolution: cameraFilters.Resolution,
+				RecommendedRangeM: distance,
+			}
+		} else {
+			deviceFilter = &filters.CameraFilter{
+				Angle: cameraFilters.Angle,
+				Range: cameraFilters.Range,
+				NightVision: cameraFilters.NightVision,
+				Resolution: cameraFilters.Resolution,
+				RecommendedRangeM: cameraFilters.Range,
+			}
+		}
+
+		layout.AddDeviceToLayout(deviceType, c.track, zr.OrigRoom.ID, bestPoint, &direction, deviceFilter)
 		deviceCnt++
 	}
 
@@ -138,20 +155,19 @@ func collectViewedZones(ap *apartment.Apartment, room *apartment.Room) []*apartm
 	return zones
 }
 
-func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filter *filters.CameraFilter) (*point.Point, point.Point) {
+func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filter *filters.CameraFilter) (*point.Point, point.Point, float64) {
 	room := zr.OrigRoom
 
 	if room.Name == apartment.RoomHall {
 		entryDoor := room.GetEntryDoor(ap)
 		if entryDoor != nil {
 			doorCenter := point.GetObjectCenter(entryDoor.Points)
-			bestPoint, Distance := room.GetTheOppositePoint(doorCenter)
-			fmt.Println(bestPoint)
+			bestPoint, distance := room.GetTheOppositePoint(doorCenter)
 
 			direction := point.GetDirectionToPoint(bestPoint, doorCenter)
-			filter.RecommendedRange = Distance
+			filter.RecommendedRangeM = distance
 
-			return &bestPoint, direction
+			return &bestPoint, direction, distance
 		}
 	}
 
@@ -192,5 +208,5 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 		}
 	}
 
-	return &bestPoint, bestDirection
+	return &bestPoint, bestDirection, -1
 }

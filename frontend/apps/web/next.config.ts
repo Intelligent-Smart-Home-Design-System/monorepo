@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
+  experimental: {
+    externalDir: true,
+  },
+  transpilePackages: ["smart-plan-demo"],
 };
 
 export default nextConfig;

@@ -3,8 +3,8 @@ package point
 import "math"
 
 type Point struct {
-	X float64
-	Y float64
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
 func NewVector(p1, p2 Point) Point {
@@ -43,10 +43,19 @@ func GetDirectionToPoint(p, q Point) Point {
 	dx := q.X - p.X
 	dy := q.Y - p.Y
 
-	size := math.Sqrt(dx * dx + dy * dy)
+	size := math.Sqrt(dx*dx + dy*dy)
 	if size == 0 {
 		return Point{X: 1, Y: 0}
 	}
 
 	return Point{X: dx / size, Y: dy / size}
+}
+
+func Normalize(vector Point) Point {
+	size := math.Sqrt(vector.X*vector.X + vector.Y*vector.Y)
+	if size == 0 {
+		return Point{X: 0, Y: 1}
+	}
+
+	return Point{X: vector.X / size, Y: vector.Y / size}
 }

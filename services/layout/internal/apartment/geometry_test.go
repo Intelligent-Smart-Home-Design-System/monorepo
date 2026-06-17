@@ -19,7 +19,7 @@ func TestGetCenterMethod(t *testing.T) {
 	}
 
 	center := point.GetCenter(room.Area)
-	
+
 	assert.Equal(t, point.Point{X: 3, Y: 2.5}, *center)
 }
 
@@ -51,7 +51,7 @@ func TestGridMethodSize(t *testing.T) {
 	gridPoints, err := point.GenerateGridPoints(room.Area, step)
 
 	assert.NoError(t, err)
-	assert.Equal(t, int((3 / step) * (3 / step)), len(gridPoints))
+	assert.Equal(t, int((3/step)*(3/step)), len(gridPoints))
 }
 
 func TestIsPointInRoomMethodPositive(t *testing.T) {
@@ -121,7 +121,7 @@ func TestIsWallBetweenPoints(t *testing.T) {
 
 	apartment := &Apartment{
 		Walls: walls,
-		Rooms:   []Room{room},
+		Rooms: []Room{room},
 	}
 	apartment.Index()
 
@@ -165,4 +165,22 @@ func TestGetFrontDoorMethod(t *testing.T) {
 	}
 
 	assert.Equal(t, frontDoor, *apartment.GetFrontDoor())
+}
+
+func TestZoneContainsPoint(t *testing.T) {
+	zone := NewZone([]point.Point{
+		{X: 0, Y: 0},
+		{X: 4, Y: 0},
+		{X: 4, Y: 4},
+		{X: 0, Y: 4},
+	})
+
+	assert.True(t, zone.ContainsPoint(point.Point{X: 2, Y: 2}))
+	assert.False(t, zone.ContainsPoint(point.Point{X: 5, Y: 5}))
+}
+
+func TestNilZoneContainsPoint(t *testing.T) {
+	var zone *Zone
+
+	assert.False(t, zone.ContainsPoint(point.Point{X: 2, Y: 2}))
 }

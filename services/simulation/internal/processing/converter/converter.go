@@ -23,8 +23,8 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 	IDToEntity := make(map[string]entities.Entity)
 
 	for _, entityDTO := range entitiesData {
-		entityClass := strings.Split(entityDTO.ID, "_")[0]
-		switch entityClass {
+		entityType := normalizeEntityType(entityDTO)
+		switch entityType {
 		case entities.TypeLamp:
 			lamp, err := devices.NewLamp(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -81,6 +81,13 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = human
+		case entities.TypeFire:
+			fire, err := actors.NewFire(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = fire
 		case entities.TypeSmartDimmer:
 			dimmer, err := devices.NewSmartDimmer(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -187,6 +194,55 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 	return IDToEntity, nil
 }
 
+func normalizeEntityType(entityDTO api.EntityDTO) string {
+	entityType := entityDTO.Type
+	if entityType == "" {
+		entityType = strings.Split(entityDTO.ID, "_")[0]
+	}
+
+	switch entityType {
+	case "lamp_switcher", "lampSwitcher":
+		return entities.TypeSwitcher
+	case "motion_sensor", "presence_sensor":
+		return entities.TypeSensorWithUpdate
+	case "illumination_sensor":
+		return entities.TypeSensorWithIntStatus
+	case "door_sensor", "window_sensor", "wireless_button_switch":
+		return entities.TypeSensorWithoutUpdate
+	case "smart_bulb":
+		if strings.HasPrefix(entityDTO.ID, "smartLamp") {
+			return entities.TypeSmartLamp
+		}
+		return entities.TypeLamp
+	case "smart_lamp":
+		return entities.TypeSmartLamp
+	case "smart_dimmer":
+		return entities.TypeSmartDimmer
+	case "smart_siren":
+		return entities.TypeSiren
+	case "smart_lock":
+		return entities.TypeSmartLock
+	case "smart_doorbell":
+		return entities.TypeSmartDoorbell
+	case "curtains":
+		return entities.TypeSmartCurtains
+	case "lamp_with":
+		return entities.TypeRadiusMoveSensorWithoutUpdate
+	case "sensor_with_update":
+		return entities.TypeSensorWithUpdate
+	case "sensor_without_update":
+		return entities.TypeSensorWithoutUpdate
+	case "sensor_with_int_status":
+		return entities.TypeSensorWithIntStatus
+	case "radius_move_sensor_with_update":
+		return entities.TypeRadiusMoveSensorWithUpdate
+	case "radius_move_sensor_without_update":
+		return entities.TypeRadiusMoveSensorWithoutUpdate
+	default:
+		return entityType
+	}
+}
+
 // ParseFloor парсит данные о плане.
 func ParseFloor(data []byte) (*api.Floor, error) {
 	var floor api.Floor
@@ -222,7 +278,8 @@ func DependenciesFromDTO(scenarios []api.ScenarioDTO) map[string][]api.EdgeDTO {
 	for _, scenario := range scenarios {
 		for _, edge := range scenario.Edges {
 			IDToDependencies[scenario.EntityID] = append(IDToDependencies[scenario.EntityID], api.EdgeDTO{
-				ToID: edge.ToID,
+				ToID:   edge.ToID,
+				Action: edge.Action,
 			})
 		}
 	}

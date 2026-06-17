@@ -18,10 +18,12 @@ const (
 	ActionInteraction string = "human:interaction"
 )
 
+// HumanActionResult интерфейс для результатов действий человека.
 type HumanActionResult interface {
 	GetStatus() string
 }
 
+// Human представляет человека в симуляции. Он может перемещаться по комнатам и взаимодействовать с устройствами.
 type Human struct {
 	enginePort engine.EnginePort
 	inStore    simgo.Store[HumanInData]
@@ -33,6 +35,7 @@ type Human struct {
 	Receivers []string `json:"receivers"`
 }
 
+// HumanInData описывает входные данные для действий человека. В зависимости от поля Kind, структура может содержать данные для перемещения или взаимодействия.
 type HumanInData struct {
 	Kind string `json:"kind"`
 	To   struct {
@@ -43,6 +46,7 @@ type HumanInData struct {
 	DevicePayload json.RawMessage `json:"device_payload"`
 }
 
+// HumanMoveOutData описывает результат попытки перемещения человека. Содержит конечные координаты, ID комнаты и статус операции.
 type HumanMoveOutData struct {
 	Kind string `json:"kind"`
 	To   struct {
@@ -53,16 +57,19 @@ type HumanMoveOutData struct {
 	Status string `json:"status"`
 }
 
+// GetStatus возвращает статус результата передвижения.
 func (r HumanMoveOutData) GetStatus() string {
 	return r.Status
 }
 
+// HumanInteractionOutData описывает результат взаимодействия человека с устройством. Содержит ID устройства, статус операции и тип действия.
 type HumanInteractionOutData struct {
 	Kind     string `json:"kind"`
 	EntityID string `json:"entity_id"`
 	Status   string `json:"status"`
 }
 
+// GetStatus возвращает статус результата взаимодействия.
 func (r HumanInteractionOutData) GetStatus() string {
 	return r.Status
 }
@@ -72,6 +79,7 @@ type segment struct {
 	x1, y1, x2, y2 float64
 }
 
+// NewHuman создает новый экземпляр человека на основе входных данных. Проверяет корректность начальной позиции и комнаты.
 func NewHuman(data []byte, engineAPI engine.EnginePort) (*Human, error) {
 	var human Human
 	if err := json.Unmarshal(data, &human); err != nil {
@@ -99,6 +107,7 @@ func NewHuman(data []byte, engineAPI engine.EnginePort) (*Human, error) {
 	return &human, nil
 }
 
+// HandleInDTO принимает входные данные в виде JSON, парсит их и сохраняет в хранилище для последующей обработки в процессе.
 func (h *Human) HandleInDTO(dto []byte) error {
 	input := HumanInData{}
 	if err := json.Unmarshal(dto, &input); err != nil {
@@ -110,8 +119,9 @@ func (h *Human) HandleInDTO(dto []byte) error {
 	return nil
 }
 
+// HandleOutDTO принимает результат обработки события, оборачивает его в EventDTO и отправляет в движок. Также уведомляет наблюдателей комнаты о перемещении человека.
 func (h *Human) HandleOutDTO(dto []byte) {
-	outData := api.EventOutDTO{
+	outData := api.EventDTO{
 		EntityID: h.ID,
 		Payload:  dto,
 	}
@@ -124,10 +134,12 @@ func (h *Human) HandleOutDTO(dto []byte) {
 	h.enginePort.NotifyObservers(h.RoomID, "human:move", movePayload)
 }
 
+// GetProcessFunc возвращает функцию процесса, которая будет выполняться в симуляции.
 func (h *Human) GetProcessFunc() func(process simgo.Process) {
 	return h.Process
 }
 
+// Process реализует основной цикл обработки событий человека.
 func (h *Human) Process(process simgo.Process) {
 	for {
 		storeElement := h.inStore.Get()
@@ -143,11 +155,12 @@ func (h *Human) Process(process simgo.Process) {
 		}
 
 		h.HandleOutDTO(dto)
+
+		h.enginePort.DrainInChan()
 	}
 }
 
 // HandleEvent реализует роутинг событий человека.
-// Двигаемся от текущей позиции к цели, проверяя стены и двери.
 func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 	switch inData.Kind {
 	case ActionMove:
@@ -166,8 +179,9 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 	}
 }
 
+// HandleInteraction обрабатывает взаимодействие человека с устройством. Отправляет событие в движок и возвращает результат взаимодействия.
 func (h *Human) HandleInteraction(inData HumanInData) HumanInteractionOutData {
-	h.enginePort.GetInChan() <- api.EventInDTO{
+	h.enginePort.GetInChan() <- api.EventDTO{
 		EntityID: inData.DeviceID,
 		Payload:  inData.DevicePayload,
 	}
@@ -179,6 +193,7 @@ func (h *Human) HandleInteraction(inData HumanInData) HumanInteractionOutData {
 	}
 }
 
+// handleMove обрабатывает попытку перемещения человека. Вычисляет новое положение с учётом стен и дверей, обновляет состояние и возвращает результат перемещения.
 func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 	floor := h.enginePort.GetFloor()
 
@@ -405,21 +420,21 @@ func doorOnWall(door *api.Door, wall *api.Wall) bool {
 }
 
 // intersectSegments находит параметр t пересечения отрезков [0..1].
-// t — насколько далеко вдоль первого отрезка находится точка пересечения.
+// t - насколько далеко вдоль первого отрезка находится точка пересечения.
 func intersectSegments(a, b segment) (float64, bool) {
 	dx1 := a.x2 - a.x1
 	dy1 := a.y2 - a.y1
 	dx2 := b.x2 - b.x1
 	dy2 := b.y2 - b.y1
 
-	denom := dx1*dy2 - dy1*dx2
-	if math.Abs(denom) < 1e-10 {
+	denominator := dx1*dy2 - dy1*dx2
+	if math.Abs(denominator) < 1e-10 {
 		return 0, false // параллельные отрезки
 	}
 
-	// перечение вычисляем
-	t := ((b.x1-a.x1)*dy2 - (b.y1-a.y1)*dx2) / denom
-	u := ((b.x1-a.x1)*dy1 - (b.y1-a.y1)*dx1) / denom
+	// перечение
+	t := ((b.x1-a.x1)*dy2 - (b.y1-a.y1)*dx2) / denominator
+	u := ((b.x1-a.x1)*dy1 - (b.y1-a.y1)*dx1) / denominator
 
 	if t >= 0 && t <= 1 && u >= 0 && u <= 1 {
 		return t, true
@@ -446,14 +461,17 @@ func segmentsCollinearAndOverlap(a, b segment) bool {
 		aMinY <= bMaxY && bMinY <= aMaxY
 }
 
+// GetID возвращает ID человека.
 func (h *Human) GetID() string {
 	return h.ID
 }
 
+// GetReceiversID возвращает список ID получателей сообщений от человека.
 func (h *Human) GetReceiversID() []string {
 	return h.Receivers
 }
 
+// SetReceivers устанавливает список ID получателей сообщений от человека на основе входных данных.
 func (h *Human) SetReceivers(actions []api.EdgeDTO) {
 	receivers := make([]string, len(actions))
 	for i, action := range actions {

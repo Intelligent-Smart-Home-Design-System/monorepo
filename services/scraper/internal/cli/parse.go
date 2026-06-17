@@ -131,6 +131,23 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		}
 	}
 
+	if shouldRun(domain.PageTypeCategory, domain.SourceWildberries) {
+    categoryParsers := []parser.SourceParser[[]string]{
+        wildberries.NewCategoryParser(),
+    }
+    categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
+    categoryResults := categoryWorker.Parse(ctx)
+    for _, urls := range categoryResults {
+        for _, productURL := range urls {
+            if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
+                logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from category")
+            } else {
+                logger.Debug().Str("url", productURL).Msg("created listing task from category")
+            }
+        }
+    }
+}
+
 	if shouldRun(domain.PageTypeCompatibility, domain.SourceYandex) {
 		compatibilityParsers := []parser.SourceParser[[]*domain.DirectCompatibilityRecord]{
 			yandex.NewCompatibilityParser(cfg.Wildberries.BrandAliases),

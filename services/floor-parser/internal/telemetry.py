@@ -29,8 +29,6 @@ _LEVEL_TO_SEVERITY: dict[str, SeverityNumber] = {
 
 
 class _OTELLogProcessor:
-    """Structlog processor that forwards each log record to the OTLP log pipeline."""
-
     def __init__(self, logger_provider: LoggerProvider) -> None:
         self._logger = logger_provider.get_logger("floor-parser")
 
@@ -71,8 +69,6 @@ def _http_endpoint() -> str | None:
 
 
 def setup_telemetry(service: str) -> Callable[[], None]:
-    """Initialise OTLP traces and logs.  Must be called after setup_logging()
-    and before the first structlog message is emitted.  Returns a shutdown fn."""
     endpoint = _http_endpoint()
     if not endpoint:
         return lambda: None
@@ -90,7 +86,6 @@ def setup_telemetry(service: str) -> Callable[[], None]:
         BatchLogRecordProcessor(OTLPLogExporter(endpoint=f"{endpoint}/v1/logs"))
     )
 
-    # Insert OTLP log processor into the structlog chain just before wrap_for_formatter.
     processors = list(structlog.get_config()["processors"])
     processors.insert(len(processors) - 1, _OTELLogProcessor(logger_provider))
     structlog.configure(processors=processors)

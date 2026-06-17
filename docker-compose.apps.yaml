@@ -179,6 +179,7 @@ services:
       TEMPORAL_TASK_QUEUE: floor-parser
       METRICS_PORT: 2113
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+      OTEL_SERVICE_NAME: floor-parser
     ports:
       - "2113:2113"
     networks:
@@ -194,6 +195,7 @@ services:
       PARSER_HOST: 0.0.0.0
       PARSER_PORT: 8080
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+      OTEL_SERVICE_NAME: floor-parser
     expose:
       - "8080"
     networks:

@@ -7,7 +7,6 @@ import structlog
 from fastapi import UploadFile
 
 from internal.classification.classifier import SemanticClassifier
-from internal.entities.warnings import ParseWarning
 from internal.export.floor_exporter import FloorExporter
 from internal.normalization.geometry_normalizer import GeometryNormalizer
 from internal.readers.dxf.extractor import DxfExtractor
@@ -26,7 +25,6 @@ async def parse_floor(file: UploadFile) -> dict[str, object]:
 
 async def parse_dxf_floor(file: UploadFile) -> dict[str, object]:
     contents = await file.read()
-    warnings: list[ParseWarning] = []
 
     with NamedTemporaryFile(suffix=".dxf", delete=False) as temp_file:
         temp_file.write(contents)
@@ -54,10 +52,22 @@ async def parse_dxf_floor(file: UploadFile) -> dict[str, object]:
             floor_plan,
             source=raw_plan.metadata.source_format.value,
             units=raw_plan.metadata.units,
-            warnings=warnings,
         )
 
-        rooms = result.get("floor_plan", {}).get("rooms", [])
+        floor_plan_data = result.get("floor_plan", {})
+        rooms = floor_plan_data.get("rooms", [])
+
+        if len(rooms) == 0:
+            log.warning("no rooms detected in floor plan", filename=file.filename)
+        if not floor_plan_data.get("doors"):
+            log.warning("no doors detected in floor plan", filename=file.filename)
+        if not floor_plan_data.get("windows"):
+            log.warning("no windows detected in floor plan", filename=file.filename)
+        if not floor_plan_data.get("furniture"):
+            log.warning("no furniture detected in floor plan", filename=file.filename)
+        if len(contents) < 1024:
+            log.warning("dxf file is suspiciously small", filename=file.filename, size=len(contents))
+
         log.info("dxf processing completed", filename=file.filename, rooms=len(rooms))
         return result
     except Exception:

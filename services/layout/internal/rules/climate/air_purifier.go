@@ -18,18 +18,13 @@ func (r *AirPurifierRule) Type() string {
 }
 
 func (r *AirPurifierRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, rm := range rooms {
-		roomsSet[rm.ID] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.ID]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
 			zr.PollutionZones = collectPollutionZones(zonedAp.OrigAp, zr.OrigRoom)
 		}
 	}

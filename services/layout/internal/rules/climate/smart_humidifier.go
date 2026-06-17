@@ -18,18 +18,13 @@ func (r *SmartHumidifierRule) Type() string {
 }
 
 func (r *SmartHumidifierRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, room := range rooms {
-		roomsSet[room.ID] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.ID]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
 			zr.RestrictedZones = collectClimateRestrictedZones(zr)
 		}
 	}
@@ -60,14 +55,9 @@ func (r *SmartHumidifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum 
 		smartHumidifierFilters = &filters.SmartHumidifierFilter{}
 	}
 
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, room := range rooms {
-		roomsSet[room.ID] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0
@@ -76,7 +66,7 @@ func (r *SmartHumidifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum 
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.ID]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
 			continue
 		}
 

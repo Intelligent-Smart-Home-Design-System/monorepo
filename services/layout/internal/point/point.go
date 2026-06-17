@@ -11,16 +11,20 @@ type Point struct {
 }
 
 func (p *Point) UnmarshalJSON(data []byte) error {
-	var coords [2]float64
-	
-	if err := json.Unmarshal(data, &coords); err != nil {
-		return err
-	}
-	
-	p.X = coords[0]
-	p.Y = coords[1]
-	
-	return nil
+    var coords [2]float64
+    if err := json.Unmarshal(data, &coords); err == nil {
+        p.X, p.Y = coords[0], coords[1]
+        return nil
+    }
+    var obj struct {
+        X float64 `json:"x"`
+        Y float64 `json:"y"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    p.X, p.Y = obj.X, obj.Y
+    return nil
 }
 
 func NewVector(p1, p2 Point) Point {

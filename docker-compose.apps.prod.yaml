@@ -119,12 +119,24 @@ services:
       - "3000"
     restart: unless-stopped
 
+  sim-ui:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: next
+      args:
+        APP: sim-ui
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+
   nginx:
     image: nginx:1.27-alpine
     depends_on:
       - api-gateway
       - frontend-api
       - web
+      - sim-ui
     volumes:
       - ./services/main-pipeline/nginx/conf.d:/etc/nginx/conf.d:ro
     ports:

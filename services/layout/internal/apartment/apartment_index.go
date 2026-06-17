@@ -30,12 +30,14 @@ func (a *Apartment) IndexRooms() {
 		switch name {
 		case "hall":
 			a.roomsByName["hallway"] = append(a.roomsByName["hallway"], &a.Rooms[i])
+			a.Rooms[i].Name = RoomHall
 		case "hallway":
 			a.roomsByName["hall"] = append(a.roomsByName["hall"], &a.Rooms[i])
 		case "livingroom":
 			a.roomsByName["living"] = append(a.roomsByName["living"], &a.Rooms[i])
 		case "living":
 			a.roomsByName["livingroom"] = append(a.roomsByName["livingroom"], &a.Rooms[i])
+			a.Rooms[i].Name = RoomLiving
 		}
 	}
 }

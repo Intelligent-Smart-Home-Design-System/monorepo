@@ -30,7 +30,7 @@ func TestComplexApartmentPlacement(t *testing.T) {
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 
-	data, err := os.ReadFile("../../../floor-parser//data/apartment_third_floor_insert_blocks.expected.json")
+	data, err := os.ReadFile("../../../floor-parser/data/apartment_third_floor_insert_blocks.expected.json")
 	assert.NoError(t, err)
 
 	ap := &apartment.Apartment{}
@@ -42,8 +42,8 @@ func TestComplexApartmentPlacement(t *testing.T) {
 
 	eng := engine.NewEngine(storage)
 	selectedLevels := map[string]string{
-		"security": "3",
-		"media":    "2",
+		"security": "5",
+		"media":    "3",
 	}
 
 	layout, err := eng.PlaceDevices(ap, selectedLevels)
@@ -54,5 +54,5 @@ func TestComplexApartmentPlacement(t *testing.T) {
 	for _, placements := range layout.Placements {
 		totalPlacements += len(placements)
 	}
-	assert.Greater(t, totalPlacements, 5)
+	assert.Greater(t, totalPlacements, 10)
 }

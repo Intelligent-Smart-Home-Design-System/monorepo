@@ -65,7 +65,7 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 			Resolution:     smartTVFilters.Resolution,
 			Width:          smartTVFilters.Width,
 			RefreshRatehHZ: smartTVFilters.RefreshRatehHZ,
-			MaxWidthM:      maxWidth,
+			MaxWidthMM:      maxWidth,
 		}
 
 		layout.AddDeviceToLayout(deviceType, stv.track, zr.OrigRoom.ID, bestPoint, direction, deviceFilter)

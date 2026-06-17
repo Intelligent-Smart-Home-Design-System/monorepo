@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	defaultRange = 10
+	defaultRange = 10000
 	defaultAngle = 120
-	Meter        = 1
+	Meter        = 1000
 )
 
 type MotionSensorRule struct {

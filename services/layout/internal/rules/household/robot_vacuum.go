@@ -7,7 +7,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const robotVacuumWallOffset = 0.4
+const robotVacuumWallOffset = 400
 
 type RobotVacuumRule struct {
 	track string

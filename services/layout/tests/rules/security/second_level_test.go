@@ -17,8 +17,8 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	door := apartment.Door{
 		ID: "1",
 		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
+			{X: 1000, Y: 0},
+			{X: 2000, Y: 0},
 		},
 		Rooms: []string{"1"},
 	}
@@ -28,9 +28,9 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 		Name: "hall",
 		Area: []point.Point{
 			{X: 0, Y: 0},
-			{X: 3, Y: 0},
-			{X: 3, Y: 3},
-			{X: 0, Y: 3},
+			{X: 3000, Y: 0},
+			{X: 3000, Y: 3000},
+			{X: 0, Y: 3000},
 		},
 		Doors: []string{door.ID},
 	}
@@ -61,9 +61,9 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "smart_lock":
-			assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 2000, Y: 0}, devicePlacement.Position)
 		case "smart_doorbell":
-			assert.Equal(t, &point.Point{X: 1, Y: 0}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 1000, Y: 0}, devicePlacement.Position)
 		}
 	}
 
@@ -84,8 +84,8 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 	door := apartment.Door{
 		ID: "1",
 		Points: []point.Point{
-			{X: 1, Y: 0},
-			{X: 2, Y: 0},
+			{X: 1000, Y: 0},
+			{X: 2000, Y: 0},
 		},
 		Rooms: []string{"3"},
 	}
@@ -95,9 +95,9 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		Category: apartment.Sink,
 		Points: []point.Point{
 			{X: 0, Y: 0},
-			{X: 1, Y: 0},
-			{X: 1, Y: 1},
-			{X: 0, Y: 1},
+			{X: 1000, Y: 0},
+			{X: 1000, Y: 1000},
+			{X: 0, Y: 1000},
 		},
 		Room: "1",
 	}
@@ -106,10 +106,10 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 		ID: "2",
 		Category: apartment.Sink,
 		Points: []point.Point{
-			{X: 1, Y: 2},
-			{X: 1, Y: 0},
-			{X: 1, Y: 1},
-			{X: 0, Y: 1},
+			{X: 1000, Y: 2000},
+			{X: 1000, Y: 0},
+			{X: 1000, Y: 1000},
+			{X: 0, Y: 1000},
 		},
 		Room: "2",
 	}
@@ -120,9 +120,9 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 			Name: "bathroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 			Furniture: []string{"1"},
 		},
@@ -131,9 +131,9 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 			Name: "kitchen",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 			Furniture: []string{"2"},
 		},
@@ -142,9 +142,9 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 			Name: "hall",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 			Doors: []string{"1"},
 		},

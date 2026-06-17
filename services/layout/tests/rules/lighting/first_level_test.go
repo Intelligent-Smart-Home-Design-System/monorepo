@@ -18,9 +18,9 @@ func TestLightingLevel1(t *testing.T) {
 			Name: apartment.RoomLiving,
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 		},
 		{
@@ -28,9 +28,9 @@ func TestLightingLevel1(t *testing.T) {
 			Name: apartment.RoomKitchen,
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 		},
 		{
@@ -38,9 +38,9 @@ func TestLightingLevel1(t *testing.T) {
 			Name: apartment.RoomPassage,
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 1, Y: 0},
-				{X: 1, Y: 1},
-				{X: 0, Y: 1},
+				{X: 1000, Y: 0},
+				{X: 1000, Y: 1000},
+				{X: 0, Y: 1000},
 			},
 		},
 		{
@@ -48,9 +48,9 @@ func TestLightingLevel1(t *testing.T) {
 			Name: apartment.RoomBathroom,
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 1, Y: 0},
-				{X: 1, Y: 1},
-				{X: 0, Y: 1},
+				{X: 1000, Y: 0},
+				{X: 1000, Y: 1000},
+				{X: 0, Y: 1000},
 			},
 		},
 	}
@@ -88,9 +88,9 @@ func TestLightingLevel1PriceCalculation(t *testing.T) {
 			Name: apartment.RoomLiving,
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 		},
 		{
@@ -98,9 +98,9 @@ func TestLightingLevel1PriceCalculation(t *testing.T) {
 			Name: apartment.RoomKitchen,
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 		},
 	}

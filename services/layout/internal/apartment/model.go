@@ -72,8 +72,8 @@ type Room struct {
 	Doors      []string      `json:"doors"`      // ID дверей
 	Walls      []string      `json:"walls"`      // ID стен
 	Furniture  []string      `json:"furniture"`  // ID мебели
-	Plumbing   []string      `json:"plumbing"`   // ID сантехники (унитаз, раковина, ванна, душ)
-	Appliances []string      `json:"appliances"` // ID бытовой техники (стиральная машина, посудомоечная машина)
+	// Plumbing   []string      `json:"plumbing"`   // ID сантехники (унитаз, раковина, ванна, душ)
+	// Appliances []string      `json:"appliances"` // ID бытовой техники (стиральная машина, посудомоечная машина)
 
 	// back-reference to parent apartment for resolving IDs to objects
 	apartment *Apartment

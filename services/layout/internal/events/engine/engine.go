@@ -54,7 +54,6 @@ func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string
 			if !ok {
 				return nil, fmt.Errorf("no info about max count for device %s", device)
 			}
-
 			err := rule.Apply(zonedAp, levelNum, deviceRooms, maxCount, res)
 			if err != nil {
 				return nil, err

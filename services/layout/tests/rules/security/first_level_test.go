@@ -14,9 +14,9 @@ import (
 )
 
 func TestSimpleFirstLevelScript(t *testing.T) {
-	stove := apartment.Appliances{
+	stove := apartment.Furniture{
 		ID:   "1",
-		Name: apartment.Stove,
+		Category: apartment.Stove,
 		Points: []point.Point{
 			{X: 2, Y: 2},
 			{X: 2, Y: 3},
@@ -25,9 +25,9 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 		},
 	}
 
-	sink := apartment.Plumbing{
+	sink := apartment.Furniture{
 		ID:   "2",
-		Name: apartment.Sink,
+		Category: apartment.Sink,
 		Points: []point.Point{
 			{X: 1, Y: 2},
 			{X: 1, Y: 3},
@@ -45,13 +45,11 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 			{X: 3, Y: 3},
 			{X: 0, Y: 3},
 		},
-		Appliances: []string{"1"},
-		Plumbing:   []string{"2"},
+		Furniture: []string{"1", "2"},
 	}
 	ap := &apartment.Apartment{
 		Rooms:      []apartment.Room{room},
-		Plumbing:   []apartment.Plumbing{sink},
-		Appliances: []apartment.Appliances{stove},
+		Furniture:   []apartment.Furniture{sink, stove},
 	}
 
 	selectedLevels := map[string]string{
@@ -95,9 +93,9 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 }
 
 func TestMultipleRooms(t *testing.T) {
-	stove := apartment.Appliances{
+	stove := apartment.Furniture{
 		ID:   "1",
-		Name: apartment.Stove,
+		Category: apartment.Stove,
 		Points: []point.Point{
 			{X: 0, Y: 0},
 			{X: 0, Y: 1},
@@ -106,9 +104,9 @@ func TestMultipleRooms(t *testing.T) {
 		},
 	}
 
-	sink := apartment.Plumbing{
+	sink := apartment.Furniture{
 		ID:   "2",
-		Name: apartment.Sink,
+		Category: apartment.Sink,
 		Points: []point.Point{
 			{X: 1, Y: 2},
 			{X: 1, Y: 3},
@@ -127,7 +125,7 @@ func TestMultipleRooms(t *testing.T) {
 				{X: 2, Y: 2},
 				{X: 0, Y: 2},
 			},
-			Plumbing: []string{"2"},
+			Furniture: []string{"2"},
 
 		},
 		{
@@ -139,7 +137,7 @@ func TestMultipleRooms(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
-			Appliances: []string{"1"},
+			Furniture: []string{"1"},
 		},
 		{
 			ID:   "3",
@@ -155,8 +153,7 @@ func TestMultipleRooms(t *testing.T) {
 
 	ap := &apartment.Apartment{
 		Rooms: rooms,
-		Plumbing: []apartment.Plumbing{sink},
-		Appliances: []apartment.Appliances{stove},
+		Furniture: []apartment.Furniture{sink, stove},
 	}
 
 	selectedLevels := map[string]string{
@@ -197,9 +194,9 @@ func TestMultipleRooms(t *testing.T) {
 }
 
 func TestFirstLevelPriceCalculation(t *testing.T) {
-	stove := apartment.Appliances{
+	stove := apartment.Furniture{
 		ID:   "1",
-		Name: apartment.Stove,
+		Category: apartment.Stove,
 		Points: []point.Point{
 			{X: 0, Y: 0},
 			{X: 0, Y: 1},
@@ -208,9 +205,9 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 		},
 	}
 
-	sink := apartment.Plumbing{
+	sink := apartment.Furniture{
 		ID:   "2",
-		Name: apartment.Sink,
+		Category: apartment.Sink,
 		Points: []point.Point{
 			{X: 1, Y: 2},
 			{X: 1, Y: 3},
@@ -229,7 +226,7 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 				{X: 2, Y: 2},
 				{X: 0, Y: 2},
 			},
-			Plumbing: []string{"2"},
+			Furniture: []string{"2"},
 
 		},
 		{
@@ -241,7 +238,7 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 				{X: 3, Y: 3},
 				{X: 0, Y: 3},
 			},
-			Appliances: []string{"1"},
+			Furniture: []string{"1"},
 		},
 		{
 			ID:   "3",
@@ -257,8 +254,7 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 
 	ap := &apartment.Apartment{
 		Rooms: rooms,
-		Plumbing: []apartment.Plumbing{sink},
-		Appliances: []apartment.Appliances{stove},
+		Furniture: []apartment.Furniture{sink, stove},
 	}
 
 	selectedLevels := map[string]string{

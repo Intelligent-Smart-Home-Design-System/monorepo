@@ -33,14 +33,9 @@ func (r *AirConditioner) Type() string {
 
 // Transform строит ZonedApartment из Apartment, обогащая комнаты зонами для кондиционера.
 func (r *AirConditioner) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, rm := range rooms {
-		roomsSet[rm.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -128,7 +123,7 @@ func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 func collectNoWindZones(furniture []*apartment.Furniture) []*apartment.Zone {
 	zones := make([]*apartment.Zone, 0)
 	for _, f := range furniture {
-		if f.Name == apartment.Bed {
+		if f.Category == apartment.Bed {
 			zones = append(zones, apartment.NewZone(f.Points))
 		}
 	}

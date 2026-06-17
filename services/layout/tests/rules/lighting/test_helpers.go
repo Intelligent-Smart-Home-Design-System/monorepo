@@ -90,9 +90,9 @@ func buildLightingApartmentForHighLevels() *apartment.Apartment {
 	}
 
 	windows := []apartment.Window{
-		{ID: "w1", Points: []point.Point{{X: 0, Y: 1}, {X: 0, Y: 2}}, Rooms: []string{"r1"}},
-		{ID: "w2", Points: []point.Point{{X: 8, Y: 1}, {X: 8, Y: 2}}, Rooms: []string{"r2"}},
-		{ID: "w3", Points: []point.Point{{X: 0, Y: 8}, {X: 0, Y: 9}}, Rooms: []string{"r5"}},
+		{ID: "w1", Points: []point.Point{{X: 0, Y: 1}, {X: 0, Y: 2}}, Room: apartment.RoomLiving},
+		{ID: "w2", Points: []point.Point{{X: 8, Y: 1}, {X: 8, Y: 2}}, Room: apartment.RoomKitchen},
+		{ID: "w3", Points: []point.Point{{X: 0, Y: 8}, {X: 0, Y: 9}}, Room: apartment.RoomBedroom},
 	}
 
 	doors := []apartment.Door{

@@ -7,6 +7,7 @@ build:
 	docker build -t extractor:latest ../extractor
 	docker build -t catalog-builder:latest ../catalog-builder
 	docker build -t quality-calculator:latest ../quality-calculator
+	docker build -t power-planner:latest ../power_planner
 	docker build --target worker -t pipeline-worker:latest .
 	docker build --target trigger -t pipeline-trigger:latest .
 

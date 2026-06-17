@@ -1,20 +1,29 @@
 #include <iostream>
-#include <vector>
+#include <stdexcept>
+#include <string>
 
 #include "power_planner/service/power_assignment.hpp"
 #include "power_planner/service/power_calculator.hpp"
-#include "power_planner/model/connection.hpp"
-#include "power_planner/model/device.hpp"
-#include "power_planner/model/power_source.hpp"
 #include "power_planner/service/battery_calculator.hpp"
 #include "power_planner/service/request_loader.hpp"
 #include "power_planner/service/result_writer.hpp"
 
-int main() {
+namespace {
+    std::string input_path(int argc, char *argv[]) {
+        if (argc == 1) {
+            return "data/sample_input.json";
+        }
+
+        if (argc == 3 && std::string(argv[1]) == "--input") {
+            return argv[2];
+        }
+
+        throw std::runtime_error("usage: power_planner [--input path/to/request.json]");
+    }
+}
+
+int main(int argc, char *argv[]) {
     using power_planner::service::PowerCalculator;
-    using power_planner::model::Connection;
-    using power_planner::model::Device;
-    using power_planner::model::PowerSource;
     using power_planner::service::BatteryCalculator;
     using power_planner::service::RequestLoader;
     using power_planner::service::PowerAssignmentPlanner;
@@ -22,7 +31,7 @@ int main() {
 
 
     RequestLoader loader;
-    auto request = loader.load("data/sample_input.json");
+    auto request = loader.load(input_path(argc, argv));
     PowerAssignmentPlanner assignment_planner;
     const auto assignment = assignment_planner.plan(request.input.devices, request.input.power_sources);
     std::cout << "Power assignment:\n";

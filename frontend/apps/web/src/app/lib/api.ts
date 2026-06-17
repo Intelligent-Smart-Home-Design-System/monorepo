@@ -1,13 +1,13 @@
 import type {
-  ApiCreatePlanRequest,
-  ApiCreatePlanResponse,
   ApiDeviceType,
   ApiEcosystem,
   ApiErrorResponse,
   ApiHomePlan,
   ApiPlanStatus,
   ApiPlanSummary,
-  ApiPreset,
+  ApiPipelineResult,
+  ApiStartPipelineRequest,
+  ApiStartPipelineResponse,
   AuthResponse,
   LoginRequest,
   RefreshTokenRequest,
@@ -240,14 +240,11 @@ export const api = {
   listEcosystems() {
     return requestJson<ApiEcosystem[]>("/api/v1/ecosystems");
   },
-  listPresets() {
-    return requestJson<ApiPreset[]>("/api/v1/presets");
-  },
   listDeviceTypes() {
     return requestJson<ApiDeviceType[]>("/api/v1/device-types");
   },
-  createPlan(payload: ApiCreatePlanRequest) {
-    return requestJson<ApiCreatePlanResponse>("/api/v1/plans", {
+  startPipeline(payload: ApiStartPipelineRequest) {
+    return requestJson<ApiStartPipelineResponse>("/start", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -257,6 +254,14 @@ export const api = {
   },
   getPlan(planId: number) {
     return requestJson<ApiHomePlan>(`/api/v1/plans/${planId}`);
+  },
+  getPipelineResult(workflowId: string, runId?: string) {
+    const params = new URLSearchParams();
+    if (runId) params.set("run_id", runId);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return requestJson<ApiPipelineResult | { workflow_id: string; run_id?: string; status: string }>(
+      `/result/${encodeURIComponent(workflowId)}${suffix}`
+    );
   },
   parseFloorPlan(file: File) {
     const formData = new FormData();

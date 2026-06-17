@@ -411,6 +411,7 @@ function PlanPageContent() {
                       <PreviewArea
                         uploadedPlan={uploadedPlan}
                         floorData={collectSimulationFloorData(uploadedPlan, status, plan)}
+                        devices={selectedBundle ? simulationDevicesFromBundle(selectedBundle) : []}
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -638,7 +639,7 @@ function PlanPageContent() {
   );
 }
 
-function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown }) {
+function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown; devices?: unknown[] }) {
   const floorFromStages = normalizeFloorPreviewData(props.floorData);
   if (floorFromStages.floor) {
     return (
@@ -653,7 +654,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?
           background: "#f4f6f8",
         }}
       >
-        <ApartmentPlanPreview floor={floorFromStages.floor} zones={floorFromStages.zones} />
+        <ApartmentPlanPreview floor={floorFromStages.floor} devices={props.devices} zones={floorFromStages.zones} />
       </Box>
     );
   }
@@ -706,7 +707,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?
           background: "#f4f6f8",
         }}
       >
-        <ApartmentPlanPreview floor={floor} zones={props.uploadedPlan.zones} />
+        <ApartmentPlanPreview floor={floor} devices={props.devices} zones={props.uploadedPlan.zones} />
       </Box>
     );
   }
@@ -858,7 +859,7 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
                 background: "#f4f6f8",
               }}
             >
-              <ApartmentPlanPreview floor={floorPreview.floor} zones={floorPreview.zones} />
+              <ApartmentPlanPreview floor={floorPreview.floor} devices={bundles[0] ? simulationDevicesFromBundle(bundles[0]) : []} zones={floorPreview.zones} />
             </Box>
           )}
 
@@ -1031,13 +1032,16 @@ function loadUploadedPlan(): UploadedPlanState | null {
 
 type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
 
+function simulationUrl() {
+  return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3001/simulation";
+}
+
 function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
 
-  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
-  const url = new URL(simUrl, window.location.origin);
+  const url = new URL(simulationUrl(), window.location.origin);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
     url.searchParams.set("plan_id", String(planId));
   } else if (typeof planId === "string" && planId) {
@@ -1048,24 +1052,68 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
 }
 
 function openSimulation(bundle: SimulationBundle, floor?: unknown) {
-  const devices = bundle.listings.map((listing, index) => {
-    const type = listing.device_attributes?.device_type;
-    return {
-      id: makeSimulationDeviceId(listing, index),
-      name: listing.name,
-      type: typeof type === "string" ? type : listing.name,
-    };
-  });
+  const devices = simulationDevicesFromBundle(bundle);
+  const triggerIds = triggerDeviceIdsFromDevices(devices);
 
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
 
-  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
-  const url = new URL(simUrl, window.location.origin);
+  const url = new URL(simulationUrl(), window.location.origin);
   url.searchParams.set("devices", JSON.stringify(devices));
+  if (triggerIds.length) {
+    url.searchParams.set("trigger_ids", triggerIds.join(","));
+  }
   window.location.href = url.toString();
+}
+
+function simulationDevicesFromBundle(bundle: SimulationBundle) {
+  return bundle.listings.map((listing, index) => {
+    const type = listing.device_attributes?.device_type;
+    const normalizedType = typeof type === "string" ? type : listing.name;
+    const id = makeSimulationDeviceId(listing, index);
+    return {
+      id,
+      trigger_id: id,
+      name: listing.name,
+      type: normalizedType,
+      device_type: normalizedType,
+      room_id: roomIdForDevice(normalizedType, index),
+    };
+  });
+}
+
+function triggerDeviceIdsFromDevices(devices: Array<{ id: string; type?: string; device_type?: string }>) {
+  return devices
+    .filter((device) => isTriggerDeviceType(device.type ?? device.device_type ?? device.id))
+    .map((device) => device.id);
+}
+
+function isTriggerDeviceType(value: string) {
+  const key = value.toLowerCase();
+  return (
+    key.includes("motion") ||
+    key.includes("presence") ||
+    key.includes("sensor") ||
+    key.includes("button") ||
+    key.includes("switch") ||
+    key.includes("door") ||
+    key.includes("window") ||
+    key.includes("leak") ||
+    key.includes("gas") ||
+    key.includes("smoke")
+  );
+}
+
+function roomIdForDevice(type: string, index: number) {
+  const key = type.toLowerCase();
+  if (key.includes("leak") || key.includes("water")) return "bath";
+  if (key.includes("gas") || key.includes("smoke")) return "kitchen";
+  if (key.includes("door") || key.includes("motion") || key.includes("presence")) return "hall";
+  if (key.includes("temperature") || key.includes("climate")) return "living";
+  return ["living", "hall", "kitchen", "bath"][index % 4];
 }
 
 function collectSimulationFloorData(

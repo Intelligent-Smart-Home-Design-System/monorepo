@@ -277,6 +277,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 			if err := enrichDevices(r.Context(), catalogDB, result.DeviceSelection); err != nil {
 				log.Warn().Ctx(r.Context()).Err(err).Msg("device enrichment failed, returning raw result")
 			}
+			enrichLayoutFromSelection(result.Layout, result.DeviceSelection)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

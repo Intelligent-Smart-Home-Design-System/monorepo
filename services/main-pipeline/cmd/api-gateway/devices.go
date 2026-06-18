@@ -151,3 +151,126 @@ func intSliceToInterface(ids []int) []interface{} {
 	}
 	return out
 }
+
+func enrichLayoutFromSelection(layout map[string]interface{}, deviceSelection map[string]interface{}) {
+	if layout == nil || deviceSelection == nil {
+		return
+	}
+
+	categoryInfo := buildCategoryInfoMap(deviceSelection)
+	if len(categoryInfo) == 0 {
+		return
+	}
+
+	placements, ok := layout["placements"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	for _, rawRoom := range placements {
+		items, ok := rawRoom.([]interface{})
+		if !ok {
+			continue
+		}
+		for _, rawPlacement := range items {
+			placement, ok := rawPlacement.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			dev, ok := placement["device"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			deviceType, _ := dev["type"].(string)
+			if info, exists := categoryInfo[deviceType]; exists {
+				dev["price"] = info.price
+				dev["ecosystem"] = info.ecosystem
+			}
+		}
+	}
+}
+
+type categoryInfo struct {
+	price     float64
+	ecosystem string
+}
+
+func buildCategoryInfoMap(ds map[string]interface{}) map[string]categoryInfo {
+	result := make(map[string]categoryInfo)
+
+	paretoFront, ok := ds["pareto_front"].([]interface{})
+	if !ok || len(paretoFront) == 0 {
+		return nil
+	}
+
+	bestPoint := findBestParetoPoint(paretoFront)
+	if bestPoint == nil {
+		return nil
+	}
+
+	items, ok := bestPoint["items"].([]interface{})
+	if !ok {
+		return nil
+	}
+
+	for _, rawItem := range items {
+		item, ok := rawItem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		d, ok := item["device"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		category, _ := d["category"].(string)
+		if category == "" {
+			continue
+		}
+
+		price := toFloat(item["price"])
+
+		ecosystem := ""
+		connection, ok := item["connection"].(map[string]interface{})
+		if ok {
+			direct, ok := connection["direct"].(map[string]interface{})
+			if ok {
+				ecosystem, _ = direct["ecosystem"].(string)
+			}
+		}
+
+		result[category] = categoryInfo{price: price, ecosystem: ecosystem}
+	}
+	return result
+}
+
+func findBestParetoPoint(points []interface{}) map[string]interface{} {
+	for _, raw := range points {
+		point, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if isRecommended, _ := point["is_recommended"].(bool); isRecommended {
+			return point
+		}
+	}
+	if len(points) > 0 {
+		if point, ok := points[0].(map[string]interface{}); ok {
+			return point
+		}
+	}
+	return nil
+}
+
+func toFloat(v interface{}) float64 {
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int:
+		return float64(val)
+	case int64:
+		return float64(val)
+	default:
+		return 0
+	}
+}

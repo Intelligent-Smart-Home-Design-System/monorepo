@@ -1030,6 +1030,7 @@ function loadUploadedPlan(): UploadedPlanState | null {
 }
 
 type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
+const SIMULATION_RETURN_STORAGE_KEY = "simulation-return-url";
 
 function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   if (floor) {
@@ -1038,6 +1039,7 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
 
   const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
   const url = new URL(simUrl, window.location.origin);
+  localStorage.setItem(SIMULATION_RETURN_STORAGE_KEY, window.location.href);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
     url.searchParams.set("plan_id", String(planId));
   } else if (typeof planId === "string" && planId) {
@@ -1064,6 +1066,8 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown) {
 
   const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
   const url = new URL(simUrl, window.location.origin);
+  localStorage.setItem(SIMULATION_RETURN_STORAGE_KEY, window.location.href);
+  url.searchParams.set("returnTo", window.location.href);
   url.searchParams.set("devices", JSON.stringify(devices));
   window.location.href = url.toString();
 }

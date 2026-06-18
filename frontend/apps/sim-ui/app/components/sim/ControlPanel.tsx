@@ -26,6 +26,10 @@ type DeviceType =
   | "freeze"
   | "current"
   | "water_flow"
+  | "light"
+  | "siren"
+  | "climate_device"
+  | "media"
   | "camera"
   | "lock"
   | "other";
@@ -54,6 +58,29 @@ type Props = {
   onSetFilter: (v: Filter) => void;
   onSetSearch: (v: string) => void;
 };
+
+const RETURN_STORAGE_KEY = "simulation-return-url";
+const DEFAULT_RETURN_URL = process.env.NEXT_PUBLIC_WEB_APP_URL
+  ? `${process.env.NEXT_PUBLIC_WEB_APP_URL.replace(/\/$/, "")}/plan`
+  : "http://127.0.0.1:3001/plan";
+
+function normalizeReturnUrl(candidate: string | null) {
+  if (!candidate) return null;
+
+  const trimmed = candidate.trim();
+  if (!trimmed) return null;
+
+  const withoutInvalidLocalhostWww = trimmed.replace(/^https?:\/\/www\.(127\.0\.0\.1|localhost)(?=[:/]|$)/i, "http://$1");
+  const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(withoutInvalidLocalhostWww)
+    ? withoutInvalidLocalhostWww
+    : withoutInvalidLocalhostWww.replace(/^www\.(127\.0\.0\.1|localhost)(?=[:/]|$)/i, "http://$1");
+
+  try {
+    return new URL(withProtocol, window.location.origin);
+  } catch {
+    return null;
+  }
+}
 
 export function ControlPanel(props: Props) {
   const {
@@ -94,6 +121,28 @@ export function ControlPanel(props: Props) {
     return ["bubble apple-pill pill", active ? "pill-active" : ""].join(" ");
   }
 
+  function handleBack() {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const target = [params.get("returnTo"), window.localStorage.getItem(RETURN_STORAGE_KEY), document.referrer]
+      .map(normalizeReturnUrl)
+      .find((url) => url && url.href !== window.location.href);
+
+    if (target) {
+      window.localStorage.setItem(RETURN_STORAGE_KEY, target.href);
+      window.location.href = target.href;
+      return;
+    }
+
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.href = DEFAULT_RETURN_URL;
+  }
+
   const deviceTypeLabels: Record<DeviceType, string> = {
     pir: "Движение",
     mmwave: "Присутствие",
@@ -114,6 +163,10 @@ export function ControlPanel(props: Props) {
     freeze: "Замерзание",
     current: "Ток",
     water_flow: "Вода",
+    light: "Свет",
+    siren: "Сирена",
+    climate_device: "Климат",
+    media: "Медиа",
     camera: "Камера",
     lock: "Замок",
     other: "Другое",
@@ -140,6 +193,12 @@ export function ControlPanel(props: Props) {
     if (key.includes("freeze")) return "freeze";
     if (key.includes("current") || key.includes("power")) return "current";
     if (key.includes("water") || key.includes("flow")) return "water_flow";
+    if (key.includes("lamp") || key.includes("bulb") || key.includes("backlight") || key.includes("luminaire") || key.includes("dimmer")) return "light";
+    if (key.includes("siren")) return "siren";
+    if (key.includes("conditioner") || key.includes("radiator") || key.includes("thermostat") || key.includes("purifier") || key.includes("humidifier")) {
+      return "climate_device";
+    }
+    if (key.includes("tv") || key.includes("speaker") || key.includes("subwoofer")) return "media";
     if (key.includes("camera")) return "camera";
     if (key.includes("lock")) return "lock";
     return "other";
@@ -193,9 +252,14 @@ export function ControlPanel(props: Props) {
   return (
     <section className="control-panel">
       <div className="control-header">
-        <div>
-          <div className="control-kicker">Smart Home</div>
-          <h1>Симуляция</h1>
+        <div className="control-title-group">
+          <button type="button" className="bubble apple-pill sim-back-button" onClick={handleBack}>
+            ← Назад
+          </button>
+          <div>
+            <div className="control-kicker">Smart Home</div>
+            <h1>Симуляция</h1>
+          </div>
         </div>
         <div className={`status-chip status-${status}`}>{statusLabel}</div>
       </div>

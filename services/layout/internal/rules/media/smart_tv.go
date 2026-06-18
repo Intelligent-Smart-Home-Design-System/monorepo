@@ -45,14 +45,9 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 	}
 	smartTVFilters := configFilters.(*filters.SmartTVFilter)
 
-	smartTVRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range smartTVRooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0
@@ -200,14 +195,14 @@ func getTVFurnitureInRoom(ap *apartment.Apartment, room *apartment.Room) []*apar
 			continue
 		}
 
-		switch furniture.Name {
+		switch furniture.Category {
 		case apartment.Sofa, apartment.Bed:
 			result = append(result, furniture)
 		}
 	}
 
 	slices.SortFunc(result, func(f1, f2 *apartment.Furniture) int {
-		if f1.Name == apartment.Sofa {
+		if f1.Category == apartment.Sofa {
 			return -1
 		}
 

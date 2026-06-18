@@ -1,6 +1,8 @@
 package security
 
 import (
+	"strings"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
@@ -22,19 +24,14 @@ func (gl *GasLeakSensorRule) Type() string {
 }
 
 func (gl *GasLeakSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
 		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
-			zr.GasZones = collectGasZones(zr.GetAppliances())
+			zr.GasZones = collectGasZones(zr.GetFurniture())
 		}
 	}
 
@@ -92,13 +89,14 @@ func (gl *GasLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	return nil
 }
 
-func collectGasZones(appliances []*apartment.Appliances) []*apartment.Zone {
+func collectGasZones(furniture []*apartment.Furniture) []*apartment.Zone {
 	zones := make([]*apartment.Zone, 0)
 
-	for _, a := range appliances {
-		switch a.Name {
+	for _, f := range furniture {
+		name := strings.ToLower(f.Category)
+		switch name {
 		case apartment.Stove, apartment.GasBoiler:
-			zones = append(zones, apartment.NewZone(a.Points))
+			zones = append(zones, apartment.NewZone(f.Points))
 		}
 	}
 

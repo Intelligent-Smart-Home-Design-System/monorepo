@@ -342,6 +342,34 @@ function normalizeMockScenarios(scenarios: Scenario[]) {
     .filter((scenario) => scenario.chain.length >= 2);
 }
 
+function loadTriggerDeviceIds(): string[] {
+  if (typeof window === "undefined") return [];
+
+  const ids = new Set<string>();
+  try {
+    const rawQuery = new URLSearchParams(window.location.search).get("trigger_ids");
+    rawQuery
+      ?.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((id) => ids.add(id));
+  } catch {
+    // Query parsing is best-effort.
+  }
+
+  try {
+    const raw = readStorage("simulation-trigger-device-ids");
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    if (Array.isArray(parsed)) {
+      parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0).forEach((id) => ids.add(id));
+    }
+  } catch {
+    // Ignore stale localStorage values.
+  }
+
+  return Array.from(ids);
+}
+
 function deviceKind(id: string, type?: string) {
   const key = `${id} ${type ?? ""}`.toLowerCase();
   if (key.includes("motion") || key.includes("presence") || key.includes("pir") || key.includes("mmwave")) return "motion";
@@ -443,11 +471,17 @@ function scenarioCategoryFor(trigger: string, target: string): Scenario["categor
   return "service";
 }
 
-function buildPlacedScenarios(placedIds: string[], bridgeId: string | undefined, deviceTypes: Record<string, string | undefined>): Scenario[] {
+function buildPlacedScenarios(
+  placedIds: string[],
+  bridgeId: string | undefined,
+  deviceTypes: Record<string, string | undefined>,
+  preferredTriggerIds: string[]
+): Scenario[] {
   const placed = Array.from(new Set(placedIds));
+  const preferredTriggers = new Set(preferredTriggerIds);
   const triggers = placed.filter((id) => {
     const kind = deviceKind(id, deviceTypes[id]);
-    return isConfigTrigger(id, deviceTypes) || ["motion", "door", "leak", "smoke", "gas", "air", "lux", "button"].includes(kind);
+    return preferredTriggers.has(id) || isConfigTrigger(id, deviceTypes) || ["motion", "door", "leak", "smoke", "gas", "air", "lux", "button"].includes(kind);
   });
   const targets = placed.filter((id) => {
     const kind = deviceKind(id, deviceTypes[id]);
@@ -495,6 +529,7 @@ export default function SimulationPage() {
   const placementMarkers = adaptedFloor.placementMarkers;
   const blockingWalls = floorPlanForView.blockers?.length ? floorPlanForView.blockers : [];
   const [externalDevices, setExternalDevices] = useState<ExternalDevice[]>([]);
+  const [preferredTriggerIds] = useState<string[]>(() => loadTriggerDeviceIds());
 
   const [status, setStatus] = useState<Status>("empty");
   const [speed, setSpeed] = useState<Speed>(1);
@@ -582,7 +617,10 @@ export default function SimulationPage() {
     return Object.fromEntries(externalDevices.map((device) => [device.id, device.type]));
   }, [externalDevices]);
   const bridgeId = useMemo(() => placedDeviceIds.find((id) => deviceKind(id, externalDeviceMap.get(id)?.type) === "bridge"), [placedDeviceIds, externalDeviceMap]);
-  const placedScenarios = useMemo(() => buildPlacedScenarios(placedDeviceIds, bridgeId, deviceTypeMap), [placedDeviceIds, bridgeId, deviceTypeMap]);
+  const placedScenarios = useMemo(
+    () => buildPlacedScenarios(placedDeviceIds, bridgeId, deviceTypeMap, preferredTriggerIds),
+    [placedDeviceIds, bridgeId, deviceTypeMap, preferredTriggerIds]
+  );
   const scenarios = useMemo<Scenario[]>(() => {
     const byId = new Map<string, Scenario>();
     const placedSet = new Set(placedDeviceIds);

@@ -59,6 +59,27 @@ type PipelineStatusResponse = {
   device_selection?: unknown;
 };
 
+type SimulationDevice = {
+  id: string;
+  trigger_id: string;
+  name: string;
+  type: string;
+  device_type: string;
+  room_id: string;
+  position?: {
+    x: number;
+    y: number;
+  };
+  direction?: {
+    x: number;
+    y: number;
+  };
+  track?: string;
+  filters?: Record<string, unknown>;
+  listing_id?: number;
+  requirement_id?: number;
+};
+
 export default function PlanPage() {
   return (
     <Suspense
@@ -208,6 +229,16 @@ function PlanPageContent() {
     [selectedBundle, selectedListingId]
   );
 
+  const simulationFloorData = useMemo(
+    () => collectSimulationFloorData(uploadedPlan, status, plan),
+    [plan, status, uploadedPlan]
+  );
+
+  const selectedSimulationDevices = useMemo(
+    () => (selectedBundle ? simulationDevicesFromBundle(selectedBundle, simulationFloorData) : []),
+    [selectedBundle, simulationFloorData]
+  );
+
   const bundleTotalListings = selectedBundle?.listings.length ?? 0;
 
   const stageArtifacts = useMemo(
@@ -273,9 +304,9 @@ function PlanPageContent() {
                 variant="contained"
                 onClick={() => {
                   if (selectedBundle) {
-                    openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan));
+                    openSimulation(selectedBundle, simulationFloorData);
                   } else {
-                    openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, collectSimulationFloorData(uploadedPlan, status, plan));
+                    openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, simulationFloorData);
                   }
                 }}
                 sx={{
@@ -410,7 +441,8 @@ function PlanPageContent() {
                     <Stack spacing={2}>
                       <PreviewArea
                         uploadedPlan={uploadedPlan}
-                        floorData={collectSimulationFloorData(uploadedPlan, status, plan)}
+                        floorData={simulationFloorData}
+                        devices={selectedSimulationDevices}
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -476,7 +508,7 @@ function PlanPageContent() {
                                 <Box>
                                   <Typography sx={{ fontWeight: 800 }}>Набор #{bundle.id}</Typography>
                                   <Typography variant="body2" color="text.secondary">
-                                    Устройств: {bundle.listings.length}
+                                    Позиций устройств: {simulationDevicesFromBundle(bundle, simulationFloorData).length}
                                   </Typography>
                                 </Box>
                                 <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -559,6 +591,36 @@ function PlanPageContent() {
                         ))}
                       </Stack>
 
+                      {selectedSimulationDevices.length > 0 && (
+                        <Stack spacing={1}>
+                          <Typography sx={{ fontWeight: 800 }}>Устройства на плане</Typography>
+                          {selectedSimulationDevices.slice(0, 8).map((device) => (
+                            <Box
+                              key={device.id}
+                              sx={{
+                                p: 1.2,
+                                borderRadius: 3,
+                                background: "#f8fafc",
+                                border: "1px solid rgba(148,163,184,0.18)",
+                              }}
+                            >
+                              <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                                {device.name}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {device.type} · комната {device.room_id}
+                                {device.position ? ` · x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}` : ""}
+                              </Typography>
+                            </Box>
+                          ))}
+                          {selectedSimulationDevices.length > 8 && (
+                            <Typography variant="body2" color="text.secondary">
+                              И ещё {selectedSimulationDevices.length - 8} устройств.
+                            </Typography>
+                          )}
+                        </Stack>
+                      )}
+
                       {selectedListing && (
                         <>
                           <Divider />
@@ -620,7 +682,7 @@ function PlanPageContent() {
                       <Button
                         variant="outlined"
                         disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle, collectSimulationFloorData(uploadedPlan, status, plan))}
+                        onClick={() => openSimulation(selectedBundle, simulationFloorData)}
                         sx={{ fontWeight: 900, borderRadius: 3 }}
                       >
                         Открыть в симуляции
@@ -638,7 +700,7 @@ function PlanPageContent() {
   );
 }
 
-function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown }) {
+function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?: unknown; devices?: unknown[] }) {
   const floorFromStages = normalizeFloorPreviewData(props.floorData);
   if (floorFromStages.floor) {
     return (
@@ -653,7 +715,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?
           background: "#f4f6f8",
         }}
       >
-        <ApartmentPlanPreview floor={floorFromStages.floor} zones={floorFromStages.zones} />
+        <ApartmentPlanPreview floor={floorFromStages.floor} devices={props.devices} zones={floorFromStages.zones} />
       </Box>
     );
   }
@@ -706,7 +768,7 @@ function PreviewArea(props: { uploadedPlan: UploadedPlanState | null; floorData?
           background: "#f4f6f8",
         }}
       >
-        <ApartmentPlanPreview floor={floor} zones={props.uploadedPlan.zones} />
+        <ApartmentPlanPreview floor={floor} devices={props.devices} zones={props.uploadedPlan.zones} />
       </Box>
     );
   }
@@ -820,6 +882,7 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
   const payload = props.artifact.data ?? props.artifact.payload ?? props.artifact;
   const floorPreview = normalizeFloorPreviewData(payload);
   const bundles = normalizeDeviceSelectionBundles(payload);
+  const layoutDevices = devicesFromLayout(payload);
 
   return (
     <Card sx={surfaceCardSx}>
@@ -858,16 +921,62 @@ function StageArtifactPanel(props: { artifact?: ApiPlanStageArtifact }) {
                 background: "#f4f6f8",
               }}
             >
-              <ApartmentPlanPreview floor={floorPreview.floor} zones={floorPreview.zones} />
+              <ApartmentPlanPreview
+                floor={floorPreview.floor}
+                devices={bundles[0] ? simulationDevicesFromBundle(bundles[0], payload) : layoutDevices}
+                zones={floorPreview.zones}
+              />
             </Box>
           )}
 
+          {layoutDevices.length > 0 && <LayoutDevicesSummary devices={layoutDevices} />}
+
           {bundles.length > 0 && <DeviceSelectionSummary bundles={bundles} />}
 
-          <StagePayloadView payload={payload} />
+          {!floorPreview.floor && !layoutDevices.length && !bundles.length && (
+            <Alert severity="info">Этап готов, но для него пока нет отдельного визуального представления.</Alert>
+          )}
         </Stack>
       </CardContent>
     </Card>
+  );
+}
+
+function LayoutDevicesSummary(props: { devices: SimulationDevice[] }) {
+  return (
+    <Stack spacing={1.2}>
+      <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+        Расставленные устройства
+      </Typography>
+      <Stack spacing={1}>
+        {props.devices.map((device) => (
+          <Box
+            key={device.id}
+            sx={{
+              borderRadius: 3,
+              p: 1.5,
+              background: "#f8fafc",
+              border: "1px solid rgba(148,163,184,0.22)",
+            }}
+          >
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="space-between">
+              <Box>
+                <Typography sx={{ fontWeight: 800 }}>{device.name}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {device.type} · комната {device.room_id}
+                </Typography>
+              </Box>
+              {device.position && (
+                <Chip
+                  size="small"
+                  label={`x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}`}
+                />
+              )}
+            </Stack>
+          </Box>
+        ))}
+      </Stack>
+    </Stack>
   );
 }
 
@@ -906,79 +1015,6 @@ function DeviceSelectionSummary(props: { bundles: ApiHomePlan["bundles"] }) {
         </Box>
       ))}
     </Stack>
-  );
-}
-
-function StagePayloadView(props: { payload: unknown }) {
-  if (Array.isArray(props.payload)) {
-    return (
-      <Stack spacing={1}>
-        {props.payload.map((item, index) => (
-          <Box
-            key={index}
-            sx={{
-              borderRadius: 3,
-              p: 1.5,
-              background: "#f8fafc",
-              border: "1px solid rgba(148,163,184,0.18)",
-            }}
-          >
-            <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Элемент #{index + 1}</Typography>
-            <JsonBlock value={item} />
-          </Box>
-        ))}
-      </Stack>
-    );
-  }
-
-  if (props.payload && typeof props.payload === "object") {
-    const record = props.payload as Record<string, unknown>;
-    const entries = Object.entries(record).filter(([key]) => !["data", "payload"].includes(key));
-
-    return (
-      <Stack spacing={1}>
-        {entries.map(([key, value]) => (
-          <Box
-            key={key}
-            sx={{
-              borderRadius: 3,
-              p: 1.5,
-              background: "#f8fafc",
-              border: "1px solid rgba(148,163,184,0.18)",
-            }}
-          >
-            <Typography sx={{ fontWeight: 800, mb: 0.5 }}>{key}</Typography>
-            {typeof value === "object" && value !== null ? (
-              <JsonBlock value={value} />
-            ) : (
-              <Typography color="text.secondary">{String(value ?? "—")}</Typography>
-            )}
-          </Box>
-        ))}
-      </Stack>
-    );
-  }
-
-  return <Typography color="text.secondary">{String(props.payload ?? "Нет данных")}</Typography>;
-}
-
-function JsonBlock(props: { value: unknown }) {
-  return (
-    <Box
-      component="pre"
-      sx={{
-        m: 0,
-        p: 1.5,
-        borderRadius: 3,
-        overflow: "auto",
-        background: "#0f172a",
-        color: "#e2e8f0",
-        fontSize: 12,
-        lineHeight: 1.6,
-      }}
-    >
-      {JSON.stringify(props.value, null, 2)}
-    </Box>
   );
 }
 
@@ -1032,13 +1068,16 @@ function loadUploadedPlan(): UploadedPlanState | null {
 type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
 const SIMULATION_RETURN_STORAGE_KEY = "simulation-return-url";
 
+function simulationUrl() {
+  return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3001/simulation";
+}
+
 function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
 
-  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
-  const url = new URL(simUrl, window.location.origin);
+  const url = new URL(simulationUrl(), window.location.origin);
   localStorage.setItem(SIMULATION_RETURN_STORAGE_KEY, window.location.href);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
     url.searchParams.set("plan_id", String(planId));
@@ -1050,26 +1089,201 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
 }
 
 function openSimulation(bundle: SimulationBundle, floor?: unknown) {
-  const devices = bundle.listings.map((listing, index) => {
-    const type = listing.device_attributes?.device_type;
-    return {
-      id: makeSimulationDeviceId(listing, index),
-      name: listing.name,
-      type: typeof type === "string" ? type : listing.name,
-    };
-  });
+  const devices = simulationDevicesFromBundle(bundle, floor);
+  const triggerIds = triggerDeviceIdsFromDevices(devices);
 
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
 
-  const simUrl = process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3000/simulation";
-  const url = new URL(simUrl, window.location.origin);
+  const url = new URL(simulationUrl(), window.location.origin);
   localStorage.setItem(SIMULATION_RETURN_STORAGE_KEY, window.location.href);
   url.searchParams.set("returnTo", window.location.href);
   url.searchParams.set("devices", JSON.stringify(devices));
+  if (triggerIds.length) {
+    url.searchParams.set("trigger_ids", triggerIds.join(","));
+  }
   window.location.href = url.toString();
+}
+
+function simulationDevicesFromBundle(bundle: SimulationBundle, floor?: unknown): SimulationDevice[] {
+  const layoutDevices = devicesFromLayout(floor);
+  const usedLayoutIndexes = new Set<number>();
+  const result: SimulationDevice[] = [];
+
+  bundle.listings.forEach((listing, listingIndex) => {
+    const type = listing.device_attributes?.device_type;
+    const normalizedType = typeof type === "string" ? type : listing.name;
+    const units = Math.max(1, listing.units_to_buy || 1);
+
+    for (let unitIndex = 0; unitIndex < units; unitIndex += 1) {
+      const matchedIndex = layoutDevices.findIndex((device, index) => {
+        if (usedLayoutIndexes.has(index)) return false;
+        return devicesMatchListing(device, listing, normalizedType);
+      });
+      const matched = matchedIndex >= 0 ? layoutDevices[matchedIndex] : null;
+      if (matchedIndex >= 0) usedLayoutIndexes.add(matchedIndex);
+
+      const id = matched?.id ?? makeSimulationDeviceId(listing, listingIndex, unitIndex);
+      result.push({
+        id,
+        trigger_id: id,
+        name: listing.name,
+        type: matched?.type ?? normalizedType,
+        device_type: matched?.device_type ?? normalizedType,
+        room_id: matched?.room_id ?? roomIdForDevice(normalizedType, listingIndex + unitIndex),
+        position: matched?.position,
+        direction: matched?.direction,
+        track: matched?.track,
+        filters: matched?.filters,
+        listing_id: listing.id,
+        requirement_id: listing.requirement_id,
+      });
+    }
+  });
+
+  for (const [index, device] of layoutDevices.entries()) {
+    if (!usedLayoutIndexes.has(index)) result.push(device);
+  }
+
+  return result;
+}
+
+function devicesFromLayout(value: unknown): SimulationDevice[] {
+  const layout = findLayoutPayload(value);
+  const placements = asRecord(layout)?.placements;
+  if (!placements || typeof placements !== "object" || Array.isArray(placements)) return [];
+
+  return Object.entries(placements as Record<string, unknown>).flatMap(([roomId, rawPlacements]) => {
+    const placementList = asArray(rawPlacements) ?? [];
+    return placementList.flatMap((placement, index) => normalizeLayoutPlacement(placement, roomId, index));
+  });
+}
+
+function normalizeLayoutPlacement(value: unknown, roomId: string, index: number): SimulationDevice[] {
+  const placement = asRecord(value);
+  if (!placement) return [];
+
+  const device = asRecord(placement.device);
+  const type = toText(device?.type ?? device?.name ?? placement.device_type ?? placement.type, "device");
+  const id = toText(device?.id ?? placement.id, `${type}_${roomId}_${index + 1}`);
+  const position = normalizePoint(placement.position);
+  const direction = normalizePoint(placement.direction);
+  const filters = asRecord(placement.filters) ?? undefined;
+
+  return [
+    {
+      id,
+      trigger_id: id,
+      name: humanizeDeviceType(type),
+      type,
+      device_type: type,
+      room_id: roomId,
+      position,
+      direction,
+      track: toNullableText(device?.track ?? placement.track) ?? undefined,
+      filters,
+    },
+  ];
+}
+
+function findLayoutPayload(value: unknown): unknown {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (record.placements && typeof record.placements === "object") return value;
+
+  for (const key of ["layout", "device_layout", "placements"]) {
+    const nested = record[key];
+    if (!nested) continue;
+    const match = findLayoutPayload(nested);
+    if (match) return match;
+  }
+
+  for (const nested of Object.values(record)) {
+    const match = findLayoutPayload(nested);
+    if (match) return match;
+  }
+
+  return null;
+}
+
+function normalizePoint(value: unknown): { x: number; y: number } | undefined {
+  const point = asRecord(value);
+  if (!point) return undefined;
+  const x = toNumber(point.x, NaN);
+  const y = toNumber(point.y, NaN);
+  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : undefined;
+}
+
+function devicesMatchListing(
+  device: SimulationDevice,
+  listing: ApiHomePlan["bundles"][number]["listings"][number],
+  fallbackType: string
+) {
+  const listingType = normalizeDeviceKey(fallbackType);
+  const deviceType = normalizeDeviceKey(device.device_type);
+  const listingName = normalizeDeviceKey(`${listing.name} ${listing.device_brand} ${listing.device_model}`);
+  const attributes = normalizeDeviceKey(Object.values(listing.device_attributes ?? {}).join(" "));
+
+  return (
+    listingType === deviceType ||
+    listingType.includes(deviceType) ||
+    deviceType.includes(listingType) ||
+    listingName.includes(deviceType) ||
+    attributes.includes(deviceType)
+  );
+}
+
+function normalizeDeviceKey(value: unknown) {
+  return toText(value, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function humanizeDeviceType(type: string) {
+  return type
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatCoordinate(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function triggerDeviceIdsFromDevices(devices: Array<{ id: string; type?: string; device_type?: string }>) {
+  return devices
+    .filter((device) => isTriggerDeviceType(device.type ?? device.device_type ?? device.id))
+    .map((device) => device.id);
+}
+
+function isTriggerDeviceType(value: string) {
+  const key = value.toLowerCase();
+  return (
+    key.includes("motion") ||
+    key.includes("presence") ||
+    key.includes("sensor") ||
+    key.includes("button") ||
+    key.includes("switch") ||
+    key.includes("door") ||
+    key.includes("window") ||
+    key.includes("leak") ||
+    key.includes("gas") ||
+    key.includes("smoke")
+  );
+}
+
+function roomIdForDevice(type: string, index: number) {
+  const key = type.toLowerCase();
+  if (key.includes("leak") || key.includes("water")) return "bath";
+  if (key.includes("gas") || key.includes("smoke")) return "kitchen";
+  if (key.includes("door") || key.includes("motion") || key.includes("presence")) return "hall";
+  if (key.includes("temperature") || key.includes("climate")) return "living";
+  return ["living", "hall", "kitchen", "bath"][index % 4];
 }
 
 function collectSimulationFloorData(
@@ -1087,7 +1301,7 @@ function collectSimulationFloorData(
     const payload = artifact.data ?? artifact.payload;
     floor ??= findFloorPayload(payload);
     zones ??= findPayloadByKeys(payload, ["zones", "zone"]);
-    layout ??= findPayloadByKeys(payload, ["layout", "placements"]);
+    layout ??= findLayoutPayload(payload);
   }
 
   if (!floor && !zones && !layout) return null;
@@ -1275,17 +1489,55 @@ function pipelineResultToStageArtifacts(result: ApiPipelineResult | PipelineStat
 
 function pipelineResultToPlan(result: ApiPipelineResult | PipelineStatusResponse, budget: number): ApiHomePlan {
   const bundles = normalizeDeviceSelectionBundles(result.device_selection ?? result);
-  const requirements = collectRequirementsFromBundles(bundles);
+  const effectiveBundles = bundles.length ? bundles : layoutDevicesToBundles(devicesFromLayout(result));
+  const requirements = collectRequirementsFromBundles(effectiveBundles);
 
   return {
     plan_id: 0,
     budget,
     main_ecosystem_id: "",
     requirements,
-    bundles,
+    bundles: effectiveBundles,
     stages: pipelineResultToStageArtifacts(result),
     artifacts: pipelineResultToStageArtifacts(result),
   };
+}
+
+function layoutDevicesToBundles(devices: SimulationDevice[]): ApiHomePlan["bundles"] {
+  if (!devices.length) return [];
+
+  return [
+    {
+      id: 1,
+      total_cost: 0,
+      quality_score: 0,
+      extra_ecosystems_used: 0,
+      hubs_used: 0,
+      is_recommended: true,
+      listings: devices.map((device, index) => ({
+        id: index + 1,
+        name: device.name,
+        device_brand: "Layout",
+        device_model: device.type,
+        device_quality_score: 0,
+        price: 0,
+        url: "#",
+        image_url: null,
+        devices_per_listing: 1,
+        units_to_buy: 1,
+        requirement_id: index + 1,
+        device_attributes: { device_type: device.type },
+        connection_info: {
+          direct_ecosystem: "",
+          direct_protocol: "",
+          direct_description: null,
+          final_ecosystem: "",
+          final_protocol: "",
+          final_description: null,
+        },
+      })),
+    },
+  ];
 }
 
 function collectRequirementsFromBundles(bundles: ApiHomePlan["bundles"]): ApiHomePlan["requirements"] {
@@ -1344,9 +1596,13 @@ function budgetFromStorage() {
   }
 }
 
-function makeSimulationDeviceId(listing: ApiHomePlan["bundles"][number]["listings"][number], index: number) {
+function makeSimulationDeviceId(
+  listing: ApiHomePlan["bundles"][number]["listings"][number],
+  index: number,
+  unitIndex = 0
+) {
   const rawType = listing.device_attributes?.device_type;
   const type = typeof rawType === "string" && rawType.trim() ? rawType : listing.name;
   const safeType = type.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, "_").replace(/^_+|_+$/g, "");
-  return `${safeType || "device"}_${listing.id}_${index + 1}`;
+  return `${safeType || "device"}_${listing.id}_${index + 1}_${unitIndex + 1}`;
 }

@@ -83,7 +83,7 @@ func main() {
 	apiServer := &http.Server{
 		Addr:              env("HTTP_ADDRESS", ":8080"),
 		ReadHeaderTimeout: 5 * time.Second,
-		Handler:           buildAPI(log, temporalClient, startedTotal, newAuthService(authDB, env("JWT_SECRET", "dev-jwt-secret"), 24*time.Hour)),
+		Handler:           buildAPI(log, temporalClient, startedTotal, newAuthService(authDB, env("JWT_SECRET", "dev-jwt-secret"), 24*time.Hour), authDB),
 	}
 	metricsServer := &http.Server{
 		Addr:              env("METRICS_ADDRESS", ":2116"),
@@ -101,7 +101,7 @@ func main() {
 	_ = metricsServer.Shutdown(shutdownCtx)
 }
 
-func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *prometheus.CounterVec, auth *authService) http.Handler {
+func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *prometheus.CounterVec, auth *authService, catalogDB *sql.DB) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -271,6 +271,12 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		if err := temporalClient.GetWorkflow(r.Context(), workflowID, runID).Get(r.Context(), &result); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if result.DeviceSelection != nil {
+			if err := enrichDevices(r.Context(), catalogDB, result.DeviceSelection); err != nil {
+				log.Warn().Ctx(r.Context()).Err(err).Msg("device enrichment failed, returning raw result")
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

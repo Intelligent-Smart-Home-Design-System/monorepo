@@ -63,6 +63,8 @@ interface SmartDeviceBase<TType extends SmartDeviceType> {
   type: TType;
   room_id: string;
   position: { x: number; y: number };
+  price?: number;
+  ecosystem?: string;
 }
 
 export type SmartDevice = {

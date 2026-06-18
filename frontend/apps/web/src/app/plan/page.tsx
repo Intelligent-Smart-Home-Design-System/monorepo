@@ -78,6 +78,8 @@ type SimulationDevice = {
   filters?: Record<string, unknown>;
   listing_id?: number;
   requirement_id?: number;
+  price?: number;
+  ecosystem?: string;
 };
 
 export default function PlanPage() {
@@ -1168,6 +1170,8 @@ function normalizeLayoutPlacement(value: unknown, roomId: string, index: number)
   const position = normalizePoint(placement.position);
   const direction = normalizePoint(placement.direction);
   const filters = asRecord(placement.filters) ?? undefined;
+  const priceRaw = toNumber(device?.price ?? placement.price, NaN);
+  const ecosystem = toNullableText(device?.ecosystem ?? placement.ecosystem) ?? undefined;
 
   return [
     {
@@ -1181,6 +1185,8 @@ function normalizeLayoutPlacement(value: unknown, roomId: string, index: number)
       direction,
       track: toNullableText(device?.track ?? placement.track) ?? undefined,
       filters,
+      price: Number.isFinite(priceRaw) ? priceRaw : undefined,
+      ecosystem,
     },
   ];
 }

@@ -82,6 +82,8 @@ function normalizeDevices(value: unknown, plan: FloorPlan | null): SmartDevice[]
     const deviceType = normalizeDeviceType(record.type ?? record.device_type ?? record.deviceType ?? record.name);
     const room = pickRoomForDevice(plan, record, index);
     const position = normalizeDevicePosition(record, room, index);
+    const price = typeof record.price === "number" && Number.isFinite(record.price) ? record.price : undefined;
+    const ecosystem = typeof record.ecosystem === "string" && record.ecosystem.trim() ? record.ecosystem.trim() : undefined;
 
     return [
       {
@@ -90,6 +92,8 @@ function normalizeDevices(value: unknown, plan: FloorPlan | null): SmartDevice[]
         room_id: room.id,
         position,
         state: defaultDeviceState(deviceType),
+        price,
+        ecosystem,
       } as SmartDevice,
     ];
   });

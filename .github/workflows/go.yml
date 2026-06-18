@@ -16,6 +16,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Generate filters from device_types.json
+      run: |
+          rm -f services/layout/internal/filters/filters_gen.go
+          cd shared/schemas/devices
+          python3 gen_filters.py
+      shell: bash
+
     - name: Set up Go
       uses: actions/setup-go@v4
       with:

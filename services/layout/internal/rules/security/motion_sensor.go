@@ -10,7 +10,6 @@ import (
 const (
 	defaultRange = 10
 	defaultAngle = 120
-	Meter        = 1
 )
 
 type MotionSensorRule struct {
@@ -58,8 +57,8 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 
 	if configFilters == nil {
 		configFilters = &filters.MotionSensorFilter{
-			Range: defaultRange,
-			Angle: defaultAngle,
+			DetectionRangeM:   defaultRange,
+			DetectionAngleDeg: defaultAngle,
 		}
 	}
 	motionSensorFilters := configFilters.(*filters.MotionSensorFilter)
@@ -81,8 +80,8 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 		}
 
 		deviceFilter := &filters.MotionSensorFilter{
-			Angle: motionSensorFilters.Angle,
-			Range: motionSensorFilters.Range,
+			DetectionRangeM:   motionSensorFilters.DetectionRangeM,
+			DetectionAngleDeg: motionSensorFilters.DetectionAngleDeg,
 		}
 
 		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, &direction, deviceFilter)
@@ -100,7 +99,6 @@ func collectHighTrafficZones(ap *apartment.Apartment, room *apartment.Room) []*a
 		if err != nil {
 			continue
 		}
-
 		zones = append(zones, room.CreateObjectZone(door.Points, door.Width))
 	}
 
@@ -109,7 +107,6 @@ func collectHighTrafficZones(ap *apartment.Apartment, room *apartment.Room) []*a
 		if err != nil {
 			continue
 		}
-
 		zones = append(zones, room.CreateObjectZone(window.Points, window.Width))
 	}
 
@@ -135,7 +132,7 @@ func findBestMotionPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 		}
 
 		wallCenter := point.GetObjectCenter(wall.Points)
-		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, wallCenter, filter.Range, filter.Angle)
+		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, wallCenter, filter.DetectionRangeM, float64(filter.DetectionAngleDeg))
 
 		if maxCoverage < coverage {
 			maxCoverage = coverage
@@ -146,7 +143,7 @@ func findBestMotionPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 
 	if maxCoverage < minRequiredCoverage {
 		for _, corner := range room.Area {
-			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, corner, filter.Range, filter.Angle)
+			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.HighTrafficZones, corner, filter.DetectionRangeM, float64(filter.DetectionAngleDeg))
 
 			if maxCoverage < coverage {
 				maxCoverage = coverage

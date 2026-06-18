@@ -31,14 +31,12 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "contact",
-              "alarm_vulume_db": 65,
+              "audio_alert_volume_db": 65,
               "battery_life_years": 1
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane"
-              ],
-              "alarm_volume_db": 65,
+              "detected_gas": ["natural_gas"],
+              "audio_alert_volume_db": 65,
               "battery_life_years": 1
             }
           }
@@ -83,28 +81,22 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "contact",
-              "alarm_vulume_db": 75,
+              "audio_alert_volume_db": 75,
               "battery_life_years": 2
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
-                "natural_gas"
-              ],
-              "alarm_volume_db": 75,
+              "detected_gas": ["natural_gas"],
+              "audio_alert_volume_db": 75,
               "battery_life_years": 2
             },
             "smart_doorbell": {
               "resolution": "720p",
-              "angle": 90,
-              "night_vision": false,
-              "two_way_audio": false
+              "field_of_view_deg": 90,
+              "has_night_vision": false,
+              "has_two_way_audio": false
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
-                "fingerprint"
-              ]
+              "access_methods": ["keypad", "fingerprint"]
             }
           }
         },
@@ -120,8 +112,7 @@
             "gas_leak_sensor",
             "smart_doorbell",
             "smart_lock",
-            "door_sensor",
-            "window_sensor",
+            "door_window_sensor",
             "motion_sensor"
           ],
           "device_rooms": {
@@ -141,11 +132,9 @@
               "hall",
               "hallway"
             ],
-            "door_sensor": [
+            "door_window_sensor": [
               "hall",
-              "hallway"
-            ],
-            "window_sensor": [
+              "hallway",
               "livingroom",
               "bedroom"
             ],
@@ -160,42 +149,33 @@
             "gas_leak_sensor": 2,
             "smart_doorbell": 1,
             "smart_lock": 1,
-            "door_sensor": 1,
-            "window_sensor": 3,
+            "door_window_sensor": 4,
             "motion_sensor": 1
           },
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "cable",
-              "alarm_vulume_db": 85,
+              "audio_alert_volume_db": 85,
               "battery_life_years": 2
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
-                "natural_gas"
-              ],
-              "alarm_volume_db": 85,
+              "detected_gas": ["natural_gas"],
+              "audio_alert_volume_db": 85,
               "battery_life_years": 2
             },
             "smart_doorbell": {
               "resolution": "1080p",
-              "angle": 105,
-              "night_vision": false,
-              "two_way_audio": true
+              "field_of_view_deg": 105,
+              "has_night_vision": false,
+              "has_two_way_audio": true
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
-                "fingerprint",
-                "app"
-              ]
+              "access_methods": ["keypad", "fingerprint", "app"]
             },
-            "door_sensor": {},
-            "window_sensor": {},
+            "door_window_sensor": {},
             "motion_sensor": {
-              "angle": 110,
-              "range": 4
+              "detection_angle_deg": 110,
+              "detection_range_m": 4
             }
           }
         },
@@ -211,10 +191,9 @@
             "gas_leak_sensor",
             "smart_doorbell",
             "smart_lock",
-            "door_sensor",
-            "window_sensor",
+            "door_window_sensor",
             "motion_sensor",
-            "camera"
+            "smart_camera"
           ],
           "device_rooms": {
             "water_leak_sensor": [
@@ -233,11 +212,9 @@
               "hall",
               "hallway"
             ],
-            "door_sensor": [
+            "door_window_sensor": [
               "hall",
-              "hallway"
-            ],
-            "window_sensor": [
+              "hallway",
               "livingroom",
               "bedroom"
             ],
@@ -246,7 +223,7 @@
               "hall",
               "hallway"
             ],
-            "camera": [
+            "smart_camera": [
               "livingroom",
               "hall",
               "hallway"
@@ -257,50 +234,39 @@
             "gas_leak_sensor": 2,
             "smart_doorbell": 1,
             "smart_lock": 2,
-            "door_sensor": 2,
-            "window_sensor": 4,
+            "door_window_sensor": 6,
             "motion_sensor": 1,
-            "camera": 2
+            "smart_camera": 2
           },
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "cable",
-              "alarm_vulume_db": 100,
+              "audio_alert_volume_db": 100,
               "battery_life_years": 3
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
-                "natural_gas",
-                "propan"
-              ],
-              "alarm_volume_db": 100,
+              "detected_gas": ["natural_gas", "lpg"],
+              "audio_alert_volume_db": 100,
               "battery_life_years": 3
             },
             "smart_doorbell": {
               "resolution": "2K",
-              "angle": 130,
-              "night_vision": true,
-              "two_way_audio": true
+              "field_of_view_deg": 130,
+              "has_night_vision": true,
+              "has_two_way_audio": true
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
-                "fingerprint",
-                "app",
-                "face_recognition"
-              ]
+              "access_methods": ["keypad", "fingerprint", "app", "face_recognition"]
             },
-            "door_sensor": {},
-            "window_sensor": {},
+            "door_window_sensor": {},
             "motion_sensor": {
-              "angle": 130,
-              "range": 8
+              "detection_angle_deg": 130,
+              "detection_range_m": 8
             },
-            "camera": {
-              "angle": 110,
-              "range": 10,
-              "night_vision": true,
+            "smart_camera": {
+              "field_of_view_deg": 110,
+              "detection_range_m": 10,
+              "has_night_vision": true,
               "resolution": "2K"
             }
           }
@@ -317,10 +283,9 @@
             "gas_leak_sensor",
             "smart_doorbell",
             "smart_lock",
-            "door_sensor",
-            "window_sensor",
+            "door_window_sensor",
             "motion_sensor",
-            "camera",
+            "smart_camera",
             "smart_siren"
           ],
           "device_rooms": {
@@ -340,11 +305,9 @@
               "hall",
               "hallway"
             ],
-            "door_sensor": [
+            "door_window_sensor": [
               "hall",
-              "hallway"
-            ],
-            "window_sensor": [
+              "hallway",
               "livingroom",
               "bedroom"
             ],
@@ -353,7 +316,7 @@
               "hall",
               "hallway"
             ],
-            "camera": [
+            "smart_camera": [
               "livingroom",
               "hall",
               "hallway"
@@ -369,56 +332,44 @@
             "gas_leak_sensor": 2,
             "smart_doorbell": 1,
             "smart_lock": 2,
-            "door_sensor": 2,
-            "window_sensor": 4,
+            "door_window_sensor": 6,
             "motion_sensor": 2,
-            "camera": 2,
+            "smart_camera": 2,
             "smart_siren": 2
           },
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "cable",
-              "alarm_vulume_db": 100,
+              "audio_alert_volume_db": 100,
               "battery_life_years": 4
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
-                "natural_gas",
-                "propan",
-                "carbon_monoxide"
-              ],
-              "alarm_volume_db": 100,
+              "detected_gas": ["natural_gas", "lpg", "carbon_monoxide"],
+              "audio_alert_volume_db": 100,
               "battery_life_years": 4
             },
             "smart_doorbell": {
               "resolution": "4K",
-              "angle": 150,
-              "night_vision": true,
-              "two_way_audio": true
+              "field_of_view_deg": 150,
+              "has_night_vision": true,
+              "has_two_way_audio": true
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
-                "fingerprint",
-                "app",
-                "face_recognition"
-              ]
+              "access_methods": ["keypad", "fingerprint", "app", "face_recognition"]
             },
-            "door_sensor": {},
-            "window_sensor": {},
+            "door_window_sensor": {},
             "motion_sensor": {
-              "angle": 150,
-              "range": 10
+              "detection_angle_deg": 150,
+              "detection_range_m": 10
             },
-            "camera": {
-              "angle": 110,
-              "range": 10,
-              "night_vision": true,
+            "smart_camera": {
+              "field_of_view_deg": 110,
+              "detection_range_m": 10,
+              "has_night_vision": true,
               "resolution": "2K"
             },
             "smart_siren": {
-              "volume_db": 85
+              "max_volume_db": 85
             }
           }
         }
@@ -429,50 +380,38 @@
       "levels": {
         "1": {
           "name": "Первый уровень",
-          "description": "Основной свет в жилых комнатах и кухне (smart_bulb или inwall_relay_module)",
+          "description": "Основной свет в жилых комнатах и кухне",
           "price_range": {
             "min": 2000,
             "max": 6000
           },
-          "devices": [
-            "smart_bulb"
-          ],
+          "devices": ["smart_lamp"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen"
-            ]
+            "smart_lamp": ["livingroom", "kitchen"]
           },
           "max_device_counts": {
-            "smart_bulb": 3
+            "smart_lamp": 3
           },
           "device_filters": {
-            "smart_bulb": {}
+            "smart_lamp": {}
           }
         },
         "2": {
           "name": "Второй уровень",
-          "description": "Основной свет в проходных и санузлах (smart_bulb или inwall_relay_module)",
+          "description": "Основной свет в проходных и санузлах",
           "price_range": {
             "min": 3500,
             "max": 10000
           },
-          "devices": [
-            "smart_bulb"
-          ],
+          "devices": ["smart_lamp"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen",
-              "passage",
-              "bathroom"
-            ]
+            "smart_lamp": ["livingroom", "kitchen", "passage", "bathroom"]
           },
           "max_device_counts": {
-            "smart_bulb": 5
+            "smart_lamp": 5
           },
           "device_filters": {
-            "smart_bulb": {}
+            "smart_lamp": {}
           }
         },
         "3": {
@@ -482,81 +421,39 @@
             "min": 6000,
             "max": 20000
           },
-          "devices": [
-            "smart_bulb",
-            "motion_sensor",
-            "illumination_sensor"
-          ],
+          "devices": ["smart_lamp", "motion_sensor"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen",
-              "passage",
-              "bathroom"
-            ],
-            "motion_sensor": [
-              "passage",
-              "bathroom"
-            ],
-            "illumination_sensor": [
-              "livingroom",
-              "kitchen"
-            ]
+            "smart_lamp": ["livingroom", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom"]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
-            "motion_sensor": 2,
-            "illumination_sensor": 2
+            "smart_lamp": 5,
+            "motion_sensor": 2
           },
           "device_filters": {
-            "smart_bulb": {},
-            "motion_sensor": {},
-            "illumination_sensor": {}
+            "smart_lamp": {},
+            "motion_sensor": {}
           }
         },
         "4": {
           "name": "Четвертый уровень",
-          "description": "Управление естественным светом (curtains или blinds)",
+          "description": "Управление естественным светом",
           "price_range": {
             "min": 16000,
             "max": 55000
           },
-          "devices": [
-            "smart_bulb",
-            "motion_sensor",
-            "illumination_sensor",
-            "curtains"
-          ],
+          "devices": ["smart_lamp", "motion_sensor"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen",
-              "passage",
-              "bathroom"
-            ],
-            "motion_sensor": [
-              "passage",
-              "bathroom"
-            ],
-            "illumination_sensor": [
-              "livingroom",
-              "kitchen"
-            ],
-            "curtains": [
-              "windows"
-            ]
+            "smart_lamp": ["livingroom", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom"]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
-            "motion_sensor": 2,
-            "illumination_sensor": 2,
-            "curtains": 3
+            "smart_lamp": 5,
+            "motion_sensor": 2
           },
           "device_filters": {
-            "smart_bulb": {},
-            "motion_sensor": {},
-            "illumination_sensor": {},
-            "curtains": {}
+            "smart_lamp": {},
+            "motion_sensor": {}
           }
         },
         "5": {
@@ -566,125 +463,39 @@
             "min": 21000,
             "max": 70000
           },
-          "devices": [
-            "smart_bulb",
-            "motion_sensor",
-            "illumination_sensor",
-            "curtains",
-            "wireless_button_switch",
-            "smart_dimmer"
-          ],
+          "devices": ["smart_lamp", "motion_sensor"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen",
-              "passage",
-              "bathroom"
-            ],
-            "motion_sensor": [
-              "passage",
-              "bathroom"
-            ],
-            "illumination_sensor": [
-              "livingroom",
-              "kitchen"
-            ],
-            "curtains": [
-              "windows"
-            ],
-            "wireless_button_switch": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_dimmer": [
-              "livingroom",
-              "bedroom"
-            ]
+            "smart_lamp": ["livingroom", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom"]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
-            "motion_sensor": 2,
-            "illumination_sensor": 2,
-            "curtains": 3,
-            "wireless_button_switch": 3,
-            "smart_dimmer": 2
+            "smart_lamp": 5,
+            "motion_sensor": 2
           },
           "device_filters": {
-            "smart_bulb": {},
-            "motion_sensor": {},
-            "illumination_sensor": {},
-            "curtains": {},
-            "wireless_button_switch": {},
-            "smart_dimmer": {}
+            "smart_lamp": {},
+            "motion_sensor": {}
           }
         },
         "6": {
           "name": "Шестой уровень",
-          "description": "Навигационный свет и датчики присутствия (built_in_backlight или decorative_luminaire)",
+          "description": "Навигационный свет и датчики присутствия",
           "price_range": {
             "min": 25000,
             "max": 85000
           },
-          "devices": [
-            "smart_bulb",
-            "presence_sensor",
-            "illumination_sensor",
-            "curtains",
-            "wireless_button_switch",
-            "smart_dimmer",
-            "built_in_backlight"
-          ],
+          "devices": ["smart_lamp", "motion_sensor"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen",
-              "passage",
-              "bathroom"
-            ],
-            "presence_sensor": [
-              "passage",
-              "bathroom",
-              "cabinet"
-            ],
-            "illumination_sensor": [
-              "livingroom",
-              "kitchen"
-            ],
-            "curtains": [
-              "windows"
-            ],
-            "wireless_button_switch": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_dimmer": [
-              "livingroom",
-              "bedroom"
-            ],
-            "built_in_backlight": [
-              "passage",
-              "bathroom"
-            ]
+            "smart_lamp": ["livingroom", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom", "cabinet"]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
-            "presence_sensor": 3,
-            "illumination_sensor": 2,
-            "curtains": 3,
-            "wireless_button_switch": 3,
-            "smart_dimmer": 2,
-            "built_in_backlight": 2
+            "smart_lamp": 5,
+            "motion_sensor": 5
           },
           "device_filters": {
-            "smart_bulb": {},
-            "presence_sensor": {},
-            "illumination_sensor": {},
-            "curtains": {},
-            "wireless_button_switch": {},
-            "smart_dimmer": {},
-            "built_in_backlight": {}
+            "smart_lamp": {},
+            "motion_sensor": {}
           }
         },
         "7": {
@@ -694,73 +505,18 @@
             "min": 30000,
             "max": 100000
           },
-          "devices": [
-            "smart_bulb",
-            "presence_sensor",
-            "illumination_sensor",
-            "curtains",
-            "wireless_button_switch",
-            "smart_dimmer",
-            "built_in_backlight",
-            "decorative_luminaire"
-          ],
+          "devices": ["smart_lamp", "motion_sensor"],
           "device_rooms": {
-            "smart_bulb": [
-              "livingroom",
-              "kitchen",
-              "passage",
-              "bathroom"
-            ],
-            "presence_sensor": [
-              "passage",
-              "bathroom",
-              "cabinet"
-            ],
-            "illumination_sensor": [
-              "livingroom",
-              "kitchen"
-            ],
-            "curtains": [
-              "windows"
-            ],
-            "wireless_button_switch": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_dimmer": [
-              "livingroom",
-              "bedroom"
-            ],
-            "built_in_backlight": [
-              "livingroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "decorative_luminaire": [
-              "livingroom",
-              "bedroom"
-            ]
+            "smart_lamp": ["livingroom", "kitchen", "passage", "bathroom"],
+            "motion_sensor": ["passage", "bathroom", "cabinet"]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
-            "presence_sensor": 3,
-            "illumination_sensor": 2,
-            "curtains": 3,
-            "wireless_button_switch": 3,
-            "smart_dimmer": 2,
-            "built_in_backlight": 4,
-            "decorative_luminaire": 2
+            "smart_lamp": 5,
+            "motion_sensor": 5
           },
           "device_filters": {
-            "smart_bulb": {},
-            "presence_sensor": {},
-            "illumination_sensor": {},
-            "curtains": {},
-            "wireless_button_switch": {},
-            "smart_dimmer": {},
-            "built_in_backlight": {},
-            "decorative_luminaire": {}
+            "smart_lamp": {},
+            "motion_sensor": {}
           }
         }
       }
@@ -775,17 +531,9 @@
             "min": 20000,
             "max": 25000
           },
-          "devices": [
-            "robot_vacuum"
-          ],
+          "devices": ["robot_vacuum"],
           "device_rooms": {
-            "robot_vacuum": [
-              "livingroom",
-              "bedroom",
-              "passage",
-              "kitchen",
-              "cabinet"
-            ]
+            "robot_vacuum": ["livingroom", "bedroom", "passage", "kitchen", "cabinet"]
           },
           "max_device_counts": {
             "robot_vacuum": 1
@@ -811,17 +559,9 @@
             "min": 30000,
             "max": 40000
           },
-          "devices": [
-            "robot_vacuum"
-          ],
+          "devices": ["robot_vacuum"],
           "device_rooms": {
-            "robot_vacuum": [
-              "livingroom",
-              "bedroom",
-              "passage",
-              "kitchen",
-              "cabinet"
-            ]
+            "robot_vacuum": ["livingroom", "bedroom", "passage", "kitchen", "cabinet"]
           },
           "max_device_counts": {
             "robot_vacuum": 1
@@ -847,17 +587,9 @@
             "min": 40000,
             "max": 50000
           },
-          "devices": [
-            "robot_vacuum"
-          ],
+          "devices": ["robot_vacuum"],
           "device_rooms": {
-            "robot_vacuum": [
-              "livingroom",
-              "bedroom",
-              "passage",
-              "kitchen",
-              "cabinet"
-            ]
+            "robot_vacuum": ["livingroom", "bedroom", "passage", "kitchen", "cabinet"]
           },
           "max_device_counts": {
             "robot_vacuum": 1
@@ -883,17 +615,9 @@
             "min": 55000,
             "max": 65000
           },
-          "devices": [
-            "robot_vacuum"
-          ],
+          "devices": ["robot_vacuum"],
           "device_rooms": {
-            "robot_vacuum": [
-              "livingroom",
-              "bedroom",
-              "passage",
-              "kitchen",
-              "cabinet"
-            ]
+            "robot_vacuum": ["livingroom", "bedroom", "passage", "kitchen", "cabinet"]
           },
           "max_device_counts": {
             "robot_vacuum": 1
@@ -919,17 +643,9 @@
             "min": 70000,
             "max": 80000
           },
-          "devices": [
-            "robot_vacuum"
-          ],
+          "devices": ["robot_vacuum"],
           "device_rooms": {
-            "robot_vacuum": [
-              "livingroom",
-              "bedroom",
-              "passage",
-              "kitchen",
-              "cabinet"
-            ]
+            "robot_vacuum": ["livingroom", "bedroom", "passage", "kitchen", "cabinet"]
           },
           "max_device_counts": {
             "robot_vacuum": 1
@@ -960,23 +676,10 @@
             "min": 4500,
             "max": 9450
           },
-          "devices": [
-            "temperature_sensor",
-            "smart_radiator_actuator"
-          ],
+          "devices": ["temperature_sensor", "smart_radiator_actuator"],
           "device_rooms": {
-            "temperature_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "smart_radiator_actuator": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ]
+            "temperature_sensor": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "smart_radiator_actuator": ["livingroom", "bedroom", "kitchen", "cabinet"]
           },
           "max_device_counts": {
             "temperature_sensor": 4,
@@ -1007,27 +710,10 @@
             "smart_humidifier"
           ],
           "device_rooms": {
-            "temperature_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "smart_radiator_actuator": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "humidity_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_humidifier": [
-              "livingroom",
-              "bedroom"
-            ]
+            "temperature_sensor": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "smart_radiator_actuator": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "humidity_sensor": ["livingroom", "bedroom", "kitchen"],
+            "smart_humidifier": ["livingroom", "bedroom"]
           },
           "max_device_counts": {
             "temperature_sensor": 4,
@@ -1067,37 +753,12 @@
             "air_purifier"
           ],
           "device_rooms": {
-            "temperature_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "smart_radiator_actuator": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "humidity_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_humidifier": [
-              "livingroom",
-              "bedroom"
-            ],
-            "co2_sensor": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ],
-            "air_purifier": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ]
+            "temperature_sensor": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "smart_radiator_actuator": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "humidity_sensor": ["livingroom", "bedroom", "kitchen"],
+            "smart_humidifier": ["livingroom", "bedroom"],
+            "co2_sensor": ["livingroom", "bedroom", "cabinet"],
+            "air_purifier": ["livingroom", "bedroom", "cabinet"]
           },
           "max_device_counts": {
             "temperature_sensor": 4,
@@ -1146,45 +807,14 @@
             "floor_temperature_sensor"
           ],
           "device_rooms": {
-            "temperature_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "smart_radiator_actuator": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "humidity_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_humidifier": [
-              "livingroom",
-              "bedroom"
-            ],
-            "co2_sensor": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ],
-            "air_purifier": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ],
-            "smart_floor_thermostat": [
-              "bathroom",
-              "kitchen"
-            ],
-            "floor_temperature_sensor": [
-              "bathroom",
-              "kitchen"
-            ]
+            "temperature_sensor": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "smart_radiator_actuator": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "humidity_sensor": ["livingroom", "bedroom", "kitchen"],
+            "smart_humidifier": ["livingroom", "bedroom"],
+            "co2_sensor": ["livingroom", "bedroom", "cabinet"],
+            "air_purifier": ["livingroom", "bedroom", "cabinet"],
+            "smart_floor_thermostat": ["bathroom", "kitchen"],
+            "floor_temperature_sensor": ["bathroom", "kitchen"]
           },
           "max_device_counts": {
             "temperature_sensor": 4,
@@ -1242,50 +872,15 @@
             "air_conditioner"
           ],
           "device_rooms": {
-            "temperature_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "smart_radiator_actuator": [
-              "livingroom",
-              "bedroom",
-              "kitchen",
-              "cabinet"
-            ],
-            "humidity_sensor": [
-              "livingroom",
-              "bedroom",
-              "kitchen"
-            ],
-            "smart_humidifier": [
-              "livingroom",
-              "bedroom"
-            ],
-            "co2_sensor": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ],
-            "air_purifier": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ],
-            "smart_floor_thermostat": [
-              "bathroom",
-              "kitchen"
-            ],
-            "floor_temperature_sensor": [
-              "bathroom",
-              "kitchen"
-            ],
-            "air_conditioner": [
-              "livingroom",
-              "bedroom",
-              "cabinet"
-            ]
+            "temperature_sensor": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "smart_radiator_actuator": ["livingroom", "bedroom", "kitchen", "cabinet"],
+            "humidity_sensor": ["livingroom", "bedroom", "kitchen"],
+            "smart_humidifier": ["livingroom", "bedroom"],
+            "co2_sensor": ["livingroom", "bedroom", "cabinet"],
+            "air_purifier": ["livingroom", "bedroom", "cabinet"],
+            "smart_floor_thermostat": ["bathroom", "kitchen"],
+            "floor_temperature_sensor": ["bathroom", "kitchen"],
+            "air_conditioner": ["livingroom", "bedroom", "cabinet"]
           },
           "max_device_counts": {
             "temperature_sensor": 4,
@@ -1344,11 +939,7 @@
           },
           "devices": ["smart_speaker"],
           "device_rooms": {
-            "smart_speaker": [
-              "livingroom",
-              "kitchen",
-              "bedroom"
-            ]
+            "smart_speaker": ["livingroom", "kitchen", "bedroom"]
           },
           "max_device_counts": {
             "smart_speaker": 1
@@ -1366,15 +957,8 @@
           },
           "devices": ["smart_tv", "smart_speaker"],
           "device_rooms": {
-            "smart_speaker": [
-              "livingroom",
-              "kitchen",
-              "bedroom"
-            ],
-            "smart_tv": [
-              "livingroom",
-              "bedroom"
-            ]
+            "smart_speaker": ["livingroom", "kitchen", "bedroom"],
+            "smart_tv": ["livingroom", "bedroom"]
           },
           "max_device_counts": {
             "smart_speaker": 1,
@@ -1398,19 +982,9 @@
           },
           "devices": ["smart_tv", "smart_speaker", "subwoofer"],
           "device_rooms": {
-            "smart_speaker": [
-              "livingroom",
-              "kitchen",
-              "bedroom"
-            ],
-            "smart_tv": [
-              "livingroom",
-              "bedroom"
-            ],
-            "subwoofer": [
-              "livingroom",
-              "bedroom"
-            ]
+            "smart_speaker": ["livingroom", "kitchen", "bedroom"],
+            "smart_tv": ["livingroom", "bedroom"],
+            "subwoofer": ["livingroom", "bedroom"]
           },
           "max_device_counts": {
             "smart_speaker": 1,

@@ -214,7 +214,7 @@ export default function SettingsPage() {
         Object.entries(selectedLevelByTrack).filter(([, levelId]) => levelId)
       );
       const payload: ApiStartPipelineRequest = {
-        request_id: crypto.randomUUID(),
+        request_id: createClientId(),
         floor_plan: parsedFloor as Record<string, unknown>,
         selected_levels: selectedLevels,
         device_selection: {
@@ -749,7 +749,7 @@ export default function SettingsPage() {
 
 function makeEmptyRequirement(deviceTypeId: string): RequirementDraft {
   return {
-    localId: crypto.randomUUID(),
+    localId: createClientId(),
     device_type: deviceTypeId,
     quantity: 1,
     filters: [],
@@ -764,7 +764,7 @@ function getTrackLevels(track: TrackConfig & { id: string }) {
 
 function trackLevelToRequirementDrafts(level: TrackLevel): RequirementDraft[] {
   return level.devices.map((deviceType, index) => ({
-    localId: crypto.randomUUID(),
+    localId: createClientId(),
     device_type: deviceType,
     quantity: level.max_device_counts?.[deviceType] ?? 1,
     filters: Object.entries(level.device_filters?.[deviceType] ?? {}).map(([field, value]) => ({
@@ -780,6 +780,14 @@ function normalizeTrackFilterValue(value: unknown) {
     return value;
   }
   return String(value);
+}
+
+function createClientId() {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
 }
 
 function formatPrice(value: number) {

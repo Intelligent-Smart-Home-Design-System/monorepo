@@ -44,7 +44,7 @@ type CameraFilter struct {
 	NightVision bool    `json:"night_vision,omitempty"`
 	Resolution  string  `json:"resolution,omitempty"`
 
-	RecommendedRangeM float64      `json:"recommended_range_m,omitempty"`
+	RecommendedRangeMM float64      `json:"recommended_range_mm,omitempty"`
 }
 
 type SmartSirenFilter struct {
@@ -111,7 +111,7 @@ type SmartTVFilter struct {
 	Width          float64 `json:"width,omitempty"`
 	RefreshRatehHZ float64 `json:"refresh_rate_hz,omitempty"`
 
-	MaxWidthM float64 `json:"max_width_m,omitempty"`
+	MaxWidthMM float64 `json:"max_width_mm,omitempty"`
 }
 
 type SmartSpeaker struct{}

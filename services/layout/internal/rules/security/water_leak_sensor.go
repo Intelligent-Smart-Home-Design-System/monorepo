@@ -9,7 +9,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const PointShift float64 = 0.5
+const PointShift float64 = 500
 
 type WaterLeakSensorRule struct {
 	track string

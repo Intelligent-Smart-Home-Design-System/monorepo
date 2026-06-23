@@ -12,18 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// func mmToM(val float64) float64 {
-// 	return val / 1000.0
-// }
-
-// func convertPoints(points [][2]float64) []point.Point {
-// 	res := make([]point.Point, len(points))
-// 	for i, p := range points {
-// 		res[i] = point.Point{X: mmToM(p[0]), Y: mmToM(p[1])}
-// 	}
-// 	return res
-// }
-
 func TestComplexApartmentPlacement(t *testing.T) {
 	err1 := configs.LoadTracksConfig("../../internal/configs/tracks.json")
 	err2 := configs.LoadDevicesConfig("../../internal/configs/devices.json")

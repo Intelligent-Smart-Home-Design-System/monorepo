@@ -10,7 +10,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const speakerShiftFromTV = 0.5
+const speakerShiftFromTV = 500
 
 type SmartSpeakerRule struct {
 	track string

@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	wallOffset      = 0.5
-	maxDistanceToTV = 4
-	testPointOffset = 1
+	wallOffset      = 500
+	maxDistanceToTV = 4000
+	testPointOffset = 1000
 )
 
 type SubwooferRule struct {

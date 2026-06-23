@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultCameraAngle  = 100
-	defaultCameraRange  = 8
+	defaultCameraRange  = 8000
 	minRequiredCoverage = 0.3
 )
 
@@ -94,7 +94,7 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 				Range: cameraFilters.Range,
 				NightVision: cameraFilters.NightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRangeM: distance,
+				RecommendedRangeMM: distance,
 			}
 		} else {
 			deviceFilter = &filters.CameraFilter{
@@ -102,7 +102,7 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 				Range: cameraFilters.Range,
 				NightVision: cameraFilters.NightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRangeM: cameraFilters.Range,
+				RecommendedRangeMM: cameraFilters.Range,
 			}
 		}
 
@@ -157,13 +157,15 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 		entryDoor := room.GetEntryDoor(ap)
 		if entryDoor != nil {
 			doorCenter := point.GetObjectCenter(entryDoor.Points)
-			bestPoint, distance := room.GetTheOppositePoint(doorCenter)
+			bestPoint, distance := room.GetTheOppositePoint(ap, doorCenter)
 
 			direction := point.GetDirectionToPoint(bestPoint, doorCenter)
-			filter.RecommendedRangeM = distance
+			filter.RecommendedRangeMM = distance
 
 			return &bestPoint, direction, distance
 		}
+
+		return nil, point.Point{X: 0, Y: 0}, 0
 	}
 
 	var bestPoint, bestDirection point.Point

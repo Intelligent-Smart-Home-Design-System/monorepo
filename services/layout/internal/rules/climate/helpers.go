@@ -4,7 +4,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 )
 
-const climateDeviceOffset = 0.4
+const climateDeviceOffset = 400
 
 func findFirstWall(zr *apartment.ZonedRoom) *apartment.Wall {
 	if zr == nil {

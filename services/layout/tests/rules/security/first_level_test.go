@@ -18,10 +18,10 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 		ID:   "1",
 		Category: apartment.Stove,
 		Points: []point.Point{
-			{X: 2, Y: 2},
-			{X: 2, Y: 3},
-			{X: 3, Y: 3},
-			{X: 3, Y: 2},
+			{X: 2000, Y: 2000},
+			{X: 2000, Y: 3000},
+			{X: 3000, Y: 3000},
+			{X: 3000, Y: 2000},
 		},
 	}
 
@@ -29,10 +29,10 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 		ID:   "2",
 		Category: apartment.Sink,
 		Points: []point.Point{
-			{X: 1, Y: 2},
-			{X: 1, Y: 3},
-			{X: 2, Y: 3},
-			{X: 2, Y: 2},
+			{X: 1000, Y: 2000},
+			{X: 1000, Y: 3000},
+			{X: 2000, Y: 3000},
+			{X: 2000, Y: 2000},
 		},
 	}
 
@@ -41,9 +41,9 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 		Name: apartment.RoomKitchen,
 		Area: []point.Point{
 			{X: 0, Y: 0},
-			{X: 3, Y: 0},
-			{X: 3, Y: 3},
-			{X: 0, Y: 3},
+			{X: 3000, Y: 0},
+			{X: 3000, Y: 3000},
+			{X: 0, Y: 3000},
 		},
 		Furniture: []string{"1", "2"},
 	}
@@ -73,9 +73,9 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[room.ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 2.5}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 1500, Y: 2500}, devicePlacement.Position)
 		case "gas_leak_sensor":
-			assert.Equal(t, &point.Point{X: 2.5, Y: 2.5}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 2500, Y: 2500}, devicePlacement.Position)
 		}
 	}
 
@@ -98,9 +98,9 @@ func TestMultipleRooms(t *testing.T) {
 		Category: apartment.Stove,
 		Points: []point.Point{
 			{X: 0, Y: 0},
-			{X: 0, Y: 1},
-			{X: 1, Y: 1},
-			{X: 1, Y: 0},
+			{X: 0, Y: 1000},
+			{X: 1000, Y: 1000},
+			{X: 1000, Y: 0},
 		},
 	}
 
@@ -108,10 +108,10 @@ func TestMultipleRooms(t *testing.T) {
 		ID:   "2",
 		Category: apartment.Sink,
 		Points: []point.Point{
-			{X: 1, Y: 2},
-			{X: 1, Y: 3},
-			{X: 2, Y: 3},
-			{X: 2, Y: 2},
+			{X: 1000, Y: 2000},
+			{X: 1000, Y: 3000},
+			{X: 2000, Y: 3000},
+			{X: 2000, Y: 2000},
 		},
 	}
 
@@ -121,9 +121,9 @@ func TestMultipleRooms(t *testing.T) {
 			Name: "bathroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 			Furniture: []string{"2"},
 
@@ -133,9 +133,9 @@ func TestMultipleRooms(t *testing.T) {
 			Name: "kitchen",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 			Furniture: []string{"1"},
 		},
@@ -144,9 +144,9 @@ func TestMultipleRooms(t *testing.T) {
 			Name: "hall",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 		},
 	}
@@ -177,15 +177,15 @@ func TestMultipleRooms(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements[rooms[0].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 2.5}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 1500, Y: 2500}, devicePlacement.Position)
 	}
 
 	for _, devicePlacement := range globalPlacement.Placements[rooms[1].ID] {
 		switch devicePlacement.Device.Type {
 		case "water_leak_sensor":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 2.5}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 1500, Y: 2500}, devicePlacement.Position)
 		case "gas_leak_sensor":
-			assert.Equal(t, &point.Point{X: 0.5, Y: 0.5}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 500, Y: 500}, devicePlacement.Position)
 		}
 		}
 	}
@@ -199,9 +199,9 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 		Category: apartment.Stove,
 		Points: []point.Point{
 			{X: 0, Y: 0},
-			{X: 0, Y: 1},
-			{X: 1, Y: 1},
-			{X: 1, Y: 0},
+			{X: 0, Y: 1000},
+			{X: 1000, Y: 1000},
+			{X: 1000, Y: 0},
 		},
 	}
 
@@ -209,10 +209,10 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 		ID:   "2",
 		Category: apartment.Sink,
 		Points: []point.Point{
-			{X: 1, Y: 2},
-			{X: 1, Y: 3},
-			{X: 2, Y: 3},
-			{X: 2, Y: 2},
+			{X: 1000, Y: 2000},
+			{X: 1000, Y: 3000},
+			{X: 2000, Y: 3000},
+			{X: 2000, Y: 2000},
 		},
 	}
 
@@ -222,9 +222,9 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 			Name: "bathroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 			Furniture: []string{"2"},
 
@@ -234,9 +234,9 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 			Name: "kitchen",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 			Furniture: []string{"1"},
 		},
@@ -245,9 +245,9 @@ func TestFirstLevelPriceCalculation(t *testing.T) {
 			Name: "hall",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 2, Y: 0},
-				{X: 2, Y: 2},
-				{X: 0, Y: 2},
+				{X: 2000, Y: 0},
+				{X: 2000, Y: 2000},
+				{X: 0, Y: 2000},
 			},
 		},
 	}

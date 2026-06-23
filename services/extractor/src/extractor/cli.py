@@ -22,7 +22,7 @@ def make_extractor(settings: Settings) -> OutlinesExtractor:
     llm = settings.llm
     assert llm is not None
     outlines_model = make_outlines_model(llm)
-    taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
+    taxonomy = json.loads(Path(settings.taxonomy.path).read_text(encoding="utf-8"))
     return OutlinesExtractor(
         taxonomy=taxonomy,
         model=outlines_model,
@@ -81,8 +81,8 @@ def run_sample(
 ):
     """Run extraction on a single parsed listing and output result in stdout"""
     settings = Settings.from_toml(config_path)
-    taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
-    listing = ListingSnapshot.model_validate_json(parsed_listing_path.read_text())
+    taxonomy = json.loads(Path(settings.taxonomy.path).read_text(encoding="utf-8"))
+    listing = ListingSnapshot.model_validate_json(parsed_listing_path.read_text(encoding="utf-8"))
     
     typer.echo(f"Loaded listing: {listing.name}", err=True)
     typer.echo(f"Known device types: {', '.join(taxonomy.keys())}", err=True)
@@ -119,8 +119,8 @@ async def _run_evaluation(
     model: str = typer.Option(None, "--model", "-m", help="Model to evaluate. Defaults to model from config."),
 ):
     settings = Settings.from_toml(config_path)
-    test_cases = json.loads(listings_path.read_text())
-    taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
+    test_cases = json.loads(listings_path.read_text(encoding="utf-8"))
+    taxonomy = json.loads(Path(settings.taxonomy.path).read_text(encoding="utf-8"))
     output_dir.mkdir(parents=True, exist_ok=True)
 
     llm = settings.llm
@@ -186,7 +186,7 @@ async def _run_evaluation(
 
     safe_name = model_name.replace("/", "_")
     out_path = output_dir / f"{timestamp}_{safe_name}.json"
-    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2))
+    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     typer.echo(f"Results: {out_path}")
     typer.echo(f"Type accuracy: {summary['type_accuracy']:.0%}")
     typer.echo(f"Perfect extraction: {summary['perfect_extraction_rate']:.0%}")
@@ -197,7 +197,7 @@ async def _run_evaluation(
 import statistics
 
 def summarize(results_path: Path) -> None:
-    data = json.loads(results_path.read_text())
+    data = json.loads(results_path.read_text(encoding="utf-8"))
     s = data["summary"]
     model = data.get("model", "unknown")
 

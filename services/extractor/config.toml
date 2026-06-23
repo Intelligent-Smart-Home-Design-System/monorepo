@@ -78,3 +78,7 @@ user = "catalog"
 [logging]
 level = "INFO"
 format = "json"  # or "console"
+
+# Pre-LLM gate (see docs/ARCHITECTURE.md and monorepo/docs/catalog-pipeline-architecture.md)
+# [pre_llm_gate]
+# no_dups_check = false

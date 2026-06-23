@@ -7,7 +7,7 @@ COMPOSE_APP_PROD  := docker compose -f docker-compose.apps.prod.yaml
 .PHONY: help \
         monitoring-up monitoring-down \
         pipeline-build pipeline-migrate pipeline-up pipeline-up-shifted pipeline-down \
-        pipeline-stack-up pipeline-stack-down \
+        pipeline-stack-up pipeline-stack-down pipeline-trigger pipeline-logs \
         app-up app-down \
         up down \
         up-test down-test \
@@ -51,6 +51,12 @@ pipeline-stack-up: monitoring-up pipeline-build pipeline-up ## Монитори�
 
 pipeline-stack-down: pipeline-down monitoring-down ## Остановить мониторинг + pipeline
 
+pipeline-trigger: ## Запустить catalog pipeline workflow вручную (Temporal trigger)
+	$(MAKE) -C $(PIPELINE_DIR) trigger
+
+pipeline-logs: ## Логи pipeline-worker, temporal, catalog-postgresql
+	$(MAKE) -C $(PIPELINE_DIR) logs
+
 # ─── App (часть 2) ──────────────────────────────────────────────────
 
 app-up: ## Поднять main-pipeline (без тестового профиля)
@@ -77,10 +83,6 @@ up-test: monitoring-up ## Поднять мониторинг + main-pipeline (-
 down-test: ## Остановить main-pipeline (test) + мониторинг
 	$(COMPOSE_APP) --profile test down
 	$(COMPOSE_MONITORING) down
-
-seed-catalog: ## Пересобрать seed_catalog.sql из catalog.json
-	python3 services/main-pipeline/config/generate_seed_catalog.py
-
 # ─── Деплой ─────────────────────────────────────────────────────────
 
 deploy: ## git pull + пересобрать и перезапустить (prod)

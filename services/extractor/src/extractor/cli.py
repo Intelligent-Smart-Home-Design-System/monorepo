@@ -9,6 +9,8 @@ import structlog
 from extractor.worker.worker import Worker
 from extractor.domain.models import ListingSnapshot
 from extractor.adapters.outlines_extractor import OutlinesExtractor
+from extractor.adapters.default_pre_llm_gate import DefaultPreLLMGate
+from extractor.adapters.stub_catalog_reader import StubCatalogReader
 from extractor.evaluation.evaluate import evaluate_listing
 from extractor.evaluation.metrics import ModelMetrics
 from extractor.adapters.postgres_repository import PostgresExtractionRepository
@@ -48,9 +50,15 @@ def run(
         "--config", "-c",
         help="Path to config file"
     ),
+    no_dups_check: bool = typer.Option(
+        False,
+        "--no-dups-check",
+        help="Skip pre-LLM hash and catalog-coverage checks; always call LLM.",
+    ),
 ):
     """Run the extraction service."""
     settings = Settings.from_toml(config_path)
+    settings.pre_llm_gate.no_dups_check = no_dups_check
     setup_logging(settings)
     
     asyncio.run(_run(settings))
@@ -61,13 +69,23 @@ async def _run(settings: Settings):
     
     repo = await PostgresExtractionRepository.create(settings.database, log)
     extractor = make_extractor(settings)
+    pre_llm_gate = DefaultPreLLMGate(
+        StubCatalogReader(),
+        no_dups_check=settings.pre_llm_gate.no_dups_check,
+    )
+    log.info(
+        "pre_llm_gate_initialized",
+        stub_mode=True,
+        no_dups_check=settings.pre_llm_gate.no_dups_check,
+    )
 
     try:
         worker = Worker(
             extractor=extractor,
             repository=repo,
             model=settings.llm.model,
-            batch_size=settings.batch_size
+            batch_size=settings.batch_size,
+            pre_llm_gate=pre_llm_gate,
         )
         await worker.run()
     finally:

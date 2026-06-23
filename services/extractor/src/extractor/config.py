@@ -53,6 +53,17 @@ class ExtractionConfig(BaseModel):
     hint_templates: dict[str, str]
 
 
+class PreLLMGateConfig(BaseModel):
+    """
+    Pre-LLM gate settings.
+
+    See monorepo/docs/catalog-pipeline-architecture.md for the full check pipeline.
+    """
+
+    no_dups_check: bool = False
+    """Skip content-hash and catalog-coverage checks (CLI: --no-dups-check)."""
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="EXTRACTOR_",
@@ -65,6 +76,7 @@ class Settings(BaseSettings):
     yandex_cloud: YandexCloudModelsConfig | None = None
     taxonomy: TaxonomyConfig
     extraction: ExtractionConfig
+    pre_llm_gate: PreLLMGateConfig = PreLLMGateConfig()
     batch_size: int = 10
 
     @model_validator(mode="after")

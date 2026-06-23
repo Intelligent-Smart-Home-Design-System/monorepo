@@ -9,6 +9,17 @@ from extractor.config import ExtractionConfig
 from extractor.domain.models import DetectedDeviceType, ListingSnapshot
 
 
+def _field_type(field_schema: dict[str, Any]) -> Any | None:
+    return field_schema.get("type")
+
+
+def _is_array_field(field_schema: dict[str, Any]) -> bool:
+    field_type = _field_type(field_schema)
+    return field_type == "array" or (
+        isinstance(field_type, list) and "array" in field_type
+    )
+
+
 def _preprocess_schema(schema: dict[str, Any], hints: dict[str, str] = {}, hint_templates: dict[str, str] = {}) -> dict[str, Any]:
     schema = copy.deepcopy(schema)
     properties = schema.get("properties", {})
@@ -25,13 +36,13 @@ def _preprocess_schema(schema: dict[str, Any], hints: dict[str, str] = {}, hint_
             continue
 
         # Add 'return null' suffixes to descriptions to help avoid hallucinations
-        field_type = field_schema.get("type")
-        is_array = field_type == "array" or (isinstance(field_type, list) and "array" in field_type)
+        field_type = _field_type(field_schema)
+        is_array = _is_array_field(field_schema)
         
         suffix = "Return empty array if not found." if is_array else "Return null if not found."
         if field_name in hints:
             suffix += " " + hints[field_name]
-        if field_name in hint_templates:
+        if field_name in hint_templates and is_array and "items" in field_schema:
             for value in field_schema["items"]["enum"]:
                 suffix += " " + hint_templates[field_name].replace("{value}", value)
         
@@ -91,7 +102,7 @@ class OutlinesExtractor:
             )
             fields: dict[str, FieldInfo] = {}
             for name, property in preprocessed["properties"].items():
-                if property["type"] == "array" and "uniqueItems" in property:
+                if _is_array_field(property) and "uniqueItems" in property:
                     # outlines doesn't support uniqueItems
                     del property['uniqueItems']
                     fields[name] = FieldInfo(is_unique_items_array=True)

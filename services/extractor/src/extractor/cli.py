@@ -1,13 +1,10 @@
 import json
-import outlines
 import typer
 import asyncio
 from pathlib import Path
 from extractor.config import Settings
+from extractor.adapters.llm_factory import make_outlines_model
 import structlog
-from openai import AsyncOpenAI, OpenAI
-import os
-import time
 
 from extractor.worker.worker import Worker
 from extractor.domain.models import ListingSnapshot
@@ -21,28 +18,16 @@ from datetime import datetime
 
 app = typer.Typer()
 
-def make_client(settings: Settings) -> AsyncOpenAI:
-    api_key = os.environ.get("YANDEX_CLOUD_API_KEY", "")
-    if not api_key:
-        raise ValueError("YANDEX_CLOUD_API_KEY env var not set")
-    return AsyncOpenAI(
-        api_key=settings.yandex_cloud.api_key,
-        base_url="https://ai.api.cloud.yandex.net/v1",
-        project=settings.yandex_cloud.folder,
-        default_headers={"Authorization": f"Api-Key {api_key}"},
-    )
-
 def make_extractor(settings: Settings) -> OutlinesExtractor:
-    outlines_model = outlines.from_openai(
-        make_client(settings),
-        f"gpt://{settings.yandex_cloud.folder}/{settings.yandex_cloud.llm_model}"
-    )
+    llm = settings.llm
+    assert llm is not None
+    outlines_model = make_outlines_model(llm)
     taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
     return OutlinesExtractor(
         taxonomy=taxonomy,
         model=outlines_model,
         extraction=settings.extraction,
-        temperature=settings.yandex_cloud.temperature
+        temperature=llm.temperature,
     )
 
 def setup_logging(settings: Settings):
@@ -81,7 +66,7 @@ async def _run(settings: Settings):
         worker = Worker(
             extractor=extractor,
             repository=repo,
-            model=settings.yandex_cloud.llm_model,
+            model=settings.llm.model,
             batch_size=settings.batch_size
         )
         await worker.run()
@@ -138,9 +123,11 @@ async def _run_evaluation(
     taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    llm = settings.llm
+    assert llm is not None
     if model is not None:
-        settings.yandex_cloud.llm_model = model # override
-    model_name = settings.yandex_cloud.llm_model
+        llm.model = model
+    model_name = llm.model
     extractor = make_extractor(settings)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

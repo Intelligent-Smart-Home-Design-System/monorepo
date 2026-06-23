@@ -1,4 +1,6 @@
-COMPOSE := docker compose -f docker-compose.yaml
+ENV_FILE ?=
+COMPOSE_ENV := $(if $(ENV_FILE),--env-file $(ENV_FILE),)
+COMPOSE := docker compose $(COMPOSE_ENV) -f docker-compose.yaml
 
 .PHONY: build build-pipeline-images up run down logs ps trigger migrate
 

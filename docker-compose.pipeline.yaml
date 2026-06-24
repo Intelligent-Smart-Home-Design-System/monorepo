@@ -40,19 +40,11 @@ services:
       POSTGRES_SEEDS: temporal-postgresql
     ports:
       - "${PIPELINE_TEMPORAL_PORT:-7233}:7233"
-    healthcheck:
-      test: ["CMD-SHELL", "tctl --address 127.0.0.1:7233 cluster health 2>/dev/null | grep -qiE 'healthy|serving'"]
-      interval: 5s
-      timeout: 10s
-      retries: 30
-      start_period: 40s
-    restart: unless-stopped
 
   temporal-ui:
     image: temporalio/ui:2.21.3
     depends_on:
-      temporal:
-        condition: service_healthy
+      - temporal
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_CORS_ORIGINS: http://localhost:${PIPELINE_TEMPORAL_UI_PORT:-8088}
@@ -136,7 +128,7 @@ services:
       target: worker
     depends_on:
       temporal:
-        condition: service_healthy
+        condition: service_started
       catalog-db-migrate:
         condition: service_completed_successfully
     environment:

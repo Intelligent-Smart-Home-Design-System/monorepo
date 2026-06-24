@@ -185,6 +185,8 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		Dur("duration", completedAt.Sub(startedAt)).
 		Msg("Job container finished")
 
+	emitJobContainerLogs(r.logger, params.Name, logs)
+
 	if statusCode != 0 {
 		return result, fmt.Errorf("container %s exited with code %d", params.Name, statusCode)
 	}
@@ -338,6 +340,34 @@ func tarDirectory(sourceDir string, destinationRoot string) (io.ReadCloser, erro
 	}
 
 	return io.NopCloser(bytes.NewReader(buffer.Bytes())), nil
+}
+
+func emitJobContainerLogs(logger zerolog.Logger, jobName string, logs string) {
+	logs = strings.TrimSpace(logs)
+	if logs == "" {
+		return
+	}
+
+	const maxLines = 50
+	lines := strings.Split(logs, "\n")
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+		logger.Info().
+			Str("pipeline_job", jobName).
+			Int("log_lines_truncated_from", len(strings.Split(logs, "\n"))).
+			Msg("pipeline job container logs truncated")
+	}
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		logger.Info().
+			Str("pipeline_job", jobName).
+			Str("job_log_line", line).
+			Msg("pipeline job container log")
+	}
 }
 
 func buildContainerName(prefix string, jobName string) string {

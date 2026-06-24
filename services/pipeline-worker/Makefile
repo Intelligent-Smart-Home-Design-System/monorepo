@@ -5,16 +5,16 @@ COMPOSE := docker compose $(COMPOSE_ENV) -f docker-compose.yaml
 .PHONY: build build-pipeline-images up run down logs ps trigger migrate
 
 build:
-	docker build -t scraper:latest ../scraper
-	docker build -t extractor:latest ../extractor
-	docker build -t catalog-builder:latest ../catalog-builder
-	docker build -t quality-calculator:latest ../quality-calculator
-	docker build --target worker -t pipeline-worker:latest .
-	docker build --target trigger -t pipeline-trigger:latest .
+	docker build -f Dockerfile -t scraper:latest ../scraper
+	docker build -f Dockerfile -t extractor:latest ../extractor
+	docker build -f Dockerfile -t catalog-builder:latest ../catalog-builder
+	docker build -f Dockerfile -t quality-calculator:latest ../quality-calculator
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker ../..
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger ../..
 
 build-pipeline-images:
-	docker build --target worker -t pipeline-worker:latest .
-	docker build --target trigger -t pipeline-trigger:latest .
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker ../..
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger ../..
 
 up:
 	$(COMPOSE) up -d

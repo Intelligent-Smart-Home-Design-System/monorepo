@@ -1,3 +1,5 @@
+# Pipeline stack. Requires external network monorepo-monitoring (make monitoring-up first).
+# OTLP logs/traces: OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4318 (HTTP, not gRPC 4317).
 services:
   temporal-postgresql:
     image: postgres:16-alpine
@@ -95,7 +97,8 @@ services:
   pipeline-worker:
     image: pipeline-worker:latest
     build:
-      context: .
+      context: ../..
+      dockerfile: services/pipeline-worker/Dockerfile
       target: worker
     depends_on:
       temporal:
@@ -117,13 +120,16 @@ services:
       - "${PIPELINE_WORKER_METRICS_PORT:-2112}:2112"
     restart: unless-stopped
     networks:
-      - pipeline
-      - monorepo-monitoring
+      pipeline:
+      monorepo-monitoring:
+        aliases:
+          - pipeline-worker
 
   pipeline-trigger:
     image: pipeline-trigger:latest
     build:
-      context: .
+      context: ../..
+      dockerfile: services/pipeline-worker/Dockerfile
       target: trigger
     depends_on:
       - temporal

@@ -27,10 +27,12 @@ import (
 )
 
 func main() {
-	log.Logger = logging.New("pipeline-worker")
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	logRuntime := logging.NewWithTelemetry(ctx, "pipeline-worker")
+	log.Logger = logRuntime.Logger
+	defer shutdownLogs(logRuntime)
 
 	cfg, err := config.Load(configPath())
 	if err != nil {
@@ -157,5 +159,14 @@ func shutdownMetrics(server *metrics.Server) {
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Failed to stop metrics server")
+	}
+}
+
+func shutdownLogs(runtime logging.Runtime) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := runtime.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to flush OTLP log exporter")
 	}
 }

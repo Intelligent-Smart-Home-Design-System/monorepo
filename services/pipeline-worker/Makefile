@@ -24,7 +24,7 @@ logs:
 	$(MAKE) -C $(ROOT) pipeline-logs
 
 ps:
-	docker compose -f $(ROOT)/docker-compose.pipeline.yaml ps
+	docker compose -p catalog-pipeline -f $(ROOT)/docker-compose.pipeline.yaml ps
 
 trigger:
 	$(MAKE) -C $(ROOT) pipeline-trigger

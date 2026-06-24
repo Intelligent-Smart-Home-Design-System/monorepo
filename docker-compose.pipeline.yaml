@@ -19,11 +19,9 @@ services:
       test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
     volumes:
       - temporal-postgresql-data:/var/lib/postgresql/data
-    networks:
-      - pipeline
 
   temporal:
     image: temporalio/auto-setup:1.23.0
@@ -38,19 +36,25 @@ services:
       POSTGRES_SEEDS: temporal-postgresql
     ports:
       - "${PIPELINE_TEMPORAL_PORT:-7233}:7233"
-    networks:
-      - pipeline
+    healthcheck:
+      test: ["CMD-SHELL", "tctl --address 127.0.0.1:7233 cluster health 2>/dev/null | grep -qiE 'healthy|serving'"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
 
   temporal-ui:
     image: temporalio/ui:2.21.3
     depends_on:
-      - temporal
+      temporal:
+        condition: service_healthy
     environment:
       TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:${PIPELINE_TEMPORAL_UI_PORT:-8088}
     ports:
       - "${PIPELINE_TEMPORAL_UI_PORT:-8088}:8080"
-    networks:
-      - pipeline
+    restart: unless-stopped
 
   temporal-admin-tools:
     image: temporalio/admin-tools:1.23.0
@@ -62,8 +66,6 @@ services:
       - tools
     stdin_open: true
     tty: true
-    networks:
-      - pipeline
 
   catalog-postgresql:
     image: postgres:16-alpine
@@ -75,13 +77,11 @@ services:
       test: ["CMD-SHELL", "pg_isready -U catalog -d smart_home"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
     ports:
       - "${PIPELINE_CATALOG_DB_PORT:-5432}:5432"
     volumes:
       - catalog-postgresql-data:/var/lib/postgresql/data
-    networks:
-      - pipeline
 
   catalog-db-migrate:
     image: migrate/migrate:v4.18.3
@@ -99,11 +99,10 @@ services:
     volumes:
       - ./db/catalog/migrations:/migrations:ro
     restart: "no"
-    networks:
-      - pipeline
 
   catalog-db-seed-tracked-pages:
     image: postgres:16-alpine
+    profiles: [seed]
     depends_on:
       catalog-postgresql:
         condition: service_healthy
@@ -124,8 +123,6 @@ services:
     volumes:
       - ./services/pipeline-worker/config/seed_tracked_pages.sql:/seed/seed_tracked_pages.sql:ro
     restart: "no"
-    networks:
-      - pipeline
 
   pipeline-worker:
     image: pipeline-worker:latest
@@ -135,7 +132,7 @@ services:
       target: worker
     depends_on:
       temporal:
-        condition: service_started
+        condition: service_healthy
       catalog-db-migrate:
         condition: service_completed_successfully
     environment:
@@ -153,10 +150,8 @@ services:
       - "${PIPELINE_WORKER_METRICS_PORT:-2112}:2112"
     restart: unless-stopped
     networks:
-      pipeline:
-      monorepo-monitoring:
-        aliases:
-          - pipeline-worker
+      - default
+      - monorepo-monitoring
 
   pipeline-trigger:
     image: pipeline-trigger:latest
@@ -165,8 +160,10 @@ services:
       dockerfile: services/pipeline-worker/Dockerfile
       target: trigger
     depends_on:
-      - temporal
-      - pipeline-worker
+      temporal:
+        condition: service_started
+      pipeline-worker:
+        condition: service_started
     environment:
       PIPELINE_CONFIG: /app/config/pipeline.toml
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -179,13 +176,12 @@ services:
     profiles:
       - tools
     networks:
-      - pipeline
+      - default
       - monorepo-monitoring
 
 networks:
-  pipeline:
+  default:
     name: catalog-pipeline-network
-    driver: bridge
   monorepo-monitoring:
     external: true
 

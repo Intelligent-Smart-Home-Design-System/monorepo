@@ -1,6 +1,8 @@
 PIPELINE_DIR := services/pipeline-worker
+PIPELINE_ENV_SHIFT := services/pipeline-worker/.env.shift
 
 COMPOSE_MONITORING := docker compose -f docker-compose.monitoring.yaml
+COMPOSE_PIPELINE  := docker compose -f docker-compose.pipeline.yaml
 COMPOSE_APP       := docker compose -f docker-compose.apps.yaml
 COMPOSE_APP_PROD  := docker compose -f docker-compose.apps.prod.yaml
 
@@ -26,36 +28,41 @@ monitoring-up: ## Поднять мониторинг (OTEL, Jaeger, Loki, Prome
 monitoring-down: ## Остановить мониторинг
 	$(COMPOSE_MONITORING) down
 
-# ─── Pipeline-worker (через вложенный Makefile) ─────────────────────
+# ─── Pipeline (docker-compose.pipeline.yaml в корне) ────────────────
 
 pipeline-build: ## Собрать образы pipeline (scraper, extractor, worker, …)
-	$(MAKE) -C $(PIPELINE_DIR) build
+	docker build -f services/scraper/Dockerfile -t scraper:latest .
+	docker build -f services/extractor/Dockerfile -t extractor:latest .
+	docker build -f services/catalog-builder/Dockerfile -t catalog-builder:latest .
+	docker build -f services/quality-calculator/Dockerfile -t quality-calculator:latest .
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker .
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger .
 
 pipeline-migrate: ## Прогнать миграции catalog DB
-	$(MAKE) -C $(PIPELINE_DIR) migrate
+	$(COMPOSE_PIPELINE) run --rm catalog-db-migrate
 
 pipeline-up: ## Поднять pipeline-worker (дефолтные порты)
-	$(MAKE) -C $(PIPELINE_DIR) up
+	$(COMPOSE_PIPELINE) up -d --build
 
 pipeline-up-shifted: ## Поднять pipeline-worker со сдвигом портов (.env.shift)
-	$(MAKE) -C $(PIPELINE_DIR) ENV_FILE=.env.shift up
+	$(COMPOSE_PIPELINE) --env-file $(PIPELINE_ENV_SHIFT) up -d --build
 
 pipeline-down: ## Остановить pipeline-worker (дефолтные порты)
-	$(MAKE) -C $(PIPELINE_DIR) down
+	$(COMPOSE_PIPELINE) down
 
 pipeline-down-shifted: ## Остановить pipeline-worker (порты из .env.shift)
-	$(MAKE) -C $(PIPELINE_DIR) ENV_FILE=.env.shift down
+	$(COMPOSE_PIPELINE) --env-file $(PIPELINE_ENV_SHIFT) down
 
-pipeline-stack-up: monitoring-up pipeline-build pipeline-up ## Мониторинг + pipeline без app и без Terraform
-	$(MAKE) -C $(PIPELINE_DIR) migrate
+pipeline-stack-up: monitoring-up pipeline-build pipeline-up ## Мониторинг + pipeline без app
+	$(MAKE) pipeline-migrate
 
 pipeline-stack-down: pipeline-down monitoring-down ## Остановить мониторинг + pipeline
 
 pipeline-trigger: ## Запустить catalog pipeline workflow вручную (Temporal trigger)
-	$(MAKE) -C $(PIPELINE_DIR) trigger
+	$(COMPOSE_PIPELINE) --profile tools run --rm pipeline-trigger
 
 pipeline-logs: ## Логи pipeline-worker, temporal, catalog-postgresql
-	$(MAKE) -C $(PIPELINE_DIR) logs
+	$(COMPOSE_PIPELINE) logs -f pipeline-worker temporal temporal-ui catalog-postgresql
 
 # ─── App (часть 2) ──────────────────────────────────────────────────
 
@@ -68,11 +75,11 @@ app-down: ## Остановить main-pipeline
 # ─── Полный стек (3 части, pipeline со сдвигом портов) ──────────────
 
 up: monitoring-up pipeline-build pipeline-up-shifted app-up ## Всё: мониторинг + pipeline (.env.shift) + app
-	$(MAKE) -C $(PIPELINE_DIR) ENV_FILE=.env.shift migrate
+	$(COMPOSE_PIPELINE) --env-file $(PIPELINE_ENV_SHIFT) run --rm catalog-db-migrate
 
 down: ## Остановить всё: app + pipeline (.env.shift) + мониторинг
 	$(COMPOSE_APP_PROD) down
-	$(MAKE) -C $(PIPELINE_DIR) ENV_FILE=.env.shift down
+	$(COMPOSE_PIPELINE) --env-file $(PIPELINE_ENV_SHIFT) down
 	$(COMPOSE_MONITORING) down
 
 # ─── Тест (мониторинг + app --profile test) ─────────────────────────
@@ -83,6 +90,10 @@ up-test: monitoring-up ## Поднять мониторинг + main-pipeline (-
 down-test: ## Остановить main-pipeline (test) + мониторинг
 	$(COMPOSE_APP) --profile test down
 	$(COMPOSE_MONITORING) down
+
+seed-catalog: ## Пересобрать seed_catalog.sql из catalog.json
+	python3 services/main-pipeline/config/generate_seed_catalog.py
+
 # ─── Деплой ─────────────────────────────────────────────────────────
 
 deploy: ## git pull + пересобрать и перезапустить (prod)

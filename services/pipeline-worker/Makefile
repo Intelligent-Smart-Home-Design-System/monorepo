@@ -1,44 +1,36 @@
-ENV_FILE ?=
-COMPOSE_ENV := $(if $(ENV_FILE),--env-file $(ENV_FILE),)
-COMPOSE := docker compose $(COMPOSE_ENV) -f docker-compose.yaml
+# Thin wrapper — canonical targets live in monorepo root Makefile.
+# Run from repo root: make pipeline-up, make pipeline-build, …
 
-.PHONY: build build-pipeline-images up run down logs ps trigger migrate
+ROOT := ../..
+
+.PHONY: build build-pipeline-images up run down logs ps trigger migrate deploy
 
 build:
-	docker build -f Dockerfile -t scraper:latest ../scraper
-	docker build -f Dockerfile -t extractor:latest ../extractor
-	docker build -f Dockerfile -t catalog-builder:latest ../catalog-builder
-	docker build -f Dockerfile -t quality-calculator:latest ../quality-calculator
-	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker ../..
-	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger ../..
+	$(MAKE) -C $(ROOT) pipeline-build
 
 build-pipeline-images:
-	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker ../..
-	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger ../..
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker $(ROOT)
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger $(ROOT)
 
 up:
-	$(COMPOSE) up -d
+	$(MAKE) -C $(ROOT) pipeline-up
 
-run: build
-	$(COMPOSE) up -d
+run: build up
 
 down:
-	$(COMPOSE) down
+	$(MAKE) -C $(ROOT) pipeline-down
 
 logs:
-	$(COMPOSE) logs -f pipeline-worker temporal temporal-ui catalog-postgresql
+	$(MAKE) -C $(ROOT) pipeline-logs
 
 ps:
-	$(COMPOSE) ps
+	docker compose -f $(ROOT)/docker-compose.pipeline.yaml ps
 
 trigger:
-	$(COMPOSE) --profile tools run --rm pipeline-trigger
+	$(MAKE) -C $(ROOT) pipeline-trigger
 
 migrate:
-	$(COMPOSE) run --rm catalog-db-migrate
+	$(MAKE) -C $(ROOT) pipeline-migrate
 
 deploy:
-	git pull
-	make build
-	make migrate
-	make up
+	$(MAKE) -C $(ROOT) deploy

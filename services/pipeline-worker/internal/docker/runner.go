@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -24,20 +25,22 @@ import (
 )
 
 type Settings struct {
-	Host            string
-	NetworkName     string
-	ContainerPrefix string
-	AutoRemove      bool
-	ConfigRoot      string
+	Host                  string
+	NetworkName           string
+	MonitoringNetworkName string
+	ContainerPrefix       string
+	AutoRemove            bool
+	ConfigRoot            string
 }
 
 type Runner struct {
-	client          *client.Client
-	networkName     string
-	containerPrefix string
-	autoRemove      bool
-	configRoot      string
-	logger          zerolog.Logger
+	client                *client.Client
+	networkName           string
+	monitoringNetworkName string
+	containerPrefix       string
+	autoRemove            bool
+	configRoot            string
+	logger                zerolog.Logger
 }
 
 var invalidContainerChars = regexp.MustCompile(`[^a-zA-Z0-9_.-]+`)
@@ -57,12 +60,13 @@ func NewRunner(settings Settings, logger zerolog.Logger) (*Runner, error) {
 	}
 
 	return &Runner{
-		client:          dockerClient,
-		networkName:     settings.NetworkName,
-		containerPrefix: settings.ContainerPrefix,
-		autoRemove:      settings.AutoRemove,
-		configRoot:      settings.ConfigRoot,
-		logger:          logger,
+		client:                dockerClient,
+		networkName:           settings.NetworkName,
+		monitoringNetworkName: settings.MonitoringNetworkName,
+		containerPrefix:       settings.ContainerPrefix,
+		autoRemove:            settings.AutoRemove,
+		configRoot:            settings.ConfigRoot,
+		logger:                logger,
 	}, nil
 }
 
@@ -79,14 +83,27 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		return nil, err
 	}
 
-	if _, _, err := r.client.ImageInspectWithRaw(ctx, params.Image); err != nil {
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("image", params.Image).
+		Strs("command", resolvedCommand).
+		Msg("Starting job container")
+
+	imageInspect, _, err := r.client.ImageInspectWithRaw(ctx, params.Image)
+	if err != nil {
 		return nil, fmt.Errorf("inspect image %q: %w", params.Image, err)
 	}
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("image", params.Image).
+		Str("image_id", shortImageID(imageInspect.ID)).
+		Msg("Job container image ready")
 
-	envValues, err := r.resolveEnv(params)
+	envValues, err := r.resolveEnv(params.EnvMapping, params.Name)
 	if err != nil {
 		return nil, err
 	}
+	envValues = appendOTelEnv(envValues, r.monitoringNetworkName)
 
 	containerName := buildContainerName(r.containerPrefix, params.Name)
 	labels := map[string]string{
@@ -95,7 +112,8 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 	}
 
 	hostConfig := &container.HostConfig{}
-	if r.networkName != "" {
+	networkingConfig := r.containerNetworking()
+	if networkingConfig == nil && r.networkName != "" {
 		hostConfig.NetworkMode = container.NetworkMode(r.networkName)
 	}
 
@@ -108,7 +126,7 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 			Labels: labels,
 		},
 		hostConfig,
-		&network.NetworkingConfig{},
+		networkingConfig,
 		nil,
 		containerName,
 	)
@@ -116,12 +134,28 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		return nil, fmt.Errorf("create container: %w", err)
 	}
 
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("image", params.Image).
+		Str("container_id", created.ID).
+		Str("container_name", containerName).
+		Msg("Job container created")
+
 	if r.autoRemove {
 		defer func() {
+			r.logger.Info().
+				Str("job", params.Name).
+				Str("container_id", created.ID).
+				Msg("Removing job container")
 			removeErr := r.client.ContainerRemove(context.Background(), created.ID, container.RemoveOptions{Force: true})
 			if removeErr != nil {
 				r.logger.Warn().Err(removeErr).Str("container_id", created.ID).Msg("Failed to remove job container")
+				return
 			}
+			r.logger.Info().
+				Str("job", params.Name).
+				Str("container_id", created.ID).
+				Msg("Job container removed")
 		}()
 	}
 
@@ -129,12 +163,22 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		if err := r.copyConfigDir(ctx, created.ID, params.ConfigPath); err != nil {
 			return nil, fmt.Errorf("copy config into container: %w", err)
 		}
+		r.logger.Info().
+			Str("job", params.Name).
+			Str("container_id", created.ID).
+			Str("config_path", containerConfigPath).
+			Msg("Job config copied into container")
 	}
 
 	startedAt := time.Now().UTC()
 	if err := r.client.ContainerStart(ctx, created.ID, container.StartOptions{}); err != nil {
 		return nil, fmt.Errorf("start container: %w", err)
 	}
+
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("container_id", created.ID).
+		Msg("Job container started")
 
 	var statusCode int64
 	for {
@@ -218,24 +262,65 @@ func (r *Runner) resolveCommand(params pipeline.RunContainerParams) ([]string, s
 	return resolved, containerConfigPath, nil
 }
 
-func (r *Runner) resolveEnv(params pipeline.RunContainerParams) ([]string, error) {
-	keys := make([]string, 0, len(params.EnvMapping))
-	for key := range params.EnvMapping {
+func (r *Runner) containerNetworking() *network.NetworkingConfig {
+	if r.networkName == "" || r.monitoringNetworkName == "" {
+		return nil
+	}
+	if strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")) == "" {
+		return nil
+	}
+
+	return &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			r.networkName:           {},
+			r.monitoringNetworkName: {},
+		},
+	}
+}
+
+func appendOTelEnv(values []string, monitoringNetworkName string) []string {
+	if monitoringNetworkName == "" {
+		return values
+	}
+	endpoint := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	if endpoint == "" {
+		return values
+	}
+
+	values = append(values, "OTEL_EXPORTER_OTLP_ENDPOINT="+endpoint)
+	if insecure, ok := os.LookupEnv("OTEL_EXPORTER_OTLP_INSECURE"); ok {
+		values = append(values, "OTEL_EXPORTER_OTLP_INSECURE="+insecure)
+	} else {
+		values = append(values, "OTEL_EXPORTER_OTLP_INSECURE=true")
+	}
+	return values
+}
+
+func (r *Runner) resolveEnv(envMapping map[string]string, jobName string) ([]string, error) {
+	keys := make([]string, 0, len(envMapping))
+	for key := range envMapping {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
 
 	values := make([]string, 0, len(keys))
 	for _, targetKey := range keys {
-		sourceKey := params.EnvMapping[targetKey]
+		sourceKey := envMapping[targetKey]
 		sourceValue, ok := os.LookupEnv(sourceKey)
 		if !ok {
-			return nil, fmt.Errorf("required env %q for job %q is not set", sourceKey, params.Name)
+			return nil, fmt.Errorf("required env %q for job %q is not set", sourceKey, jobName)
 		}
 		values = append(values, fmt.Sprintf("%s=%s", targetKey, sourceValue))
 	}
 
 	return values, nil
+}
+
+func shortImageID(imageID string) string {
+	if len(imageID) <= 12 {
+		return imageID
+	}
+	return imageID[:12]
 }
 
 func (r *Runner) copyConfigDir(ctx context.Context, containerID string, configPath string) error {
@@ -348,13 +433,14 @@ func emitJobContainerLogs(logger zerolog.Logger, jobName string, logs string) {
 		return
 	}
 
-	const maxLines = 50
-	lines := strings.Split(logs, "\n")
+	const maxLines = 200
+	allLines := strings.Split(logs, "\n")
+	lines := allLines
 	if len(lines) > maxLines {
 		lines = lines[len(lines)-maxLines:]
 		logger.Info().
 			Str("pipeline_job", jobName).
-			Int("log_lines_truncated_from", len(strings.Split(logs, "\n"))).
+			Int("log_lines_truncated_from", len(allLines)).
 			Msg("pipeline job container logs truncated")
 	}
 
@@ -363,10 +449,26 @@ func emitJobContainerLogs(logger zerolog.Logger, jobName string, logs string) {
 		if line == "" {
 			continue
 		}
-		logger.Info().
-			Str("pipeline_job", jobName).
-			Str("job_log_line", line).
-			Msg("pipeline job container log")
+
+		event := zerolog.Dict()
+		event = event.Str("pipeline_job", jobName).Str("raw_line", line)
+
+		var fields map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &fields); err == nil {
+			if msg, ok := fields["event"].(string); ok && msg != "" {
+				event = event.Str("job_event", msg)
+			}
+			for key, value := range fields {
+				if key == "event" || key == "level" || key == "timestamp" {
+					continue
+				}
+				event = event.Interface(key, value)
+			}
+			logger.Info().Dict("job_log", event).Msg("pipeline job container log")
+			continue
+		}
+
+		logger.Info().Dict("job_log", event).Msg("pipeline job container log")
 	}
 }
 

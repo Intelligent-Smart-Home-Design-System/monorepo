@@ -62,11 +62,12 @@ func main() {
 	defer temporalClient.Close()
 
 	runner, err := docker.NewRunner(docker.Settings{
-		Host:            cfg.Docker.Host,
-		NetworkName:     cfg.Docker.NetworkName,
-		ContainerPrefix: cfg.Docker.ContainerPrefix,
-		AutoRemove:      cfg.Docker.AutoRemove,
-		ConfigRoot:      cfg.ConfigRoot(),
+		Host:                  cfg.Docker.Host,
+		NetworkName:           cfg.Docker.NetworkName,
+		MonitoringNetworkName: cfg.Docker.MonitoringNetworkName,
+		ContainerPrefix:       cfg.Docker.ContainerPrefix,
+		AutoRemove:            cfg.Docker.AutoRemove,
+		ConfigRoot:            cfg.ConfigRoot(),
 	}, log.Logger)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create Docker runner")

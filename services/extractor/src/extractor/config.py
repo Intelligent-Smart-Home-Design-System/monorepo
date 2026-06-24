@@ -1,9 +1,14 @@
+import os
 from enum import Enum
 from pathlib import Path
 
 import tomli
-from pydantic import BaseModel, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, Field, model_validator
+
+
+class LLMSource(str, Enum):
+    LOCAL = "local"
+    YANDEX_CLOUD = "yandex_cloud"
 
 
 class LLMProvider(str, Enum):
@@ -11,17 +16,23 @@ class LLMProvider(str, Enum):
     OPENAI_COMPATIBLE = "openai_compatible"
 
 
-class YandexCloudModelsConfig(BaseModel):
+class LocalLLMConfig(BaseModel):
+    base_url: str
+    model: str
+    api_key: str = "ollama"
+    temperature: float = 0
+
+
+class YandexCloudConfig(BaseModel):
     folder: str
-    api_key: str = ""
     llm_model: str
     temperature: float = 0
 
 
 class LLMConfig(BaseModel):
-    provider: LLMProvider = LLMProvider.YANDEX_CLOUD
+    provider: LLMProvider
     model: str
-    base_url: str = "https://ai.api.cloud.yandex.net/v1"
+    base_url: str
     api_key: str = ""
     folder: str = ""
     temperature: float = 0
@@ -64,32 +75,52 @@ class PreLLMGateConfig(BaseModel):
     """Skip content-hash and catalog-coverage checks (CLI: --no-dups-check)."""
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="EXTRACTOR_",
-        env_nested_delimiter="__",
-    )
+class Settings(BaseModel):
+    llm_source: LLMSource
+    local_llm: LocalLLMConfig | None = None
+    yandex_cloud: YandexCloudConfig | None = None
+    llm: LLMConfig | None = Field(default=None, exclude=True)
 
     database: DatabaseConfig
     logging: LoggingConfig = LoggingConfig()
-    llm: LLMConfig | None = None
-    yandex_cloud: YandexCloudModelsConfig | None = None
     taxonomy: TaxonomyConfig
     extraction: ExtractionConfig
     pre_llm_gate: PreLLMGateConfig = PreLLMGateConfig()
     batch_size: int = 10
 
     @model_validator(mode="after")
-    def resolve_llm(self) -> "Settings":
-        if self.llm is not None:
+    def validate_llm_source(self) -> "Settings":
+        if self.llm_source == LLMSource.LOCAL:
+            if self.local_llm is None:
+                raise ValueError("[local_llm] is required when llm_source = 'local'")
+            if self.yandex_cloud is not None:
+                raise ValueError("[yandex_cloud] must not be set when llm_source = 'local'")
+            self.llm = LLMConfig(
+                provider=LLMProvider.OPENAI_COMPATIBLE,
+                model=self.local_llm.model,
+                base_url=self.local_llm.base_url,
+                api_key=self.local_llm.api_key,
+                temperature=self.local_llm.temperature,
+            )
             return self
+
         if self.yandex_cloud is None:
-            raise ValueError("Either [llm] or [yandex_cloud] must be configured in config.toml")
+            raise ValueError("[yandex_cloud] is required when llm_source = 'yandex_cloud'")
+        if self.local_llm is not None:
+            raise ValueError("[local_llm] must not be set when llm_source = 'yandex_cloud'")
+
+        api_key = os.environ.get("YANDEX_CLOUD_API_KEY", "").strip()
+        if not api_key:
+            raise ValueError(
+                "YANDEX_CLOUD_API_KEY environment variable is required when llm_source = 'yandex_cloud'"
+            )
+
         self.llm = LLMConfig(
             provider=LLMProvider.YANDEX_CLOUD,
             model=self.yandex_cloud.llm_model,
             folder=self.yandex_cloud.folder,
-            api_key=self.yandex_cloud.api_key,
+            base_url="https://ai.api.cloud.yandex.net/v1",
+            api_key=api_key,
             temperature=self.yandex_cloud.temperature,
         )
         return self
@@ -98,4 +129,11 @@ class Settings(BaseSettings):
     def from_toml(cls, path: Path = Path("config.toml")) -> "Settings":
         with open(path, "rb") as f:
             data = tomli.load(f)
-        return cls(**data)
+
+        settings = cls.model_validate(data)
+
+        password = os.environ.get("EXTRACTOR_DATABASE__PASSWORD")
+        if password is not None:
+            settings.database.password = password
+
+        return settings

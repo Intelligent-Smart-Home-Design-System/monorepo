@@ -1,12 +1,12 @@
 import json
 import typer
 import asyncio
+import os
 from pathlib import Path
 from extractor.config import Settings
 from extractor.adapters.llm_factory import make_outlines_model
-import structlog
-
-from extractor.worker.worker import Worker
+from extractor.logging_config import setup_logging
+from extractor.telemetry import setup_telemetry
 from extractor.domain.models import ListingSnapshot
 from extractor.adapters.outlines_extractor import OutlinesExtractor
 from extractor.adapters.default_pre_llm_gate import DefaultPreLLMGate
@@ -32,15 +32,13 @@ def make_extractor(settings: Settings) -> OutlinesExtractor:
         temperature=llm.temperature,
     )
 
-def setup_logging(settings: Settings):
-    structlog.configure(
-        processors=[
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.JSONRenderer()
-            if settings.logging.format == "json"
-            else structlog.dev.ConsoleRenderer(),
-        ],
+def setup_observability(settings: Settings):
+    setup_logging(
+        service="extractor",
+        log_format=settings.logging.format,
+        log_level=settings.logging.level,
     )
+    return setup_telemetry("extractor")
 
 
 @app.command()
@@ -59,13 +57,24 @@ def run(
     """Run the extraction service."""
     settings = Settings.from_toml(config_path)
     settings.pre_llm_gate.no_dups_check = no_dups_check
-    setup_logging(settings)
-    
-    asyncio.run(_run(settings))
+    shutdown_telemetry = setup_observability(settings)
+    try:
+        asyncio.run(_run(settings))
+    finally:
+        shutdown_telemetry()
 
 
 async def _run(settings: Settings):
+    import structlog
+
     log = structlog.get_logger()
+    log.info(
+        "extractor_config_loaded",
+        llm_source=settings.llm_source.value,
+        llm_model=settings.llm.model,
+        llm_base_url=settings.llm.base_url,
+        otlp_enabled=bool(os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()),
+    )
     
     repo = await PostgresExtractionRepository.create(settings.database, log)
     extractor = make_extractor(settings)

@@ -1,5 +1,6 @@
 [taxonomy]
 path = "taxonomy_schema.json"
+llm_source = "yandex_cloud"
 
 [extraction]
 
@@ -61,10 +62,11 @@ llm_model = "gpt-oss-120b/latest"
 # "gpt-oss-120b/latest"
 # "gemma-3-27b-it/latest"
 
-# Локальный Qwen через Ollama / vLLM (OpenAI-compatible API):
-# [llm]
-# provider = "openai_compatible"
-# base_url = "http://host.docker.internal:11434/v1"
+# Локальный Qwen — см. llm_source = "local" и [local_llm] выше.
+
+# llm_source = "local"
+# [local_llm]
+# base_url = "http://localhost:11434/v1"
 # model = "qwen2.5:7b"
 # api_key = "ollama"
 # temperature = 0

@@ -1,12 +1,19 @@
 PIPELINE_DIR := services/pipeline-worker
 PIPELINE_ENV_SHIFT := services/pipeline-worker/.env.shift
 
+# Windows cmd.exe does not have /dev/null — use nul there.
+ifeq ($(OS),Windows_NT)
+  DEVNULL := nul
+else
+  DEVNULL := /dev/null
+endif
+
 COMPOSE_MONITORING := docker compose -f docker-compose.monitoring.yaml
 COMPOSE_PIPELINE  := docker compose -p catalog-pipeline -f docker-compose.pipeline.yaml
 COMPOSE_APP       := docker compose -f docker-compose.apps.yaml
 COMPOSE_APP_PROD  := docker compose -f docker-compose.apps.prod.yaml
 
-.PHONY: help \
+.PHONY: help ensure-monitoring-network \
         monitoring-up monitoring-down \
         pipeline-build pipeline-migrate pipeline-seed pipeline-up pipeline-up-shifted pipeline-down pipeline-down-old \
         pipeline-stack-up pipeline-stack-down pipeline-trigger pipeline-logs pipeline-ps \
@@ -21,6 +28,9 @@ help: ## Показать команды
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # ─── Мониторинг ─────────────────────────────────────────────────────
+
+ensure-monitoring-network: ## Создать monorepo-monitoring, если ещё нет (idempotent)
+	@docker network inspect monorepo-monitoring >$(DEVNULL) 2>&1 || docker network create monorepo-monitoring
 
 monitoring-up: ## Поднять мониторинг (OTEL, Jaeger, Loki, Prometheus, Grafana)
 	$(COMPOSE_MONITORING) up -d --build
@@ -44,12 +54,10 @@ pipeline-migrate: ## Прогнать миграции catalog DB
 pipeline-seed: ## Заполнить tracked_pages начальными задачами scraper (ON CONFLICT DO NOTHING)
 	$(COMPOSE_PIPELINE) --profile seed run --rm catalog-db-seed-tracked-pages
 
-pipeline-up: ## Поднять pipeline-worker (дефолтные порты)
-	@docker network inspect monorepo-monitoring >/dev/null 2>&1 || docker network create monorepo-monitoring
+pipeline-up: ensure-monitoring-network ## Поднять pipeline-worker (дефолтные порты)
 	$(COMPOSE_PIPELINE) up -d --build
 
-pipeline-up-shifted: ## Поднять pipeline-worker со сдвигом портов (.env.shift)
-	@docker network inspect monorepo-monitoring >/dev/null 2>&1 || docker network create monorepo-monitoring
+pipeline-up-shifted: ensure-monitoring-network ## Поднять pipeline-worker со сдвигом портов (.env.shift)
 	$(COMPOSE_PIPELINE) --env-file $(PIPELINE_ENV_SHIFT) up -d --build
 
 pipeline-down: ## Остановить pipeline-worker (дефолтные порты)

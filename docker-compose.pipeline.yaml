@@ -4,9 +4,13 @@
 # OTLP: OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4318 (HTTP).
 #
 # Usage (from monorepo root):
-#   make pipeline-up
-#   make pipeline-up-shifted   # uses services/pipeline-worker/.env.shift
+#   make pipeline-stack-up     # monitoring → pipeline (recommended)
 #   make pipeline-trigger
+#
+# Requires monorepo-monitoring (run make monitoring-up first, or use pipeline-stack-up).
+# catalog-pipeline-network is created by this compose file on pipeline-up.
+
+name: catalog-pipeline
 
 services:
   temporal-postgresql:

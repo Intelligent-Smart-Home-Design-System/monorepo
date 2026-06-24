@@ -8,7 +8,7 @@ COMPOSE_APP_PROD  := docker compose -f docker-compose.apps.prod.yaml
 
 .PHONY: help \
         monitoring-up monitoring-down \
-        pipeline-build pipeline-migrate pipeline-up pipeline-up-shifted pipeline-down \
+        pipeline-build pipeline-migrate pipeline-seed pipeline-up pipeline-up-shifted pipeline-down \
         pipeline-stack-up pipeline-stack-down pipeline-trigger pipeline-logs \
         app-up app-down \
         up down \
@@ -31,15 +31,18 @@ monitoring-down: ## Остановить мониторинг
 # ─── Pipeline (docker-compose.pipeline.yaml в корне) ────────────────
 
 pipeline-build: ## Собрать образы pipeline (scraper, extractor, worker, …)
-	docker build -f services/scraper/Dockerfile -t scraper:latest .
-	docker build -f services/extractor/Dockerfile -t extractor:latest .
-	docker build -f services/catalog-builder/Dockerfile -t catalog-builder:latest .
-	docker build -f services/quality-calculator/Dockerfile -t quality-calculator:latest .
+	docker build -t scraper:latest services/scraper
+	docker build -t extractor:latest services/extractor
+	docker build -t catalog-builder:latest services/catalog-builder
+	docker build -t quality-calculator:latest services/quality-calculator
 	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker .
 	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger .
 
 pipeline-migrate: ## Прогнать миграции catalog DB
 	$(COMPOSE_PIPELINE) run --rm catalog-db-migrate
+
+pipeline-seed: ## Заполнить tracked_pages начальными задачами scraper (ON CONFLICT DO NOTHING)
+	$(COMPOSE_PIPELINE) run --rm catalog-db-seed-tracked-pages
 
 pipeline-up: ## Поднять pipeline-worker (дефолтные порты)
 	$(COMPOSE_PIPELINE) up -d --build

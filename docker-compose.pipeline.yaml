@@ -102,6 +102,31 @@ services:
     networks:
       - pipeline
 
+  catalog-db-seed-tracked-pages:
+    image: postgres:16-alpine
+    depends_on:
+      catalog-postgresql:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
+    command:
+      [
+        "psql",
+        "-h",
+        "catalog-postgresql",
+        "-U",
+        "catalog",
+        "-d",
+        "smart_home",
+        "-f",
+        "/seed/seed_tracked_pages.sql"
+      ]
+    volumes:
+      - ./services/pipeline-worker/config/seed_tracked_pages.sql:/seed/seed_tracked_pages.sql:ro
+    restart: "no"
+    networks:
+      - pipeline
+
   pipeline-worker:
     image: pipeline-worker:latest
     build:

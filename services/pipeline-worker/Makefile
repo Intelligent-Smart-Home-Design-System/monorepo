@@ -3,7 +3,7 @@
 
 ROOT := ../..
 
-.PHONY: build build-pipeline-images up run down logs ps trigger migrate deploy
+.PHONY: build build-pipeline-images up run down logs ps trigger migrate seed deploy
 
 build:
 	$(MAKE) -C $(ROOT) pipeline-build
@@ -31,6 +31,9 @@ trigger:
 
 migrate:
 	$(MAKE) -C $(ROOT) pipeline-migrate
+
+seed:
+	$(MAKE) -C $(ROOT) pipeline-seed
 
 deploy:
 	$(MAKE) -C $(ROOT) deploy

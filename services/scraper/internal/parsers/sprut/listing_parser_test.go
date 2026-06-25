@@ -41,6 +41,12 @@ func TestListingParser_Parse(t *testing.T) {
 	assert.Equal(t, ExtractorVersion, result.ExtractorVer)
 }
 
+func TestClampRating(t *testing.T) {
+	assert.Equal(t, 5.0, clampRating(50))
+	assert.Equal(t, 5.0, clampRating(100))
+	assert.Equal(t, 4.5, clampRating(4.5))
+}
+
 func TestListingParser_Parse_MissingTitle(t *testing.T) {
 	files := []*parser.ArchiveFile{
 		{Name: "html", Data: []byte("<html><body></body></html>")},

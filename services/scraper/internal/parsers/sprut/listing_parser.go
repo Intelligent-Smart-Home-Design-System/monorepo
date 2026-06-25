@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"regexp"
 	"slices"
 	"strconv"
@@ -23,6 +24,9 @@ const (
 )
 
 var ownersCountRe = regexp.MustCompile(`(\d+)`)
+
+// Postgres column parsed_listing_snapshots.extracted_rating is NUMERIC(3,2).
+const maxExtractedRating = 9.99
 
 type ListingParser struct {
 	brandAliases map[string]string
@@ -181,8 +185,17 @@ func buildCharacteristicsText(fields map[string]string) string {
 }
 
 func extractRating(doc *goquery.Document) float64 {
+	// Count only product rating, not stars in individual reviews (would overflow NUMERIC(3,2)).
+	scope := doc.Find(".catalog-item-row-stat .vue-star-rating").First()
+	if scope.Length() == 0 {
+		scope = doc.Find(".catalog-item .vue-star-rating").First()
+	}
+	if scope.Length() == 0 {
+		return 0
+	}
+
 	filled := 0
-	doc.Find("span.vue-star-rating-star").Each(func(_ int, star *goquery.Selection) {
+	scope.Find("span.vue-star-rating-star").Each(func(_ int, star *goquery.Selection) {
 		content := star.Text() + star.Find("svg").Text()
 		if html, err := star.Html(); err == nil {
 			content += html
@@ -194,7 +207,20 @@ func extractRating(doc *goquery.Document) float64 {
 	if filled == 0 {
 		return 0
 	}
-	return float64(filled)
+	return clampRating(float64(filled))
+}
+
+func clampRating(rating float64) float64 {
+	if rating > 5 {
+		rating = 5
+	}
+	if rating > maxExtractedRating {
+		rating = maxExtractedRating
+	}
+	if rating < 0 {
+		return 0
+	}
+	return math.Round(rating*100) / 100
 }
 
 func extractReviewCount(doc *goquery.Document) int {

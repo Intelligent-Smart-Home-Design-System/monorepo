@@ -34,9 +34,11 @@ func TestListingParser_Parse(t *testing.T) {
 	assert.NotContains(t, result.Text, "Модель:")
 	assert.NotContains(t, result.Text, "Тип устройства:")
 	assert.Contains(t, result.Text, "Протокол: Zigbee")
+	assert.Contains(t, result.Text, "Характеристики: Версия ZigBee: 3.0")
 	assert.Contains(t, result.Text, "Служебные: SH model: lumi.sensor_ht.agl02")
+	assert.Equal(t, "https://api.sprut.ai/static/media/cache/example/400x400x_image.png", result.ImageURL)
 	assert.Equal(t, float64(5), result.Rating)
-	assert.Equal(t, 10, result.ReviewCount)
+	assert.Equal(t, 2, result.ReviewCount)
 	assert.NotEmpty(t, result.ContentHash)
 	assert.Equal(t, ExtractorVersion, result.ExtractorVer)
 }

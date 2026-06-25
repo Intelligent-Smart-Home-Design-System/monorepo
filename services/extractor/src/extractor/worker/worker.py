@@ -54,7 +54,12 @@ class Worker:
             for listing, result in zip(snapshots, results):
                 if isinstance(result, Exception):
                     total_errors += 1
-                    log.error("extraction_failed", listing_id=listing.id, error=str(result))
+                    log.error(
+                        "extraction_failed",
+                        listing_id=listing.id,
+                        error=str(result),
+                        error_type=type(result).__name__,
+                    )
                     continue
 
                 if result is None:

@@ -18,6 +18,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
+	sprutScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
 )
 
@@ -91,11 +92,13 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	}
 
 	yandexScraperInstance := yandexScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Scraping.RateLimitRps)
+	sprutScraperInstance := sprutScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 
 	sourceToScraper := map[string]scraper.Scraper{
 		domain.SourcePrinter:     printerScraper,
 		domain.SourceWildberries: wildberriesScraper,
 		domain.SourceYandex:      yandexScraperInstance,
+		domain.SourceSprut:       sprutScraperInstance,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)

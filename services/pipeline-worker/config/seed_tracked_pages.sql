@@ -37,3 +37,9 @@ ON CONFLICT (url_hash) DO NOTHING;
 INSERT INTO tracked_pages (source_name, page_type, url, is_active) VALUES
   ('yandex', 'compatibility', 'https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices', true)
 ON CONFLICT (url_hash) DO NOTHING;
+
+-- ── Sprut listings (reference catalog, no prices) ──
+
+INSERT INTO tracked_pages (source_name, page_type, url, is_active) VALUES
+  ('sprut', 'listing', 'https://sprut.ai/catalog/item/aqara-temperature-and-humidity-sensor-t1', true)
+ON CONFLICT (url_hash) DO NOTHING;

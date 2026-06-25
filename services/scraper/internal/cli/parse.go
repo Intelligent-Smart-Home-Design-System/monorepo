@@ -14,6 +14,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parser"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/sprut"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/wildberries"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/yandex"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
@@ -93,9 +94,17 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		return true
 	}
 
-	if shouldRun(domain.PageTypeListing, domain.SourceWildberries) {
-		listingParsers := []parser.SourceParser[*domain.ListingParseResult]{
-			wildberries.NewListingParser(cfg.Wildberries.BrandAliases, cfg.Wildberries.SmartHomeDeviceMarkers),
+	if shouldRun(domain.PageTypeListing, domain.SourceWildberries) || shouldRun(domain.PageTypeListing, domain.SourceSprut) {
+		var listingParsers []parser.SourceParser[*domain.ListingParseResult]
+		if shouldRun(domain.PageTypeListing, domain.SourceWildberries) {
+			listingParsers = append(listingParsers,
+				wildberries.NewListingParser(cfg.Wildberries.BrandAliases, cfg.Wildberries.SmartHomeDeviceMarkers),
+			)
+		}
+		if shouldRun(domain.PageTypeListing, domain.SourceSprut) {
+			listingParsers = append(listingParsers,
+				sprut.NewListingParser(cfg.Wildberries.BrandAliases),
+			)
 		}
 		listingWorker := parser.NewWorker(logger, domain.PageTypeListing, snapshotRepo, listingParsers)
 		listings := listingWorker.Parse(ctx)
@@ -103,7 +112,7 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		logger.Debug().Msgf("parsed %d listings", len(listings))
 		for _, listing := range listings {
 			if !listing.HasSmartHomeMarkers {
-				logger.Info().Err(err).Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
+				logger.Info().Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
 				continue
 			}
 			if err := snapshotRepo.SaveListingParseResult(listing); err != nil {

@@ -35,6 +35,7 @@ job_names = [
   "scraper-parse",
   "extractor",
   "catalog-builder",
+  "power-planner",
 ]
 
 [[jobs]]
@@ -78,3 +79,10 @@ image = "catalog-builder:latest"
 config_path = "catalog-builder/config.toml"
 command = ["/catalog-builder", "run", "--config", "{{config_path}}"]
 env_mapping = { CATALOG_BUILDER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "power-planner"
+image = "power-planner:latest"
+config_path = "power-planner/input.json"
+command = ["--input", "{{config_path}}"]
+env_mapping = {}

@@ -1,0 +1,80 @@
+{
+  "input": {
+    "devices": [
+      {
+        "id": "cam_1",
+        "type": "camera",
+        "power_type": "mains",
+        "battery_type": "",
+        "battery_life_months": 0.0,
+        "battery_installed_at": "",
+        "battery_price": 0.0,
+        "nominal_power_w": 5.0,
+        "peak_power_w": 7.0,
+        "voltage_v": 220.0
+      },
+      {
+        "id": "cam_2",
+        "type": "camera",
+        "power_type": "mains",
+        "battery_type": "",
+        "battery_life_months": 0.0,
+        "battery_installed_at": "",
+        "battery_price": 0.0,
+        "nominal_power_w": 5.0,
+        "peak_power_w": 7.0,
+        "voltage_v": 220.0
+      },
+      {
+        "id": "hub_1",
+        "type": "hub",
+        "power_type": "mains",
+        "battery_type": "",
+        "battery_life_months": 0.0,
+        "battery_installed_at": "",
+        "battery_price": 0.0,
+        "nominal_power_w": 12.0,
+        "peak_power_w": 18.0,
+        "voltage_v": 220.0
+      },
+      {
+        "id": "motion_sensor_1",
+        "type": "motion_sensor",
+        "power_type": "battery",
+        "battery_type": "AA",
+        "battery_life_months": 12.0,
+        "battery_installed_at": "2026-01-01",
+        "battery_price": 50.0,
+        "nominal_power_w": 1.5,
+        "peak_power_w": 1.5,
+        "voltage_v": 1.5
+      }
+    ],
+    "power_sources": [
+      {
+        "id": "socket_1",
+        "kind": "socket",
+        "max_current_a": 0.08,
+        "voltage_v": 220.0
+      }
+    ],
+    "connections": [
+      {
+        "device_id": "cam_1",
+        "power_source_id": "socket_1"
+      },
+      {
+        "device_id": "cam_2",
+        "power_source_id": "socket_1"
+      },
+      {
+        "device_id": "hub_1",
+        "power_source_id": "socket_1"
+      }
+    ]
+  },
+  "options": {
+    "battery_period_months": 12,
+    "current_date": "2026-06-01"
+  }
+}

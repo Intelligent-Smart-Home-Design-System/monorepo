@@ -15,6 +15,7 @@ from extractor.evaluation.evaluate import evaluate_listing
 from extractor.evaluation.metrics import ModelMetrics
 from extractor.adapters.postgres_repository import PostgresExtractionRepository
 from extractor.domain.models import ExtractionSnapshot
+from extractor.worker.worker import Worker
 
 from datetime import datetime
 

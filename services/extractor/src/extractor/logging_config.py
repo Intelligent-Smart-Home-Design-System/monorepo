@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-import os
+
+import structlog
 
 
 def setup_logging(service: str = "extractor", log_format: str = "json", log_level: str = "INFO") -> None:

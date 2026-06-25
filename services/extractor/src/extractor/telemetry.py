@@ -6,9 +6,9 @@ from typing import Any, Callable
 
 import structlog
 from opentelemetry import trace
+from opentelemetry._logs import LogRecord as OTELLogRecord
 from opentelemetry._logs import SeverityNumber
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
-from opentelemetry.sdk._logs import LogRecord as OTELLogRecord
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
@@ -49,7 +49,6 @@ class _OTELLogProcessor:
                 severity_text=level.upper(),
                 severity_number=_LEVEL_TO_SEVERITY.get(level, SeverityNumber.INFO),
                 body=str(event_dict.get("event", "")),
-                resource=None,
                 attributes=attrs,
             )
         )

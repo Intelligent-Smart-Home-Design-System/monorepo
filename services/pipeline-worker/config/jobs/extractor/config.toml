@@ -4,8 +4,15 @@ path = "taxonomy_schema.json"
 [extraction]
 
 [extraction.hints]
+brand = """
+Normalized lowercase brand name (e.g. 'aqara', 'yeelight').
+If a brand hint from the parser is provided and no other brand appears in the listing text, use the hint.
+"""
+
 model = """
 Extract and output the product model name *exactly as it appears in the text*, but ONLY IF there is a string in the text that uniquely identifies the model, such as 'JT-BZ-03AQ/A' or 'LB-L02E'.
+
+If no model appears in the listing text but a model number hint from the parser is provided, use that hint.
 
 Guidelines:
 - The model name is usually a short string or code with letters and numbers (often with dashes, slashes, or other punctuation).

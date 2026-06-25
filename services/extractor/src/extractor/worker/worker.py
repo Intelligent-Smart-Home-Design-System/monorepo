@@ -3,6 +3,7 @@ import datetime
 
 import structlog
 
+from extractor.enrichment import enrich_from_silver_layer
 from extractor.domain.gate import ExtractionDecision, ListingProcessingContext
 from extractor.domain.models import ExtractionSnapshot, ListingSnapshot
 from extractor.ports.extraction import Extractor
@@ -117,13 +118,13 @@ class Worker:
 
     async def _extract(self, listing: ListingSnapshot) -> ExtractionSnapshot:
         detected = await self._extractor.detect_device_type(listing)
-
         attributes = await self._extractor.extract(listing, detected.type)
+        brand, model, attributes = enrich_from_silver_layer(listing, attributes)
 
         return ExtractionSnapshot(
             parsed_listing_snapshot_id=listing.id,
-            brand=attributes.get("brand") or listing.brand,
-            model=attributes.get("model") or "unknown",
+            brand=brand,
+            model=model,
             category=detected.type,
             category_confidence=detected.confidence,
             extracted_at=datetime.datetime.now(datetime.timezone.utc),

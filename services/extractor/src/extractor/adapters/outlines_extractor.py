@@ -137,18 +137,47 @@ class OutlinesExtractor:
         )
         
 
+    def _build_parser_hints(self, listing: ListingSnapshot) -> str:
+        lines = [
+            "Parser-extracted hints from the previous pipeline stage (high priority):",
+            f"- Product name: {listing.name}",
+            f"- Brand hint: {listing.brand}",
+        ]
+        if listing.model_number:
+            lines.append(f"- Model number hint: {listing.model_number}")
+        if listing.category:
+            lines.append(
+                f"- Category hint: {listing.category} "
+                "(shop/catalog label from upstream parser; may be in Russian)"
+            )
+        if listing.source_name:
+            lines.append(f"- Source: {listing.source_name}")
+        return "\n".join(lines)
+
+    def _build_listing_context(self, listing: ListingSnapshot) -> str:
+        return "\n".join(
+            [
+                self._build_parser_hints(listing),
+                f"Listing description and specs:\n{listing.text}",
+            ]
+        )
+
     def _build_detection_prompt(self, listing: ListingSnapshot) -> str:
         return f"""You are classifying shop listings into these smart home device types.
 
 Device types and their descriptions:
 {self._type_descriptions}
 
-Listing name: {listing.name}
-Listing brand: {listing.brand}
-Listing text: {listing.text}
+{self._build_listing_context(listing)}
 
-Classify this listing into one of the device types and provide a confidence score from 0.0 to 1.0.
-Use the 'unknown' type for when the device type is some type not included in the above list of types.
+Classify this listing into one taxonomy device type and provide a confidence score from 0.0 to 1.0.
+
+CLASSIFICATION PRIORITY:
+1. Product name — often the strongest signal (e.g. "Temperature and Humidity Sensor" → temperature_sensor).
+2. Category hint from the upstream parser — map shop labels to taxonomy (examples: "Датчики" + temperature/humidity → temperature_sensor; "Камеры" → smart_camera; "Освещение"/"Лампы" → smart_lamp; water leak in name → water_leak_sensor).
+3. Listing description and specs text.
+
+Use confidence 0.85+ when name and category hint agree. Use 'unknown' only when none of the signals map to a taxonomy type.
 """
 
 
@@ -159,17 +188,19 @@ Device type and description: {type_info.name} - {type_info.description}
 Field names and descriptions:
 {type_info.field_descriptions}
 
-Listing name: {listing.name}
-Listing brand: {listing.brand}
-Listing text: {listing.text}
+{self._build_listing_context(listing)}
 
 Extract all device attributes from the listing information. Use null for any field not mentioned in the listing.
+
+BRAND AND MODEL:
+- Prefer values explicitly stated in the description/specs text.
+- If brand or model are missing from text but parser hints are provided above, use those hints for the brand and model fields.
 
 Step-by-step reasoning. Quote the raw text that proves the respective field. State if they are missing. Do this BEFORE filling out the rest of the schema."
 
 CRITICAL RULES:
 
-NO OUTSIDE KNOWLEDGE: Do not assume a device works with Xiaomi just because it is an Aqara device. Do not assume a device is WiFi. ONLY extract what is literally written in the text.
+NO OUTSIDE KNOWLEDGE: Do not assume a device works with Xiaomi just because it is an Aqara device. Do not assume a device is WiFi. ONLY extract what is literally written in the text, except brand/model may fall back to parser hints when absent from text.
 IF MISSING: If a protocol, ecosystem, or specification is not explicitly mentioned in the text, you must omit it or select 'null'. Do not guess.
 """
     

@@ -78,6 +78,14 @@ async def _run(settings: Settings):
     )
     
     repo = await PostgresExtractionRepository.create(settings.database, log)
+    stats = await repo.snapshot_stats()
+    log.info(
+        "extractor_db_connected",
+        config_host=settings.database.host,
+        config_port=settings.database.port,
+        config_db=settings.database.name,
+        **stats,
+    )
     extractor = make_extractor(settings)
     pre_llm_gate = DefaultPreLLMGate(
         StubCatalogReader(),

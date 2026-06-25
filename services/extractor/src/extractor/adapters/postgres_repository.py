@@ -18,11 +18,24 @@ class PostgresExtractionRepository(ExtractionRepository):
     async def close(self):
         await self.pool.close()
 
+    async def snapshot_stats(self) -> dict[str, int | str]:
+        async with self.pool.acquire() as conn:
+            return {
+                "database": await conn.fetchval("SELECT current_database()"),
+                "host": await conn.fetchval("SELECT inet_server_addr()::text"),
+                "total_snapshots": await conn.fetchval(
+                    "SELECT count(*) FROM parsed_listing_snapshots"
+                ),
+                "pending_snapshots": await conn.fetchval(
+                    "SELECT count(*) FROM parsed_listing_snapshots WHERE processed IS NOT TRUE"
+                ),
+            }
+
     async def get_pending_snapshots(self, limit: int) -> list[ListingSnapshot]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("""
                 SELECT * FROM parsed_listing_snapshots
-                WHERE processed = FALSE
+                WHERE processed IS NOT TRUE
                 ORDER BY parsed_at DESC
                 LIMIT $1
             """, limit)

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { Device, DeviceMarker, LogEvent, Room } from "@/app/simulation/Mockdata";
-import type { FloorPlanView, WallSegment } from "@/app/simulation/floorAdapter";
+import type { FloorPlanView, FloorZoneView, WallSegment } from "@/app/simulation/floorAdapter";
 
 type Point = { x: number; y: number };
 
@@ -61,6 +61,11 @@ type DeviceType =
   | "current"
   | "water_flow"
   | "camera"
+  | "light"
+  | "siren"
+  | "lock"
+  | "climate_device"
+  | "media"
   | "other";
 
 type ForbiddenZone = {
@@ -77,6 +82,34 @@ const PERSON_STEP_MS = 340;
 const ROUTE_STEP_GAP_MS = 35;
 const PERSON_ROUTE_STEP = 0.035;
 const MOTION_SENSOR_RADIUS = 0.13;
+const ALL_DEVICE_TYPES: DeviceType[] = [
+  "pir",
+  "mmwave",
+  "door",
+  "leak",
+  "smoke",
+  "co",
+  "gas",
+  "temp",
+  "humidity",
+  "lux",
+  "noise",
+  "co2",
+  "voc",
+  "pm25",
+  "pressure",
+  "floor_temp",
+  "freeze",
+  "current",
+  "water_flow",
+  "camera",
+  "light",
+  "siren",
+  "lock",
+  "climate_device",
+  "media",
+  "other",
+];
 
 export function ApartmentPlan({
   rooms,
@@ -228,6 +261,13 @@ export function ApartmentPlan({
     if (key.includes("freeze")) return "freeze";
     if (key.includes("current") || key.includes("power")) return "current";
     if (key.includes("water") || key.includes("flow")) return "water_flow";
+    if (key.includes("lamp") || key.includes("bulb") || key.includes("backlight") || key.includes("luminaire") || key.includes("dimmer")) return "light";
+    if (key.includes("siren")) return "siren";
+    if (key.includes("lock")) return "lock";
+    if (key.includes("conditioner") || key.includes("radiator") || key.includes("thermostat") || key.includes("purifier") || key.includes("humidifier")) {
+      return "climate_device";
+    }
+    if (key.includes("tv") || key.includes("speaker") || key.includes("subwoofer")) return "media";
     if (key.includes("camera")) return "camera";
     return "other";
   }
@@ -302,6 +342,24 @@ export function ApartmentPlan({
   const forbiddenZones: ForbiddenZone[] = (() => {
     const zones: ForbiddenZone[] = [];
 
+    function normalizedZoneKind(zone: FloorZoneView) {
+      return `${zone.kind ?? zone.id}`.toLowerCase();
+    }
+
+    function addFloorZone(zone: FloorZoneView, forbiddenFor: DeviceType[], reason: string) {
+      const bounds = zone.bounds;
+      if (!bounds || bounds.w <= 0 || bounds.h <= 0) return;
+      zones.push({
+        id: zone.id,
+        x: bounds.x,
+        y: bounds.y,
+        w: bounds.w,
+        h: bounds.h,
+        forbiddenFor,
+        reason,
+      });
+    }
+
     function addRoomBand(
       roomId: string,
       band: { rx: number; ry: number; rw: number; rh: number },
@@ -336,6 +394,34 @@ export function ApartmentPlan({
 
     const bathroomForbid: DeviceType[] = ["camera"];
     addRoomBand("bath", { rx: 0.02, ry: 0.02, rw: 0.96, rh: 0.96 }, bathroomForbid, "privacy");
+
+    floorPlan?.zones?.forEach((zone) => {
+      const kind = normalizedZoneKind(zone);
+
+      if (kind.includes("restricted")) {
+        addFloorZone(zone, ALL_DEVICE_TYPES, "restricted");
+        return;
+      }
+
+      if (kind.includes("window")) {
+        addFloorZone(zone, windowForbid, "window");
+        return;
+      }
+
+      if (kind.includes("no_wind")) {
+        addFloorZone(zone, ["smoke", "gas", "co", "co2", "temp", "humidity", "climate_device"], "no_wind");
+        return;
+      }
+
+      if (kind.includes("wet")) {
+        addFloorZone(zone, ["pir", "mmwave", "camera", "smoke", "gas", "co", "co2", "temp", "humidity", "lux", "current", "light", "media"], "wet");
+        return;
+      }
+
+      if (kind.includes("gas")) {
+        addFloorZone(zone, ["leak", "water_flow", "camera", "humidity", "current", "media"], "gas");
+      }
+    });
 
     return zones;
   })();
@@ -777,14 +863,14 @@ export function ApartmentPlan({
         {(routeMode || routePoints.length > 0 || routeError || fireMode || fireActive || waterMode || waterActive) && (
           <div className={`route-hint${routeError ? " route-hint-error" : ""}`}>
             {routeError ??
-              (waterMode
-                ? "Кликни по плану, чтобы выбрать место протечки"
-                : waterActive
-                ? "Идет симуляция потопа"
-                : fireMode
+              (fireMode
                 ? "Кликни по плану, чтобы выбрать место возгорания"
                 : fireActive
                 ? "Идет симуляция пожара"
+                : waterMode
+                ? "Кликни по плану, чтобы выбрать место протечки"
+                : waterActive
+                ? "Идет симуляция потопа"
                 : routePaused
                 ? "Маршрут на паузе"
                 : routeMode
@@ -988,42 +1074,25 @@ export function ApartmentPlan({
             <svg className={`fire-spread-layer${fireActive ? " fire-spread-layer-active" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <defs>
                 <filter id="fire-soften" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="1.65" />
+                  <feGaussianBlur stdDeviation="1.8" />
                 </filter>
                 <radialGradient id="fire-pool" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#fff2b8" stopOpacity="1" />
-                  <stop offset="28%" stopColor="#ffb340" stopOpacity="0.9" />
-                  <stop offset="58%" stopColor="#ff5f2e" stopOpacity="0.66" />
-                  <stop offset="78%" stopColor="#d94b28" stopOpacity="0.34" />
-                  <stop offset="100%" stopColor="#a13b22" stopOpacity="0" />
-                </radialGradient>
-                <radialGradient id="fire-smoke" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#8e8e93" stopOpacity="0.34" />
-                  <stop offset="58%" stopColor="#636366" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#636366" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#fff5c2" stopOpacity="0.94" />
+                  <stop offset="36%" stopColor="#ffb340" stopOpacity="0.72" />
+                  <stop offset="70%" stopColor="#ff6a2a" stopOpacity="0.38" />
+                  <stop offset="100%" stopColor="#ff3b1f" stopOpacity="0" />
                 </radialGradient>
               </defs>
               <g filter="url(#fire-soften)">
                 {firePoints.map((point, index) => (
                   <ellipse
-                    key={`smoke-${point.x}-${point.y}-${index}`}
-                    cx={point.x * 100}
-                    cy={point.y * 100}
-                    rx={index === 0 ? 7.4 : 8.5}
-                    ry={index === 0 ? 5.5 : 6.4}
-                    fill="url(#fire-smoke)"
-                    opacity={index === 0 ? 0.95 : 0.64}
-                  />
-                ))}
-                {firePoints.map((point, index) => (
-                  <ellipse
                     key={`fire-${point.x}-${point.y}-${index}`}
                     cx={point.x * 100}
                     cy={point.y * 100}
-                    rx={index === 0 ? 6 : 7}
-                    ry={index === 0 ? 4.4 : 5.2}
+                    rx={index === 0 ? 5.8 : 6.8}
+                    ry={index === 0 ? 4.4 : 5.1}
                     fill="url(#fire-pool)"
-                    opacity={index === 0 ? 1 : 0.86}
+                    opacity={index === 0 ? 1 : 0.82}
                   />
                 ))}
               </g>

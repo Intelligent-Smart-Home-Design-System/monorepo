@@ -1,10 +1,30 @@
 package point
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 type Point struct {
-	X float64
-	Y float64
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+func (p *Point) UnmarshalJSON(data []byte) error {
+    var coords [2]float64
+    if err := json.Unmarshal(data, &coords); err == nil {
+        p.X, p.Y = coords[0], coords[1]
+        return nil
+    }
+    var obj struct {
+        X float64 `json:"x"`
+        Y float64 `json:"y"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    p.X, p.Y = obj.X, obj.Y
+    return nil
 }
 
 func NewVector(p1, p2 Point) Point {
@@ -43,7 +63,7 @@ func GetDirectionToPoint(p, q Point) Point {
 	dx := q.X - p.X
 	dy := q.Y - p.Y
 
-	size := math.Sqrt(dx * dx + dy * dy)
+	size := math.Sqrt(dx*dx + dy*dy)
 	if size == 0 {
 		return Point{X: 1, Y: 0}
 	}
@@ -52,7 +72,7 @@ func GetDirectionToPoint(p, q Point) Point {
 }
 
 func Normalize(vector Point) Point {
-	size := math.Sqrt(vector.X * vector.X + vector.Y * vector.Y)
+	size := math.Sqrt(vector.X*vector.X + vector.Y*vector.Y)
 	if size == 0 {
 		return Point{X: 0, Y: 1}
 	}

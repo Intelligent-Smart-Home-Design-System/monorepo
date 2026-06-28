@@ -22,22 +22,19 @@ func (ws *WindowSensorRule) Type() string {
 }
 
 func (ws *WindowSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
 		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
-			zr.WindowZones, err = collectWindowZones(zonedAp.OrigAp, zr.OrigRoom)
+			windowZones, err := collectWindowZones(zonedAp.OrigAp, zr.OrigRoom)
 			if err != nil {
 				return err
 			}
+
+			zr.WindowZones = windowZones
 		}
 	}
 

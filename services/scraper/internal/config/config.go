@@ -54,7 +54,8 @@ type YandexConfig struct {
 }
 
 type DnsConfig struct {
-    SearchQueries []string `mapstructure:"search_queries"`
-    MaxPages      int      `mapstructure:"max_pages"`
-    UserAgent     string   `mapstructure:"user_agent"`
+	DiscoverySeeds []string `mapstructure:"discovery_seeds"`
+	SearchQueries  []string `mapstructure:"search_queries"`
+	MaxPages       int      `mapstructure:"max_pages"`
+	UserAgent      string   `mapstructure:"user_agent"`
 }

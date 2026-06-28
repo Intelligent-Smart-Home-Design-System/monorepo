@@ -1,36 +1,39 @@
-COMPOSE := docker compose -f docker-compose.yaml
+# Thin wrapper — canonical targets live in monorepo root Makefile.
+# Run from repo root: make pipeline-up, make pipeline-build, …
 
-.PHONY: build build-pipeline-images up run down logs ps trigger migrate
+ROOT := ../..
+
+.PHONY: build build-pipeline-images up run down logs ps trigger migrate seed deploy
 
 build:
-	docker build -t scraper:latest ../scraper
-	docker build -t extractor:latest ../extractor
-	docker build -t catalog-builder:latest ../catalog-builder
-	docker build -t quality-calculator:latest ../quality-calculator
-	docker build --target worker -t pipeline-worker:latest .
-	docker build --target trigger -t pipeline-trigger:latest .
+	$(MAKE) -C $(ROOT) pipeline-build
 
 build-pipeline-images:
-	docker build --target worker -t pipeline-worker:latest .
-	docker build --target trigger -t pipeline-trigger:latest .
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-worker:latest --target worker $(ROOT)
+	docker build -f services/pipeline-worker/Dockerfile -t pipeline-trigger:latest --target trigger $(ROOT)
 
 up:
-	$(COMPOSE) up -d
+	$(MAKE) -C $(ROOT) pipeline-up
 
-run: build
-	$(COMPOSE) up -d
+run: build up
 
 down:
-	$(COMPOSE) down -v
+	$(MAKE) -C $(ROOT) pipeline-down
 
 logs:
-	$(COMPOSE) logs -f pipeline-worker temporal temporal-ui catalog-postgresql
+	$(MAKE) -C $(ROOT) pipeline-logs
 
 ps:
-	$(COMPOSE) ps
+	docker compose -p catalog-pipeline -f $(ROOT)/docker-compose.pipeline.yaml ps
 
 trigger:
-	$(COMPOSE) --profile tools run --rm pipeline-trigger
+	$(MAKE) -C $(ROOT) pipeline-trigger
 
 migrate:
-	$(COMPOSE) run --rm catalog-db-migrate
+	$(MAKE) -C $(ROOT) pipeline-migrate
+
+seed:
+	$(MAKE) -C $(ROOT) pipeline-seed
+
+deploy:
+	$(MAKE) -C $(ROOT) deploy

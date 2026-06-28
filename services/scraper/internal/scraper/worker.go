@@ -72,7 +72,7 @@ func (w *Worker) processTask(ctx context.Context, task domain.ScrapeTask) (*doma
 
 	if err != nil {
 		w.logger.Error().Err(err).Str("url", task.URL).Msg("scraping failed")
-		fmt.Printf("[DEBUG] worker: error scraping task %d: %v\n", task.ID, err)
+		w.logger.Debug().Int("task_id", task.ID).Err(err).Msg("worker: error scraping task")
 		return &domain.ScrapeResult{
 			TrackedPageID: task.ID,
 			DurationMs:    durationMs,
@@ -82,6 +82,6 @@ func (w *Worker) processTask(ctx context.Context, task domain.ScrapeTask) (*doma
 
 	result.TrackedPageID = task.ID
 	result.DurationMs = durationMs
-	fmt.Printf("[DEBUG] worker: success for task %d, resources=%d\n", task.ID, len(result.Resources))
+	w.logger.Debug().Int("task_id", task.ID).Int("resources", len(result.Resources)).Msg("worker: success for task")
 	return result, nil
 }

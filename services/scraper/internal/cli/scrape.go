@@ -3,22 +3,24 @@ package cli
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
-	"slices"
+
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
-	"net/url"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
 	dnsScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/dns"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	sprutScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/sprut"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
 )
@@ -68,20 +70,29 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	taskRepo := repository.NewTrackedPageRepo(db)
 	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
+	if len(cfg.Dns.DiscoverySeeds) > 0 {
+		for _, seedURL := range cfg.Dns.DiscoverySeeds {
+			if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), seedURL); err != nil {
+				logger.Error().Err(err).Str("url", seedURL).Msg("failed to create DNS discovery seed task")
+			}
+		}
+	}
+
 	if len(cfg.Dns.SearchQueries) > 0 {
-    for _, query := range cfg.Dns.SearchQueries {
-        for page := 1; page <= cfg.Dns.MaxPages; page++ {
-            encodedQuery := url.QueryEscape(query)
-            searchURL := fmt.Sprintf("https://www.dns-shop.ru/search/?q=%s&page=%d", encodedQuery, page)
-            if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), searchURL); err != nil {
-                logger.Error().Err(err).Str("query", query).Int("page", page).Msg("failed to create DNS discovery task")
-            }
-        }
-    }
-}
+		for _, query := range cfg.Dns.SearchQueries {
+			for page := 1; page <= cfg.Dns.MaxPages; page++ {
+				encodedQuery := url.QueryEscape(query)
+				searchURL := fmt.Sprintf("https://www.dns-shop.ru/search/?q=%s&page=%d", encodedQuery, page)
+				if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), searchURL); err != nil {
+					logger.Error().Err(err).Str("query", query).Int("page", page).Msg("failed to create DNS search discovery task")
+				}
+			}
+		}
+	}
 
 	printerScraper := printer.NewPrinterScraper()
 	wildberriesScraper := wbScraper.NewScraper(
+		logger,
 		cfg.Scraping.Timeout,
 		cfg.Scraping.Proxy,
 		cfg.Scraping.WBCardBasket,
@@ -104,21 +115,21 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	}
 
 	dnsScraperInstance := dnsScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Dns.UserAgent)
-
 	yandexScraperInstance := yandexScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Scraping.RateLimitRps)
+	sprutScraperInstance := sprutScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 
 	sourceToScraper := map[string]scraper.Scraper{
 		domain.SourcePrinter:     printerScraper,
 		domain.SourceWildberries: wildberriesScraper,
 		domain.SourceYandex:      yandexScraperInstance,
 		domain.SourceDns:         dnsScraperInstance,
+		domain.SourceSprut:       sprutScraperInstance,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
 	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
 
 	if len(cfg.Wildberries.Discovery.DiscoveryTextQueries) > 0 {
-		// Create tasks for queries from config
 		for _, query := range cfg.Wildberries.Discovery.DiscoveryTextQueries {
 			discoveryURL := fmt.Sprintf("wildberries://discovery/%s", query)
 			if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeDiscovery.String(), discoveryURL); err != nil {
@@ -217,7 +228,7 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	go worker.Run(ctx, tasksCh)
 
 	for result := range resultsCh {
-		fmt.Printf("[DEBUG] run: received result for task %d, err=%v, resources=%d\n", result.TrackedPageID, result.Err, len(result.Resources))
+		logger.Debug().Int("task_id", result.TrackedPageID).Int("resources", len(result.Resources)).Err(result.Err).Msg("run: received result for task")
 		if result.Err != nil {
 			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
 			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
@@ -233,7 +244,7 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 				logger.Error().Err(err).Msg("update status")
 			}
 		}
-		fmt.Printf("[DEBUG] run: finished processing task %d\n", result.TrackedPageID)
+		logger.Debug().Int("task_id", result.TrackedPageID).Msg("run: finished processing task")
 	}
 
 	logger.Info().Msg("all tasks processed, exiting")

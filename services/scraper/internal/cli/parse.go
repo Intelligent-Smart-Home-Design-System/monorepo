@@ -14,10 +14,11 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parser"
+	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/sprut"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/wildberries"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/yandex"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
-	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
 )
 
 func NewParseCmd() *cobra.Command {
@@ -94,15 +95,27 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		return true
 	}
 
-	if shouldRun(domain.PageTypeListing, domain.SourceWildberries) {
-		listingParsers := []parser.SourceParser[*domain.ListingParseResult]{
-			wildberries.NewListingParser(cfg.Wildberries.BrandAliases, cfg.Wildberries.SmartHomeDeviceMarkers),
+	if shouldRun(domain.PageTypeListing, domain.SourceWildberries) || shouldRun(domain.PageTypeListing, domain.SourceSprut) {
+		var listingParsers []parser.SourceParser[*domain.ListingParseResult]
+		if shouldRun(domain.PageTypeListing, domain.SourceWildberries) {
+			listingParsers = append(listingParsers,
+				wildberries.NewListingParser(cfg.Wildberries.BrandAliases, cfg.Wildberries.SmartHomeDeviceMarkers),
+			)
+		}
+		if shouldRun(domain.PageTypeListing, domain.SourceSprut) {
+			listingParsers = append(listingParsers,
+				sprut.NewListingParser(cfg.Wildberries.BrandAliases),
+			)
 		}
 		listingWorker := parser.NewWorker(logger, domain.PageTypeListing, snapshotRepo, listingParsers)
 		listings := listingWorker.Parse(ctx)
 
 		logger.Debug().Msgf("parsed %d listings", len(listings))
 		for _, listing := range listings {
+			if !listing.HasSmartHomeMarkers {
+				logger.Info().Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
+				continue
+			}
 			if err := snapshotRepo.SaveListingParseResult(listing); err != nil {
 				logger.Error().Err(err).Msg("failed to save listing result")
 			}
@@ -122,7 +135,7 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 				if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
 					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from discovery")
 				} else {
-					logger.Debug().Str("url", productURL).Msg("created listing task from discovery")
+					logger.Debug().Str("url", productURL).Msg("created listing task from category")
 				}
 			}
 		}
@@ -141,27 +154,28 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 				} else {
 					logger.Debug().Str("url", productURL).Msg("created listing task from category")
 				}
-        	}
-    	}
+			}
+		}
 	}
 
 	if shouldRun(domain.PageTypeDiscovery, domain.SourceDns) {
-		discoveryParsersDns := []parser.SourceParser[[]string]{
+		discoveryParsers := []parser.SourceParser[*dnsParser.BrowseLinks]{
 			dnsParser.NewDiscoveryParser(),
 		}
-		discoveryWorkerDns := parser.NewWorker(logger, domain.PageTypeDiscovery, snapshotRepo, discoveryParsersDns)
-		discoveryResultsDns := discoveryWorkerDns.Parse(ctx)
+		discoveryWorker := parser.NewWorker(logger, domain.PageTypeDiscovery, snapshotRepo, discoveryParsers)
+		discoveryResults := discoveryWorker.Parse(ctx)
+		logger.Debug().Msgf("processed %d DNS discovery snapshots", len(discoveryResults))
+		enqueueDNSBrowseResults(logger, taskRepo, discoveryResults)
+	}
 
-		logger.Debug().Msgf("processed %d DNS discovery snapshots", len(discoveryResultsDns))
-		for _, urls := range discoveryResultsDns {
-			for _, productURL := range urls {
-				if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeListing.String(), productURL); err != nil {
-					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from DNS discovery")
-				} else {
-					logger.Debug().Str("url", productURL).Msg("created listing task from DNS discovery")
-				}
-			}
+	if shouldRun(domain.PageTypeCategory, domain.SourceDns) {
+		categoryParsers := []parser.SourceParser[*dnsParser.BrowseLinks]{
+			dnsParser.NewCategoryParser(),
 		}
+		categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
+		categoryResults := categoryWorker.Parse(ctx)
+		logger.Debug().Msgf("processed %d DNS category snapshots", len(categoryResults))
+		enqueueDNSBrowseResults(logger, taskRepo, categoryResults)
 	}
 
 	if shouldRun(domain.PageTypeCompatibility, domain.SourceYandex) {
@@ -182,4 +196,26 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 	}
 
 	return nil
+}
+
+func enqueueDNSBrowseResults(logger zerolog.Logger, taskRepo *repository.TrackedPageRepo, results []*dnsParser.BrowseLinks) {
+	for _, links := range results {
+		if links == nil {
+			continue
+		}
+		for _, categoryURL := range links.CategoryURLs {
+			if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeCategory.String(), categoryURL); err != nil {
+				logger.Error().Err(err).Str("url", categoryURL).Msg("failed to create DNS category task")
+			} else {
+				logger.Debug().Str("url", categoryURL).Msg("created DNS category task")
+			}
+		}
+		for _, listingURL := range links.ListingURLs {
+			if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeListing.String(), listingURL); err != nil {
+				logger.Error().Err(err).Str("url", listingURL).Msg("failed to create DNS listing task")
+			} else {
+				logger.Debug().Str("url", listingURL).Msg("created DNS listing task")
+			}
+		}
+	}
 }

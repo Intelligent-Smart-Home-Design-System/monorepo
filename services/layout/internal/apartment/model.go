@@ -5,21 +5,21 @@ import (
 )
 
 type Apartment struct {
-	Walls      []Wall       `json:"walls"`
-	Doors      []Door       `json:"door"`
-	Windows    []Window     `json:"windows"`
-	Rooms      []Room       `json:"rooms"`
-	Furniture  []Furniture  `json:"furniture"`
-	Plumbing   []Plumbing   `json:"plumbing"`
-	Appliances []Appliances `json:"appliances"`
+	Walls     []Wall      `json:"walls"`
+	Doors     []Door      `json:"doors"`
+	Windows   []Window    `json:"windows"`
+	Rooms     []Room      `json:"rooms"`
+	Furniture []Furniture `json:"furniture"`
+	// Plumbing   []Plumbing   `json:"plumbing"`
+	// Appliances []Appliances `json:"appliances"`
 
-	roomsByName    map[string][]*Room
-	wallsByID      map[string]*Wall
-	windowByID     map[string]*Window
-	doorsByID      map[string]*Door
-	furnitureByID  map[string]*Furniture
-	plumbingByID   map[string]*Plumbing
-	appliancesByID map[string]*Appliances
+	roomsByName   map[string][]*Room
+	wallsByID     map[string]*Wall
+	windowByID    map[string]*Window
+	doorsByID     map[string]*Door
+	furnitureByID map[string]*Furniture
+	// plumbingByID   map[string]*Plumbing
+	// appliancesByID map[string]*Appliances
 }
 
 type Wall struct {
@@ -39,29 +39,29 @@ type Window struct {
 	ID     string        `json:"id"`
 	Points []point.Point `json:"points"`
 	Width  float64       `json:"width"`
-	Rooms  []string      `json:"rooms"`
+	Room   string        `json:"room"`
 }
 
 type Furniture struct {
-	ID     string        `json:"id"`
-	Name   string        `json:"name"`
-	Points []point.Point `json:"points"`
-	Room  string      `json:"room"`
+	ID       string        `json:"id"`
+	Category string        `json:"category"`
+	Points   []point.Point `json:"points"`
+	Room     string        `json:"room"`
 }
 
-type Plumbing struct {
-	ID     string        `json:"id"`
-	Name   string        `json:"name"`
-	Points []point.Point `json:"points"`
-	Room   string        `json:"room"`
-}
+// type Plumbing struct {
+// 	ID     string        `json:"id"`
+// 	Name   string        `json:"name"`
+// 	Points []point.Point `json:"points"`
+// 	Room   string        `json:"room"`
+// }
 
-type Appliances struct {
-	ID     string        `json:"id"`
-	Name   string        `json:"name"`
-	Points []point.Point `json:"points"`
-	Room   string        `json:"room"`
-}
+// type Appliances struct {
+// 	ID     string        `json:"id"`
+// 	Name   string        `json:"name"`
+// 	Points []point.Point `json:"points"`
+// 	Room   string        `json:"room"`
+// }
 
 type Room struct {
 	ID         string        `json:"id"`

@@ -13,12 +13,14 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/catalogbuilder"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/catalogreconciler"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/catalog-builder/internal/repository"
 )
 
 func NewRunCmd() *cobra.Command {
 	var cfgFile string
+	var incremental bool
 
 	cmd := &cobra.Command{
 		Use:   "run",
@@ -27,16 +29,17 @@ func NewRunCmd() *cobra.Command {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
 
-			return run(ctx, cfgFile)
+			return run(ctx, cfgFile, incremental)
 		},
 	}
 
 	cmd.Flags().StringVar(&cfgFile, "config", "./config.toml", "config file")
+	cmd.Flags().BoolVar(&incremental, "incremental", false, "Use incremental reconcile (stub: still uses legacy TRUNCATE)")
 
 	return cmd
 }
 
-func run(ctx context.Context, cfgFile string) error {
+func run(ctx context.Context, cfgFile string, incremental bool) error {
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	cfg, err := loadConfig(cfgFile)
@@ -78,11 +81,21 @@ func run(ctx context.Context, cfgFile string) error {
 	catalog := builder.Build(listings, compat)
 	log.Info().Int("devices", len(catalog.Devices)).Msg("catalog built")
 
-	log.Info().Msg("writing catalog")
-	if err := repo.WriteCatalog(ctx, catalog); err != nil {
-		return fmt.Errorf("write catalog: %w", err)
+	reconciler := catalogreconciler.NewStubCatalogReconciler(repo, log)
+	log.Info().Bool("incremental", incremental).Bool("stub_mode", true).Msg("catalog write strategy")
+	if incremental {
+		log.Info().Msg("incremental flag set; stub reconciler still uses legacy TRUNCATE until implemented")
 	}
-	log.Info().Msg("done")
+
+	log.Info().Msg("writing catalog")
+	result, err := reconciler.Reconcile(ctx, catalog)
+	if err != nil {
+		return fmt.Errorf("reconcile catalog: %w", err)
+	}
+	log.Info().
+		Bool("legacy_truncate", result.UsedLegacyTruncate).
+		Int("devices_created", result.DevicesCreated).
+		Msg("done")
 
 	return nil
 }

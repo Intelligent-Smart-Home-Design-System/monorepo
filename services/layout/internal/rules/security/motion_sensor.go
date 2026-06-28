@@ -28,14 +28,9 @@ func (ms *MotionSensorRule) Type() string {
 }
 
 func (ms *MotionSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -88,7 +83,6 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 		deviceFilter := &filters.MotionSensorFilter{
 			Angle: motionSensorFilters.Angle,
 			Range: motionSensorFilters.Range,
-			Direction: &direction,
 		}
 
 		layout.AddDeviceToLayout(deviceType, ms.track, zr.OrigRoom.ID, bestPoint, &direction, deviceFilter)

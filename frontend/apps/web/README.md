@@ -6,10 +6,11 @@
 
 - Приветственная страница для запуска нового подбора.
 - Страница ввода настроек: бюджет, экосистема, хабы, треки и требования к устройствам.
-- Загрузка плана квартиры в форматах DXF и PNG.
+- Загрузка плана квартиры в формате DXF.
 - Интерактивная страница плана с устройствами, карточкой устройства, аналогами и маркетплейсами.
 - Страницы аналитики и сценариев для демонстрации пользовательского флоу.
-- Основной UI в `apps/web` уже подключён к backend API для загрузки справочников, создания плана и просмотра результатов.
+- Основной UI в `apps/web` подключён к backend API для загрузки справочников, запуска pipeline и просмотра результатов.
+- Добавлены страницы регистрации и входа, хранение `access_token`/`refresh_token` и отправка JWT во frontend-запросах.
 
 ## Текущее сетевое взаимодействие
 
@@ -19,11 +20,11 @@
 
 - `GET /api/v1/plans` — список планов для главной страницы.
 - `GET /api/v1/ecosystems` — список экосистем для страницы настроек.
-- `GET /api/v1/presets` — пресеты требований.
 - `GET /api/v1/device-types` — типы устройств и допустимые фильтры.
-- `POST /api/v1/plans` — создание нового плана.
-- `GET /api/v1/plans/{plan_id}/status` — статус генерации плана.
-- `GET /api/v1/plans/{plan_id}` — готовый результат с bundles и listings.
+- `POST /start` — запуск построения pipeline через api-gateway.
+- `GET /result/{workflow_id}` — получение статуса или результата pipeline.
+- `GET /api/v1/plans/{plan_id}/status` — legacy-статус старого плана.
+- `GET /api/v1/plans/{plan_id}` — legacy-результат с bundles и listings.
 
 Базовый URL задаётся через переменную окружения `NEXT_PUBLIC_API_BASE_URL`.
 
@@ -31,25 +32,40 @@
 
 ## Токены, auth и регистрация
 
-На текущий момент в `apps/web` не реализованы:
+В `apps/web` реализованы:
 
-- токены доступа;
-- заголовок `Authorization`;
-- cookie/session auth;
-- login/registration flows;
-- отдельные запросы на регистрацию, логин или обновление токена.
+- страницы `/login` и `/register`;
+- сохранение `access_token` и `refresh_token` в `localStorage`;
+- добавление заголовка `Authorization: Bearer <access_token>` во все запросы к backend;
+- попытка обновления access token через refresh endpoint при ответе `401`.
 
-Во frontend есть `localStorage`, но он используется только для локального UI-состояния:
+Пути auth endpoints можно переопределить переменными окружения:
 
-- `planner-uploaded-plan` — превью загруженного пользователем плана;
-- данные для demo-страниц аналитики и сценариев.
+- `NEXT_PUBLIC_AUTH_LOGIN_PATH`, по умолчанию `/api/v1/auth/login`;
+- `NEXT_PUBLIC_AUTH_REGISTER_PATH`, по умолчанию `/api/v1/auth/register`;
+- `NEXT_PUBLIC_AUTH_REFRESH_PATH`, по умолчанию `/api/v1/auth/refresh`.
+
+Frontend ожидает от backend поля `access_token` и `refresh_token`. Также поддерживаются camelCase-поля `accessToken`/`refreshToken` и вложенный объект `tokens`.
+
+## Переход в симуляцию
+
+На странице готового плана есть кнопка «Открыть в симуляции». Она сериализует выбранный
+bundle устройств и передает его в `apps/sim-ui` через query-параметр `devices`.
+
+URL симуляции можно задать переменной:
+
+```bash
+NEXT_PUBLIC_SIM_UI_URL=http://127.0.0.1:3001/simulation
+```
+
+Если переменная не задана, используется `http://127.0.0.1:3001/simulation`.
 
 ## Запуск
 
 Из директории `frontend`:
 
 ```bash
-npm install
+npm ci
 npm run dev --workspace @smart-home/web
 ```
 

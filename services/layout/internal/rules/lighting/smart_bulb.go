@@ -21,15 +21,21 @@ func (r *SmartBulbRule) Type() string {
 
 func (r *SmartBulbRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	ap := zonedAp.OrigAp
-	devicesRooms, err := ap.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomBedroom, apartment.RoomKitchen, apartment.RoomPassage, apartment.RoomBathroom})
+	rooms, err := ap.GetRoomsByNames(deviceRooms)
 	if err != nil {
 		return err
 	}
 
-	for _, room := range devicesRooms {
+	for _, room := range rooms {
 		roomID := room.ID
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &point.Point{X: 0, Y: 0}, nil, nil)
+		place := point.GetCenter(room.Area)
+		if place == nil {
+			fallback := point.Point{X: 0, Y: 0}
+			place = &fallback
+		}
+
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, place, nil, nil)
 	}
 
 	return nil

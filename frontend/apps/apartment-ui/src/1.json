@@ -1,0 +1,18 @@
+{
+  "walls": [
+    { "id": "w_outer", "points": [[0, 0], [10000, 0], [10000, 5000], [0, 5000], [0, 0]], "width": 250 },
+    { "id": "w_divider", "points": [[5000, 0], [5000, 5000]], "width": 120 }
+  ],
+  "doors": [
+    { "id": "d_entrance", "points": [[0, 2000], [0, 2900]], "width": 900 },
+    { "id": "d_interroom", "points": [[5000, 1500], [5000, 2400]], "width": 900 }
+  ],
+  "windows": [
+    { "id": "win_living", "points": [[2000, 0], [3500, 0]], "width": 1500 },
+    { "id": "win_bedroom", "points": [[7000, 0], [8500, 0]], "width": 1500 }
+  ],
+  "rooms": [
+    { "id": "r_living", "name": "Living Room", "area": [[0, 0], [5000, 0], [5000, 5000], [0, 5000]] },
+    { "id": "r_bedroom", "name": "Bedroom", "area": [[5000, 0], [10000, 0], [10000, 5000], [5000, 5000]] }
+  ]
+}

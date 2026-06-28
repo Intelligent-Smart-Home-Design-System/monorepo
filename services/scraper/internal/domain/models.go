@@ -80,6 +80,8 @@ type PageSnapshot struct {
 type ListingParseResult struct {
 	PageSnapshotID int
 
+	HasSmartHomeMarkers bool
+
 	InStock      bool
 	Text         string
 	Name         string

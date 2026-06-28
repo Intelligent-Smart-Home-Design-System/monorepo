@@ -30,6 +30,9 @@ smart_home_device_markers = ["Алиса", "Маруся", "Экосистема
 supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"
 
 [dns]
-search_queries = ["умный дом", "zigbee"]
-max_pages = 2
+discovery_seeds = [
+  "https://www.dns-shop.ru/catalog/9bbe8fe270e7c3ae/umnaa-tehnika/",
+]
+search_queries = []
+max_pages = 1
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

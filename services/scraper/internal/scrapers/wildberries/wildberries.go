@@ -16,6 +16,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/stealth"
+	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
@@ -44,9 +45,11 @@ type Scraper struct {
 	mu                   sync.RWMutex
 	discoveryURLTemplate string
 	discoveryMaxPages    int
+	log                  zerolog.Logger
 }
 
 func NewScraper(
+	log zerolog.Logger,
 	timeout time.Duration,
 	proxyURL, cardBasket string,
 	rps float64,
@@ -79,6 +82,7 @@ func NewScraper(
 		session:              session,
 		discoveryURLTemplate: discoveryURLTemplate,
 		discoveryMaxPages:    discoveryMaxPages,
+		log:                  log,
 	}
 }
 
@@ -108,7 +112,7 @@ func (s *Scraper) saveSession(sess *Session) error {
 }
 
 func (s *Scraper) mineSession() (*Session, error) {
-	fmt.Println("[DEBUG] mineSession: starting headless browser...")
+	s.log.Debug().Msg("mineSession: starting headless browser...")
 	l := launcher.New().Headless(true).Set("no-sandbox").Set("disable-setuid-sandbox")
 	url, err := l.Launch()
 	if err != nil {
@@ -138,7 +142,7 @@ func (s *Scraper) mineSession() (*Session, error) {
 			Path:   c.Path,
 		})
 	}
-	fmt.Println(cookieList)
+	s.log.Debug().Interface("cookies", cookieList).Msg("mineSession: cookies obtained")
 	if tokenValue == "" {
 		return nil, fmt.Errorf("x_wbaas_token not found in cookies")
 	}
@@ -166,7 +170,7 @@ func (s *Scraper) ensureSession() error {
 		return nil
 	}
 
-	fmt.Println("[DEBUG] ensureSession: session not found or expired, mining new session...")
+	s.log.Debug().Msg("ensureSession: session not found or expired, mining new session...")
 	sess, err := s.mineSession()
 	if err != nil {
 		return fmt.Errorf("mine session: %w", err)
@@ -174,18 +178,18 @@ func (s *Scraper) ensureSession() error {
 	sess.UpdatedAt = time.Now()
 	s.session = sess
 	if err := s.saveSession(sess); err != nil {
-		fmt.Printf("[WARN] failed to save session: %v\n", err)
+		s.log.Warn().Err(err).Msg("failed to save session")
 	}
 	return nil
 }
 
 func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
-	fmt.Printf("[DEBUG] fetchJSON: start %s\n", url)
+	s.log.Debug().Str("url", url).Msg("fetchJSON: start")
 	if err := s.ensureSession(); err != nil {
-		fmt.Printf("[DEBUG] fetchJSON: ensureSession error: %v\n", err)
+		s.log.Debug().Err(err).Msg("fetchJSON: ensureSession error")
 		return nil, err
 	}
-	fmt.Printf("[DEBUG] fetchJSON: session ok, token len=%d\n", len(s.session.Token))
+	s.log.Debug().Int("token_len", len(s.session.Token)).Msg("fetchJSON: session ok")
 	if err := s.limiter.Wait(ctx); err != nil {
 		return nil, err
 	}
@@ -226,20 +230,20 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("[DEBUG] fetchJSON: %s, body size = %d\n", url, len(body))
+	s.log.Debug().Str("url", url).Int("body_size", len(body)).Msg("fetchJSON: complete")
 	return body, nil
 }
 
 func (s *Scraper) fetchWithRetry(ctx context.Context, url string) ([]byte, error) {
 	var lastErr error
 	for i := 0; i < 3; i++ {
-		fmt.Printf("[DEBUG] fetchWithRetry: attempt %d for %s\n", i+1, url)
+		s.log.Debug().Int("attempt", i+1).Str("url", url).Msg("fetchWithRetry: attempt")
 		body, err := s.fetchJSON(ctx, url)
 		if err == nil {
-			fmt.Printf("[DEBUG] fetchWithRetry: success\n")
+			s.log.Debug().Msg("fetchWithRetry: success")
 			return body, nil
 		}
-		fmt.Printf("[DEBUG] fetchWithRetry: error: %v\n", err)
+		s.log.Debug().Err(err).Msg("fetchWithRetry: error")
 		lastErr = err
 		if strings.Contains(err.Error(), "session invalid") {
 			s.mu.Lock()
@@ -258,40 +262,40 @@ func (s *Scraper) fetchWithRetry(ctx context.Context, url string) ([]byte, error
 
 func (s *Scraper) urlExists(ctx context.Context, url string) bool {
 	if s.session == nil {
-		fmt.Println("[DEBUG] urlExists: session is nil")
+		s.log.Debug().Msg("urlExists: session is nil")
 		return false
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		fmt.Printf("[DEBUG] urlExists: request error %v\n", err)
+		s.log.Debug().Err(err).Msg("urlExists: request error")
 		return false
 	}
 	req.Header.Set("User-Agent", s.session.UserAgent)
 	req.Header.Set("Range", "bytes=0-0")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		fmt.Printf("[DEBUG] urlExists: do error %v\n", err)
+		s.log.Debug().Err(err).Msg("urlExists: do error")
 		return false
 	}
 	defer resp.Body.Close()
-	fmt.Printf("[DEBUG] urlExists: status %d for %s\n", resp.StatusCode, url)
+	s.log.Debug().Int("status", resp.StatusCode).Str("url", url).Msg("urlExists: status")
 	return resp.StatusCode == http.StatusOK
 }
 
 func (s *Scraper) getCardURL(ctx context.Context, nmID int) (string, error) {
 	newURL := buildCardURLNew("01", nmID)
-	fmt.Printf("[DEBUG] checking new CDN: %s\n", newURL)
+	s.log.Debug().Str("url", newURL).Msg("checking new CDN")
 	if s.urlExists(ctx, newURL) {
-		fmt.Println("[DEBUG] new CDN works")
+		s.log.Debug().Msg("new CDN works")
 		return newURL, nil
 	}
 	vol := nmID / 100000
 	part := nmID / 1000
 	for basket := 1; basket <= 41; basket++ {
 		oldURL := fmt.Sprintf("https://basket-%d.wbbasket.ru/vol%d/part%d/%d/info/ru/card.json", basket, vol, part, nmID)
-		fmt.Printf("[DEBUG] checking basket %d: %s\n", basket, oldURL)
+		s.log.Debug().Int("basket", basket).Str("url", oldURL).Msg("checking basket")
 		if s.urlExists(ctx, oldURL) {
-			fmt.Printf("[DEBUG] found working basket %d\n", basket)
+			s.log.Debug().Int("basket", basket).Msg("found working basket")
 			return oldURL, nil
 		}
 	}
@@ -332,6 +336,8 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		return s.scrapeListing(ctx, task)
 	case domain.PageTypeDiscovery:
 		return s.scrapeDiscoveryTask(ctx, task)
+	case domain.PageTypeCategory:
+    	return s.scrapeCategory(ctx, task)
 	default:
 		return nil, fmt.Errorf("unsupported page type %s for source %s", task.PageType.String(), task.Source)
 	}
@@ -441,4 +447,20 @@ func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages in
 		return nil, fmt.Errorf("no search results found for query %s", query)
 	}
 	return resources, nil
+}
+
+func (s *Scraper) scrapeCategory(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
+    body, err := s.fetchWithRetry(ctx, task.URL)
+    if err != nil {
+        return nil, fmt.Errorf("fetch category page: %w", err)
+    }
+    resource := domain.Resource{
+        Name:         "html",
+        URL:          task.URL,
+        ResponseBody: body,
+        StatusCode:   http.StatusOK,
+        Status:       "200 OK",
+        Timestamp:    time.Now(),
+    }
+    return &domain.ScrapeResult{Resources: []domain.Resource{resource}}, nil
 }

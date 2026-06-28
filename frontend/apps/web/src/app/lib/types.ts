@@ -70,13 +70,6 @@ export type ApiRequirement = {
     filters: ApiRequirementFilter[];
 };
 
-export type ApiPreset = {
-    id: string;
-    name: string;
-    description?: string | null;
-    requirements: ApiRequirement[];
-};
-
 export type ApiEcosystem = {
     id: string;
     name: string;
@@ -92,25 +85,58 @@ export type ApiPlanSummary = {
     status: "queued" | "generating" | "completed" | "failed";
 };
 
-export type ApiCreatePlanRequest = {
-    budget: number;
-    main_ecosystem_id: string;
-    allowed_ecosystems?: string[] | null;
-    excluded_ecosystems?: string[] | null;
-    requirements: Omit<ApiRequirement, "id">[];
+export type ApiStartPipelineRequirement = {
+    requirement_id: number;
+    device_type: string;
+    count: number;
+    connect_to_main_ecosystem: boolean;
+    filters?: ApiRequirementFilter[];
 };
 
-export type ApiCreatePlanResponse = {
-    plan_id: number;
-    status: "accepted";
-    message?: string;
+export type ApiStartPipelineRequest = {
+    request_id?: string;
+    floor_plan: Record<string, unknown>;
+    selected_levels: Record<string, string>;
+    device_selection: {
+        main_ecosystem: string;
+        budget: number;
+        requirements: ApiStartPipelineRequirement[];
+        max_solutions?: number;
+        time_budget_seconds?: number;
+    };
+};
+
+export type ApiStartPipelineResponse = {
+    workflow_id: string;
+    run_id?: string;
+};
+
+export type ApiPipelineResult = {
+    request_id?: string;
+    parsed_floor_plan?: unknown;
+    layout?: unknown;
+    device_selection?: unknown;
+    stages?: ApiPlanStageArtifact[] | null;
+    artifacts?: ApiPlanStageArtifact[] | null;
 };
 
 export type ApiPlanStatus = {
     plan_id: number;
     status: "queued" | "generating" | "completed" | "failed";
     progress?: number | null;
+    stages?: ApiPlanStageArtifact[] | null;
     error?: ApiErrorResponse | null;
+};
+
+export type ApiPlanStageArtifact = {
+    key: string;
+    name?: string | null;
+    title?: string | null;
+    status?: "pending" | "running" | "completed" | "failed" | string | null;
+    progress?: number | null;
+    data?: unknown;
+    payload?: unknown;
+    updated_at?: string | null;
 };
 
 export type ApiConnectionInfo = {
@@ -159,10 +185,44 @@ export type ApiHomePlan = {
     excluded_ecosystems?: string[] | null;
     requirements: ApiRequirement[];
     bundles: ApiBundle[];
+    stages?: ApiPlanStageArtifact[] | null;
+    artifacts?: ApiPlanStageArtifact[] | null;
 };
 
 export type ApiErrorResponse = {
     message: string;
     code?: string | null;
     details?: string | null;
+};
+
+export type AuthTokens = {
+    access_token: string;
+    refresh_token: string;
+    token_type?: string;
+};
+
+export type AuthUser = {
+    id?: string | number;
+    email: string;
+    name?: string | null;
+};
+
+export type LoginRequest = {
+    email: string;
+    password: string;
+};
+
+export type RegisterRequest = {
+    email: string;
+    password: string;
+    name?: string;
+};
+
+export type RefreshTokenRequest = {
+    refresh_token: string;
+};
+
+export type AuthResponse = AuthTokens & {
+    user?: AuthUser | null;
+    message?: string;
 };

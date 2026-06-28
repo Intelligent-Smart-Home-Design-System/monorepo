@@ -1,0 +1,126 @@
+{
+  "placements": {
+    "living_room_id": [
+      {
+        "device": {
+          "id": "window_sensor_id",
+          "name": "window_sensor",
+          "track": "security"
+        },
+        "position": {
+          "x": 7.0,
+          "y": 2.5
+        }
+      },
+      {
+        "device": {
+          "id": "camera1_id",
+          "name": "camera",
+          "track": "security"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 5.5
+        },
+        "direction": {
+          "x": 0.28,
+          "y": -0.96
+        },
+        "filters": {
+          "angle": 110,
+          "range": 10,
+          "night_vision": true,
+          "resolution": "2K"
+        }
+      },
+      {
+        "device": {
+          "id": "tv_id",
+          "name": "smart_tv",
+          "track": "media"
+        },
+        "position": {
+          "x": 3.0,
+          "y": 5.5
+        },
+        "direction": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "filters": {
+          "resolution": "2K",
+          "width": 1,
+          "refresh_rate_hz": 60,
+          "max_width_m": 1.5
+        }
+      }
+    ],
+    "hall_room_id": [
+      {
+        "device": {
+          "id": "smart_lock_id",
+          "name": "smart_lock",
+          "track": "security"
+        },
+        "position": {
+          "x": 2.5,
+          "y": 8.0
+        },
+        "filters": {
+          "unlock_methods": [
+            "password",
+            "fingerprint",
+            "app",
+            "face_recognition"
+          ]
+        }
+      },
+      {
+        "device": {
+          "id": "smart_doorbell_id",
+          "name": "smart_doorbell",
+          "track": "security"
+        },
+        "position": {
+          "x": 1.5,
+          "y": 8.0
+        },
+        "filters": {
+          "resolution": "2K",
+          "angle": 130,
+          "night_vision": false,
+          "two_way_audio": true
+        }
+      },
+      {
+        "device": {
+          "id": "door_sensor_id",
+          "name": "door_sensor",
+          "track": "security"
+        },
+        "position": {
+          "x": 2,
+          "y": 8.0
+        }
+      }
+    ],
+    "kitchen_id": [
+      {
+        "device": {
+          "id": "water_leak_sensor_id",
+          "name": "water_leak_sensor",
+          "track": "security"
+        },
+        "position": {
+          "x": 5.5,
+          "y": 7.5
+        },
+        "filters": {
+          "probe_type": "cable",
+          "alarm_vulume_db": 100,
+          "battery_life_years": 3
+        }
+      }
+    ]
+  }
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/metrics"
 	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
@@ -26,7 +27,7 @@ import (
 	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
 )
 
-func NewScrapeCmd(log zerolog.Logger) *cobra.Command {
+func NewScrapeCmd(log zerolog.Logger, m *metrics.Collector) *cobra.Command {
 	var cfgFile string
 	var sources []string
 	var pageTypes []string
@@ -39,7 +40,7 @@ func NewScrapeCmd(log zerolog.Logger) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
-			return scrape(ctx, log, cfgFile, sources, pageTypes, discoveryOnly, cleanupDiscovery)
+			return scrape(ctx, log, m, cfgFile, sources, pageTypes, discoveryOnly, cleanupDiscovery)
 		},
 	}
 
@@ -52,13 +53,16 @@ func NewScrapeCmd(log zerolog.Logger) *cobra.Command {
 	return cmd
 }
 
-func scrape(ctx context.Context, logger zerolog.Logger, cfgFile string, sources, pageTypes []string, discoveryOnly, cleanupDiscovery bool) error {
+func scrape(ctx context.Context, logger zerolog.Logger, m *metrics.Collector, cfgFile string, sources, pageTypes []string, discoveryOnly, cleanupDiscovery bool) error {
 	var cfg config.Config
 	if err := readConfig(cfgFile, &cfg); err != nil {
 		return fmt.Errorf("read config: %w", err)
 	}
 
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
+	logJobStart(logger, "scrape", sources, pageTypes, func(e *zerolog.Event) {
+		e.Bool("discovery_only", discoveryOnly)
+	})
 
 	db, err := postgres.NewDB(cfg.Database)
 	if err != nil {
@@ -133,7 +137,7 @@ func scrape(ctx context.Context, logger zerolog.Logger, cfgFile string, sources,
 			phases = append(phases, domain.PageTypeCategory.String())
 
 			for _, pageType := range phases {
-				if err := runScrapePhase(ctx, logger, taskRepo, snapshotRepo, sourceToScraper, cfg, []string{domain.SourceDns}, []string{pageType}, true, pageType); err != nil {
+				if err := runScrapePhase(ctx, logger, m, taskRepo, snapshotRepo, sourceToScraper, cfg, []string{domain.SourceDns}, []string{pageType}, true, pageType); err != nil {
 					return err
 				}
 			}
@@ -145,7 +149,7 @@ func scrape(ctx context.Context, logger zerolog.Logger, cfgFile string, sources,
 			wbFilter := jobSourceFilter(cfg.Jobs, config.JobScrapeDiscovery, domain.SourceWildberries)
 			_, dbBootstrap := wbFilter.BootstrapMode()
 			if dbBootstrap {
-				if err := runScrapePhase(ctx, logger, taskRepo, snapshotRepo, sourceToScraper, cfg, []string{domain.SourceWildberries}, nil, true, domain.PageTypeDiscovery.String()); err != nil {
+				if err := runScrapePhase(ctx, logger, m, taskRepo, snapshotRepo, sourceToScraper, cfg, []string{domain.SourceWildberries}, nil, true, domain.PageTypeDiscovery.String()); err != nil {
 					return err
 				}
 			}
@@ -156,7 +160,7 @@ func scrape(ctx context.Context, logger zerolog.Logger, cfgFile string, sources,
 	}
 
 	pageTypeFilter := discoveryPageType(pageTypes, discoveryOnly)
-	if err := runScrapePhase(ctx, logger, taskRepo, snapshotRepo, sourceToScraper, cfg, sources, pageTypes, discoveryOnly, pageTypeFilter); err != nil {
+	if err := runScrapePhase(ctx, logger, m, taskRepo, snapshotRepo, sourceToScraper, cfg, sources, pageTypes, discoveryOnly, pageTypeFilter); err != nil {
 		return err
 	}
 
@@ -167,6 +171,7 @@ func scrape(ctx context.Context, logger zerolog.Logger, cfgFile string, sources,
 func runScrapePhase(
 	ctx context.Context,
 	logger zerolog.Logger,
+	m *metrics.Collector,
 	taskRepo *repository.TrackedPageRepo,
 	snapshotRepo *repository.SnapshotRepo,
 	sourceToScraper map[string]scraper.Scraper,
@@ -215,10 +220,21 @@ func runScrapePhase(
 		scrapeJob = config.JobScrapeDiscovery
 	}
 	beforeFilter := len(tasks)
+	for _, t := range tasks {
+		m.AddTasksSelected(ctx, t.Source, t.PageType.String(), scrapeJob, metrics.FilterStageBefore, 1)
+	}
 	tasks = filterScrapeTasks(tasks, scrapeJob, cfg.Jobs)
+	for _, t := range tasks {
+		m.AddTasksSelected(ctx, t.Source, t.PageType.String(), scrapeJob, metrics.FilterStageAfter, 1)
+	}
+	taskByID := make(map[int]domain.ScrapeTask, len(tasks))
+	for _, t := range tasks {
+		taskByID[t.ID] = t
+	}
 	logger.Info().
 		Str("job", scrapeJob).
 		Str("page_type", pageTypeFilter).
+		Strs("sources", uniqueTaskSources(tasks)).
 		Int("tasks_before_filter", beforeFilter).
 		Int("tasks_matched", len(tasks)).
 		Msg("scrape tasks after job filters")
@@ -246,23 +262,34 @@ func runScrapePhase(
 	go worker.Run(ctx, tasksCh)
 
 	for result := range resultsCh {
-		logger.Debug().Int("task_id", result.TrackedPageID).Int("resources", len(result.Resources)).Err(result.Err).Msg("run: received result for task")
+		task := taskByID[result.TrackedPageID]
+		pageType := task.PageType.String()
+		source := task.Source
+		taskLog := withSource(logger, source).With().Str("page_type", pageType).Logger()
+
+		taskLog.Debug().Int("task_id", result.TrackedPageID).Int("resources", len(result.Resources)).Err(result.Err).Msg("run: received result for task")
+
 		if result.Err != nil {
-			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
+			taskLog.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
+			m.AddTaskFinished(ctx, source, pageType, metrics.StatusFailure, 1)
+			m.RecordTaskDuration(ctx, source, pageType, result.DurationMs)
 			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
-				logger.Error().Err(err).Msg("update status error")
+				taskLog.Error().Err(err).Msg("update status error")
 			}
 			continue
 		}
 		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
-			logger.Error().Err(err).Msg("save snapshot")
+			taskLog.Error().Err(err).Msg("save snapshot")
+			m.AddTaskFinished(ctx, source, pageType, metrics.StatusFailure, 1)
 		} else {
-			logger.Info().Msg("snapshot saved successfully")
+			taskLog.Info().Msg("snapshot saved successfully")
+			m.AddTaskFinished(ctx, source, pageType, metrics.StatusSuccess, 1)
 			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
-				logger.Error().Err(err).Msg("update status")
+				taskLog.Error().Err(err).Msg("update status")
 			}
 		}
-		logger.Debug().Int("task_id", result.TrackedPageID).Msg("run: finished processing task")
+		m.RecordTaskDuration(ctx, source, pageType, result.DurationMs)
+		taskLog.Debug().Int("task_id", result.TrackedPageID).Msg("run: finished processing task")
 	}
 
 	return nil
@@ -275,7 +302,7 @@ func bootstrapDiscoverySeeds(logger zerolog.Logger, taskRepo *repository.Tracked
 		if seedBootstrap {
 			for _, seedURL := range cfg.Dns.DiscoverySeeds {
 				if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), seedURL); err != nil {
-					logger.Error().Err(err).Str("url", seedURL).Msg("failed to create DNS discovery seed task")
+					logger.Error().Err(err).Str("source", domain.SourceDns).Str("url", seedURL).Msg("failed to create DNS discovery seed task")
 				}
 			}
 			for _, query := range cfg.Dns.SearchQueries {
@@ -283,7 +310,7 @@ func bootstrapDiscoverySeeds(logger zerolog.Logger, taskRepo *repository.Tracked
 					encodedQuery := url.QueryEscape(query)
 					searchURL := fmt.Sprintf("https://www.dns-shop.ru/search/?q=%s&page=%d", encodedQuery, page)
 					if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), searchURL); err != nil {
-						logger.Error().Err(err).Str("query", query).Int("page", page).Msg("failed to create DNS search discovery task")
+						logger.Error().Err(err).Str("source", domain.SourceDns).Str("query", query).Int("page", page).Msg("failed to create DNS search discovery task")
 					}
 				}
 			}
@@ -297,7 +324,7 @@ func bootstrapDiscoverySeeds(logger zerolog.Logger, taskRepo *repository.Tracked
 			for _, query := range cfg.Wildberries.Discovery.DiscoveryTextQueries {
 				discoveryURL := fmt.Sprintf("wildberries://discovery/%s", query)
 				if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeDiscovery.String(), discoveryURL); err != nil {
-					logger.Error().Err(err).Str("query", query).Msg("failed to create discovery task")
+					logger.Error().Err(err).Str("source", domain.SourceWildberries).Str("query", query).Msg("failed to create discovery task")
 				}
 			}
 		}

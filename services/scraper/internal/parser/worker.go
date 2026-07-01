@@ -22,6 +22,8 @@ type Worker[T any] struct {
 	pageType       domain.PageType
 	repo           SnapshotRepository
 	sourceToParser map[string]SourceParser[T]
+	metrics        ParseMetrics
+	job            string
 }
 
 func NewWorker[T any](
@@ -40,6 +42,11 @@ func NewWorker[T any](
 		repo:           repo,
 		sourceToParser: sourceToParser,
 	}
+}
+
+func (w *Worker[T]) UseMetrics(metrics ParseMetrics, job string) {
+	w.metrics = metrics
+	w.job = job
 }
 
 func (w *Worker[T]) Parse(ctx context.Context) []T {
@@ -69,20 +76,34 @@ func (w *Worker[T]) ParseSnapshots(ctx context.Context, snapshots []*domain.Page
 		if !ok {
 			continue
 		}
+		snapshotLog := w.logger.With().
+			Str("source", snapshot.SourceName).
+			Str("page_type", w.pageType.String()).
+			Logger()
 
 		files, err := ExtractArchive(snapshot.WARCBundle)
 		if err != nil {
-			w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to extract archive")
+			snapshotLog.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to extract archive")
+			if w.metrics != nil {
+				w.metrics.AddParseSnapshots(ctx, snapshot.SourceName, w.pageType.String(), w.job, "parse_error", "", 1)
+			}
 			continue
 		}
 
 		result, parseErr := parser.Parse(snapshot.ID, files)
 		if err = w.repo.SetProcessed(snapshot.ID); err != nil {
-			w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to set snapshot as processed")
+			snapshotLog.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to set snapshot as processed")
 		}
 		if parseErr != nil {
-			w.logger.Error().Err(parseErr).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to parse snapshot")
+			snapshotLog.Error().Err(parseErr).Int("snapshot_id", snapshot.ID).Msg("failed to parse snapshot")
+			if w.metrics != nil {
+				w.metrics.AddParseSnapshots(ctx, parser.Source(), w.pageType.String(), w.job, "parse_error", "", 1)
+			}
 			continue
+		}
+
+		if w.metrics != nil {
+			w.metrics.AddParseSnapshots(ctx, parser.Source(), w.pageType.String(), w.job, "parsed", "", 1)
 		}
 
 		results = append(results, result)

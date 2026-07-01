@@ -26,7 +26,7 @@ import (
 	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
 )
 
-func NewScrapeCmd() *cobra.Command {
+func NewScrapeCmd(log zerolog.Logger) *cobra.Command {
 	var cfgFile string
 	var sources []string
 	var pageTypes []string
@@ -39,7 +39,7 @@ func NewScrapeCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
-			return scrape(ctx, cfgFile, sources, pageTypes, discoveryOnly, cleanupDiscovery)
+			return scrape(ctx, log, cfgFile, sources, pageTypes, discoveryOnly, cleanupDiscovery)
 		},
 	}
 
@@ -52,9 +52,7 @@ func NewScrapeCmd() *cobra.Command {
 	return cmd
 }
 
-func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, discoveryOnly, cleanupDiscovery bool) error {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-
+func scrape(ctx context.Context, logger zerolog.Logger, cfgFile string, sources, pageTypes []string, discoveryOnly, cleanupDiscovery bool) error {
 	var cfg config.Config
 	if err := readConfig(cfgFile, &cfg); err != nil {
 		return fmt.Errorf("read config: %w", err)

@@ -24,7 +24,7 @@ import (
 // Подключение нового source в parse: internal/parsers/example/doc.go
 // (listing → NewWorker; discovery/category → Worker или ParseCategorySnapshots).
 
-func NewParseCmd() *cobra.Command {
+func NewParseCmd(log zerolog.Logger) *cobra.Command {
 	var cfgFile string
 	var sources []string
 	var pageTypes []string
@@ -36,7 +36,7 @@ func NewParseCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
-			return parse(ctx, cfgFile, sources, pageTypes, discoveryOnly)
+			return parse(ctx, log, cfgFile, sources, pageTypes, discoveryOnly)
 		},
 	}
 
@@ -48,9 +48,7 @@ func NewParseCmd() *cobra.Command {
 	return cmd
 }
 
-func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, discoveryOnly bool) error {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-
+func parse(ctx context.Context, logger zerolog.Logger, cfgFile string, sources, pageTypes []string, discoveryOnly bool) error {
 	var cfg config.Config
 	if err := readConfig(cfgFile, &cfg); err != nil {
 		return fmt.Errorf("read config: %w", err)

@@ -1,5 +1,5 @@
 [database]
-host = "localhost"
+host = "catalog-postgresql"
 port = 5432
 user = "catalog"
 dbname = "smart_home"

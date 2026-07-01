@@ -38,7 +38,7 @@ monitoring-down: ## Остановить мониторинг
 # ─── Pipeline (docker-compose.pipeline.yaml в корне) ────────────────
 
 pipeline-build: ## Собрать образы pipeline (scraper, extractor, worker, …)
-	docker build -t scraper:latest services/scraper
+	docker build -f services/scraper/Dockerfile -t scraper:latest .
 	docker build -t extractor:latest services/extractor
 	docker build -t catalog-builder:latest services/catalog-builder
 	docker build -t quality-calculator:latest services/quality-calculator

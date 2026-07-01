@@ -21,6 +21,9 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 )
 
+// Подключение нового source в parse: internal/parsers/example/doc.go
+// (listing → NewWorker; discovery/category → Worker или ParseCategorySnapshots).
+
 func NewParseCmd() *cobra.Command {
 	var cfgFile string
 	var sources []string
@@ -64,6 +67,11 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 	taskRepo := repository.NewTrackedPageRepo(db)
 
+	parseJob := config.JobParse
+	if discoveryOnly {
+		parseJob = config.JobParseDiscovery
+	}
+
 	shouldRun := func(pageType domain.PageType, source string) bool {
 		if discoveryOnly && pageType != domain.PageTypeDiscovery {
 			return false
@@ -95,31 +103,64 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		return true
 	}
 
-	if shouldRun(domain.PageTypeListing, domain.SourceWildberries) || shouldRun(domain.PageTypeListing, domain.SourceSprut) {
+	if shouldRun(domain.PageTypeListing, domain.SourceWildberries) || shouldRun(domain.PageTypeListing, domain.SourceSprut) || shouldRun(domain.PageTypeListing, domain.SourceDns) {
 		var listingParsers []parser.SourceParser[*domain.ListingParseResult]
+		var listingSources []string
 		if shouldRun(domain.PageTypeListing, domain.SourceWildberries) {
 			listingParsers = append(listingParsers,
 				wildberries.NewListingParser(cfg.Wildberries.BrandAliases, cfg.Wildberries.SmartHomeDeviceMarkers),
 			)
+			listingSources = append(listingSources, domain.SourceWildberries)
 		}
 		if shouldRun(domain.PageTypeListing, domain.SourceSprut) {
 			listingParsers = append(listingParsers,
 				sprut.NewListingParser(cfg.Wildberries.BrandAliases),
 			)
+			listingSources = append(listingSources, domain.SourceSprut)
 		}
+		if shouldRun(domain.PageTypeListing, domain.SourceDns) {
+			listingParsers = append(listingParsers,
+				dnsParser.NewListingParser(cfg.Dns.BrandAliases, cfg.Dns.SmartHomeDeviceMarkers),
+			)
+			listingSources = append(listingSources, domain.SourceDns)
+		}
+
+		var snapshots []*domain.PageSnapshot
+		for _, source := range listingSources {
+			batch, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeListing.String(), source)
+			if err != nil {
+				return fmt.Errorf("get listing snapshots for %s: %w", source, err)
+			}
+			before := len(batch)
+			batch = filterSnapshots(batch, parseJob, cfg.Jobs)
+			logger.Info().
+				Str("job", parseJob).
+				Str("source", source).
+				Int("snapshots_total", before).
+				Int("snapshots_matched", len(batch)).
+				Msg("parse listing: snapshots after job filters")
+			snapshots = append(snapshots, batch...)
+		}
+
 		listingWorker := parser.NewWorker(logger, domain.PageTypeListing, snapshotRepo, listingParsers)
-		listings := listingWorker.Parse(ctx)
+		listings := listingWorker.ParseSnapshots(ctx, snapshots)
 
 		logger.Debug().Msgf("parsed %d listings", len(listings))
+		saved := 0
+		skipped := 0
 		for _, listing := range listings {
 			if !listing.HasSmartHomeMarkers {
-				logger.Info().Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
+				skipped++
+				logger.Info().Int("snapshot_id", listing.PageSnapshotID).Msg("listing snapshot has no smart home markers, skipping")
 				continue
 			}
 			if err := snapshotRepo.SaveListingParseResult(listing); err != nil {
 				logger.Error().Err(err).Msg("failed to save listing result")
+			} else {
+				saved++
 			}
 		}
+		logger.Info().Int("parsed", len(listings)).Int("saved", saved).Int("skipped_markers", skipped).Msg("parse listing summary")
 	}
 
 	if shouldRun(domain.PageTypeDiscovery, domain.SourceWildberries) {
@@ -158,24 +199,16 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		}
 	}
 
-	if shouldRun(domain.PageTypeDiscovery, domain.SourceDns) {
-		discoveryParsers := []parser.SourceParser[*dnsParser.BrowseLinks]{
-			dnsParser.NewDiscoveryParser(),
+	if shouldRunDNSDiscoveryParse(discoveryOnly, sources) {
+		job := config.JobParseDiscovery
+		savedListings := parseDNSCategorySnapshots(ctx, logger, snapshotRepo, taskRepo, cfg.Jobs, job, true)
+		if savedListings >= 0 {
+			logger.Info().Str("job", job).Int("listings_saved", savedListings).Msg("dns parse --discovery summary")
 		}
-		discoveryWorker := parser.NewWorker(logger, domain.PageTypeDiscovery, snapshotRepo, discoveryParsers)
-		discoveryResults := discoveryWorker.Parse(ctx)
-		logger.Debug().Msgf("processed %d DNS discovery snapshots", len(discoveryResults))
-		enqueueDNSBrowseResults(logger, taskRepo, discoveryResults)
 	}
 
-	if shouldRun(domain.PageTypeCategory, domain.SourceDns) {
-		categoryParsers := []parser.SourceParser[*dnsParser.BrowseLinks]{
-			dnsParser.NewCategoryParser(),
-		}
-		categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
-		categoryResults := categoryWorker.Parse(ctx)
-		logger.Debug().Msgf("processed %d DNS category snapshots", len(categoryResults))
-		enqueueDNSBrowseResults(logger, taskRepo, categoryResults)
+	if shouldRun(domain.PageTypeCategory, domain.SourceDns) && !discoveryOnly {
+		parseDNSCategorySnapshots(ctx, logger, snapshotRepo, taskRepo, cfg.Jobs, config.JobParse, false)
 	}
 
 	if shouldRun(domain.PageTypeCompatibility, domain.SourceYandex) {
@@ -198,24 +231,120 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 	return nil
 }
 
-func enqueueDNSBrowseResults(logger zerolog.Logger, taskRepo *repository.TrackedPageRepo, results []*dnsParser.BrowseLinks) {
-	for _, links := range results {
-		if links == nil {
-			continue
-		}
-		for _, categoryURL := range links.CategoryURLs {
-			if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeCategory.String(), categoryURL); err != nil {
-				logger.Error().Err(err).Str("url", categoryURL).Msg("failed to create DNS category task")
-			} else {
-				logger.Debug().Str("url", categoryURL).Msg("created DNS category task")
-			}
-		}
-		for _, listingURL := range links.ListingURLs {
-			if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeListing.String(), listingURL); err != nil {
-				logger.Error().Err(err).Str("url", listingURL).Msg("failed to create DNS listing task")
-			} else {
-				logger.Debug().Str("url", listingURL).Msg("created DNS listing task")
-			}
+func shouldRunDNSDiscoveryParse(discoveryOnly bool, sources []string) bool {
+	if !discoveryOnly {
+		return false
+	}
+	if len(sources) == 0 {
+		return true
+	}
+	for _, s := range sources {
+		if s == domain.SourceDns {
+			return true
 		}
 	}
+	return false
+}
+
+// parseDNSCategorySnapshots extracts listing URLs from DNS category snapshots.
+//
+// listingsOnly — не про «неоднозначные данные», а про разные побочные эффекты одного парсера:
+//   - parse --discovery (listingsOnly=true): только CreateTask(listing); пагинацию category не трогаем
+//     (следующие страницы каталога уже созданы BFS или отдельным job).
+//   - parse --page-types category (listingsOnly=false): ещё CreateTask(category) для PaginationURLs.
+//
+// Вход всегда один: category snapshot. Выход парсера (*BrowseLinks) тоже один.
+// Флаг выбирает, какие поля BrowseLinks превращать в новые tracked_pages.
+func parseDNSCategorySnapshots(
+	ctx context.Context,
+	logger zerolog.Logger,
+	snapshotRepo *repository.SnapshotRepo,
+	taskRepo *repository.TrackedPageRepo,
+	jobs config.JobsConfig,
+	job string,
+	listingsOnly bool,
+) int {
+	allSnapshots, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeCategory.String(), domain.SourceDns)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to get DNS category snapshots")
+		return -1
+	}
+
+	before := len(allSnapshots)
+	snapshots := filterSnapshots(allSnapshots, job, jobs)
+	logger.Info().
+		Str("job", job).
+		Str("source", domain.SourceDns).
+		Int("category_snapshots_total", before).
+		Int("category_snapshots_matched", len(snapshots)).
+		Msg("parse category: snapshots after job filters")
+
+	if len(snapshots) == 0 {
+		return -1
+	}
+
+	categoryParser := dnsParser.NewCategoryParser()
+	savedListings := 0
+	paginationTasks := 0
+
+	for _, snapshot := range snapshots {
+		if ctx.Err() != nil {
+			break
+		}
+
+		files, err := parser.ExtractArchive(snapshot.WARCBundle)
+		if err != nil {
+			logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("category_url", snapshot.PageURL).Msg("failed to extract category snapshot")
+			continue
+		}
+
+		links, parseErr := categoryParser.Parse(snapshot.ID, files)
+		if err := snapshotRepo.SetProcessed(snapshot.ID); err != nil {
+			logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to mark category snapshot processed")
+		}
+		if parseErr != nil {
+			logger.Error().Err(parseErr).Int("snapshot_id", snapshot.ID).Str("category_url", snapshot.PageURL).Msg("failed to parse category snapshot")
+			continue
+		}
+
+		listingCount := 0
+		paginationCount := 0
+		if links != nil {
+			listingCount = len(links.ListingURLs)
+			paginationCount = len(links.PaginationURLs)
+			for _, listingURL := range links.ListingURLs {
+				if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeListing.String(), listingURL); err != nil {
+					logger.Error().Err(err).Str("url", listingURL).Msg("failed to create DNS listing task")
+				} else {
+					savedListings++
+				}
+			}
+			if !listingsOnly {
+				for _, pageURL := range links.PaginationURLs {
+					if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeCategory.String(), pageURL); err != nil {
+						logger.Error().Err(err).Str("url", pageURL).Msg("failed to create DNS category pagination task")
+					} else {
+						paginationTasks++
+					}
+				}
+			}
+		}
+
+		logger.Info().
+			Int("snapshot_id", snapshot.ID).
+			Str("category_url", snapshot.PageURL).
+			Int("listings_found", listingCount).
+			Int("listings_saved", listingCount).
+			Int("pagination_pages", paginationCount).
+			Msg("dns category parsed")
+	}
+
+	logger.Info().
+		Str("job", job).
+		Int("categories_parsed", len(snapshots)).
+		Int("listings_saved_total", savedListings).
+		Int("pagination_tasks", paginationTasks).
+		Msg("dns category parse summary")
+
+	return savedListings
 }

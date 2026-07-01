@@ -20,36 +20,45 @@ func loadFixture(t *testing.T, name string) []byte {
 	return data
 }
 
-func TestBrowseParser_CategoryHub(t *testing.T) {
-	p := NewCategoryParser()
+func TestDiscoveryParser_CategoryHub(t *testing.T) {
+	p := NewDiscoveryParser()
 	links, err := p.Parse(1, []*parser.ArchiveFile{
 		{Name: "html", Data: loadFixture(t, "category_umnaa_tehnika.html")},
 	})
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(links.CategoryURLs), 10)
+	assert.GreaterOrEqual(t, len(links.DiscoveryURLs), 10)
 	assert.Empty(t, links.ListingURLs)
-	assert.Contains(t, links.CategoryURLs, "https://www.dns-shop.ru/catalog/195a8a0d7cee53b3/umnye-datciki/")
+	assert.False(t, links.IsProductGrid())
 }
 
-func TestBrowseParser_CategoryLeaf(t *testing.T) {
+func TestDiscoveryParser_ProductGrid(t *testing.T) {
+	p := NewDiscoveryParser()
+	links, err := p.Parse(2, []*parser.ArchiveFile{
+		{Name: "html", Data: loadFixture(t, "category_leak_sensors.html")},
+	})
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(links.ListingURLs), 15)
+	assert.True(t, links.IsProductGrid())
+	assert.True(t, strings.HasPrefix(links.ListingURLs[0], "https://www.dns-shop.ru/product/"))
+}
+
+func TestCategoryParser_LeafWithListings(t *testing.T) {
 	p := NewCategoryParser()
 	links, err := p.Parse(2, []*parser.ArchiveFile{
 		{Name: "html", Data: loadFixture(t, "category_leak_sensors.html")},
 	})
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(links.ListingURLs), 15)
-	assert.Empty(t, links.CategoryURLs)
-	assert.True(t, strings.HasPrefix(links.ListingURLs[0], "https://www.dns-shop.ru/product/"))
+	assert.Empty(t, links.DiscoveryURLs)
 }
 
-func TestBrowseParser_SearchWithProducts(t *testing.T) {
-	p := NewDiscoveryParser()
-	links, err := p.Parse(3, []*parser.ArchiveFile{
-		{Name: "html", Data: loadFixture(t, "search_zigbee.html")},
-	})
+func TestDiscoveryParser_SearchWithProducts(t *testing.T) {
+	links, err := extractBrowseLinks(loadFixture(t, "search_zigbee.html"), "https://www.dns-shop.ru/search/?q=zigbee")
 	require.NoError(t, err)
 	assert.Len(t, links.ListingURLs, 24)
-	assert.Empty(t, links.CategoryURLs)
+	assert.True(t, links.IsProductGrid())
+	assert.GreaterOrEqual(t, len(links.PaginationURLs), 1)
+	assert.Contains(t, links.PaginationURLs[0], "page=2")
 }
 
 func TestExtractBrowseLinks_FiltersServicePaths(t *testing.T) {
@@ -58,8 +67,8 @@ func TestExtractBrowseLinks_FiltersServicePaths(t *testing.T) {
 		<a href="/catalog/product/get-option-description/">api</a>
 		<a class="subcategory__item" href="/catalog/aaaaaaaaaaaaaaaa/foo/">ok</a>
 	</body></html>`)
-	links, err := extractBrowseLinks(html)
+	links, err := extractBrowseLinks(html, "")
 	require.NoError(t, err)
-	require.Len(t, links.CategoryURLs, 1)
-	assert.Equal(t, "https://www.dns-shop.ru/catalog/aaaaaaaaaaaaaaaa/foo/", links.CategoryURLs[0])
+	require.Len(t, links.DiscoveryURLs, 1)
+	assert.Equal(t, "https://www.dns-shop.ru/catalog/aaaaaaaaaaaaaaaa/foo/", links.DiscoveryURLs[0])
 }

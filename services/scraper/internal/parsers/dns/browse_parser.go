@@ -7,33 +7,36 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parser"
 )
 
-// BrowseParser extracts child category and product URLs from DNS catalog/search pages.
-type BrowseParser struct{}
+// DiscoveryParser is used only for tests; production BFS is RunDiscoveryBFS.
+type DiscoveryParser struct{}
 
-func NewBrowseParser() *BrowseParser {
-	return &BrowseParser{}
+func NewDiscoveryParser() *DiscoveryParser {
+	return &DiscoveryParser{}
 }
 
-func (p *BrowseParser) Source() string { return domain.SourceDns }
+func (p *DiscoveryParser) Source() string { return domain.SourceDns }
 
-func (p *BrowseParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (*BrowseLinks, error) {
+func (p *DiscoveryParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (*BrowseLinks, error) {
 	htmlData, err := parser.FindFile(files, "html")
 	if err != nil {
 		return nil, fmt.Errorf("%s snapshot %d: %w", domain.SourceDns, pageSnapshotID, err)
 	}
-	return extractBrowseLinks(htmlData)
+	return extractBrowseLinks(htmlData, "")
 }
 
-// DiscoveryParser is an alias for browse pages reached via search / bootstrap seeds.
-type DiscoveryParser = BrowseParser
+// CategoryParser extracts product listings and pagination from scraped category snapshots.
+type CategoryParser struct{}
 
-func NewDiscoveryParser() *BrowseParser {
-	return NewBrowseParser()
+func NewCategoryParser() *CategoryParser {
+	return &CategoryParser{}
 }
 
-// CategoryParser is an alias for browse pages reached via catalog BFS.
-type CategoryParser = BrowseParser
+func (p *CategoryParser) Source() string { return domain.SourceDns }
 
-func NewCategoryParser() *BrowseParser {
-	return NewBrowseParser()
+func (p *CategoryParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (*BrowseLinks, error) {
+	htmlData, err := parser.FindFile(files, "html")
+	if err != nil {
+		return nil, fmt.Errorf("%s snapshot %d: %w", domain.SourceDns, pageSnapshotID, err)
+	}
+	return extractCategoryLinks(htmlData, "")
 }

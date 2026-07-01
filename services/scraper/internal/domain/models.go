@@ -41,10 +41,12 @@ func PageTypeFromString(s string) PageType {
 }
 
 type ScrapeTask struct {
-	ID       int
-	Source   string
-	PageType PageType
-	URL      string
+	ID            int
+	Source        string
+	PageType      PageType
+	URL           string
+	FirstSeenAt   time.Time  // tracked_pages.first_seen_at — появление задачи в пайплайне
+	LastScrapedAt *time.Time // tracked_pages.last_scraped_at; nil — ещё не скрапили
 }
 
 type ScrapeResult struct {
@@ -71,6 +73,7 @@ type Resource struct {
 type PageSnapshot struct {
 	ID            int
 	TrackedPageID int
+	PageURL       string
 	ScrapedAt     time.Time
 	WARCBundle    []byte
 	PageType      string
@@ -107,6 +110,9 @@ const (
     SourcePrinter     = "printer"
     SourceYandex      = "yandex"
 	SourceDns         = "dns"
+	// SourceExample — учебный шаблон (internal/scrapers/example, internal/parsers/example).
+	// Скопируйте пакеты и переименуйте перед продакшеном.
+	SourceExample     = "example"
 )
 
 type DirectCompatibilityRecord struct {

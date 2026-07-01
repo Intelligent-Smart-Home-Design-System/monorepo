@@ -43,39 +43,49 @@ func NewWorker[T any](
 }
 
 func (w *Worker[T]) Parse(ctx context.Context) []T {
-	var results []T
-
-	for source, parser := range w.sourceToParser {
+	var all []*domain.PageSnapshot
+	for source := range w.sourceToParser {
 		if ctx.Err() != nil {
-			return results
+			break
 		}
 		snapshots, err := w.repo.GetUnprocessedSnapshots(ctx, w.pageType.String(), source)
 		if err != nil {
 			w.logger.Error().Err(err).Str("source", source).Msg("failed to get unprocessed snapshots")
 			continue
 		}
+		all = append(all, snapshots...)
+	}
+	return w.ParseSnapshots(ctx, all)
+}
 
-		for _, snapshot := range snapshots {
-			if ctx.Err() != nil {
-				return results
-			}
-			files, err := extractArchive(snapshot.WARCBundle)
-			if err != nil {
-				w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to extract archive")
-				continue
-			}
+func (w *Worker[T]) ParseSnapshots(ctx context.Context, snapshots []*domain.PageSnapshot) []T {
+	var results []T
 
-			result, parseErr := parser.Parse(snapshot.ID, files)
-			if err = w.repo.SetProcessed(snapshot.ID); err != nil {
-				w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to set snapshot as processed")
-			}
-			if parseErr != nil {
-				w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to parse snapshot")
-				continue
-			}
-
-			results = append(results, result)
+	for _, snapshot := range snapshots {
+		if ctx.Err() != nil {
+			return results
 		}
+		parser, ok := w.sourceToParser[snapshot.SourceName]
+		if !ok {
+			continue
+		}
+
+		files, err := ExtractArchive(snapshot.WARCBundle)
+		if err != nil {
+			w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to extract archive")
+			continue
+		}
+
+		result, parseErr := parser.Parse(snapshot.ID, files)
+		if err = w.repo.SetProcessed(snapshot.ID); err != nil {
+			w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to set snapshot as processed")
+		}
+		if parseErr != nil {
+			w.logger.Error().Err(parseErr).Int("snapshot_id", snapshot.ID).Str("source", parser.Source()).Msg("failed to parse snapshot")
+			continue
+		}
+
+		results = append(results, result)
 	}
 
 	return results

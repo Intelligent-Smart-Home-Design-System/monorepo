@@ -168,7 +168,23 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 			wildberries.NewDiscoveryParser(),
 		}
 		discoveryWorker := parser.NewWorker(logger, domain.PageTypeDiscovery, snapshotRepo, discoveryParsers)
-		discoveryResults := discoveryWorker.Parse(ctx)
+		parseJob := config.JobParseDiscovery
+		if !discoveryOnly {
+			parseJob = config.JobParse
+		}
+		batch, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeDiscovery.String(), domain.SourceWildberries)
+		if err != nil {
+			return fmt.Errorf("get wildberries discovery snapshots: %w", err)
+		}
+		before := len(batch)
+		batch = filterSnapshots(batch, parseJob, cfg.Jobs)
+		logger.Info().
+			Str("job", parseJob).
+			Str("source", domain.SourceWildberries).
+			Int("discovery_snapshots_total", before).
+			Int("discovery_snapshots_matched", len(batch)).
+			Msg("parse discovery: snapshots after job filters")
+		discoveryResults := discoveryWorker.ParseSnapshots(ctx, batch)
 
 		logger.Debug().Msgf("processed %d discovery snapshots", len(discoveryResults))
 		for _, urls := range discoveryResults {

@@ -1,13 +1,21 @@
-# Тест 7: scrape + parse listing для wildberries, dns и sprut.
-# limit=5 применяется отдельно к каждому source (до 5 scrape + до 5 parse на source).
+# Тест 7: полный прогон discovery → listing для wildberries, dns и sprut.
+# limit=5 на каждый source и job; временные фильтры отсекают старые записи в полной БД.
 #
-# Запуск (без --sources — все три source):
-#   cd monorepo/services/scraper
+# Подставьте полночь нужного дня в created_after / scraped_after (MSK, +03:00).
+#
+# 1) Discovery scrape — только задачи, появившиеся сегодня (created_after):
+#   go run ./cmd/scraper scrape --discovery --config cmd/scraper/config.local7.toml
+#
+# 2) Discovery parse — только снимки, снятые сегодня (scraped_after):
+#   go run ./cmd/scraper parse --discovery --config cmd/scraper/config.local7.toml
+#
+# 3) Listing scrape — новые listing-задачи с сегодняшнего parse:
 #   go run ./cmd/scraper scrape --page-types listing --config cmd/scraper/config.local7.toml
+#
+# 4) Listing parse:
 #   go run ./cmd/scraper parse --page-types listing --config cmd/scraper/config.local7.toml
 #
-# Ожидание в логах parse listing summary: saved ≤ 5 на source
-# (WB/DNS могут быть меньше, если нет smart_home_markers на карточке).
+# Ожидание: ≤5 задач/снимков на source на каждом этапе; saved listing ≤5 (WB/DNS — с маркерами).
 
 [database]
 host = "localhost"
@@ -53,20 +61,50 @@ smart_home_device_markers = [
   "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн"
 ]
 
+# --- Discovery: scrape tracked_pages (created_after = first_seen_at) ---
+
+[jobs.scrape_discovery.wildberries]
+discovery_bootstrap = ["db"]
+created_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.scrape_discovery.dns]
+discovery_bootstrap = ["db"]
+created_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+# --- Discovery: parse page_snapshots (scraped_after = scraped_at) ---
+
+[jobs.parse_discovery.wildberries]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.parse_discovery.dns]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+# --- Listing: scrape новых задач (created_after) / parse свежих снимков (scraped_after) ---
+
 [jobs.scrape.wildberries]
+created_after = 2026-06-30T00:00:00+03:00
 limit = 5
 
 [jobs.scrape.dns]
+created_after = 2026-06-30T00:00:00+03:00
 limit = 5
 
 [jobs.scrape.sprut]
+created_after = 2026-06-30T00:00:00+03:00
 limit = 5
 
 [jobs.parse.wildberries]
+scraped_after = 2026-06-30T00:00:00+03:00
 limit = 5
 
 [jobs.parse.dns]
+scraped_after = 2026-06-30T00:00:00+03:00
 limit = 5
 
 [jobs.parse.sprut]
+scraped_after = 2026-06-30T00:00:00+03:00
 limit = 5

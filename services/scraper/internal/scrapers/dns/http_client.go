@@ -59,110 +59,157 @@ func (s *Scraper) resetWarmup() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.warmedUp {
-		s.log.Info().Msg("dns warmup: reset (will request homepage again)")
+		s.log.Info().Msg("dns warmup: reset")
 	}
 	s.warmedUp = false
 }
 
-func (s *Scraper) warmup(ctx context.Context) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.warmedUp {
-		s.log.Debug().Msg("dns warmup: skipped (already done)")
-		return nil
-	}
-
-	s.log.Info().Str("url", dnsOrigin).Msg("dns warmup: requesting homepage")
-
+func (s *Scraper) warmupHTTP(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, dnsOrigin, nil)
 	if err != nil {
-		s.log.Error().Err(err).Msg("dns warmup: failed to build request")
 		return err
 	}
 	setNavigationHeaders(req, s.userAgent, "")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Str("url", dnsOrigin).Msg("dns warmup: request failed")
 		return fmt.Errorf("dns warmup: %w", err)
 	}
 	_, _ = io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		s.log.Warn().
-			Int("status", resp.StatusCode).
-			Str("url", dnsOrigin).
-			Msg("dns warmup: unexpected status")
 		return fmt.Errorf("dns warmup: HTTP %d", resp.StatusCode)
 	}
-
-	cookieCount := 0
-	if u, parseErr := url.Parse(dnsOrigin); parseErr == nil {
-		cookieCount = len(s.client.Jar.Cookies(u))
-	}
-	s.log.Info().
-		Int("status", resp.StatusCode).
-		Int("cookies", cookieCount).
-		Msg("dns warmup: ok")
-
-	s.warmedUp = true
 	return nil
 }
 
+func (s *Scraper) warmup(ctx context.Context) error {
+	s.mu.Lock()
+	if s.warmedUp {
+		s.mu.Unlock()
+		s.log.Debug().Bool("browser_mode", s.browserMode).Msg("dns warmup: skipped (already done)")
+		return nil
+	}
+	s.mu.Unlock()
+
+	if s.browserMode {
+		if err := s.activateBrowser(ctx); err != nil {
+			return err
+		}
+		s.mu.Lock()
+		s.warmedUp = true
+		s.mu.Unlock()
+		return nil
+	}
+
+	s.log.Info().Str("url", dnsOrigin).Msg("dns warmup: requesting homepage (HTTP)")
+
+	httpErr := s.warmupHTTP(ctx)
+	if httpErr == nil {
+		s.mu.Lock()
+		s.warmedUp = true
+		s.mu.Unlock()
+		s.log.Info().
+			Int("status", http.StatusOK).
+			Int("cookies", s.cookieCount()).
+			Str("mode", "http").
+			Msg("dns warmup: ok")
+		return nil
+	} else if !isAuthBlockedStatus(httpErr) {
+		s.log.Error().Err(httpErr).Str("url", dnsOrigin).Msg("dns warmup: failed")
+		return httpErr
+	}
+
+	s.log.Warn().Err(httpErr).Msg("dns warmup: HTTP blocked by Qrator, switching to headless browser")
+	if err := s.activateBrowser(ctx); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	s.warmedUp = true
+	s.mu.Unlock()
+	s.log.Info().Str("mode", "browser").Msg("dns warmup: ok")
+	return nil
+}
+
+func isAuthBlockedStatus(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return containsHTTPStatus(msg, http.StatusUnauthorized) || containsHTTPStatus(msg, http.StatusForbidden)
+}
+
+func containsHTTPStatus(msg string, code int) bool {
+	return msg == fmt.Sprintf("dns warmup: HTTP %d", code) ||
+		msg == fmt.Sprintf("HTTP %d", code)
+}
+
+func isAuthBlocked(status int) bool {
+	return status == http.StatusUnauthorized || status == http.StatusForbidden
+}
+
 func (s *Scraper) getHTML(ctx context.Context, pageURL string) ([]byte, int, string, error) {
+	if err := s.warmup(ctx); err != nil {
+		return nil, 0, "", err
+	}
+
+	if s.browserMode {
+		body, err := s.browserGetHTML(ctx, pageURL)
+		if err != nil {
+			return nil, 0, "", err
+		}
+		return body, http.StatusOK, http.StatusText(http.StatusOK), nil
+	}
+
 	referer := dnsOrigin
 	if u, err := url.Parse(pageURL); err == nil && u.Host != "" {
 		referer = fmt.Sprintf("%s://%s/", u.Scheme, u.Host)
 	}
 
-	var lastStatus int
-	var lastErr error
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
+	if err != nil {
+		return nil, 0, "", err
+	}
+	setNavigationHeaders(req, s.userAgent, referer)
 
-	for attempt := 0; attempt < 2; attempt++ {
-		if attempt > 0 {
-			s.log.Warn().
-				Int("attempt", attempt+1).
-				Str("url", pageURL).
-				Int("last_status", lastStatus).
-				Msg("dns fetch: retry after auth block")
-			s.resetWarmup()
-		}
-		if err := s.warmup(ctx); err != nil {
-			lastErr = err
-			continue
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
-		if err != nil {
-			return nil, 0, "", err
-		}
-		setNavigationHeaders(req, s.userAgent, referer)
-
-		resp, err := s.client.Do(req)
-		if err != nil {
-			return nil, 0, "", err
-		}
-
-		body, readErr := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if readErr != nil {
-			return nil, resp.StatusCode, resp.Status, readErr
-		}
-
-		lastStatus = resp.StatusCode
-		if resp.StatusCode == http.StatusOK {
-			return body, resp.StatusCode, resp.Status, nil
-		}
-
-		lastErr = fmt.Errorf("HTTP %d", resp.StatusCode)
-		if resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
-			return body, resp.StatusCode, resp.Status, lastErr
-		}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, 0, "", err
 	}
 
-	if lastErr != nil {
-		return nil, lastStatus, "", lastErr
+	body, readErr := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if readErr != nil {
+		return nil, resp.StatusCode, resp.Status, readErr
 	}
-	return nil, lastStatus, "", fmt.Errorf("HTTP %d", lastStatus)
+
+	if resp.StatusCode == http.StatusOK {
+		return body, resp.StatusCode, resp.Status, nil
+	}
+
+	if !isAuthBlocked(resp.StatusCode) {
+		return body, resp.StatusCode, resp.Status, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	s.log.Warn().
+		Int("status", resp.StatusCode).
+		Str("url", pageURL).
+		Msg("dns fetch: HTTP blocked, switching to headless browser")
+
+	s.mu.Lock()
+	s.warmedUp = false
+	s.browserMode = true
+	s.mu.Unlock()
+
+	if err := s.warmup(ctx); err != nil {
+		return nil, resp.StatusCode, resp.Status, err
+	}
+
+	body, err = s.browserGetHTML(ctx, pageURL)
+	if err != nil {
+		return nil, resp.StatusCode, resp.Status, err
+	}
+	return body, http.StatusOK, http.StatusText(http.StatusOK), nil
 }

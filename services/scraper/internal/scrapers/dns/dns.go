@@ -8,15 +8,20 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/go-rod/rod"
 	"github.com/rs/zerolog"
 )
 
 type Scraper struct {
-	log       zerolog.Logger
-	client    *http.Client
-	userAgent string
-	mu        sync.Mutex
-	warmedUp  bool
+	log         zerolog.Logger
+	client      *http.Client
+	userAgent   string
+	mu          sync.Mutex
+	warmedUp    bool
+	browserMu   sync.Mutex
+	browser     *rod.Browser
+	browserPage *rod.Page
+	browserMode bool
 }
 
 func NewScraper(log zerolog.Logger, timeout time.Duration, proxyURL, userAgent string) *Scraper {

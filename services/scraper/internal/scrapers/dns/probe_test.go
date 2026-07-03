@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/rs/zerolog"
 )
 
 // Live probe against dns-shop.ru.
@@ -40,7 +41,7 @@ func TestProbeDNSFetch(t *testing.T) {
 	}
 
 	userAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-	scraper := NewScraper(60*time.Second, "", userAgent)
+	scraper := NewScraper(zerolog.Nop(), 60*time.Second, "", userAgent)
 
 	var combined strings.Builder
 	combined.WriteString("# DNS fetch probe report\n\n")

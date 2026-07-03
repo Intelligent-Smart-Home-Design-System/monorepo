@@ -8,17 +8,20 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/rs/zerolog"
 )
 
 type Scraper struct {
+	log       zerolog.Logger
 	client    *http.Client
 	userAgent string
 	mu        sync.Mutex
 	warmedUp  bool
 }
 
-func NewScraper(timeout time.Duration, proxyURL, userAgent string) *Scraper {
+func NewScraper(log zerolog.Logger, timeout time.Duration, proxyURL, userAgent string) *Scraper {
 	return &Scraper{
+		log:       log.With().Str("source", "dns").Logger(),
 		client:    newScraperClient(timeout, proxyURL),
 		userAgent: userAgent,
 	}

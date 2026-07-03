@@ -58,6 +58,9 @@ func setXHRHeaders(req *http.Request, userAgent, referer string) {
 func (s *Scraper) resetWarmup() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.warmedUp {
+		s.log.Info().Msg("dns warmup: reset (will request homepage again)")
+	}
 	s.warmedUp = false
 }
 
@@ -65,25 +68,44 @@ func (s *Scraper) warmup(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.warmedUp {
+		s.log.Debug().Msg("dns warmup: skipped (already done)")
 		return nil
 	}
 
+	s.log.Info().Str("url", dnsOrigin).Msg("dns warmup: requesting homepage")
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, dnsOrigin, nil)
 	if err != nil {
+		s.log.Error().Err(err).Msg("dns warmup: failed to build request")
 		return err
 	}
 	setNavigationHeaders(req, s.userAgent, "")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
+		s.log.Error().Err(err).Str("url", dnsOrigin).Msg("dns warmup: request failed")
 		return fmt.Errorf("dns warmup: %w", err)
 	}
 	_, _ = io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		s.log.Warn().
+			Int("status", resp.StatusCode).
+			Str("url", dnsOrigin).
+			Msg("dns warmup: unexpected status")
 		return fmt.Errorf("dns warmup: HTTP %d", resp.StatusCode)
 	}
+
+	cookieCount := 0
+	if u, parseErr := url.Parse(dnsOrigin); parseErr == nil {
+		cookieCount = len(s.client.Jar.Cookies(u))
+	}
+	s.log.Info().
+		Int("status", resp.StatusCode).
+		Int("cookies", cookieCount).
+		Msg("dns warmup: ok")
+
 	s.warmedUp = true
 	return nil
 }
@@ -99,6 +121,11 @@ func (s *Scraper) getHTML(ctx context.Context, pageURL string) ([]byte, int, str
 
 	for attempt := 0; attempt < 2; attempt++ {
 		if attempt > 0 {
+			s.log.Warn().
+				Int("attempt", attempt+1).
+				Str("url", pageURL).
+				Int("last_status", lastStatus).
+				Msg("dns fetch: retry after auth block")
 			s.resetWarmup()
 		}
 		if err := s.warmup(ctx); err != nil {

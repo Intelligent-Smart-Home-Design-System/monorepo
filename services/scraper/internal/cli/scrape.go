@@ -98,7 +98,7 @@ func scrape(ctx context.Context, logger zerolog.Logger, m *metrics.Collector, cf
 		}
 	}
 
-	dnsScraperInstance := dnsScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Dns.UserAgent)
+	dnsScraperInstance := dnsScraper.NewScraper(logger, cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Dns.UserAgent)
 	yandexScraperInstance := yandexScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Scraping.RateLimitRps)
 	sprutScraperInstance := sprutScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.UserAgent)
 

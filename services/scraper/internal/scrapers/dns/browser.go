@@ -9,9 +9,15 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/stealth"
 )
+
+type pageCapture struct {
+	HTML       []byte
+	NavStatus  int
+	Title      string
+	FinalURL   string
+}
 
 func (s *Scraper) activateBrowser(ctx context.Context) error {
 	s.browserMu.Lock()
@@ -21,9 +27,7 @@ func (s *Scraper) activateBrowser(ctx context.Context) error {
 		return nil
 	}
 
-	s.log.Info().Msg("dns browser: launching headless Chrome")
-
-	l := launcher.New().Headless(true).Set("no-sandbox").Set("disable-setuid-sandbox")
+	l := s.newBrowserLauncher()
 	controlURL, err := l.Launch()
 	if err != nil {
 		s.log.Error().Err(err).Msg("dns browser: launch failed")
@@ -44,19 +48,13 @@ func (s *Scraper) activateBrowser(ctx context.Context) error {
 	}
 
 	s.log.Info().Str("url", dnsOrigin).Msg("dns browser: navigating homepage")
-	if err := page.Context(ctx).Navigate(dnsOrigin); err != nil {
+	cap, err := s.capturePage(ctx, page, dnsOrigin)
+	if err != nil {
 		browser.Close()
-		s.log.Error().Err(err).Str("url", dnsOrigin).Msg("dns browser: homepage navigation failed")
-		return fmt.Errorf("dns browser homepage: %w", err)
+		return err
 	}
-	if err := page.Context(ctx).WaitLoad(); err != nil {
-		browser.Close()
-		return fmt.Errorf("dns browser homepage wait: %w", err)
-	}
-	time.Sleep(2 * time.Second)
 
 	s.syncBrowserCookies(page)
-
 	if ua, err := page.Context(ctx).Eval(`() => navigator.userAgent`); err == nil {
 		s.userAgent = ua.Value.Str()
 	}
@@ -65,33 +63,12 @@ func (s *Scraper) activateBrowser(ctx context.Context) error {
 	s.browserPage = page
 	s.browserMode = true
 
-	s.log.Info().Int("cookies", s.cookieCount()).Msg("dns browser: ready")
+	s.log.Info().
+		Int("nav_status", cap.NavStatus).
+		Str("title", cap.Title).
+		Int("cookies", s.cookieCount()).
+		Msg("dns browser: ready")
 	return nil
-}
-
-func (s *Scraper) syncBrowserCookies(page *rod.Page) {
-	cookies, err := page.Cookies([]string{dnsOrigin})
-	if err != nil {
-		s.log.Warn().Err(err).Msg("dns browser: failed to read cookies")
-		return
-	}
-
-	u, err := url.Parse(dnsOrigin)
-	if err != nil {
-		return
-	}
-
-	httpCookies := make([]*http.Cookie, 0, len(cookies))
-	for _, c := range cookies {
-		httpCookies = append(httpCookies, &http.Cookie{
-			Name:   c.Name,
-			Value:  c.Value,
-			Domain: c.Domain,
-			Path:   c.Path,
-		})
-	}
-	s.client.Jar.SetCookies(u, httpCookies)
-	s.log.Info().Int("cookies", len(httpCookies)).Msg("dns browser: cookies synced to HTTP client")
 }
 
 func (s *Scraper) browserGetHTML(ctx context.Context, pageURL string) ([]byte, error) {
@@ -103,29 +80,132 @@ func (s *Scraper) browserGetHTML(ctx context.Context, pageURL string) ([]byte, e
 	}
 
 	s.log.Info().Str("url", pageURL).Msg("dns browser: fetching page")
-	if err := s.browserPage.Context(ctx).Navigate(pageURL); err != nil {
+	cap, err := s.capturePage(ctx, s.browserPage, pageURL)
+	if err != nil {
+		return nil, err
+	}
+
+	s.syncBrowserCookies(s.browserPage)
+	s.logBrowseCapture(pageURL, cap)
+	return cap.HTML, nil
+}
+
+func (s *Scraper) capturePage(ctx context.Context, page *rod.Page, pageURL string) (*pageCapture, error) {
+	if err := page.Context(ctx).Navigate(pageURL); err != nil {
 		return nil, fmt.Errorf("dns browser navigate: %w", err)
 	}
-	if err := s.browserPage.Context(ctx).WaitLoad(); err != nil {
+	if err := page.Context(ctx).WaitLoad(); err != nil {
 		return nil, fmt.Errorf("dns browser wait load: %w", err)
 	}
 
-	s.dismissCookieBanner(ctx, s.browserPage)
-	pageKind := s.waitForDNSContent(ctx, s.browserPage)
+	s.dismissCookieBanner(ctx, page)
+	pageKind := s.waitForDNSContent(ctx, page)
 
-	val, err := s.browserPage.Context(ctx).Eval(`() => document.documentElement.outerHTML`)
+	meta, err := page.Context(ctx).Eval(`() => ({
+		title: document.title || '',
+		url: location.href || '',
+		status: (performance.getEntriesByType('navigation')[0] || {}).responseStatus || 0
+	})`)
+	if err != nil {
+		return nil, fmt.Errorf("dns browser page meta: %w", err)
+	}
+
+	title := meta.Value.Get("title").Str()
+	finalURL := meta.Value.Get("url").Str()
+	navStatus := meta.Value.Get("status").Int()
+
+	val, err := page.Context(ctx).Eval(`() => document.documentElement.outerHTML`)
 	if err != nil {
 		return nil, fmt.Errorf("dns browser html: %w", err)
 	}
-
 	html := val.Value.Str()
 	if html == "" {
 		return nil, fmt.Errorf("dns browser html: empty document")
 	}
 
-	s.syncBrowserCookies(s.browserPage)
-	s.logBrowseSignals(pageURL, pageKind, html)
-	return []byte(html), nil
+	cap := &pageCapture{
+		HTML:      []byte(html),
+		NavStatus: navStatus,
+		Title:     title,
+		FinalURL:  finalURL,
+	}
+
+	if blocked, reason := isBlockedBrowsePage(cap.HTML, navStatus, title); blocked {
+		s.log.Warn().
+			Str("url", pageURL).
+			Str("final_url", finalURL).
+			Int("nav_status", navStatus).
+			Str("title", title).
+			Str("page_kind", pageKind).
+			Str("reason", reason).
+			Int("bytes", len(html)).
+			Msg("dns browser: Qrator/blocked page (headless detected?)")
+		return nil, fmt.Errorf("dns browser blocked: %s (HTTP %d, title=%q)", reason, navStatus, title)
+	}
+
+	return cap, nil
+}
+
+func isBlockedBrowsePage(html []byte, navStatus int, title string) (bool, string) {
+	if navStatus == http.StatusForbidden || navStatus == http.StatusUnauthorized {
+		return true, "navigation status"
+	}
+
+	text := strings.ToLower(string(html))
+	titleLower := strings.ToLower(title)
+
+	for _, marker := range []string{
+		"403 forbidden",
+		"access denied",
+		"доступ запрещ",
+		"request blocked",
+		"qrator",
+	} {
+		if strings.Contains(text, marker) || strings.Contains(titleLower, marker) {
+			return true, marker
+		}
+	}
+
+	pageKind, _, _ := diagnoseBrowseHTMLQuick(html)
+	if pageKind == "empty_shell" && len(html) < 20_000 {
+		return true, "empty_shell"
+	}
+	return false, ""
+}
+
+func diagnoseBrowseHTMLQuick(html []byte) (pageKind string, subcategoryAnchors, productAnchors int) {
+	text := string(html)
+	if strings.Contains(text, "subcategory__item") {
+		pageKind = "hub"
+	}
+	if strings.Contains(text, "catalog-product__image-link") {
+		pageKind = "grid"
+	}
+	// rough counts for logging
+	subcategoryAnchors = strings.Count(text, "subcategory__item")
+	productAnchors = strings.Count(text, "catalog-product__image-link")
+	if pageKind == "" {
+		if len(html) < 20_000 && strings.Contains(text, "header-plug") {
+			pageKind = "empty_shell"
+		} else {
+			pageKind = "unknown"
+		}
+	}
+	return pageKind, subcategoryAnchors, productAnchors
+}
+
+func (s *Scraper) logBrowseCapture(pageURL string, cap *pageCapture) {
+	pageKind, subAnchors, prodAnchors := diagnoseBrowseHTMLQuick(cap.HTML)
+	s.log.Info().
+		Str("url", pageURL).
+		Str("final_url", cap.FinalURL).
+		Int("nav_status", cap.NavStatus).
+		Str("title", cap.Title).
+		Str("page_kind", pageKind).
+		Int("bytes", len(cap.HTML)).
+		Int("subcategory_anchors", subAnchors).
+		Int("product_anchors", prodAnchors).
+		Msg("dns browser: page fetched")
 }
 
 func (s *Scraper) dismissCookieBanner(ctx context.Context, page *rod.Page) {
@@ -155,7 +235,7 @@ func (s *Scraper) waitForDNSContent(ctx context.Context, page *rod.Page) string 
 		{".products-page", "grid"},
 	}
 
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(25 * time.Second)
 	for time.Now().Before(deadline) {
 		if ctx.Err() != nil {
 			break
@@ -174,20 +254,32 @@ func (s *Scraper) waitForDNSContent(ctx context.Context, page *rod.Page) string 
 		time.Sleep(400 * time.Millisecond)
 	}
 
-	s.log.Warn().Msg("dns browser: content selectors timeout (page may be empty shell)")
+	s.log.Warn().Msg("dns browser: content selectors timeout")
 	return "unknown"
 }
 
-func (s *Scraper) logBrowseSignals(pageURL, pageKind string, html string) {
-	s.log.Info().
-		Str("url", pageURL).
-		Str("page_kind", pageKind).
-		Int("bytes", len(html)).
-		Bool("has_subcategory_item", strings.Contains(html, "subcategory__item")).
-		Bool("has_product_link", strings.Contains(html, "catalog-product__image-link")).
-		Bool("has_products_page", strings.Contains(html, "products-page")).
-		Bool("has_header_plug", strings.Contains(html, "header-plug")).
-		Msg("dns browser: page fetched")
+func (s *Scraper) syncBrowserCookies(page *rod.Page) {
+	cookies, err := page.Cookies([]string{dnsOrigin})
+	if err != nil {
+		s.log.Warn().Err(err).Msg("dns browser: failed to read cookies")
+		return
+	}
+
+	u, err := url.Parse(dnsOrigin)
+	if err != nil {
+		return
+	}
+
+	httpCookies := make([]*http.Cookie, 0, len(cookies))
+	for _, c := range cookies {
+		httpCookies = append(httpCookies, &http.Cookie{
+			Name:   c.Name,
+			Value:  c.Value,
+			Domain: c.Domain,
+			Path:   c.Path,
+		})
+	}
+	s.client.Jar.SetCookies(u, httpCookies)
 }
 
 func (s *Scraper) closeBrowser() {

@@ -41,7 +41,7 @@ func TestProbeDNSFetch(t *testing.T) {
 	}
 
 	userAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-	scraper := NewScraper(zerolog.Nop(), 60*time.Second, "", userAgent)
+	scraper := NewScraper(zerolog.Nop(), 60*time.Second, "", userAgent, nil)
 
 	var combined strings.Builder
 	combined.WriteString("# DNS fetch probe report\n\n")

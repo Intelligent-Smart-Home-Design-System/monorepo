@@ -60,6 +60,7 @@ type DnsConfig struct {
 	SearchQueries            []string          `mapstructure:"search_queries"`
 	MaxPages                 int               `mapstructure:"max_pages"`
 	UserAgent                string            `mapstructure:"user_agent"`
+	BrowserUserMode          *bool             `mapstructure:"browser_user_mode"` // nil = auto (true on macOS)
 	BrandAliases             map[string]string `mapstructure:"brand_aliases"`
 	SmartHomeDeviceMarkers   []string          `mapstructure:"smart_home_device_markers"`
 }

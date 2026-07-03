@@ -34,7 +34,7 @@ func RunDiscoveryBFS(
 	seeds []string,
 	tasks categoryTaskWriter,
 ) (DiscoverStats, error) {
-	scraper := dnsScraper.NewScraper(logger, scraping.Timeout, scraping.Proxy, userAgent(scraping, dnsCfg))
+	scraper := dnsScraper.NewScraper(logger, scraping.Timeout, scraping.Proxy, userAgent(scraping, dnsCfg), dnsCfg.BrowserUserMode)
 	stats := DiscoverStats{}
 
 	queue := append([]string{}, seeds...)

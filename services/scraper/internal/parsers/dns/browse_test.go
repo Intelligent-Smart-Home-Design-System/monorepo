@@ -20,6 +20,19 @@ func loadFixture(t *testing.T, name string) []byte {
 	return data
 }
 
+func TestDiagnoseBrowseHTML_Hub(t *testing.T) {
+	d := DiagnoseBrowseHTML(loadFixture(t, "category_umnaa_tehnika.html"))
+	assert.Equal(t, "hub", d.PageKind)
+	assert.GreaterOrEqual(t, d.SubcategoryAnchorCount, 10)
+}
+
+func TestDiagnoseBrowseHTML_EmptyShell(t *testing.T) {
+	shell := []byte(`<!DOCTYPE html><html><head><title>DNS</title></head><body><header class="header-plug"></header></body></html>`)
+	d := DiagnoseBrowseHTML(shell)
+	assert.Equal(t, "empty_shell", d.PageKind)
+	assert.Zero(t, d.SubcategoryAnchorCount)
+}
+
 func TestDiscoveryParser_CategoryHub(t *testing.T) {
 	p := NewDiscoveryParser()
 	links, err := p.Parse(1, []*parser.ArchiveFile{

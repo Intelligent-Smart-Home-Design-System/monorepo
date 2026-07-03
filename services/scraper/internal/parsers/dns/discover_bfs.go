@@ -99,6 +99,16 @@ func processPage(
 
 	links, err := extractBrowseLinks(html, pageURL)
 	if err != nil {
+		diag := DiagnoseBrowseHTML(html)
+		evt := logger.Warn().Err(err).Str("url", pageURL)
+		for k, v := range diag.LogFields() {
+			evt = evt.Interface(k, v)
+		}
+		if diag.PageKind == "empty_shell" {
+			evt.Msg("dns bfs: empty page shell — JS likely not rendered yet; check browser wait")
+		} else {
+			evt.Msg("dns bfs: no category or product links in HTML")
+		}
 		return err
 	}
 

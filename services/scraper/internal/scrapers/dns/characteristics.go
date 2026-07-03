@@ -35,7 +35,7 @@ func resolveCharacteristicsURL(pageURL, path string) (string, error) {
 	return base.ResolveReference(ref).String(), nil
 }
 
-func (s *Scraper) fetchCharacteristics(ctx context.Context, client *http.Client, pageURL string, html []byte) (*domain.Resource, error) {
+func (s *Scraper) fetchCharacteristics(ctx context.Context, pageURL string, html []byte) (*domain.Resource, error) {
 	path := extractCharacteristicsPath(html)
 	if path == "" {
 		return nil, fmt.Errorf("characteristics URL not found")
@@ -50,9 +50,9 @@ func (s *Scraper) fetchCharacteristics(ctx context.Context, client *http.Client,
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", s.userAgent)
+	setNavigationHeaders(req, s.userAgent, pageURL)
 
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

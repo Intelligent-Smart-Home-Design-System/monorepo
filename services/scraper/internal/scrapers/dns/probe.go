@@ -103,7 +103,7 @@ func uniqueMatches(matches []string) []string {
 }
 
 func classifyFetch(status int, signals map[string]bool, bodyLen, catalogLinkCount, productLinkCount int) (FetchCase, string) {
-	if status == 403 || status == 429 || status >= 500 {
+	if status == 403 || status == 401 || status == 429 || status >= 500 {
 		return FetchCaseBlocked, fmt.Sprintf("HTTP %d", status)
 	}
 	if signals["has_captcha_page"] || signals["has_access_denied"] {

@@ -97,7 +97,7 @@ func buildProductBuyForm(payload productBuyPayload) (string, error) {
 	return url.Values{"data": {string(raw)}}.Encode(), nil
 }
 
-func (s *Scraper) fetchProductBuy(ctx context.Context, client *http.Client, pageURL string, html []byte) (*domain.Resource, error) {
+func (s *Scraper) fetchProductBuy(ctx context.Context, pageURL string, html []byte) (*domain.Resource, error) {
 	payload, csrfToken, err := extractProductBuyRequest(html)
 	if err != nil {
 		return nil, err
@@ -112,15 +112,12 @@ func (s *Scraper) fetchProductBuy(ctx context.Context, client *http.Client, page
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", s.userAgent)
+	setXHRHeaders(req, s.userAgent, pageURL)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	req.Header.Set("X-CSRF-Token", csrfToken)
 	req.Header.Set("Origin", "https://www.dns-shop.ru")
-	req.Header.Set("Referer", pageURL)
 
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

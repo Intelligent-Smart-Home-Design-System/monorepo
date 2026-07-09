@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/actors"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/devices"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/fschuetz04/simgo"
 )
 
@@ -47,7 +48,7 @@ func (s *stubEnginePort) DrainInChan() {
 }
 
 func (s *stubEnginePort) GetEntity(id string) entities.Entity {
-    return nil
+	return nil
 }
 
 // =====Tests=====
@@ -141,6 +142,101 @@ func TestEntitiesFromDTO_InvalidType(t *testing.T) {
 
 	if err != converter.ErrorInvalidFormat {
 		t.Fatalf("expected ErrorInvalidFormat, got %v", err)
+	}
+}
+
+// TestEntitiesFromDTO_Incidents проверяет создание fire/flood/smoke как общих incident-сущностей.
+func TestEntitiesFromDTO_Incidents(t *testing.T) {
+	engineStub := &stubEnginePort{simulation: simgo.NewSimulation()}
+
+	entitiesDTO := []api.EntityDTO{
+		{
+			ID:   "fire_1",
+			Type: entities.TypeFire,
+			Info: []byte(`{"id":"fire_1","x":1,"y":1,"roomID":"room_1"}`),
+		},
+		{
+			ID:   "flood_1",
+			Type: entities.TypeFlood,
+			Info: []byte(`{"id":"flood_1","x":1,"y":1,"roomID":"room_1"}`),
+		},
+		{
+			ID:   "smoke_1",
+			Type: entities.TypeSmoke,
+			Info: []byte(`{"id":"smoke_1","x":1,"y":1,"roomID":"room_1"}`),
+		},
+	}
+
+	entitiesMap, err := converter.EntitiesFromDTO(entitiesDTO, engineStub)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, ok := entitiesMap["fire_1"].(*actors.Incident); !ok {
+		t.Fatalf("expected fire incident, got %T", entitiesMap["fire_1"])
+	}
+	if _, ok := entitiesMap["flood_1"].(*actors.Incident); !ok {
+		t.Fatalf("expected flood incident, got %T", entitiesMap["flood_1"])
+	}
+	if _, ok := entitiesMap["smoke_1"].(*actors.Incident); !ok {
+		t.Fatalf("expected smoke incident, got %T", entitiesMap["smoke_1"])
+	}
+}
+
+// TestEntitiesFromDTO_IncidentSensorsObservedKinds проверяет дефолтные подписки specialized incident-сенсоров.
+func TestEntitiesFromDTO_IncidentSensorsObservedKinds(t *testing.T) {
+	engineStub := &stubEnginePort{simulation: simgo.NewSimulation()}
+
+	entitiesDTO := []api.EntityDTO{
+		{
+			ID:   "motion_1",
+			Type: entities.TypeRadiusMoveSensorWithoutUpdate,
+			Info: []byte(`{"id":"motion_1","x":1,"y":1,"radius":1}`),
+		},
+		{
+			ID:   "fire_sensor_1",
+			Type: entities.TypeFireSensor,
+			Info: []byte(`{"id":"fire_sensor_1","x":1,"y":1,"radius":1}`),
+		},
+		{
+			ID:   "flood_sensor_1",
+			Type: entities.TypeFloodSensor,
+			Info: []byte(`{"id":"flood_sensor_1","x":1,"y":1,"radius":1}`),
+		},
+		{
+			ID:   "smoke_sensor_1",
+			Type: entities.TypeSmokeSensor,
+			Info: []byte(`{"id":"smoke_sensor_1","x":1,"y":1,"radius":1}`),
+		},
+		{
+			ID:   "custom_sensor_1",
+			Type: entities.TypeRadiusMoveSensorWithoutUpdate,
+			Info: []byte(`{"id":"custom_sensor_1","x":1,"y":1,"radius":1,"observedKinds":["smoke:spread"]}`),
+		},
+	}
+
+	entitiesMap, err := converter.EntitiesFromDTO(entitiesDTO, engineStub)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	assertObservedKinds(t, entitiesMap["motion_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{"human:move", "device:move"})
+	assertObservedKinds(t, entitiesMap["fire_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindFireSpread})
+	assertObservedKinds(t, entitiesMap["flood_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindFloodSpread})
+	assertObservedKinds(t, entitiesMap["smoke_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindSmokeSpread})
+	assertObservedKinds(t, entitiesMap["custom_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindSmokeSpread})
+}
+
+// assertObservedKinds сравнивает списки kind-ов подписки датчика и завершает тест при несовпадении.
+func assertObservedKinds(t *testing.T, actual, expected []string) {
+	t.Helper()
+	if len(actual) != len(expected) {
+		t.Fatalf("expected observed kinds %v, got %v", expected, actual)
+	}
+	for idx := range expected {
+		if actual[idx] != expected[idx] {
+			t.Fatalf("expected observed kinds %v, got %v", expected, actual)
+		}
 	}
 }
 

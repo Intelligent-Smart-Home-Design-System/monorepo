@@ -45,9 +45,10 @@ type Observer interface {
 }
 
 type Tickable interface {
-    Entity
-    OnTick()
+	Entity
+	OnTick()
 }
+
 // Типы сущностей
 const (
 	TypeLamp                          = "lamp"
@@ -59,6 +60,9 @@ const (
 	TypeSensorWithIntStatus           = "sensorWithIntStatus"
 	TypeRadiusMoveSensorWithUpdate    = "radiusMoveSensorWithUpdate"
 	TypeRadiusMoveSensorWithoutUpdate = "radiusMoveSensorWithoutUpdate"
+	TypeFireSensor                    = "fireSensor"
+	TypeFloodSensor                   = "floodSensor"
+	TypeSmokeSensor                   = "smokeSensor"
 	TypeSiren                         = "siren"
 	TypeWindow                        = "window"
 	TypeDoor                          = "door"
@@ -73,5 +77,7 @@ const (
 	TypeSubwoofer                     = "subwoofer"
 
 	TypeHuman = "human"
-	TypeFire = "fire"
+	TypeFire  = "fire"
+	TypeFlood = "flood"
+	TypeSmoke = "smoke"
 )

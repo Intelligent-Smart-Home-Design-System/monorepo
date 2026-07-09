@@ -16,6 +16,11 @@ import (
 )
 
 // ===== Helper =====
+// incidentTestBlock описывает минимальный DTO incident-блока, нужный e2e-тестам.
+type incidentTestBlock struct {
+	Points [][2]float64 `json:"points"`
+}
+
 // dialSim устанавливает WebSocket-соединение
 func dialSim(t *testing.T, server *httptest.Server) *websocket.Conn {
 	t.Helper()
@@ -32,6 +37,64 @@ func dialSim(t *testing.T, server *httptest.Server) *websocket.Conn {
 	})
 
 	return conn
+}
+
+// incidentBlocksCoverPoint проверяет, покрывает ли хотя бы один incident-блок заданную точку.
+func incidentBlocksCoverPoint(blocks []incidentTestBlock, point [2]float64) bool {
+	for _, block := range blocks {
+		if pointInPolygon(point, block.Points) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// pointInPolygon проверяет, находится ли точка внутри polygon или на его границе.
+func pointInPolygon(point [2]float64, polygon [][2]float64) bool {
+	if len(polygon) < 3 {
+		return false
+	}
+
+	for i := range polygon {
+		next := (i + 1) % len(polygon)
+		if pointOnSegment(point, polygon[i], polygon[next]) {
+			return true
+		}
+	}
+
+	inside := false
+	j := len(polygon) - 1
+	for i := range polygon {
+		pi := polygon[i]
+		pj := polygon[j]
+		if (pi[1] > point[1]) != (pj[1] > point[1]) {
+			x := (pj[0]-pi[0])*(point[1]-pi[1])/(pj[1]-pi[1]) + pi[0]
+			if point[0] < x {
+				inside = !inside
+			}
+		}
+		j = i
+	}
+
+	return inside
+}
+
+// pointOnSegment проверяет, лежит ли точка на отрезке ab.
+func pointOnSegment(point, a, b [2]float64) bool {
+	const epsilon = 1e-9
+	cross := (point[1]-a[1])*(b[0]-a[0]) - (point[0]-a[0])*(b[1]-a[1])
+	if cross < -epsilon || cross > epsilon {
+		return false
+	}
+
+	dot := (point[0]-a[0])*(b[0]-a[0]) + (point[1]-a[1])*(b[1]-a[1])
+	if dot < -epsilon {
+		return false
+	}
+
+	lengthSquared := (b[0]-a[0])*(b[0]-a[0]) + (b[1]-a[1])*(b[1]-a[1])
+	return dot <= lengthSquared+epsilon
 }
 
 // sendMsg отправляет сообщение msg через websocket соединение conn. Если возникает ошибка, тест завершается с фатальной ошибкой.
@@ -1371,7 +1434,7 @@ func TestObserver_CameraInAnotherRoom_DoesNotTrigger(t *testing.T) {
 	}
 }
 
-// TestFire_SingleRoom проверяет что радиус огня достигает всех углов комнаты в нужный тик.
+// TestFire_SingleRoom проверяет, что incident-блоки огня покрывают все углы комнаты в нужный тик.
 func TestFire_SingleRoom(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1414,7 +1477,7 @@ func TestFire_SingleRoom(t *testing.T) {
 	corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
 	allCornersReached := false
 
-	for i := 1; i <= 8; i++ {
+	for i := 1; i <= 12; i++ {
 		var inputs []api.EventDTO
 		if i == 1 {
 			inputs = []api.EventDTO{fireInput}
@@ -1423,27 +1486,32 @@ func TestFire_SingleRoom(t *testing.T) {
 		step := tick(t, conn, reqID, i, inputs)
 
 		for _, change := range step.StateChanges {
+			var raw map[string]json.RawMessage
+			if err := json.Unmarshal(change.Payload, &raw); err == nil {
+				if _, ok := raw["fires"]; ok {
+					t.Fatal("fire output should use incidents, not legacy fires")
+				}
+			}
+
 			var out struct {
-				Kind  string `json:"kind"`
-				Fires []struct {
-					RoomID string  `json:"roomID"`
-					X      float64 `json:"x"`
-					Y      float64 `json:"y"`
-					Radius float64 `json:"radius"`
-				} `json:"fires"`
+				Kind      string `json:"kind"`
+				Incidents []struct {
+					RoomID string              `json:"roomID"`
+					Blocks []incidentTestBlock `json:"blocks"`
+				} `json:"incidents"`
 			}
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
+			if out.Kind != "fire:spread" {
+				continue
+			}
 
-			for _, zone := range out.Fires {
+			for _, zone := range out.Incidents {
 				reached := true
 
 				for _, corner := range corners {
-					dx := corner[0] - zone.X
-
-					dy := corner[1] - zone.Y
-					if dx*dx+dy*dy > zone.Radius*zone.Radius {
+					if !incidentBlocksCoverPoint(zone.Blocks, corner) {
 						reached = false
 						break
 					}
@@ -1452,8 +1520,8 @@ func TestFire_SingleRoom(t *testing.T) {
 				if reached {
 					allCornersReached = true
 
-					if i < 8 {
-						t.Fatalf("fire reached all corners too early at tick %d (radius=%.2f)", i, zone.Radius)
+					if i < 10 {
+						t.Fatalf("fire reached all corners too early at tick %d", i)
 					}
 				}
 			}
@@ -1461,7 +1529,7 @@ func TestFire_SingleRoom(t *testing.T) {
 	}
 
 	if !allCornersReached {
-		t.Fatal("fire never reached all 4 corners within 8 ticks")
+		t.Fatal("fire never reached all 4 corners with incident blocks")
 	}
 }
 
@@ -1486,7 +1554,7 @@ func TestFire_SpreadsThroughDoor(t *testing.T) {
 			},
 			{
 				ID:   "radiusMoveSensorWithoutUpdate_1",
-				Type: entities.TypeRadiusMoveSensorWithoutUpdate,
+				Type: entities.TypeFireSensor,
 				Info: json.RawMessage(`{"id":"radiusMoveSensorWithoutUpdate_1","x":7.5,"y":2.5,"radius":0.5,"delay":0.0}`),
 			},
 		},
@@ -1520,7 +1588,7 @@ func TestFire_SpreadsThroughDoor(t *testing.T) {
 		t.Fatal("fire sensor in room_2 was never triggered")
 	}
 
-	if sensorTriggeredAt < 10 {
-		t.Fatalf("fire sensor triggered too early at tick %d, expected >= 10", sensorTriggeredAt)
+	if sensorTriggeredAt < 9 {
+		t.Fatalf("fire sensor triggered too early at tick %d, expected >= 9", sensorTriggeredAt)
 	}
 }

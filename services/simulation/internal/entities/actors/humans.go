@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"sort"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
@@ -72,11 +71,6 @@ type HumanInteractionOutData struct {
 // GetStatus возвращает статус результата взаимодействия.
 func (r HumanInteractionOutData) GetStatus() string {
 	return r.Status
-}
-
-// segment вспомогательная структура для отрезка
-type segment struct {
-	x1, y1, x2, y2 float64
 }
 
 // NewHuman создает новый экземпляр человека на основе входных данных. Проверяет корректность начальной позиции и комнаты.
@@ -297,168 +291,6 @@ func (h *Human) resolveMovement(move segment, floor *api.Floor) (float64, float6
 	return h.X + (move.x2-h.X)*closestT,
 		h.Y + (move.y2-h.Y)*closestT,
 		newRoomID
-}
-
-// splitWallByDoors разбивает стену на части исключая дверные проёмы.
-func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
-	wallStart := wall.Points[0]
-	wallEnd := wall.Points[1]
-
-	wallDX := wallEnd[0] - wallStart[0]
-	wallDY := wallEnd[1] - wallStart[1]
-	wallLenSq := wallDX*wallDX + wallDY*wallDY
-
-	type interval struct {
-		t1 float64
-		t2 float64
-	}
-
-	var gaps []interval
-
-	for _, door := range doors {
-		if !doorOnWall(door, wall) {
-			continue
-		}
-
-		t1 := projectOnSegment(door.Points[0], wallStart, wallEnd, wallLenSq)
-		t2 := projectOnSegment(door.Points[1], wallStart, wallEnd, wallLenSq)
-
-		if t1 > t2 {
-			t1, t2 = t2, t1
-		}
-
-		if t2 > 0 && t1 < 1 {
-			gaps = append(gaps, interval{
-				math.Max(0, t1),
-				math.Min(1, t2),
-			})
-		}
-	}
-
-	if len(gaps) == 0 {
-		return []segment{{wallStart[0], wallStart[1], wallEnd[0], wallEnd[1]}}
-	}
-
-	sort.Slice(gaps, func(i, j int) bool {
-		return gaps[i].t1 < gaps[j].t1
-	})
-
-	var segments []segment
-
-	prev := 0.0
-
-	for _, gap := range gaps {
-		if gap.t1 > prev+1e-10 {
-			segments = append(segments, segment{
-				wallStart[0] + prev*wallDX,
-				wallStart[1] + prev*wallDY,
-				wallStart[0] + gap.t1*wallDX,
-				wallStart[1] + gap.t1*wallDY,
-			})
-		}
-
-		if gap.t2 > prev {
-			prev = gap.t2
-		}
-	}
-
-	if prev < 1.0-1e-10 {
-		segments = append(segments, segment{
-			wallStart[0] + prev*wallDX,
-			wallStart[1] + prev*wallDY,
-			wallEnd[0],
-			wallEnd[1],
-		})
-	}
-
-	return segments
-}
-
-// projectOnSegment проецирует точку p на отрезок и возвращает параметр t ∈ [0..1].
-func projectOnSegment(p [2]float64, start, end [2]float64, lenSq float64) float64 {
-	dx := end[0] - start[0]
-	dy := end[1] - start[1]
-	t := ((p[0]-start[0])*dx + (p[1]-start[1])*dy) / lenSq
-
-	return math.Max(0, math.Min(1, t))
-}
-
-// findRoomByID находит комнату по ID.
-func findRoomByID(floor *api.Floor, roomID string) *api.Room {
-	for i, room := range floor.Rooms {
-		if room.ID == roomID {
-			return &floor.Rooms[i]
-		}
-	}
-
-	return nil
-}
-
-// findWallByID находит стену по ID.
-func findWallByID(floor *api.Floor, wallID string) *api.Wall {
-	for i, wall := range floor.Walls {
-		if wall.ID == wallID {
-			return &floor.Walls[i]
-		}
-	}
-
-	return nil
-}
-
-// doorOnWall проверяет что дверь лежит на стене (коллинеарна и перекрывается).
-func doorOnWall(door *api.Door, wall *api.Wall) bool {
-	wallSeg := segment{
-		wall.Points[0][0], wall.Points[0][1],
-		wall.Points[1][0], wall.Points[1][1],
-	}
-	doorSeg := segment{
-		door.Points[0][0], door.Points[0][1],
-		door.Points[1][0], door.Points[1][1],
-	}
-
-	return segmentsCollinearAndOverlap(wallSeg, doorSeg)
-}
-
-// intersectSegments находит параметр t пересечения отрезков [0..1].
-// t - насколько далеко вдоль первого отрезка находится точка пересечения.
-func intersectSegments(a, b segment) (float64, bool) {
-	dx1 := a.x2 - a.x1
-	dy1 := a.y2 - a.y1
-	dx2 := b.x2 - b.x1
-	dy2 := b.y2 - b.y1
-
-	denominator := dx1*dy2 - dy1*dx2
-	if math.Abs(denominator) < 1e-10 {
-		return 0, false // параллельные отрезки
-	}
-
-	// перечение
-	t := ((b.x1-a.x1)*dy2 - (b.y1-a.y1)*dx2) / denominator
-	u := ((b.x1-a.x1)*dy1 - (b.y1-a.y1)*dx1) / denominator
-
-	if t >= 0 && t <= 1 && u >= 0 && u <= 1 {
-		return t, true
-	}
-
-	return 0, false
-}
-
-// segmentsCollinearAndOverlap проверяет что отрезки коллинеарны и перекрываются.
-func segmentsCollinearAndOverlap(a, b segment) bool {
-	// проверяем коллинеарность через векторное произведение
-	cross := (a.x2-a.x1)*(b.y1-a.y1) - (a.y2-a.y1)*(b.x1-a.x1)
-	if math.Abs(cross) > 1e-10 {
-		return false
-	}
-
-	// проверяем перекрытие проекций на ось X или Y
-	aMinX, aMaxX := math.Min(a.x1, a.x2), math.Max(a.x1, a.x2)
-	bMinX, bMaxX := math.Min(b.x1, b.x2), math.Max(b.x1, b.x2)
-	aMinY, aMaxY := math.Min(a.y1, a.y2), math.Max(a.y1, a.y2)
-	bMinY, bMaxY := math.Min(b.y1, b.y2), math.Max(b.y1, b.y2)
-
-	return aMinX <= bMaxX && bMinX <= aMaxX &&
-		aMinY <= bMaxY && bMinY <= aMaxY
 }
 
 // GetID возвращает ID человека.

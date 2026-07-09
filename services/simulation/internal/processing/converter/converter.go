@@ -67,6 +67,30 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeFireSensor:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			sensor.SetObservedKinds([]string{actors.KindFireSpread})
+
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeFloodSensor:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			sensor.SetObservedKinds([]string{actors.KindFloodSpread})
+
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeSmokeSensor:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			sensor.SetObservedKinds([]string{actors.KindSmokeSpread})
+
+			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeRadiusMoveSensorWithUpdate:
 			sensor, err := devices.NewRadiusSensorWithUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -88,6 +112,20 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = fire
+		case entities.TypeFlood:
+			flood, err := actors.NewFlood(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = flood
+		case entities.TypeSmoke:
+			smoke, err := actors.NewSmoke(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = smoke
 		case entities.TypeSmartDimmer:
 			dimmer, err := devices.NewSmartDimmer(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -238,6 +276,12 @@ func normalizeEntityType(entityDTO api.EntityDTO) string {
 		return entities.TypeRadiusMoveSensorWithUpdate
 	case "radius_move_sensor_without_update":
 		return entities.TypeRadiusMoveSensorWithoutUpdate
+	case "fire_sensor":
+		return entities.TypeFireSensor
+	case "flood_sensor", "leak_sensor", "water_leak_sensor":
+		return entities.TypeFloodSensor
+	case "smoke_sensor":
+		return entities.TypeSmokeSensor
 	default:
 		return entityType
 	}

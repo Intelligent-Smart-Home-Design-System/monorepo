@@ -27,10 +27,12 @@ import (
 )
 
 func main() {
-	log.Logger = logging.New("pipeline-worker")
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	logRuntime := logging.NewWithTelemetry(ctx, "pipeline-worker")
+	log.Logger = logRuntime.Logger
+	defer shutdownLogs(logRuntime)
 
 	cfg, err := config.Load(configPath())
 	if err != nil {
@@ -60,11 +62,12 @@ func main() {
 	defer temporalClient.Close()
 
 	runner, err := docker.NewRunner(docker.Settings{
-		Host:            cfg.Docker.Host,
-		NetworkName:     cfg.Docker.NetworkName,
-		ContainerPrefix: cfg.Docker.ContainerPrefix,
-		AutoRemove:      cfg.Docker.AutoRemove,
-		ConfigRoot:      cfg.ConfigRoot(),
+		Host:                  cfg.Docker.Host,
+		NetworkName:           cfg.Docker.NetworkName,
+		MonitoringNetworkName: cfg.Docker.MonitoringNetworkName,
+		ContainerPrefix:       cfg.Docker.ContainerPrefix,
+		AutoRemove:            cfg.Docker.AutoRemove,
+		ConfigRoot:            cfg.ConfigRoot(),
 	}, log.Logger)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create Docker runner")
@@ -157,5 +160,14 @@ func shutdownMetrics(server *metrics.Server) {
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Failed to stop metrics server")
+	}
+}
+
+func shutdownLogs(runtime logging.Runtime) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := runtime.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to flush OTLP log exporter")
 	}
 }

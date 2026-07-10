@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
@@ -15,13 +16,33 @@ func NewTrackedPageRepo(db *sql.DB) *TrackedPageRepo {
 	return &TrackedPageRepo{db: db}
 }
 
-func (r *TrackedPageRepo) GetTasks() ([]domain.ScrapeTask, error) {
-	rows, err := r.db.Query(`
-        SELECT id, source_name, page_type, url
+func (r *TrackedPageRepo) GetTasks(source, pageType string, limit int) ([]domain.ScrapeTask, error) {
+	query := `
+        SELECT id, source_name, page_type, url, first_seen_at, last_scraped_at
         FROM tracked_pages
-        WHERE is_active = true
-        ORDER BY last_scraped_at NULLS FIRST
-    `)
+        WHERE is_active = true`
+	args := make([]any, 0, 3)
+	argN := 1
+
+	if source != "" {
+		query += fmt.Sprintf(" AND source_name = $%d", argN)
+		args = append(args, source)
+		argN++
+	}
+	if pageType != "" {
+		query += fmt.Sprintf(" AND page_type = $%d", argN)
+		args = append(args, pageType)
+		argN++
+	}
+
+	query += " ORDER BY last_scraped_at NULLS FIRST"
+
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argN)
+		args = append(args, limit)
+	}
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +52,15 @@ func (r *TrackedPageRepo) GetTasks() ([]domain.ScrapeTask, error) {
 	for rows.Next() {
 		var t domain.ScrapeTask
 		var pageType string
-		if err := rows.Scan(&t.ID, &t.Source, &pageType, &t.URL); err != nil {
+		var lastScraped sql.NullTime
+		if err := rows.Scan(&t.ID, &t.Source, &pageType, &t.URL, &t.FirstSeenAt, &lastScraped); err != nil {
 			return nil, err
 		}
 		t.PageType = domain.PageTypeFromString(pageType)
+		if lastScraped.Valid {
+			ts := lastScraped.Time
+			t.LastScrapedAt = &ts
+		}
 		tasks = append(tasks, t)
 	}
 	return tasks, rows.Err()

@@ -1,0 +1,17 @@
+{
+  "result": true,
+  "data": {
+    "states": [
+      {
+        "id": "as-n3NQhU",
+        "data": {
+          "id": "420b8a9a-b11a-11ef-92b7-0050569d0a4d",
+          "name": "Датчик MOES ZigBee Flood Sensor Water Leakage Detector",
+          "price": {
+            "current": 2499
+          }
+        }
+      }
+    ]
+  }
+}

@@ -54,10 +54,11 @@ type TemporalConfig struct {
 }
 
 type DockerConfig struct {
-	Host            string `toml:"host"`
-	NetworkName     string `toml:"network_name"`
-	ContainerPrefix string `toml:"container_prefix"`
-	AutoRemove      bool   `toml:"auto_remove"`
+	Host                  string `toml:"host"`
+	NetworkName           string `toml:"network_name"`
+	MonitoringNetworkName string `toml:"monitoring_network_name"`
+	ContainerPrefix       string `toml:"container_prefix"`
+	AutoRemove            bool   `toml:"auto_remove"`
 }
 
 type MetricsConfig struct {

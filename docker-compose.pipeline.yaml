@@ -1,0 +1,186 @@
+# Catalog pipeline stack (Temporal + catalog DB + pipeline-worker).
+#
+# Requires external network monorepo-monitoring — run `make monitoring-up` first.
+# OTLP: OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4318 (HTTP).
+#
+# Usage (from monorepo root):
+#   make pipeline-stack-up     # monitoring → pipeline (recommended)
+#   make pipeline-trigger
+#
+# Requires monorepo-monitoring (run make monitoring-up first, or use pipeline-stack-up).
+# catalog-pipeline-network is created by this compose file on pipeline-up.
+
+name: catalog-pipeline
+
+services:
+  temporal-postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - temporal-postgresql-data:/var/lib/postgresql/data
+
+  temporal:
+    image: temporalio/auto-setup:1.23.0
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgresql
+    ports:
+      - "${PIPELINE_TEMPORAL_PORT:-7233}:7233"
+
+  temporal-ui:
+    image: temporalio/ui:2.21.3
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:${PIPELINE_TEMPORAL_UI_PORT:-8088}
+    ports:
+      - "${PIPELINE_TEMPORAL_UI_PORT:-8088}:8080"
+    restart: unless-stopped
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.23.0
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    profiles:
+      - tools
+    stdin_open: true
+    tty: true
+
+  catalog-postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: smart_home
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog -d smart_home"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "${PIPELINE_CATALOG_DB_PORT:-5432}:5432"
+    volumes:
+      - catalog-postgresql-data:/var/lib/postgresql/data
+
+  catalog-db-migrate:
+    image: migrate/migrate:v4.18.3
+    depends_on:
+      catalog-postgresql:
+        condition: service_healthy
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://catalog:${CATALOG_DATABASE_PASSWORD:-catalog}@catalog-postgresql:5432/smart_home?sslmode=disable",
+        "up"
+      ]
+    volumes:
+      - ./db/catalog/migrations:/migrations:ro
+    restart: "no"
+
+  catalog-db-seed-tracked-pages:
+    image: postgres:16-alpine
+    profiles: [seed]
+    depends_on:
+      catalog-postgresql:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
+    command:
+      [
+        "psql",
+        "-h",
+        "catalog-postgresql",
+        "-U",
+        "catalog",
+        "-d",
+        "smart_home",
+        "-f",
+        "/seed/seed_tracked_pages.sql"
+      ]
+    volumes:
+      - ./services/pipeline-worker/config/seed_tracked_pages.sql:/seed/seed_tracked_pages.sql:ro
+    restart: "no"
+
+  pipeline-worker:
+    image: pipeline-worker:latest
+    build:
+      context: .
+      dockerfile: services/pipeline-worker/Dockerfile
+      target: worker
+    depends_on:
+      temporal:
+        condition: service_started
+      catalog-db-migrate:
+        condition: service_completed_successfully
+    environment:
+      PIPELINE_CONFIG: /app/config/pipeline.toml
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRACING_ENABLED: ${TRACING_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      CATALOG_DATABASE_PASSWORD: ${CATALOG_DATABASE_PASSWORD:-catalog}
+      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-dummy-yandex-api-key}
+    volumes:
+      - ./services/pipeline-worker/config:/app/config:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${PIPELINE_WORKER_METRICS_PORT:-2112}:2112"
+    restart: unless-stopped
+    networks:
+      - default
+      - monorepo-monitoring
+
+  pipeline-trigger:
+    image: pipeline-trigger:latest
+    build:
+      context: .
+      dockerfile: services/pipeline-worker/Dockerfile
+      target: trigger
+    depends_on:
+      temporal:
+        condition: service_started
+      pipeline-worker:
+        condition: service_started
+    environment:
+      PIPELINE_CONFIG: /app/config/pipeline.toml
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRACING_ENABLED: ${TRACING_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      WAIT_FOR_COMPLETION: ${WAIT_FOR_COMPLETION:-true}
+    volumes:
+      - ./services/pipeline-worker/config:/app/config:ro
+    profiles:
+      - tools
+    networks:
+      - default
+      - monorepo-monitoring
+
+networks:
+  default:
+    name: catalog-pipeline-network
+  monorepo-monitoring:
+    external: true
+
+volumes:
+  temporal-postgresql-data:
+  catalog-postgresql-data:

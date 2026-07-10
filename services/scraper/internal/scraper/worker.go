@@ -50,7 +50,12 @@ func (w *Worker) Run(ctx context.Context, tasks <-chan domain.ScrapeTask) {
 			w.wg.Go(func() {
 				result, err := w.processTask(ctx, task)
 				if err != nil {
-					w.logger.Error().Msgf("scraping %s failed: %v", task.URL, err)
+					w.logger.Error().
+						Str("source", task.Source).
+						Str("page_type", task.PageType.String()).
+						Str("url", task.URL).
+						Err(err).
+						Msg("scraping failed")
 					w.results <- domain.ScrapeResult{Err: err}
 					return
 				}
@@ -66,13 +71,18 @@ func (w *Worker) processTask(ctx context.Context, task domain.ScrapeTask) (*doma
 		return nil, fmt.Errorf("scraper for source %s not found", task.Source)
 	}
 
+	taskLog := w.logger.With().
+		Str("source", task.Source).
+		Str("page_type", task.PageType.String()).
+		Logger()
+
 	start := time.Now()
 	result, err := scraper.Scrape(ctx, task)
 	durationMs := int(time.Since(start).Milliseconds())
 
 	if err != nil {
-		w.logger.Error().Err(err).Str("url", task.URL).Msg("scraping failed")
-		w.logger.Debug().Int("task_id", task.ID).Err(err).Msg("worker: error scraping task")
+		taskLog.Error().Err(err).Str("url", task.URL).Msg("scraping failed")
+		taskLog.Debug().Int("task_id", task.ID).Err(err).Msg("worker: error scraping task")
 		return &domain.ScrapeResult{
 			TrackedPageID: task.ID,
 			DurationMs:    durationMs,
@@ -82,6 +92,6 @@ func (w *Worker) processTask(ctx context.Context, task domain.ScrapeTask) (*doma
 
 	result.TrackedPageID = task.ID
 	result.DurationMs = durationMs
-	w.logger.Debug().Int("task_id", task.ID).Int("resources", len(result.Resources)).Msg("worker: success for task")
+	taskLog.Debug().Int("task_id", task.ID).Int("resources", len(result.Resources)).Msg("worker: success for task")
 	return result, nil
 }

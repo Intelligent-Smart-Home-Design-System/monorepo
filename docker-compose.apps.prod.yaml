@@ -76,6 +76,8 @@ services:
         condition: service_started
       main-pipeline:
         condition: service_started
+      simulation:
+        condition: service_started
       catalog-db-migrate:
         condition: service_completed_successfully
     environment:
@@ -85,6 +87,7 @@ services:
       HTTP_ADDRESS: :8080
       METRICS_ADDRESS: :2116
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      SIMULATION_WS_URL: ws://simulation:8080/ws/simulation
       LOG_LEVEL: info
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
@@ -126,8 +129,17 @@ services:
       target: next
       args:
         APP: sim-ui
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8090}
     ports:
       - "3001:3000"
+    restart: unless-stopped
+
+  simulation:
+    build:
+      context: .
+      dockerfile: services/simulation/Dockerfile
+    expose:
+      - "8080"
     restart: unless-stopped
 
   nginx:
@@ -137,6 +149,7 @@ services:
       - frontend-api
       - web
       - sim-ui
+      - simulation
     volumes:
       - ./services/main-pipeline/nginx/conf.d:/etc/nginx/conf.d:ro
     ports:

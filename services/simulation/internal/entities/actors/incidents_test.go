@@ -78,6 +78,29 @@ func TestNewIncidents_HaveSpreadKinds(t *testing.T) {
 	}
 }
 
+// TestIncidentApplyActivation_UsesEventOrigin проверяет, что первый turn_on заменяет стартовую точку из entity info.
+func TestIncidentApplyActivation_UsesEventOrigin(t *testing.T) {
+	x, y := 4.25, 2.75
+	incident := &Incident{X: 1, Y: 1, RoomID: "old_room"}
+
+	incident.applyActivation(IncidentInData{TurnOn: true, X: &x, Y: &y, RoomID: "room_2"})
+
+	if incident.X != x || incident.Y != y || incident.RoomID != "room_2" {
+		t.Fatalf("activation origin was not applied: x=%v y=%v room=%q", incident.X, incident.Y, incident.RoomID)
+	}
+}
+
+// TestIncidentApplyActivation_KeepsConfiguredFallback проверяет совместимость со старыми событиями без координат.
+func TestIncidentApplyActivation_KeepsConfiguredFallback(t *testing.T) {
+	incident := &Incident{X: 1, Y: 2, RoomID: "room_1"}
+
+	incident.applyActivation(IncidentInData{TurnOn: true})
+
+	if incident.X != 1 || incident.Y != 2 || incident.RoomID != "room_1" {
+		t.Fatalf("configured origin changed: x=%v y=%v room=%q", incident.X, incident.Y, incident.RoomID)
+	}
+}
+
 // TestIncidentGrid_DoesNotCrossWallWithoutDoor проверяет, что incident не проходит через общую стену без двери.
 func TestIncidentGrid_DoesNotCrossWallWithoutDoor(t *testing.T) {
 	floor := &api.Floor{
@@ -186,5 +209,55 @@ func TestIncidentGrid_ClipsBlockByWall(t *testing.T) {
 		if point[0] > 5.0+blockEpsilon {
 			t.Fatalf("block was not clipped by wall: x=%.3f", point[0])
 		}
+	}
+}
+
+// TestIncidentGrid_SpreadsInAllFourDirections проверяет BFS на отрицательных координатах реального floor.
+func TestIncidentGrid_SpreadsInAllFourDirections(t *testing.T) {
+	floor := &api.Floor{
+		Rooms: []api.Room{{
+			ID:   "room_negative",
+			Area: [][2]float64{{-2, -2}, {2, -2}, {2, 2}, {-2, 2}},
+		}},
+		Adjacency: map[string][]api.RoomEdge{},
+	}
+	grid := NewIncidentGrid(floor, 0.5)
+	grid.Ignite(-0.25, -0.25, "room_negative")
+
+	if !grid.Step() {
+		t.Fatal("first BFS step did not activate neighbors")
+	}
+
+	want := map[[2]float64]bool{
+		{-0.75, -0.25}: true,
+		{0.25, -0.25}:  true,
+		{-0.25, -0.75}: true,
+		{-0.25, 0.25}:  true,
+	}
+	for id := range grid.burning {
+		cell := grid.cells[id]
+		delete(want, [2]float64{cell.x, cell.y})
+	}
+	if len(want) != 0 {
+		t.Fatalf("BFS did not spread to all directions, missing: %v", want)
+	}
+}
+
+// TestIncidentGrid_StepStopsAfterFrontierExhausted проверяет отсутствие новых snapshots после заполнения комнаты.
+func TestIncidentGrid_StepStopsAfterFrontierExhausted(t *testing.T) {
+	floor := &api.Floor{
+		Rooms: []api.Room{{
+			ID:   "room_small",
+			Area: [][2]float64{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+		}},
+		Adjacency: map[string][]api.RoomEdge{},
+	}
+	grid := NewIncidentGrid(floor, 0.5)
+	grid.Ignite(0.25, 0.25, "room_small")
+
+	for grid.Step() {
+	}
+	if grid.Step() {
+		t.Fatal("exhausted BFS frontier reported new cells")
 	}
 }

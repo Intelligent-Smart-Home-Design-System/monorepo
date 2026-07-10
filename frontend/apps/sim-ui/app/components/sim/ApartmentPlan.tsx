@@ -3,8 +3,15 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { Device, DeviceMarker, LogEvent, Room } from "@/app/simulation/Mockdata";
 import type { FloorPlanView, WallSegment } from "@/app/simulation/floorAdapter";
+import type { IncidentKind } from "@/app/simulation/wsClient";
 
 type Point = { x: number; y: number };
+export type IncidentPolygon = {
+  id: string;
+  kind: IncidentKind;
+  points: Point[];
+  intensity?: number;
+};
 
 type Props = {
   rooms: Room[];
@@ -20,21 +27,17 @@ type Props = {
   onRemoveDevice?: (id: string) => void;
   fireMode?: boolean;
   firePoint?: Point | null;
-  firePoints?: Point[];
   fireActive?: boolean;
-  fireActiveDeviceIds?: string[];
   onToggleFireMode?: () => void;
   onPlaceFire?: (point: Point) => void;
   onResetFire?: () => void;
   waterMode?: boolean;
   waterPoint?: Point | null;
-  waterPoints?: Point[];
   waterActive?: boolean;
-  waterActiveDeviceIds?: string[];
+  incidentPolygons?: IncidentPolygon[];
   onToggleWaterMode?: () => void;
   onPlaceWater?: (point: Point) => void;
   onResetWater?: () => void;
-  disasterMessage?: string | null;
   onPersonMove?: (point: Point, devicesPayload: string[]) => void;
   onMotionSensorTrigger?: (sensorId: string, point: Point) => void;
   onDeviceTrigger?: (deviceId: string) => void;
@@ -92,21 +95,17 @@ export function ApartmentPlan({
   onRemoveDevice,
   fireMode = false,
   firePoint = null,
-  firePoints = [],
   fireActive = false,
-  fireActiveDeviceIds = [],
   onToggleFireMode,
   onPlaceFire,
   onResetFire,
   waterMode = false,
   waterPoint = null,
-  waterPoints = [],
   waterActive = false,
-  waterActiveDeviceIds = [],
+  incidentPolygons = [],
   onToggleWaterMode,
   onPlaceWater,
   onResetWater,
-  disasterMessage = null,
   onPersonMove,
   onMotionSensorTrigger,
   onDeviceTrigger,
@@ -353,6 +352,9 @@ export function ApartmentPlan({
     { kind: "horizontal", y: 0.671, x1: 0.6, x2: 0.7 },
   ];
   const blockingWalls = floorPlan?.blockers?.length ? floorPlan.blockers : fallbackBlockingWalls;
+  const fireIncidentPolygons = incidentPolygons.filter((polygon) => polygon.kind === "fire:spread");
+  const floodIncidentPolygons = incidentPolygons.filter((polygon) => polygon.kind === "flood:spread");
+  const smokeIncidentPolygons = incidentPolygons.filter((polygon) => polygon.kind === "smoke:spread");
 
   function crossesWall(from: { x: number; y: number }, to: { x: number; y: number }, wall: WallSegment) {
     const eps = 0.0001;
@@ -439,6 +441,10 @@ export function ApartmentPlan({
 
   function hasWallBetween(from: Point, to: Point) {
     return blockingWalls.some((wall) => crossesWall(from, to, wall));
+  }
+
+  function svgPolygonPoints(points: Point[]) {
+    return points.map((point) => `${point.x * 100},${point.y * 100}`).join(" ");
   }
 
   function currentVisualPersonPosition() {
@@ -751,10 +757,11 @@ export function ApartmentPlan({
             className={`route-button fire-button${fireMode ? " fire-button-active" : ""}`}
             disabled={fireActive}
             onClick={onToggleFireMode}
+            data-testid="fire-start"
           >
             {fireMode ? "Укажи очаг" : "Начать пожар"}
           </button>
-          <button type="button" className="route-button" disabled={!firePoint && !fireActive} onClick={onResetFire}>
+          <button type="button" className="route-button" disabled={!firePoint && !fireActive} onClick={onResetFire} data-testid="fire-reset">
             Сброс пожара
           </button>
         </div>
@@ -796,6 +803,7 @@ export function ApartmentPlan({
         <div
           ref={surfaceRef}
           className="plan-surface relative w-full aspect-[10/7] rounded-2xl overflow-hidden"
+          data-testid="plan-surface"
           onClick={handlePlanClick}
           onDragOver={(e) => {
             if (!onDropDevice) return;
@@ -984,75 +992,39 @@ export function ApartmentPlan({
               })}
           </div>
 
-          {firePoints.length > 0 && (
-            <svg className={`fire-spread-layer${fireActive ? " fire-spread-layer-active" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {incidentPolygons.length > 0 && (
+            <svg className="incident-block-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-testid="incident-layer">
               <defs>
-                <filter id="fire-soften" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="1.65" />
+                <filter id="incident-soften" x="-8%" y="-8%" width="116%" height="116%">
+                  <feGaussianBlur stdDeviation="0.25" />
                 </filter>
-                <radialGradient id="fire-pool" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#fff2b8" stopOpacity="1" />
-                  <stop offset="28%" stopColor="#ffb340" stopOpacity="0.9" />
-                  <stop offset="58%" stopColor="#ff5f2e" stopOpacity="0.66" />
-                  <stop offset="78%" stopColor="#d94b28" stopOpacity="0.34" />
-                  <stop offset="100%" stopColor="#a13b22" stopOpacity="0" />
-                </radialGradient>
-                <radialGradient id="fire-smoke" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#8e8e93" stopOpacity="0.34" />
-                  <stop offset="58%" stopColor="#636366" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#636366" stopOpacity="0" />
-                </radialGradient>
               </defs>
-              <g filter="url(#fire-soften)">
-                {firePoints.map((point, index) => (
-                  <ellipse
-                    key={`smoke-${point.x}-${point.y}-${index}`}
-                    cx={point.x * 100}
-                    cy={point.y * 100}
-                    rx={index === 0 ? 7.4 : 8.5}
-                    ry={index === 0 ? 5.5 : 6.4}
-                    fill="url(#fire-smoke)"
-                    opacity={index === 0 ? 0.95 : 0.64}
+              <g filter="url(#incident-soften)">
+                {floodIncidentPolygons.map((polygon) => (
+                  <polygon
+                    key={polygon.id}
+                    points={svgPolygonPoints(polygon.points)}
+                    fill="rgba(10, 132, 255, 0.42)"
+                    stroke="rgba(100, 210, 255, 0.74)"
+                    strokeWidth="0.12"
                   />
                 ))}
-                {firePoints.map((point, index) => (
-                  <ellipse
-                    key={`fire-${point.x}-${point.y}-${index}`}
-                    cx={point.x * 100}
-                    cy={point.y * 100}
-                    rx={index === 0 ? 6 : 7}
-                    ry={index === 0 ? 4.4 : 5.2}
-                    fill="url(#fire-pool)"
-                    opacity={index === 0 ? 1 : 0.86}
+                {smokeIncidentPolygons.map((polygon) => (
+                  <polygon
+                    key={polygon.id}
+                    points={svgPolygonPoints(polygon.points)}
+                    fill="rgba(99, 99, 102, 0.28)"
+                    stroke="rgba(99, 99, 102, 0.24)"
+                    strokeWidth="0.08"
                   />
                 ))}
-              </g>
-            </svg>
-          )}
-
-          {waterPoints.length > 0 && (
-            <svg className="water-spread-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <filter id="water-soften" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="1.8" />
-                </filter>
-                <radialGradient id="water-pool" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#f0fbff" stopOpacity="0.92" />
-                  <stop offset="38%" stopColor="#64d2ff" stopOpacity="0.68" />
-                  <stop offset="72%" stopColor="#0a84ff" stopOpacity="0.34" />
-                  <stop offset="100%" stopColor="#0a84ff" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-              <g filter="url(#water-soften)">
-                {waterPoints.map((point, index) => (
-                  <ellipse
-                    key={`water-${point.x}-${point.y}-${index}`}
-                    cx={point.x * 100}
-                    cy={point.y * 100}
-                    rx={index === 0 ? 6.2 : 7.4}
-                    ry={index === 0 ? 4.6 : 5.4}
-                    fill="url(#water-pool)"
-                    opacity={index === 0 ? 1 : 0.82}
+                {fireIncidentPolygons.map((polygon) => (
+                  <polygon
+                    key={polygon.id}
+                    points={svgPolygonPoints(polygon.points)}
+                    fill="rgba(255, 95, 46, 0.54)"
+                    stroke="rgba(255, 179, 64, 0.82)"
+                    strokeWidth="0.12"
                   />
                 ))}
               </g>
@@ -1062,18 +1034,14 @@ export function ApartmentPlan({
           {rooms.map((r) => (
             <div
               key={r.id}
-              className="absolute"
+              className="plan-room-label"
               style={{
-                left: `${(r.labelX ?? r.x + r.w * 0.5) * 100}%`,
+                left: `${r.x * 100}%`,
                 top: `${(r.labelY ?? r.y + r.h * 0.5) * 100}%`,
-                transform: "translate(-50%, -50%)",
-                color: "#6e6e73",
-                fontSize: "13px",
-                fontWeight: 600,
-                letterSpacing: 0,
-                textTransform: "uppercase",
-                pointerEvents: "none",
+                width: `${r.w * 100}%`,
+                fontSize: r.w < 0.08 || r.h < 0.06 ? "9px" : r.w < 0.14 ? "11px" : "13px",
               }}
+              title={r.title}
             >
               {r.title}
             </div>
@@ -1176,9 +1144,9 @@ export function ApartmentPlan({
             return (
               <div
                 key={d.id}
-                className={`${dotClass(d.id)}${fireActiveDeviceIds.includes(d.id) ? " fire-device-active" : ""}${
-                  waterActiveDeviceIds.includes(d.id) ? " water-device-active" : ""
-                }${isLightActive ? " light-device-active" : ""}`}
+                className={`${dotClass(d.id)}${isLightActive ? " light-device-active" : ""}`}
+                data-testid={`device-${d.id}`}
+                data-device-state={deviceMap.get(d.id) ?? "idle"}
                 style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
                 title={d.id}
                 onPointerDown={(e) => {
@@ -1217,13 +1185,6 @@ export function ApartmentPlan({
               </div>
             );
           })}
-
-          {disasterMessage && (
-            <div className="disaster-overlay" role="status" aria-live="assertive">
-              <div className="disaster-title">{disasterMessage}</div>
-              <div className="disaster-subtitle">Система не успела обнаружить угрозу</div>
-            </div>
-          )}
 
         </div>
 

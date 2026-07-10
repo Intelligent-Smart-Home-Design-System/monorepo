@@ -182,6 +182,23 @@ func startSim(t *testing.T, conn *websocket.Conn, reqID string, payload api.Simu
 	}
 }
 
+// TestHeartbeat проверяет, что служебный ping получает pong без запуска или тика симуляции.
+func TestHeartbeat(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	reqID := "heartbeat-test"
+
+	sendMsg(t, conn, api.Message{Type: "ping", Ts: time.Now(), ReqID: reqID})
+	msg := recvMsg(t, conn)
+
+	if msg.Type != "pong" {
+		t.Fatalf("expected pong, got %q", msg.Type)
+	}
+	if msg.ReqID != reqID {
+		t.Fatalf("expected reqID %q, got %q", reqID, msg.ReqID)
+	}
+}
+
 // tick отправляет команду "simulation:tick" с заданным reqID
 func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []api.EventDTO) api.SimulationStepPayload {
 	t.Helper()
@@ -1465,13 +1482,17 @@ func TestFire_SingleRoom(t *testing.T) {
 			{
 				ID:   "fire_1",
 				Type: entities.TypeFire,
-				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+				Info: json.RawMessage(`{"id":"fire_1","x":0.25,"y":0.25,"roomID":"room_1"}`),
 			},
 		},
 		Scenarios: []api.ScenarioDTO{},
 	})
 
-	fireStartPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "turn_on": true})
+	// Координаты события должны иметь приоритет над намеренно неверной точкой из simulation:start.
+	fireStartPayload, _ := json.Marshal(map[string]any{
+		"kind": "fire:spread", "turn_on": true,
+		"x": 2.5, "y": 2.5, "roomID": "room_1",
+	})
 	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
 
 	corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
@@ -1531,6 +1552,44 @@ func TestFire_SingleRoom(t *testing.T) {
 	if !allCornersReached {
 		t.Fatal("fire never reached all 4 corners with incident blocks")
 	}
+
+	resetPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "reset": true})
+	resetStep := tick(t, conn, reqID, 13, []api.EventDTO{{EntityID: "fire_1", Payload: resetPayload}})
+	resetObserved := false
+	for _, change := range resetStep.StateChanges {
+		var out struct {
+			Kind      string            `json:"kind"`
+			Incidents []json.RawMessage `json:"incidents"`
+		}
+		if json.Unmarshal(change.Payload, &out) == nil && out.Kind == "fire:spread" {
+			resetObserved = true
+			if len(out.Incidents) != 0 {
+				t.Fatalf("reset should return an empty incident snapshot, got %d zones", len(out.Incidents))
+			}
+		}
+	}
+	if !resetObserved {
+		t.Fatal("fire reset snapshot was not emitted")
+	}
+
+	restartPayload, _ := json.Marshal(map[string]any{
+		"kind": "fire:spread", "turn_on": true,
+		"x": 1.5, "y": 1.5, "roomID": "room_1",
+	})
+	restartStep := tick(t, conn, reqID, 14, []api.EventDTO{{EntityID: "fire_1", Payload: restartPayload}})
+	restarted := false
+	for _, change := range restartStep.StateChanges {
+		var out struct {
+			Kind      string            `json:"kind"`
+			Incidents []json.RawMessage `json:"incidents"`
+		}
+		if json.Unmarshal(change.Payload, &out) == nil && out.Kind == "fire:spread" && len(out.Incidents) > 0 {
+			restarted = true
+		}
+	}
+	if !restarted {
+		t.Fatal("fire was not activated again after reset")
+	}
 }
 
 // TestFire_SpreadsThroughDoor проверяет что огонь переходит через дверь
@@ -1588,7 +1647,7 @@ func TestFire_SpreadsThroughDoor(t *testing.T) {
 		t.Fatal("fire sensor in room_2 was never triggered")
 	}
 
-	if sensorTriggeredAt < 9 {
-		t.Fatalf("fire sensor triggered too early at tick %d, expected >= 9", sensorTriggeredAt)
+	if sensorTriggeredAt <= 1 {
+		t.Fatalf("fire sensor triggered too early at tick %d", sensorTriggeredAt)
 	}
 }

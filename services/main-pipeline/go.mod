@@ -4,6 +4,7 @@ go 1.25.4
 
 require (
 	github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go v0.0.0-00010101000000-000000000000
+	github.com/gorilla/websocket v1.5.3
 	github.com/lib/pq v1.12.3
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1

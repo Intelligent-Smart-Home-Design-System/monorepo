@@ -1,4 +1,4 @@
-const url = process.env.NEXT_PUBLIC_SIM_WS_URL ?? "ws://127.0.0.1:8080";
+const url = process.env.NEXT_PUBLIC_SIM_WS_URL ?? "ws://127.0.0.1:8080/ws/simulation";
 const reqId = `sim-ui-smoke-${Date.now()}`;
 let phase = "connecting";
 let tick = 0;
@@ -10,11 +10,20 @@ function send(ws, type, payload) {
 
 function apartment() {
   return {
-    width: 2,
-    height: 2,
-    cells: Array.from({ length: 2 }, (_, y) =>
-      Array.from({ length: 2 }, (_, x) => ({ x, y, condition: false }))
-    ),
+    meta: { units: "meters" },
+    walls: [],
+    doors: [],
+    windows: [],
+    rooms: [
+      {
+        id: "room_smoke",
+        name: "Smoke test room",
+        area: [[0, 0], [2, 0], [2, 2], [0, 2]],
+        walls: [],
+        doors: [],
+        windows: [],
+      },
+    ],
   };
 }
 
@@ -48,9 +57,7 @@ ws.addEventListener("message", (event) => {
       tick: ++tick,
       inputs: [
         {
-          kind: "human:trigger",
-          entityId: "resident",
-          trigger: "lampSwitcher_smoke",
+          entity_id: "lampSwitcher_smoke",
           payload: {
             kind: "human:trigger",
             turn_on: true,
@@ -64,7 +71,7 @@ ws.addEventListener("message", (event) => {
 
   if (phase === "tick" && message.type === "simulation:step") {
     const changes = message.payload?.stateChanges ?? [];
-    const lampChanged = changes.some((change) => change.entityId === "lamp_smoke");
+    const lampChanged = changes.some((change) => (change.entity_id ?? change.entityId) === "lamp_smoke");
 
     if (lampChanged) {
       phase = "stop";

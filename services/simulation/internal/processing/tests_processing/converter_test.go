@@ -369,3 +369,62 @@ func TestParseFloor(t *testing.T) {
 		t.Errorf("expected neighbor of room_b to be room_a, got '%s'", edgesB[0].NeighborRoomID)
 	}
 }
+
+// TestParseFloor_BuildsAdjacencyFromRoomReferences проверяет сбор графа смежности,
+// когда дверь не содержит полный список комнат, но комнаты ссылаются на нее сами.
+func TestParseFloor_BuildsAdjacencyFromRoomReferences(t *testing.T) {
+	rawJSON := []byte(`{
+		"meta": { "units": "meters" },
+		"walls": [
+			{ "id": "wall_shared", "points": [[5.0, 0.0], [5.0, 5.0]], "width": 0.2 }
+		],
+		"doors": [
+			{
+				"id": "door_1",
+				"points": [[5.0, 2.0], [5.0, 3.0]],
+				"width": 0.9,
+				"rooms": [],
+				"opens_towards_room": "room_b"
+			}
+		],
+		"rooms": [
+			{
+				"id": "room_a",
+				"name": "Kitchen",
+				"area": [[0.0, 0.0], [5.0, 0.0], [5.0, 5.0], [0.0, 5.0]],
+				"walls": ["wall_shared"],
+				"doors": ["door_1"],
+				"windows": []
+			},
+			{
+				"id": "room_b",
+				"name": "Bedroom",
+				"area": [[5.0, 0.0], [10.0, 0.0], [10.0, 5.0], [5.0, 5.0]],
+				"walls": ["wall_shared"],
+				"doors": [],
+				"windows": []
+			}
+		]
+	}`)
+
+	simFloor, err := converter.ParseFloor(rawJSON)
+	if err != nil {
+		t.Fatalf("ParseFloor returned unexpected error: %v", err)
+	}
+
+	edgesA, existsA := simFloor.Adjacency["room_a"]
+	if !existsA || len(edgesA) != 1 {
+		t.Fatalf("expected adjacency for room_a, got exists=%v count=%d", existsA, len(edgesA))
+	}
+	if edgesA[0].NeighborRoomID != "room_b" {
+		t.Fatalf("expected room_a to connect to room_b, got %q", edgesA[0].NeighborRoomID)
+	}
+
+	edgesB, existsB := simFloor.Adjacency["room_b"]
+	if !existsB || len(edgesB) != 1 {
+		t.Fatalf("expected adjacency for room_b, got exists=%v count=%d", existsB, len(edgesB))
+	}
+	if edgesB[0].NeighborRoomID != "room_a" {
+		t.Fatalf("expected room_b to connect to room_a, got %q", edgesB[0].NeighborRoomID)
+	}
+}

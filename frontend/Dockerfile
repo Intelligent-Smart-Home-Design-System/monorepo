@@ -9,10 +9,14 @@ COPY services/layout/internal/configs/devices.json /services/layout/internal/con
 COPY services/simulation/configs/dependencies.json /services/simulation/configs/dependencies.json
 COPY services/simulation/configs/entities.json /services/simulation/configs/entities.json
 
-RUN corepack enable && npm ci
+RUN corepack enable && npm ci --no-audit
 
 FROM deps AS builder
 ARG APP
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_SIM_WS_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_SIM_WS_URL=$NEXT_PUBLIC_SIM_WS_URL
 
 RUN APP_NAME=$(node -e "console.log(require('./apps/$APP/package.json').name)") && \
     npm run build --workspace="$APP_NAME"

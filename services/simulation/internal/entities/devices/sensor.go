@@ -2,6 +2,7 @@ package devices
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"math"
 
@@ -289,27 +290,12 @@ func (s *RadiusMoveSensorWithUpdate) GetPosition() (float64, float64) {
 
 // HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithUpdate) HandleInDTO(dto []byte) error {
-	var raw struct {
-		Kind string `json:"kind"`
-		To   *struct {
-			X float64 `json:"x"`
-			Y float64 `json:"y"`
-		} `json:"to"`
-		Blocks []incidentBlockSensorData `json:"blocks"`
-	}
-	if err := json.Unmarshal(dto, &raw); err != nil {
+	kind, inRadius, err := radiusSensorInput(dto, s.X, s.Y, s.Radius)
+	if err != nil {
 		return err
 	}
 
-	var inRadius bool
-
-	if isIncidentSpreadKind(raw.Kind) {
-		inRadius = incidentBlocksInRadius(raw.Blocks, s.X, s.Y, s.Radius)
-	} else {
-		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
-	}
-
-	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
+	s.Put(RadiusSensorData{Kind: kind, TurnOn: inRadius})
 
 	return nil
 }
@@ -427,6 +413,18 @@ func (s *RadiusMoveSensorWithoutUpdate) GetPosition() (float64, float64) {
 
 // HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
+	kind, inRadius, err := radiusSensorInput(dto, s.X, s.Y, s.Radius)
+	if err != nil {
+		return err
+	}
+
+	s.Put(RadiusSensorData{Kind: kind, TurnOn: inRadius})
+
+	return nil
+}
+
+// radiusSensorInput разбирает move/incident payload и возвращает kind, состояние датчика и ошибку контракта.
+func radiusSensorInput(dto []byte, x, y, radius float64) (string, bool, error) {
 	var raw struct {
 		Kind string `json:"kind"`
 		To   *struct {
@@ -436,20 +434,16 @@ func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
 		Blocks []incidentBlockSensorData `json:"blocks"`
 	}
 	if err := json.Unmarshal(dto, &raw); err != nil {
-		return err
+		return "", false, err
 	}
 
-	var inRadius bool
-
-	if isIncidentSpreadKind(raw.Kind) {
-		inRadius = incidentBlocksInRadius(raw.Blocks, s.X, s.Y, s.Radius)
-	} else {
-		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+	if isIncidentSpreadKind(raw.Kind) || raw.Blocks != nil {
+		return raw.Kind, incidentBlocksInRadius(raw.Blocks, x, y, radius), nil
 	}
-
-	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
-
-	return nil
+	if raw.To == nil {
+		return raw.Kind, false, errors.New("radius sensor payload missing to")
+	}
+	return raw.Kind, field.IsInRadius(x, y, raw.To.X, raw.To.Y, radius), nil
 }
 
 // HandleEvent реализует бизнес-логику устройства, обновляет состояние и возвращает данные для отправки.

@@ -3,6 +3,7 @@ package actors
 import (
 	"encoding/json"
 	"math"
+	"sort"
 	"strconv"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
@@ -46,8 +47,12 @@ type Incident struct {
 
 // IncidentInData описывает входящее событие активации или тика incident.
 type IncidentInData struct {
-	Kind   string `json:"kind"`
-	TurnOn bool   `json:"turn_on"`
+	Kind   string   `json:"kind"`
+	TurnOn bool     `json:"turn_on"`
+	Reset  bool     `json:"reset,omitempty"`
+	X      *float64 `json:"x,omitempty"`
+	Y      *float64 `json:"y,omitempty"`
+	RoomID string   `json:"roomID,omitempty"`
 }
 
 // IncidentOutData описывает внешний output incident для клиента симуляции.
@@ -170,35 +175,78 @@ func (i *Incident) GetProcessFunc() func(simgo.Process) {
 // Process ждет активации incident, затем на каждый тик распространяет сетку и отправляет события; ничего не возвращает.
 func (i *Incident) Process(process simgo.Process) {
 	for {
-		el := i.inStore.Get()
-		process.Wait(el.Event)
+		for {
+			el := i.inStore.Get()
+			process.Wait(el.Event)
 
-		if el.Item.TurnOn {
-			break
+			if el.Item.TurnOn {
+				i.start(el.Item)
+				i.emitZones(i.grid.Zones())
+				break
+			}
+		}
+
+		for {
+			el := i.inStore.Get()
+			process.Wait(el.Event)
+
+			if el.Item.Reset {
+				i.reset()
+				break
+			}
+			if el.Item.TurnOn {
+				i.start(el.Item)
+				i.emitZones(i.grid.Zones())
+				continue
+			}
+
+			if i.grid.Step() {
+				i.emitZones(i.grid.Zones())
+			}
 		}
 	}
+}
 
-	floor := i.enginePort.GetFloor()
-	i.grid = NewIncidentGrid(floor, i.CellSize)
+// start создает новую BFS-сетку и активирует клетку в координатах события.
+func (i *Incident) start(input IncidentInData) {
+	i.applyActivation(input)
+	i.grid = NewIncidentGrid(i.enginePort.GetFloor(), i.CellSize)
 	i.grid.Ignite(i.X, i.Y, i.RoomID)
+}
 
-	for {
-		el := i.inStore.Get()
-		process.Wait(el.Event)
-
-		i.grid.Step()
+// reset очищает incident, выключает затронутые датчики и отправляет пустой snapshot.
+func (i *Incident) reset() {
+	if i.grid != nil {
 		zones := i.grid.Zones()
-		i.notifyObservers(zones)
-
-		dto, err := json.Marshal(IncidentOutData{
-			Kind:      i.eventKind,
-			Incidents: zones,
-		})
-		if err != nil {
-			return
+		for _, zone := range zones {
+			zone.Blocks = []*IncidentBlockData{}
 		}
+		i.notifyObservers(zones)
+	}
+	i.grid = nil
+	i.emitZones([]*IncidentZoneData{})
+}
 
-		i.HandleOutDTO(dto)
+// emitZones уведомляет observers и отправляет полный snapshot incident наружу.
+func (i *Incident) emitZones(zones []*IncidentZoneData) {
+	i.notifyObservers(zones)
+	dto, err := json.Marshal(IncidentOutData{Kind: i.eventKind, Incidents: zones})
+	if err != nil {
+		return
+	}
+	i.HandleOutDTO(dto)
+}
+
+// applyActivation переносит переданную пользователем стартовую точку в incident перед созданием BFS-сетки.
+func (i *Incident) applyActivation(input IncidentInData) {
+	if input.X != nil && !math.IsNaN(*input.X) && !math.IsInf(*input.X, 0) {
+		i.X = *input.X
+	}
+	if input.Y != nil && !math.IsNaN(*input.Y) && !math.IsInf(*input.Y, 0) {
+		i.Y = *input.Y
+	}
+	if input.RoomID != "" {
+		i.RoomID = input.RoomID
 	}
 }
 
@@ -280,10 +328,10 @@ func (g *IncidentGrid) Ignite(x, y float64, roomID string) {
 	g.frontier = []string{cell.id}
 }
 
-// Step выполняет один BFS-шаг распространения incident и обновляет frontier; ничего не возвращает.
-func (g *IncidentGrid) Step() {
+// Step выполняет один BFS-шаг и возвращает true, если были активированы новые клетки.
+func (g *IncidentGrid) Step() bool {
 	if len(g.frontier) == 0 {
-		return
+		return false
 	}
 
 	nextSet := make(map[string]bool)
@@ -310,6 +358,9 @@ func (g *IncidentGrid) Step() {
 	for id := range nextSet {
 		g.frontier = append(g.frontier, id)
 	}
+	sort.Strings(g.frontier)
+
+	return len(g.frontier) > 0
 }
 
 // Zones группирует активные клетки по комнатам и возвращает DTO зон incident.
@@ -397,9 +448,16 @@ func (g *IncidentGrid) neighbors(cell *incidentCell) []*incidentCell {
 
 	neighbors := make([]*incidentCell, 0, len(offsets)*2)
 	for _, offset := range offsets {
+		targetX := cell.x + float64(offset.dx)*g.cellSize
+		targetY := cell.y + float64(offset.dy)*g.cellSize
 		for _, roomID := range g.candidateNeighborRooms(cell) {
-			id := g.cellID(roomID, cell.x+float64(offset.dx)*g.cellSize, cell.y+float64(offset.dy)*g.cellSize)
-			if neighbor := g.cells[id]; neighbor != nil {
+			var neighbor *incidentCell
+			if roomID == cell.roomID {
+				neighbor = g.cells[g.cellID(roomID, targetX, targetY)]
+			} else {
+				neighbor = g.nearestCell(targetX, targetY, roomID)
+			}
+			if neighbor != nil {
 				neighbors = append(neighbors, neighbor)
 			}
 		}
@@ -536,7 +594,9 @@ func (g *IncidentGrid) clippedBlockPoints(cell *incidentCell) [][2]float64 {
 	return polygon
 }
 
-// cellID строит стабильный ID клетки по комнате и координатам и возвращает строку.
+// cellID строит стабильный ID по индексам содержащей координаты клетки.
 func (g *IncidentGrid) cellID(roomID string, x, y float64) string {
-	return roomID + ":" + strconv.FormatInt(int64(math.Round(x/g.cellSize)), 10) + ":" + strconv.FormatInt(int64(math.Round(y/g.cellSize)), 10)
+	column := int64(math.Floor(x / g.cellSize))
+	row := int64(math.Floor(y / g.cellSize))
+	return roomID + ":" + strconv.FormatInt(column, 10) + ":" + strconv.FormatInt(row, 10)
 }

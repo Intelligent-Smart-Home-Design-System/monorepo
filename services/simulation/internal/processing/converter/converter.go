@@ -295,13 +295,25 @@ func ParseFloor(data []byte) (*api.Floor, error) {
 	}
 
 	floor.Adjacency = make(map[string][]api.RoomEdge)
+	roomsByDoor := make(map[string][]string)
+	for _, room := range floor.Rooms {
+		for _, doorID := range room.Doors {
+			roomsByDoor[doorID] = append(roomsByDoor[doorID], room.ID)
+		}
+	}
+
 	for i := range floor.Doors {
 		door := &floor.Doors[i]
-		if len(door.Rooms) != 2 {
+		roomIDs := uniqueNonEmptyStrings(append(append([]string{}, door.Rooms...), roomsByDoor[door.ID]...))
+		if len(roomIDs) == 1 && door.OpensTowardsRoom != "" {
+			roomIDs = append(roomIDs, door.OpensTowardsRoom)
+		}
+		roomIDs = uniqueNonEmptyStrings(roomIDs)
+		if len(roomIDs) < 2 {
 			continue
 		}
 
-		aID, bID := door.Rooms[0], door.Rooms[1]
+		aID, bID := roomIDs[0], roomIDs[1]
 		floor.Adjacency[aID] = append(floor.Adjacency[aID], api.RoomEdge{
 			NeighborRoomID: bID,
 			Door:           door,
@@ -313,6 +325,24 @@ func ParseFloor(data []byte) (*api.Floor, error) {
 	}
 
 	return &floor, nil
+}
+
+// uniqueNonEmptyStrings удаляет пустые и повторяющиеся значения, сохраняя порядок первого появления.
+func uniqueNonEmptyStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+
+	return result
 }
 
 // DependenciesFromDTO парсит данные о зависимостях

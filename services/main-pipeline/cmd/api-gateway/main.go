@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelsetup"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelzerolog"
+	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -278,7 +280,77 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 	}
 	mux.HandleFunc("GET /result", resultHandler)
 	mux.HandleFunc("GET /result/{workflow_id}", resultHandler)
+	mux.HandleFunc("GET /api/v1/simulation/ws", simulationWSHandler(log, auth, env("SIMULATION_WS_URL", "ws://localhost:8080/ws/simulation")))
 	return otelhttp.NewHandler(mux, "api-gateway")
+}
+
+var simulationWSUpgrader = websocket.Upgrader{
+	CheckOrigin: func(_ *http.Request) bool {
+		return true
+	},
+}
+
+func simulationWSHandler(log zerolog.Logger, auth *authService, target string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := strings.TrimSpace(r.URL.Query().Get("token"))
+		if token == "" {
+			writeError(w, http.StatusUnauthorized, "token is required")
+			return
+		}
+		subject, err := auth.validateJWT(token)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "invalid token")
+			return
+		}
+
+		targetURL, err := url.Parse(target)
+		if err != nil || targetURL.Scheme == "" || targetURL.Host == "" {
+			log.Error().Err(err).Str("target", target).Msg("invalid simulation websocket target")
+			writeError(w, http.StatusBadGateway, "simulation websocket target is not configured")
+			return
+		}
+
+		upstreamHeaders := http.Header{}
+		upstreamHeaders.Set("X-Authenticated-User", subject)
+		upstreamConn, _, err := websocket.DefaultDialer.DialContext(r.Context(), targetURL.String(), upstreamHeaders)
+		if err != nil {
+			log.Warn().Err(err).Str("target", targetURL.Redacted()).Msg("simulation websocket upstream unavailable")
+			writeError(w, http.StatusBadGateway, "simulation service is unavailable")
+			return
+		}
+
+		clientConn, err := simulationWSUpgrader.Upgrade(w, r, nil)
+		if err != nil {
+			_ = upstreamConn.Close()
+			log.Warn().Err(err).Msg("simulation websocket client upgrade failed")
+			return
+		}
+
+		errc := make(chan error, 2)
+		go proxyWebSocketMessages(clientConn, upstreamConn, errc)
+		go proxyWebSocketMessages(upstreamConn, clientConn, errc)
+
+		err = <-errc
+		_ = clientConn.Close()
+		_ = upstreamConn.Close()
+		if err != nil && !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+			log.Debug().Err(err).Str("user", subject).Msg("simulation websocket closed")
+		}
+	}
+}
+
+func proxyWebSocketMessages(dst, src *websocket.Conn, errc chan<- error) {
+	for {
+		messageType, payload, err := src.ReadMessage()
+		if err != nil {
+			errc <- err
+			return
+		}
+		if err := dst.WriteMessage(messageType, payload); err != nil {
+			errc <- err
+			return
+		}
+	}
 }
 
 func validate(req pipeline.PipelineRequest) error {

@@ -1,0 +1,115 @@
+# config.local8 — локальный прогон (host=localhost, не Docker).
+# DNS-only discovery: scrape создаёт category + snapshots; listing в tracked_pages — после parse --discovery.
+#
+# БД: make pipeline-stack-up  (или только catalog-postgresql + pipeline-migrate)
+#
+# 1) Discovery scrape (BFS → category tasks → snapshots):
+#   cd services/scraper
+#   go run ./cmd/scraper scrape --discovery --sources dns \
+#     --config ../../pipeline-worker/config/jobs/scraper/config.local8.toml
+#
+# 2) Discovery parse (category snapshots → listing tasks):
+#   go run ./cmd/scraper parse --discovery --sources dns \
+#     --config ../../pipeline-worker/config/jobs/scraper/config.local8.toml
+#
+# Проверка в БД (psql / DBeaver, localhost:5432, catalog/catalog, smart_home):
+#   SELECT page_type, count(*) FROM tracked_pages WHERE source='dns' GROUP BY 1;
+#   SELECT id, page_type, left(url,80) FROM tracked_pages WHERE source='dns' ORDER BY first_seen_at DESC LIMIT 20;
+#
+# created_after / scraped_after = 2026-06-30 — подставьте полночь нужного дня (MSK).
+
+[database]
+host = "localhost"
+port = 5432
+name = "smart_home"
+user = "catalog"
+password = "catalog"
+dbname = "smart_home"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 2.0
+timeout = "60s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+proxy = ""
+wb_card_basket = "01"
+wb_session_path = "./session.json"
+wb_rps = 50
+
+[wildberries.discovery]
+discovery_text_queries = ["умный дом", "zigbee датчик"]
+max_pages = 5
+url_template = "https://catalog.wb.ru/catalog/electronic15/search?appType=1&curr=rub&dest=-1257786&query={query}&page={page}"
+
+[wildberries]
+category_url = "https://www.wildberries.ru/catalog/elektronika/umnyy-dom"
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+smart_home_device_markers = ["Алиса", "Маруся", "Экосистема умного дома", "Zigbee", "умный дом"]
+
+[yandex]
+supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"
+
+[dns]
+discovery_seeds = [
+  "https://www.dns-shop.ru/catalog/9bbe8fe270e7c3ae/umnaa-tehnika/",
+]
+search_queries = []
+max_pages = 1
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+# true = Chrome с отдельным профилем (Qrator на dev). false = headless (Docker/CI).
+browser_user_mode = true
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk", "moes" = "moes" }
+smart_home_device_markers = [
+  "Алиса", "Маруся", "Zigbee", "умный дом",
+  "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн"
+]
+
+# --- Discovery: scrape tracked_pages ---
+# created_after смотрит на first_seen_at (когда строка ПЕРВЫЙ раз попала в tracked_pages).
+# Seed: CreateTask → INSERT или ON CONFLICT (url_hash) DO NOTHING — повторный seed НЕ обновляет first_seen_at.
+# Для локального прогона created_after на scrape_discovery обычно не нужен; limit=5 достаточно.
+
+[jobs.scrape_discovery.wildberries]
+discovery_bootstrap = ["seed", "db"]
+limit = 5
+
+[jobs.scrape_discovery.dns]
+discovery_bootstrap = ["seed"]
+limit = 5
+
+# --- Discovery: parse page_snapshots (scraped_after = scraped_at) ---
+
+[jobs.parse_discovery.wildberries]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.parse_discovery.dns]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+# --- Listing: scrape новых задач (created_after) / parse свежих снимков (scraped_after) ---
+
+[jobs.scrape.wildberries]
+created_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.scrape.dns]
+created_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.scrape.sprut]
+created_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.parse.wildberries]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.parse.dns]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+
+[jobs.parse.sprut]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5

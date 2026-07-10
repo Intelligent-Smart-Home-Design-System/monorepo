@@ -15,6 +15,7 @@ import (
 type Scraper struct {
 	log             zerolog.Logger
 	client          *http.Client
+	proxyURL        string
 	userAgent       string
 	browserUserMode bool
 	mu              sync.Mutex
@@ -26,9 +27,16 @@ type Scraper struct {
 }
 
 func NewScraper(log zerolog.Logger, timeout time.Duration, proxyURL, userAgent string, browserUserMode *bool) *Scraper {
+	client, err := newScraperClient(timeout, proxyURL)
+	if err != nil {
+		log.Warn().Err(err).Str("proxy", proxyURL).Msg("dns: invalid proxy URL, requests will be direct")
+		client, _ = newScraperClient(timeout, "")
+		proxyURL = ""
+	}
 	return &Scraper{
 		log:             log.With().Str("source", "dns").Logger(),
-		client:          newScraperClient(timeout, proxyURL),
+		client:          client,
+		proxyURL:        proxyURL,
 		userAgent:       userAgent,
 		browserUserMode: defaultBrowserUserMode(browserUserMode),
 	}

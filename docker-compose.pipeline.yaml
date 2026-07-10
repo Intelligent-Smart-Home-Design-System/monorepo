@@ -184,3 +184,4 @@ networks:
 volumes:
   temporal-postgresql-data:
   catalog-postgresql-data:
+  dns-chrome-profile:

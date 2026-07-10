@@ -60,6 +60,8 @@ smart_home_device_markers = [
   "Алиса", "Маруся", "Zigbee", "умный дом",
   "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн"
 ]
+# true = ваш Chrome с профилем (обходит Qrator на macOS). false = headless (для Docker/CI).
+browser_user_mode = true
 
 # --- Discovery: scrape tracked_pages (created_after = first_seen_at) ---
 
@@ -69,7 +71,7 @@ created_after = 2026-06-30T00:00:00+03:00
 limit = 5
 
 [jobs.scrape_discovery.dns]
-discovery_bootstrap = ["db"]
+discovery_bootstrap = ["seed"]
 created_after = 2026-06-30T00:00:00+03:00
 limit = 5
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 )
 
@@ -17,6 +18,13 @@ type pageCapture struct {
 	NavStatus  int
 	Title      string
 	FinalURL   string
+}
+
+func (s *Scraper) newBrowserPage(browser *rod.Browser) (*rod.Page, error) {
+	if s.browserUserMode {
+		return browser.Page(proto.TargetCreateTarget{URL: "about:blank"})
+	}
+	return stealth.Page(browser)
 }
 
 func (s *Scraper) activateBrowser(ctx context.Context) error {
@@ -40,10 +48,10 @@ func (s *Scraper) activateBrowser(ctx context.Context) error {
 		return fmt.Errorf("dns browser connect: %w", err)
 	}
 
-	page, err := stealth.Page(browser)
+	page, err := s.newBrowserPage(browser)
 	if err != nil {
 		browser.Close()
-		s.log.Error().Err(err).Msg("dns browser: stealth page failed")
+		s.log.Error().Err(err).Msg("dns browser: page failed")
 		return fmt.Errorf("dns browser page: %w", err)
 	}
 
@@ -99,7 +107,17 @@ func (s *Scraper) capturePage(ctx context.Context, page *rod.Page, pageURL strin
 	}
 
 	s.dismissCookieBanner(ctx, page)
-	pageKind := s.waitForDNSContent(ctx, page)
+	if !s.waitForQratorPass(ctx, page) {
+		s.log.Warn().Str("url", pageURL).Msg("dns browser: qrator challenge may not have completed")
+	}
+
+	isHomepage := isDNSHomepage(pageURL)
+	var pageKind string
+	if isHomepage {
+		pageKind = "homepage"
+	} else {
+		pageKind = s.waitForDNSContent(ctx, page)
+	}
 
 	meta, err := page.Context(ctx).Eval(`() => ({
 		title: document.title || '',
@@ -130,7 +148,7 @@ func (s *Scraper) capturePage(ctx context.Context, page *rod.Page, pageURL strin
 		FinalURL:  finalURL,
 	}
 
-	if blocked, reason := isBlockedBrowsePage(cap.HTML, navStatus, title); blocked {
+	if blocked, reason := isBlockedBrowsePage(cap.HTML, navStatus, title, isHomepage); blocked {
 		s.log.Warn().
 			Str("url", pageURL).
 			Str("final_url", finalURL).
@@ -146,24 +164,49 @@ func (s *Scraper) capturePage(ctx context.Context, page *rod.Page, pageURL strin
 	return cap, nil
 }
 
-func isBlockedBrowsePage(html []byte, navStatus int, title string) (bool, string) {
-	if navStatus == http.StatusForbidden || navStatus == http.StatusUnauthorized {
-		return true, "navigation status"
+func isDNSHomepage(pageURL string) bool {
+	u, err := url.Parse(pageURL)
+	if err != nil {
+		return false
 	}
+	if u.Host != "www.dns-shop.ru" && u.Host != "dns-shop.ru" {
+		return false
+	}
+	path := strings.TrimSuffix(u.Path, "/")
+	return path == ""
+}
 
+func isBlockedBrowsePage(html []byte, navStatus int, title string, isHomepage bool) (bool, string) {
 	text := strings.ToLower(string(html))
 	titleLower := strings.ToLower(title)
+
+	if strings.Contains(text, "qauth_utm") || strings.Contains(text, "__qrator/qauth") {
+		return true, "qrator_challenge"
+	}
+
+	if navStatus == http.StatusForbidden || navStatus == http.StatusUnauthorized {
+		if !(isHomepage && len(html) > 15_000) {
+			return true, "navigation status"
+		}
+	}
 
 	for _, marker := range []string{
 		"403 forbidden",
 		"access denied",
 		"доступ запрещ",
 		"request blocked",
-		"qrator",
 	} {
 		if strings.Contains(text, marker) || strings.Contains(titleLower, marker) {
 			return true, marker
 		}
+	}
+
+	if strings.Contains(titleLower, "http 403") || strings.Contains(titleLower, "http 401") {
+		return true, "blocked title"
+	}
+
+	if isHomepage && len(html) > 15_000 {
+		return false, ""
 	}
 
 	pageKind, _, _ := diagnoseBrowseHTMLQuick(html)
@@ -171,6 +214,50 @@ func isBlockedBrowsePage(html []byte, navStatus int, title string) (bool, string
 		return true, "empty_shell"
 	}
 	return false, ""
+}
+
+func (s *Scraper) waitForQratorPass(ctx context.Context, page *rod.Page) bool {
+	deadline := time.Now().Add(45 * time.Second)
+	for time.Now().Before(deadline) {
+		if ctx.Err() != nil {
+			return false
+		}
+
+		state, err := page.Context(ctx).Eval(`() => {
+			const title = document.title || '';
+			const html = document.documentElement.outerHTML;
+			const hasQauth = !!document.querySelector('script[src*="qauth"]');
+			const blockedTitle = /HTTP\s*40[13]/i.test(title);
+			return {
+				hasQauth: hasQauth,
+				blockedTitle: blockedTitle,
+				bytes: html.length,
+				title: title,
+			};
+		}`)
+		if err != nil {
+			time.Sleep(400 * time.Millisecond)
+			continue
+		}
+
+		hasQauth := state.Value.Get("hasQauth").Bool()
+		blockedTitle := state.Value.Get("blockedTitle").Bool()
+		bytes := state.Value.Get("bytes").Int()
+		title := state.Value.Get("title").Str()
+
+		if !hasQauth && !blockedTitle && bytes > 15_000 {
+			s.log.Info().
+				Int("bytes", bytes).
+				Str("title", title).
+				Msg("dns browser: qrator challenge passed")
+			return true
+		}
+
+		time.Sleep(400 * time.Millisecond)
+	}
+
+	s.log.Warn().Msg("dns browser: qrator challenge timeout")
+	return false
 }
 
 func diagnoseBrowseHTMLQuick(html []byte) (pageKind string, subcategoryAnchors, productAnchors int) {

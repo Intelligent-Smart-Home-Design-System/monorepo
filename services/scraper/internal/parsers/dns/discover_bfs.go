@@ -10,14 +10,15 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parser"
-	dnsScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/dns"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
 )
 
 // DiscoverStats summarizes in-memory DNS catalog BFS during scrape --discovery.
 type DiscoverStats struct {
-	HubsVisited      int
+	HubsVisited       int
 	CategoriesCreated int
-	InMemoryEnqueued int
+	InMemoryEnqueued  int
+	Fetches           int
 }
 
 type categoryTaskWriter interface {
@@ -33,8 +34,8 @@ func RunDiscoveryBFS(
 	dnsCfg config.DnsConfig,
 	seeds []string,
 	tasks categoryTaskWriter,
+	scraperInst scraper.Scraper,
 ) (DiscoverStats, error) {
-	scraper := dnsScraper.NewScraper(logger, scraping.Timeout, scraping.Proxy, userAgent(scraping, dnsCfg), dnsCfg.BrowserUserMode)
 	stats := DiscoverStats{}
 
 	queue := append([]string{}, seeds...)
@@ -44,6 +45,10 @@ func RunDiscoveryBFS(
 		if ctx.Err() != nil {
 			return stats, ctx.Err()
 		}
+		if dnsCfg.MaxBFSFetches > 0 && stats.Fetches >= dnsCfg.MaxBFSFetches {
+			logger.Info().Int("max_bfs_fetches", dnsCfg.MaxBFSFetches).Msg("dns bfs: fetch limit reached")
+			break
+		}
 		url := queue[0]
 		queue = queue[1:]
 		if seen[url] {
@@ -51,12 +56,15 @@ func RunDiscoveryBFS(
 		}
 		seen[url] = true
 
-		if err := processPage(ctx, logger, scraper, scraping.RateLimitRps, url, tasks, &stats, seen, &queue); err != nil {
+		if err := processPage(ctx, logger, scraperInst, scraping.RateLimitRps, url, tasks, &stats, seen, &queue); err != nil {
 			logger.Warn().Err(err).Str("url", url).Msg("dns bfs: page failed")
+		} else {
+			stats.Fetches++
 		}
 	}
 
 	logger.Info().
+		Int("fetches", stats.Fetches).
 		Int("hubs_visited", stats.HubsVisited).
 		Int("categories_created", stats.CategoriesCreated).
 		Int("in_memory_enqueued", stats.InMemoryEnqueued).
@@ -65,17 +73,10 @@ func RunDiscoveryBFS(
 	return stats, nil
 }
 
-func userAgent(scraping config.ScrapingConfig, dnsCfg config.DnsConfig) string {
-	if dnsCfg.UserAgent != "" {
-		return dnsCfg.UserAgent
-	}
-	return scraping.UserAgent
-}
-
 func processPage(
 	ctx context.Context,
 	logger zerolog.Logger,
-	scraper *dnsScraper.Scraper,
+	scraperInst scraper.Scraper,
 	rateLimitRPS float64,
 	pageURL string,
 	tasks categoryTaskWriter,
@@ -85,7 +86,7 @@ func processPage(
 ) error {
 	throttle(rateLimitRPS)
 
-	result, err := scraper.Scrape(ctx, domain.ScrapeTask{URL: pageURL})
+	result, err := scraperInst.Scrape(ctx, domain.ScrapeTask{URL: pageURL})
 	if err != nil {
 		return err
 	}

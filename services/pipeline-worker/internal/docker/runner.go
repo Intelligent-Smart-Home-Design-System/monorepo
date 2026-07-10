@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -103,6 +104,7 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 	if err != nil {
 		return nil, err
 	}
+	envValues = appendScraperBrowserEnv(envValues, params)
 	envValues = appendOTelEnv(envValues, r.monitoringNetworkName)
 
 	containerName := buildContainerName(r.containerPrefix, params.Name)
@@ -112,6 +114,14 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 	}
 
 	hostConfig := &container.HostConfig{}
+	if binds, err := buildVolumeBinds(params.Volumes, params.Name); err != nil {
+		return nil, err
+	} else if len(binds) > 0 {
+		hostConfig.Binds = binds
+	}
+	if shm := parseShmSize(params.ShmSize); shm > 0 {
+		hostConfig.ShmSize = shm
+	}
 	networkingConfig := r.containerNetworking()
 	if networkingConfig == nil && r.networkName != "" {
 		hostConfig.NetworkMode = container.NetworkMode(r.networkName)
@@ -479,4 +489,91 @@ func buildContainerName(prefix string, jobName string) string {
 		sanitized = "job"
 	}
 	return fmt.Sprintf("%s-%s-%d", prefix, sanitized, time.Now().Unix())
+}
+
+func buildVolumeBinds(volumes []pipeline.VolumeMount, jobName string) ([]string, error) {
+	if len(volumes) == 0 {
+		return nil, nil
+	}
+	binds := make([]string, 0, len(volumes))
+	for _, v := range volumes {
+		source := expandEnvPlaceholders(v.Source)
+		target := strings.TrimSpace(v.Target)
+		if source == "" {
+			return nil, fmt.Errorf("job %q volume source is empty (set DNS_CHROME_PROFILE_HOST or use a named volume)", jobName)
+		}
+		if target == "" {
+			return nil, fmt.Errorf("job %q volume target is required", jobName)
+		}
+		mountType := strings.ToLower(strings.TrimSpace(v.Type))
+		if mountType == "" {
+			if strings.Contains(source, "/") || strings.Contains(source, `\`) || strings.Contains(source, ":") {
+				mountType = "bind"
+			} else {
+				mountType = "volume"
+			}
+		}
+		var bind string
+		switch mountType {
+		case "bind":
+			bind = fmt.Sprintf("%s:%s", source, target)
+		case "volume":
+			bind = fmt.Sprintf("%s:%s", source, target)
+		default:
+			return nil, fmt.Errorf("job %q volume type %q is unsupported", jobName, mountType)
+		}
+		if v.ReadOnly {
+			bind += ":ro"
+		}
+		binds = append(binds, bind)
+	}
+	return binds, nil
+}
+
+func expandEnvPlaceholders(value string) string {
+	return os.ExpandEnv(value)
+}
+
+func parseShmSize(raw string) int64 {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0
+	}
+	if strings.HasSuffix(strings.ToLower(raw), "g") {
+		n, err := strconv.ParseFloat(strings.TrimSuffix(strings.ToLower(raw), "g"), 64)
+		if err != nil {
+			return 0
+		}
+		return int64(n * 1024 * 1024 * 1024)
+	}
+	if strings.HasSuffix(strings.ToLower(raw), "m") {
+		n, err := strconv.ParseFloat(strings.TrimSuffix(strings.ToLower(raw), "m"), 64)
+		if err != nil {
+			return 0
+		}
+		return int64(n * 1024 * 1024)
+	}
+	n, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// appendScraperBrowserEnv gives each pipeline scraper job its own Chrome user-data dir
+// so concurrent or back-to-back containers never fight over SingletonLock on a shared volume.
+func appendScraperBrowserEnv(values []string, params pipeline.RunContainerParams) []string {
+	if !strings.Contains(params.Image, "scraper") {
+		return values
+	}
+	for _, v := range values {
+		if strings.HasPrefix(v, "DNS_BROWSER_PROFILE=") {
+			return values
+		}
+	}
+	if !strings.Contains(params.Name, "scrape") {
+		return values
+	}
+	dir := fmt.Sprintf("/tmp/pipeline-dns-chrome-%s-%d", strings.TrimPrefix(params.Name, "scraper-"), time.Now().UnixNano())
+	return append(values, "DNS_BROWSER_PROFILE="+dir)
 }

@@ -150,6 +150,7 @@ go mod init github.com/Intelligent-Smart-Home-Design-System/monorepo/services/yo
 
 - `main` — главная ветка (develop). Сюда мержим готовые версии задач через PR.
 - `{task_number}` — ветка под задачу (например, `SH-47`), отводится от `main`.
+- `renovate/scraper-pipeline-on-main` — онбординг-ветка: рефакторинг scraper + pipeline поверх `main`. См. [docs/renovate/scraper-pipeline.md](docs/renovate/scraper-pipeline.md).
 
 Название PR: `feat/fix {название сервиса}: {описание изменений}`. В описании
 PR прикрепляйте ссылку на задачу в Yougile.

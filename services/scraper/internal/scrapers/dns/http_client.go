@@ -8,23 +8,23 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"time"
+
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/netproxy"
 )
 
 const dnsOrigin = "https://www.dns-shop.ru/"
 
-func newScraperClient(timeout time.Duration, proxyURL string) *http.Client {
+func newScraperClient(timeout time.Duration, proxyURL string) (*http.Client, error) {
 	transport := &http.Transport{}
-	if proxyURL != "" {
-		if proxy, err := url.Parse(proxyURL); err == nil {
-			transport.Proxy = http.ProxyURL(proxy)
-		}
+	if err := netproxy.ConfigureTransport(transport, proxyURL); err != nil {
+		return nil, err
 	}
 	jar, _ := cookiejar.New(nil)
 	return &http.Client{
 		Timeout:   timeout,
 		Transport: transport,
 		Jar:       jar,
-	}
+	}, nil
 }
 
 func setNavigationHeaders(req *http.Request, userAgent, referer string) {
@@ -84,6 +84,11 @@ func (s *Scraper) warmupHTTP(ctx context.Context) error {
 	return nil
 }
 
+// Warmup establishes cookies/session state used by subsequent Scrape calls.
+func (s *Scraper) Warmup(ctx context.Context) error {
+	return s.warmup(ctx)
+}
+
 func (s *Scraper) warmup(ctx context.Context) error {
 	s.mu.Lock()
 	if s.warmedUp {
@@ -121,9 +126,21 @@ func (s *Scraper) warmup(ctx context.Context) error {
 		return httpErr
 	}
 
-	s.log.Warn().Err(httpErr).Msg("dns warmup: HTTP blocked by Qrator, switching to headless browser")
+	s.log.Warn().Err(httpErr).Msg("dns warmup: HTTP blocked by Qrator, switching to browser")
 	if err := s.activateBrowser(ctx); err != nil {
 		return err
+	}
+
+	if err := s.warmupHTTP(ctx); err == nil {
+		s.mu.Lock()
+		s.browserMode = false
+		s.warmedUp = true
+		s.mu.Unlock()
+		s.log.Info().
+			Int("cookies", s.cookieCount()).
+			Str("mode", "http").
+			Msg("dns warmup: ok (HTTP after browser cookies)")
+		return nil
 	}
 
 	s.mu.Lock()

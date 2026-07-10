@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # Build from monorepo root:
 #   docker build -f services/scraper/Dockerfile -t scraper:latest .
 
@@ -22,9 +21,12 @@ FROM golang:1.25
 WORKDIR /app
 
 COPY --from=build /out/scraper /scraper
+COPY services/scraper/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
+    chromium \
+    xvfb \
     libnss3 \
     libxss1 \
     libasound2t64 \
@@ -33,6 +35,9 @@ RUN apt-get update && \
     libgbm1 \
     ca-certificates \
     dumb-init \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
+ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 EXPOSE 8080 9090

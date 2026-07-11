@@ -25,8 +25,10 @@ export type FloorPolygonLayer = {
 export type FloorZoneView = {
   id: string;
   roomId?: string;
+  kind?: string;
   path: string;
   label?: Point;
+  bounds?: { x: number; y: number; w: number; h: number };
 };
 
 export type FloorPlanView = {
@@ -54,7 +56,16 @@ type ParserDoor = { id?: string; points?: RawPointLike[]; width?: number };
 type ParserWindow = { id?: string; points?: RawPointLike[]; width?: number };
 type ParserFurniture = { id?: string; category?: string; points?: RawPointLike[] };
 type ParserRoom = { id?: string; name?: string; title?: string; area?: RawPointLike[]; x?: number; y?: number; w?: number; h?: number };
-type ParserZone = { id?: string; room_id?: string; roomId?: string; points?: RawPointLike[] };
+type ParserZone = {
+  id?: string;
+  room_id?: string;
+  roomId?: string;
+  type?: string;
+  kind?: string;
+  category?: string;
+  name?: string;
+  points?: RawPointLike[];
+};
 type ParserFloor = {
   schema_version?: string;
   meta?: { source?: string; source_ref?: string; units?: string };
@@ -160,6 +171,97 @@ function unwrapFloorPayload(value: unknown): unknown {
   return value;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function normalizeZoneLike(value: unknown, fallbackKind?: string, roomId?: string): ParserZone | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const points = Array.isArray(record.points) ? (record.points as RawPointLike[]) : undefined;
+  if (!points?.length) return null;
+
+  return {
+    id: typeof record.id === "string" ? record.id : undefined,
+    room_id: typeof record.room_id === "string" ? record.room_id : roomId,
+    roomId: typeof record.roomId === "string" ? record.roomId : roomId,
+    type: typeof record.type === "string" ? record.type : fallbackKind,
+    kind: typeof record.kind === "string" ? record.kind : fallbackKind,
+    category: typeof record.category === "string" ? record.category : fallbackKind,
+    name: typeof record.name === "string" ? record.name : fallbackKind,
+    points,
+  };
+}
+
+function collectZonesFromPayload(value: unknown): ParserZone[] {
+  const record = asRecord(value);
+  if (!record) return [];
+
+  const zones: ParserZone[] = [];
+  const zoneKeys = [
+    "zones",
+    "no_wind_zones",
+    "wet_zones",
+    "gas_zones",
+    "entry_doors_zones",
+    "high_traffic_zones",
+    "window_zones",
+    "viewed_zones",
+    "siren_zones",
+    "pollution_zones",
+    "cleaning_zones",
+    "restricted_zones",
+  ];
+
+  zoneKeys.forEach((key) => {
+    const valueForKey = record[key];
+    const values = Array.isArray(valueForKey) ? valueForKey : valueForKey ? [valueForKey] : [];
+    values.forEach((item) => {
+      const zone = normalizeZoneLike(item, key);
+      if (zone) zones.push(zone);
+    });
+  });
+
+  const roomLists = [
+    ...(Array.isArray(record.zoned_rooms) ? record.zoned_rooms : []),
+    ...(Array.isArray(record.ZonedRooms) ? record.ZonedRooms : []),
+    ...(Array.isArray(record.rooms) ? record.rooms : []),
+  ];
+
+  roomLists.forEach((room) => {
+    const roomRecord = asRecord(room);
+    if (!roomRecord) return;
+    const rawRoom = asRecord(roomRecord.orig_room) ?? asRecord(roomRecord.OrigRoom) ?? roomRecord;
+    const roomId =
+      (typeof rawRoom?.id === "string" && rawRoom.id) ||
+      (typeof roomRecord.room_id === "string" && roomRecord.room_id) ||
+      (typeof roomRecord.roomId === "string" && roomRecord.roomId) ||
+      undefined;
+
+    zoneKeys
+      .filter((key) => key !== "zones")
+      .forEach((key) => {
+        const valueForKey = roomRecord[key];
+        const values = Array.isArray(valueForKey) ? valueForKey : valueForKey ? [valueForKey] : [];
+        values.forEach((item) => {
+          const zone = normalizeZoneLike(item, key, roomId);
+          if (zone) zones.push(zone);
+        });
+      });
+  });
+
+  const seen = new Set<string>();
+  return zones.filter((zone, index) => {
+    const key = `${zone.kind ?? zone.type ?? zone.category ?? "zone"}:${zone.room_id ?? zone.roomId ?? ""}:${normalizeRawPoints(zone.points)
+      .map(([x, y]) => `${x}:${y}`)
+      .join("|")}`;
+    if (seen.has(key)) return false;
+    seen.add(key || `zone-${index}`);
+    return true;
+  });
+}
+
 function collectPoints(floor: ParserFloor) {
   const points: RawPoint[] = [];
   floor.walls?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
@@ -173,7 +275,7 @@ function collectPoints(floor: ParserFloor) {
       points.push([item.x + item.w, item.y + item.h]);
     }
   });
-  floor.zones?.forEach((item) => points.push(...normalizeRawPoints(item.points)));
+  collectZonesFromPayload(floor).forEach((item) => points.push(...normalizeRawPoints(item.points)));
   return points;
 }
 
@@ -361,11 +463,19 @@ function zoneFromParser(zone: ParserZone, index: number, normalize: (point: RawP
     (acc, point) => ({ x: acc.x + point.x / points.length, y: acc.y + point.y / points.length }),
     { x: 0, y: 0 }
   );
+  const minX = Math.min(...points.map((point) => point.x));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxY = Math.max(...points.map((point) => point.y));
+  const kind = zone.kind ?? zone.type ?? zone.category ?? zone.name;
+
   return {
     id: zone.id || `zone_${index + 1}`,
     roomId: zone.room_id ?? zone.roomId,
+    kind,
     path: toPath(points, true),
     label: center,
+    bounds: { x: minX, y: minY, w: Math.max(maxX - minX, 0), h: Math.max(maxY - minY, 0) },
   };
 }
 
@@ -401,7 +511,7 @@ function adaptParserFloor(raw: ParserFloor, fallbackRooms: Room[]): AdaptedFloor
     const points = normalizeRawPoints(item.points).map(normalize);
     return points.length >= 3 ? [toPath(points, true)] : [];
   });
-  const zones = raw.zones?.map((zone, index) => zoneFromParser(zone, index, normalize)).filter((zone): zone is FloorZoneView => Boolean(zone)) ?? [];
+  const zones = collectZonesFromPayload(raw).map((zone, index) => zoneFromParser(zone, index, normalize)).filter((zone): zone is FloorZoneView => Boolean(zone));
   const blockers =
     raw.walls
       ?.flatMap((wall) => toBlockers(normalizeRawPoints(wall.points).map(normalize))) ?? [];
@@ -456,7 +566,7 @@ function adaptLocalFloor(raw: unknown, fallbackRooms: Room[], fallbackMarkers: D
       doors: floor.doors,
       windows: floor.windows,
       furniture: floor.furniture,
-      zones: floor.zones?.map((zone, index) => zoneFromParser(zone, index, ([x, y]) => ({ x, y }))).filter((zone): zone is FloorZoneView => Boolean(zone)),
+      zones: collectZonesFromPayload(floor).map((zone, index) => zoneFromParser(zone, index, ([x, y]) => ({ x, y }))).filter((zone): zone is FloorZoneView => Boolean(zone)),
       blockers: floor.blockers?.length ? floor.blockers : DEFAULT_BLOCKERS,
     },
   };

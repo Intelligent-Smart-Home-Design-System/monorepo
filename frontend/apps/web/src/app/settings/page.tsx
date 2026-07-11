@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import tracksConfig from "../../../../../../services/layout/internal/configs/tracks.json";
+import tracksConfig from "./tracks.json";
 import type {
   ApiDeviceType,
   ApiEcosystem,

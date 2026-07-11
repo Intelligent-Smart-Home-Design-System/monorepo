@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { ControlPanel } from "@/app/components/sim/ControlPanel";
 import { ApartmentPlan } from "@/app/components/sim/ApartmentPlan";
 import { EventConsole } from "@/app/components/sim/EventConsole";
@@ -65,6 +65,25 @@ const FLOOR_STORAGE_KEYS = ["simulation-floor", "planner-floor-json", "parsed-fl
 const SIM_DEPENDENCIES = dependencyConfig as DependencyConfig;
 const SIM_ENTITIES = entityConfig as EntityConfig;
 const LAYOUT_DEVICES = layoutDeviceConfig as LayoutDeviceConfig;
+const LAYOUT_DEVICE_IDS = Object.keys(LAYOUT_DEVICES.device_types ?? {});
+const SCENARIO_BRIDGE_IDS = new Set(["hub", "gateway", "controller"]);
+const SCENARIO_DEVICE_ALIASES: Record<string, string> = {
+  motion_sensor_hall: "motion_sensor",
+  lamp_hall: "smart_bulb",
+  lamp_living: "smart_bulb",
+  smart_lamp: "smart_bulb",
+  lux_sensor: "illumination_sensor",
+  scene_button: "wireless_button_switch",
+  siren: "smart_siren",
+  leak_sensor: "water_leak_sensor",
+  leak_sensor_bath: "water_leak_sensor",
+  gas_sensor: "gas_leak_sensor",
+  co_sensor: "co2_sensor",
+  temp_sensor: "temperature_sensor",
+  ac: "air_conditioner",
+  heater: "smart_radiator_actuator",
+  tv_state: "smart_tv",
+};
 
 function readStorage(key: string) {
   if (typeof window === "undefined") return null;
@@ -113,20 +132,6 @@ function loadFloorSourceFromStorage() {
   return floorPlanData as unknown;
 }
 
-const FIRE_DEVICE_MARKERS: DeviceMarker[] = [
-  { id: "smoke_sensor", x: 0.79, y: 0.25 },
-  { id: "co_sensor", x: 0.52, y: 0.38 },
-  { id: "siren", x: 0.18, y: 0.70 },
-  { id: "ventilation", x: 0.84, y: 0.64 },
-  { id: "sprinkler_kitchen", x: 0.82, y: 0.32 },
-  { id: "sprinkler_living", x: 0.48, y: 0.36 },
-];
-const WATER_DEVICE_MARKERS: DeviceMarker[] = [
-  { id: "leak_sensor", x: 0.82, y: 0.72 },
-  { id: "leak_sensor_bath", x: 0.85, y: 0.82 },
-  { id: "water_flow", x: 0.77, y: 0.64 },
-  { id: "water_valve", x: 0.91, y: 0.76 },
-];
 function speedToDelay(speed: Speed) {
   const s = Math.max(Number(speed) || 1, 0.1);
   return Math.round(700 / s);
@@ -311,6 +316,32 @@ function loadSavedPlanDevices(): SavedPlanDevice[] {
   }
 }
 
+function normalizeScenarioDeviceId(id: string) {
+  return SCENARIO_DEVICE_ALIASES[id] ?? id;
+}
+
+function normalizeScenarioChain(chain: string[]) {
+  const normalized: string[] = [];
+
+  chain.forEach((id) => {
+    if (SCENARIO_BRIDGE_IDS.has(id)) return;
+    const nextId = normalizeScenarioDeviceId(id);
+    if (!normalized.includes(nextId)) normalized.push(nextId);
+  });
+
+  return normalized;
+}
+
+function normalizeMockScenarios(scenarios: Scenario[]) {
+  return scenarios
+    .map((scenario) => ({
+      ...scenario,
+      id: `mock_${scenario.id}`,
+      chain: normalizeScenarioChain(scenario.chain),
+    }))
+    .filter((scenario) => scenario.chain.length >= 2);
+}
+
 function loadTriggerDeviceIds(): string[] {
   if (typeof window === "undefined") return [];
 
@@ -349,11 +380,13 @@ function deviceKind(id: string, type?: string) {
   if (key.includes("co") || key.includes("gas")) return "gas";
   if (key.includes("lux") || key.includes("light_sensor")) return "lux";
   if (key.includes("button") || key.includes("switch")) return "button";
-  if (key.includes("lamp") || key.includes("light")) return "lamp";
+  if (key.includes("lamp") || key.includes("bulb") || key.includes("light")) return "lamp";
   if (key.includes("siren")) return "siren";
   if (key.includes("ventilation") || key.includes("fan")) return "ventilation";
   if (key.includes("valve")) return "valve";
-  if (key.includes("heater") || key.includes("ac") || key.includes("curtains") || key.includes("plug")) return "actuator";
+  if (key.includes("heater") || key.includes("radiator") || key.includes("conditioner") || key.includes("ac") || key.includes("curtains") || key.includes("plug")) {
+    return "actuator";
+  }
   if (key.includes("hub") || key.includes("gateway") || key.includes("controller")) return "bridge";
   if (key.includes("notification")) return "notification";
   return "other";
@@ -362,6 +395,10 @@ function deviceKind(id: string, type?: string) {
 function canonicalEntityType(id: string, type?: string) {
   const key = `${id} ${type ?? ""}`.toLowerCase();
 
+  const alias = SCENARIO_DEVICE_ALIASES[id];
+  if (alias) return canonicalEntityType(alias, type);
+
+  if (key.includes("smart_bulb") || key.includes("lamp") || key.includes("bulb") || key.includes("light")) return "smart_lamp";
   if (key.includes("motion") || key.includes("pir") || key.includes("mmwave")) return "motion_sensor";
   if (key.includes("presence")) return "presence_sensor";
   if (key.includes("lux") || key.includes("illumination") || key.includes("light_sensor")) return "illumination_sensor";
@@ -377,8 +414,11 @@ function canonicalEntityType(id: string, type?: string) {
   if (key.includes("curtain")) return "curtains";
   if (key.includes("backlight")) return "built_in_backlight";
   if (key.includes("decorative") || key.includes("luminaire")) return "decorative_luminaire";
-  if (key.includes("lamp") || key.includes("bulb") || key.includes("light")) return "smart_bulb";
   if (key.includes("siren")) return "smart_siren";
+  if (key.includes("smart_tv")) return "tv";
+  if (key.includes("smart_floor_thermostat")) return "thermostat";
+  if (key.includes("smart_radiator_actuator")) return "thermostat";
+  if (key.includes("floor_temperature_sensor")) return "thermostat";
 
   return SIM_ENTITIES.entities[type ?? ""] ? type : undefined;
 }
@@ -480,16 +520,15 @@ function buildPlacedScenarios(
 }
 
 export default function SimulationPage() {
-  const baseScenarios = useMemo<Scenario[]>(() => MOCK_SCENARIOS, []);
-  const [floorSource] = useState<unknown>(() => loadFloorSourceFromStorage());
+  const baseScenarios = useMemo<Scenario[]>(() => normalizeMockScenarios(MOCK_SCENARIOS), []);
+  const [floorSource, setFloorSource] = useState<unknown>(floorPlanData as unknown);
   const adaptedFloor = useMemo(() => adaptFloorData(floorSource, MOCK_ROOMS, deviceMarkers), [floorSource]);
   const roomsForPlan = adaptedFloor.rooms;
   const floorPlanForView: FloorPlanView = adaptedFloor.floorPlan;
   const baseDeviceMarkers = adaptedFloor.markers;
   const placementMarkers = adaptedFloor.placementMarkers;
   const blockingWalls = floorPlanForView.blockers?.length ? floorPlanForView.blockers : [];
-  const [externalDevices] = useState<ExternalDevice[]>(() => loadExternalDevicesFromStorage());
-  const [savedPlanDevices] = useState<SavedPlanDevice[]>(() => loadSavedPlanDevices());
+  const [externalDevices, setExternalDevices] = useState<ExternalDevice[]>([]);
   const [preferredTriggerIds] = useState<string[]>(() => loadTriggerDeviceIds());
 
   const [status, setStatus] = useState<Status>("empty");
@@ -521,20 +560,12 @@ export default function SimulationPage() {
   const wsStartAckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const floorWarningsLoggedRef = useRef(false);
+  const pendingBackendInputRef = useRef<SimEventInput | null>(null);
   const [devicePositions, setDevicePositions] = useState<DeviceMarker[]>(() => {
-    const savedMarkers = savedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
-    const knownMarkerIds = new Set([...placementMarkers.map((marker) => marker.id), ...savedPlanDevices.map((device) => device.id)]);
-    const externalMarkers = externalDevices
-      .filter((device) => device.x !== undefined && device.y !== undefined && !knownMarkerIds.has(device.id))
-      .map((device) => ({ id: device.id, x: device.x as number, y: device.y as number, label: device.name }));
-
-    return [...baseDeviceMarkers, ...FIRE_DEVICE_MARKERS, ...WATER_DEVICE_MARKERS, ...externalMarkers, ...savedMarkers];
+    return [...baseDeviceMarkers];
   });
   const [placedDeviceIds, setPlacedDeviceIds] = useState<string[]>(() => {
-    const placementIds = placementMarkers.map((marker) => marker.id);
-    const savedIds = savedPlanDevices.map((device) => device.id);
-    const externalPlacedIds = externalDevices.filter((device) => device.x !== undefined && device.y !== undefined).map((device) => device.id);
-    return Array.from(new Set([...placementIds, ...savedIds, ...externalPlacedIds]));
+    return placementMarkers.map((marker) => marker.id);
   });
   const [fireMode, setFireMode] = useState(false);
   const [firePoint, setFirePoint] = useState<Point | null>(null);
@@ -549,6 +580,37 @@ export default function SimulationPage() {
   const [motionActiveDeviceIds, setMotionActiveDeviceIds] = useState<string[]>([]);
   const [disasterMessage, setDisasterMessage] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
+
+  useEffect(() => {
+    const nextFloorSource = loadFloorSourceFromStorage();
+    const nextAdaptedFloor = adaptFloorData(nextFloorSource, MOCK_ROOMS, deviceMarkers);
+    const nextExternalDevices = loadExternalDevicesFromStorage();
+    const nextSavedPlanDevices = loadSavedPlanDevices();
+
+    const savedMarkers = nextSavedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
+    const knownMarkerIds = new Set([
+      ...nextAdaptedFloor.placementMarkers.map((marker) => marker.id),
+      ...nextSavedPlanDevices.map((device) => device.id),
+    ]);
+    const externalMarkers = nextExternalDevices
+      .filter((device) => device.x !== undefined && device.y !== undefined && !knownMarkerIds.has(device.id))
+      .map((device) => ({ id: device.id, x: device.x as number, y: device.y as number, label: device.name }));
+
+    startTransition(() => {
+      setFloorSource(nextFloorSource);
+      setExternalDevices(nextExternalDevices);
+      setDevicePositions([...nextAdaptedFloor.markers, ...externalMarkers, ...savedMarkers]);
+      setPlacedDeviceIds(
+        Array.from(
+          new Set([
+            ...nextAdaptedFloor.placementMarkers.map((marker) => marker.id),
+            ...nextSavedPlanDevices.map((device) => device.id),
+            ...nextExternalDevices.filter((device) => device.x !== undefined && device.y !== undefined).map((device) => device.id),
+          ])
+        )
+      );
+    });
+  }, []);
 
   const externalDeviceMap = useMemo(() => new Map(externalDevices.map((device) => [device.id, device])), [externalDevices]);
   const deviceTypeMap = useMemo<Record<string, string | undefined>>(() => {
@@ -579,7 +641,7 @@ export default function SimulationPage() {
       return Array.from(ids);
     }
 
-    Object.keys(LAYOUT_DEVICES.device_types ?? {}).forEach((id) => ids.add(id));
+    LAYOUT_DEVICE_IDS.forEach((id) => ids.add(id));
     baseScenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
     scenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
     return Array.from(ids);
@@ -738,6 +800,25 @@ export default function SimulationPage() {
     return true;
   }
 
+  function sendWsMessageWhenReady(type: string, payload: unknown, onSent: () => void) {
+    if (sendWsMessage(type, payload)) {
+      onSent();
+      return true;
+    }
+
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.CONNECTING) return false;
+
+    ws.addEventListener(
+      "open",
+      () => {
+        if (sendWsMessage(type, payload)) onSent();
+      },
+      { once: true }
+    );
+    return true;
+  }
+
   function sendSimulationTick(inputs: SimEventInput[] = []) {
     if (!backendRunActiveRef.current) return false;
     wsTickRef.current += 1;
@@ -844,13 +925,17 @@ export default function SimulationPage() {
 
   function applyBackendStep(payload: SimStepPayload) {
     const changes = payload.stateChanges ?? [];
-    const activeIds = changes.map((change) => getStateChangeEntityId(change)).filter(Boolean);
+    const visibleChanges = changes.filter((change) => {
+      const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
+      return (rawPayload as { kind?: unknown }).kind !== "fire:spread";
+    });
+    const activeIds = visibleChanges.map((change) => getStateChangeEntityId(change)).filter(Boolean);
 
     if (activeIds.length) setActiveNodes(activeIds);
     if (activeIds.length) {
       setManualDeviceState((state) => {
         const next = { ...state };
-        changes.forEach((change) => {
+        visibleChanges.forEach((change) => {
           const entityId = getStateChangeEntityId(change);
           if (!entityId) return;
           const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
@@ -860,7 +945,7 @@ export default function SimulationPage() {
       });
     }
 
-    changes.forEach((change) => {
+    visibleChanges.forEach((change) => {
       const entityId = getStateChangeEntityId(change);
       if (!entityId) return;
       const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
@@ -888,6 +973,9 @@ export default function SimulationPage() {
       backendRunActiveRef.current = true;
       setStatus("running");
       addEvent("websocket", "Бэкенд запустил симуляцию", "INFO");
+      const pendingInput = pendingBackendInputRef.current;
+      pendingBackendInputRef.current = null;
+      if (pendingInput) sendSimulationTick([pendingInput]);
       return;
     }
 
@@ -936,12 +1024,12 @@ export default function SimulationPage() {
     }
   }
 
-  function distance(a: Point, b: Point) {
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  }
-
   function hasLineOfSight(from: Point, to: Point) {
     return !blockingWalls.some((wall) => crossesWall(from, to, wall));
+  }
+
+  function distance(a: Point, b: Point) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
   }
 
   function markerFor(id: string) {
@@ -966,78 +1054,18 @@ export default function SimulationPage() {
     return "неизвестная зона";
   }
 
-  function clampFirePoint(point: Point) {
+  function roomForPoint(point: Point) {
+    return roomsForPlan.find((r) => point.x >= r.x && point.x <= r.x + r.w && point.y >= r.y && point.y <= r.y + r.h) ?? roomsForPlan[0];
+  }
+
+  function clampSpreadPoint(point: Point) {
     return {
       x: Math.min(0.955, Math.max(0.045, point.x)),
       y: Math.min(0.94, Math.max(0.06, point.y)),
     };
   }
 
-  function buildFireSpreadWaves(origin: Point) {
-    function isBlocked(from: Point, to: Point) {
-      return blockingWalls.some((wall) => crossesWall(from, to, wall));
-    }
-
-    function cellKey(point: Point) {
-      return `${point.x.toFixed(3)}:${point.y.toFixed(3)}`;
-    }
-
-    const cells = roomsForPlan.flatMap((room) => {
-      const points: Point[] = [];
-      const step = 0.065;
-      for (let x = room.x + step * 0.8; x < room.x + room.w - step * 0.45; x += step) {
-        for (let y = room.y + step * 0.8; y < room.y + room.h - step * 0.45; y += step) {
-          const point = clampFirePoint({ x, y });
-          if (distance(point, origin) > 0.018) points.push(point);
-        }
-      }
-      return points;
-    });
-
-    const nearest = cells
-      .map((cell, index) => ({ cell, index, distance: distance(origin, cell) }))
-      .filter(({ cell }) => !isBlocked(origin, cell))
-      .sort((a, b) => a.distance - b.distance)[0];
-    if (!nearest) return [];
-
-    const waves: Point[][] = [];
-    const visited = new Set<number>();
-    let frontier = [nearest];
-
-    frontier.forEach(({ index }) => visited.add(index));
-
-    while (frontier.length && waves.length < 22) {
-      const nextCandidates = new Map<number, { cell: Point; index: number; distance: number }>();
-      frontier.forEach(({ cell }) => {
-        cells.forEach((candidate, index) => {
-          if (visited.has(index)) return;
-          const d = distance(cell, candidate);
-          if (d > 0.125) return;
-          if (isBlocked(cell, candidate)) return;
-          const existing = nextCandidates.get(index);
-          if (!existing || d < existing.distance) {
-            nextCandidates.set(index, { cell: candidate, index, distance: d });
-          }
-        });
-      });
-
-      const next = Array.from(nextCandidates.values()).sort((a, b) => distance(origin, a.cell) - distance(origin, b.cell));
-      const wave = Array.from(new Map((waves.length === 0 ? [...frontier, ...next] : next).map((item) => [cellKey(item.cell), item.cell])).values());
-      if (wave.length === 0) break;
-      waves.push(wave);
-
-      frontier = next;
-      frontier.forEach(({ index }) => visited.add(index));
-    }
-
-    return waves;
-  }
-
   function buildWaterSpreadWaves(origin: Point) {
-    function isBlocked(from: Point, to: Point) {
-      return blockingWalls.some((wall) => crossesWall(from, to, wall));
-    }
-
     function cellKey(point: Point) {
       return `${point.x.toFixed(3)}:${point.y.toFixed(3)}`;
     }
@@ -1045,18 +1073,20 @@ export default function SimulationPage() {
     const cells = roomsForPlan.flatMap((room) => {
       const points: Point[] = [];
       const step = 0.072;
+
       for (let x = room.x + step * 0.65; x < room.x + room.w - step * 0.4; x += step) {
         for (let y = room.y + step * 0.65; y < room.y + room.h - step * 0.4; y += step) {
-          const point = clampFirePoint({ x, y });
+          const point = clampSpreadPoint({ x, y });
           if (distance(point, origin) > 0.018) points.push(point);
         }
       }
+
       return points;
     });
 
     const nearest = cells
       .map((cell, index) => ({ cell, index, distance: distance(origin, cell) }))
-      .filter(({ cell }) => !isBlocked(origin, cell))
+      .filter(({ cell }) => hasLineOfSight(origin, cell))
       .sort((a, b) => a.distance - b.distance)[0];
     if (!nearest) return [];
 
@@ -1073,7 +1103,7 @@ export default function SimulationPage() {
           if (visited.has(index)) return;
           const d = distance(cell, candidate);
           if (d > 0.135) return;
-          if (isBlocked(cell, candidate)) return;
+          if (!hasLineOfSight(cell, candidate)) return;
           const existing = nextCandidates.get(index);
           if (!existing || d < existing.distance) {
             nextCandidates.set(index, { cell: candidate, index, distance: d });
@@ -1098,11 +1128,6 @@ export default function SimulationPage() {
     fireTimersRef.current = [];
   }
 
-  function scheduleFireEvent(delay: number, action: () => void) {
-    const timer = setTimeout(action, delay);
-    fireTimersRef.current.push(timer);
-  }
-
   function clearWaterTimers() {
     waterTimersRef.current.forEach((timer) => clearTimeout(timer));
     waterTimersRef.current = [];
@@ -1111,6 +1136,11 @@ export default function SimulationPage() {
   function scheduleWaterEvent(delay: number, action: () => void) {
     const timer = setTimeout(action, delay);
     waterTimersRef.current.push(timer);
+  }
+
+  function scheduleFireEvent(delay: number, action: () => void) {
+    const timer = setTimeout(action, delay);
+    fireTimersRef.current.push(timer);
   }
 
   function resetFire() {
@@ -1142,57 +1172,73 @@ export default function SimulationPage() {
     setFireActiveDeviceIds([]);
     setDisasterMessage(null);
 
-    const roomTitle = roomTitleForPoint(point);
+    const room = roomForPoint(point);
+    const roomTitle = room?.title ?? roomTitleForPoint(point);
     addEvent("fire", `Начало пожара: очаг в зоне "${roomTitle}"`, "WARNING");
     sendSimulationTick([{ kind: "environment:trigger", entityId: "resident", trigger: "fire", payload: { x: point.x, y: point.y, room: roomTitle } }]);
 
-    const smokeSensor = availableMarkerFor("smoke_sensor");
-    const coSensor = availableMarkerFor("co_sensor");
-    const sprinklers = ["sprinkler_kitchen", "sprinkler_living"]
-      .map((id) => ({ id, marker: availableMarkerFor(id) }))
-      .filter((item): item is { id: string; marker: DeviceMarker } => Boolean(item.marker))
+    const placedDeviceMeta = placedDeviceIds.map((id) => {
+      const device = devicesForPlan.find((item) => item.id === id);
+      const marker = markerFor(id);
+      const key = `${id} ${device?.type ?? ""}`.toLowerCase();
+      return { id, marker, key };
+    });
+    const sensors = placedDeviceMeta
+      .filter(
+        (item): item is { id: string; marker: DeviceMarker; key: string } =>
+          Boolean(item.marker) &&
+          (item.key.includes("smoke") || item.key.includes("gas") || item.key.includes("co_sensor") || item.key.includes("temperature"))
+      )
       .sort((a, b) => distance(point, a.marker) - distance(point, b.marker));
+    const sprinklers = placedDeviceMeta
+      .filter((item): item is { id: string; marker: DeviceMarker; key: string } => Boolean(item.marker) && item.key.includes("sprinkler"))
+      .sort((a, b) => distance(point, a.marker) - distance(point, b.marker));
+    const hasSiren = placedDeviceMeta.some((item) => item.key.includes("siren"));
+    const hasVentilation = placedDeviceMeta.some((item) => item.key.includes("ventilation"));
+    const spreadWaves = buildWaterSpreadWaves(point);
 
-    const spreadWaves = buildFireSpreadWaves(point);
     let fireDetected = false;
-    let sprinklerStarted = false;
     let fireLocalized = false;
 
-    function triggerDetection(device: string, message: string) {
+    function triggerFireDetection(id: string) {
       if (fireDetected) return;
       fireDetected = true;
-      setFireActiveDeviceIds((ids) => Array.from(new Set([...ids, device])));
-      addEvent(device, message, "WARNING");
+      setFireActiveDeviceIds((ids) => Array.from(new Set([...ids, id])));
+      addEvent(id, "Датчик обнаружил признаки пожара", "WARNING");
 
-      scheduleFireEvent(600, () => {
-        if (!placedDeviceIds.includes("siren")) return;
+      scheduleFireEvent(700, () => {
+        if (!hasSiren) return;
         setFireActiveDeviceIds((ids) => Array.from(new Set([...ids, "siren"])));
         addEvent("siren", "Сработала пожарная сирена", "WARNING");
       });
 
-      scheduleFireEvent(1200, () => {
-        if (!placedDeviceIds.includes("ventilation")) return;
+      scheduleFireEvent(1100, () => {
+        if (!hasVentilation) return;
         setFireActiveDeviceIds((ids) => Array.from(new Set([...ids, "ventilation"])));
-        addEvent("ventilation", "Вентиляция переведена в аварийный режим удаления дыма", "INFO");
+        addEvent("ventilation", "Вентиляция переведена в аварийный режим", "INFO");
       });
-    }
 
-    function triggerSprinkler(id: string) {
-      if (!fireDetected || sprinklerStarted || fireLocalized) return;
-      sprinklerStarted = true;
-      setFireActiveDeviceIds((ids) => Array.from(new Set([...ids, id])));
-      addEvent(id, "Спринклер начал тушение очага", "INFO");
+      const sprinkler = sprinklers.find(({ marker }) => distance(point, marker) <= 0.42 && hasLineOfSight(point, marker)) ?? sprinklers[0];
+      scheduleFireEvent(1600, () => {
+        if (!sprinkler) return;
+        setFireActiveDeviceIds((ids) => Array.from(new Set([...ids, sprinkler.id])));
+        addEvent(sprinkler.id, "Сработала система пожаротушения", "INFO");
+      });
 
-      scheduleFireEvent(2400, () => {
+      scheduleFireEvent(5200, () => {
+        if (!sprinkler) {
+          addEvent("fire", "Пожар обнаружен, но устройство тушения не найдено на плане", "ERROR");
+          return;
+        }
         fireLocalized = true;
         setFireActive(false);
-        setFirePoints((points) => points.slice(0, Math.min(points.length, 28)));
-        addEvent("fire", "Пожар локализован автоматической системой", "INFO");
+        setFirePoints((points) => points.slice(0, Math.min(points.length, 30)));
+        addEvent("fire", "Пожар локализован системой пожаротушения", "INFO");
       });
     }
 
     spreadWaves.forEach((wave, index) => {
-      const delay = 2200 + index * 1850;
+      const delay = 1000 + index * 1350;
       scheduleFireEvent(delay, () => {
         if (fireLocalized) return;
         setFirePoints((points) => {
@@ -1203,41 +1249,29 @@ export default function SimulationPage() {
             seen.add(key);
             return true;
           });
-          return [...points, ...fresh.slice(0, Math.max(0, 90 - points.length))];
+          return [...points, ...fresh.slice(0, Math.max(0, 80 - points.length))];
         });
 
-        if (smokeSensor && wave.some((p) => distance(p, smokeSensor) <= 0.16 && hasLineOfSight(p, smokeSensor))) {
-          triggerDetection("smoke_sensor", "Датчик дыма обнаружил задымление");
-        } else if (coSensor && wave.some((p) => distance(p, coSensor) <= 0.18 && hasLineOfSight(p, coSensor))) {
-          triggerDetection("co_sensor", "CO-датчик обнаружил опасную концентрацию");
-        }
-
-        const reachedSprinkler = sprinklers.find(({ marker }) => wave.some((p) => distance(p, marker) <= 0.16 && hasLineOfSight(p, marker)));
-        if (reachedSprinkler) triggerSprinkler(reachedSprinkler.id);
+        const reachedSensor = sensors.find(({ marker }) => wave.some((p) => distance(p, marker) <= 0.2 && hasLineOfSight(p, marker)));
+        if (reachedSensor) triggerFireDetection(reachedSensor.id);
 
         if (index === 0 || index % 3 === 0) {
           const rooms = Array.from(new Set(wave.map(roomTitleForPoint))).slice(0, 3).join(", ");
-          addEvent("fire", `Фронт огня расширился по площади: ${rooms}`, index >= 5 ? "ERROR" : "WARNING");
+          addEvent("fire", `Огонь распространился по площади: ${rooms}`, index >= 6 ? "ERROR" : "WARNING");
         }
       });
     });
 
-    scheduleFireEvent(900, () => {
-      if (smokeSensor && distance(point, smokeSensor) <= 0.2 && hasLineOfSight(point, smokeSensor)) {
-        triggerDetection("smoke_sensor", "Датчик дыма обнаружил задымление");
-      } else if (coSensor && distance(point, coSensor) <= 0.22 && hasLineOfSight(point, coSensor)) {
-        triggerDetection("co_sensor", "CO-датчик обнаружил опасную концентрацию");
+    scheduleFireEvent(600, () => {
+      const nearestSensor = sensors.find(({ marker }) => distance(point, marker) <= 0.22 && hasLineOfSight(point, marker));
+      if (nearestSensor) {
+        triggerFireDetection(nearestSensor.id);
       } else {
-        addEvent("fire", "Дым еще не дошел до датчиков", "WARNING");
+        addEvent("fire", "Огонь еще не дошел до пожарных датчиков", "WARNING");
       }
     });
 
-    scheduleFireEvent(8200, () => {
-      if (!fireDetected) addEvent("fire", "Пожар еще не обнаружен датчиками", "ERROR");
-      if (fireDetected && !sprinklerStarted && !fireLocalized) addEvent("sprinkler", "Спринклеры пока не достигнуты фронтом огня", "WARNING");
-    });
-
-    const finalDelay = 2200 + Math.max(spreadWaves.length - 1, 0) * 1850 + 1700;
+    const finalDelay = 1000 + Math.max(spreadWaves.length - 1, 0) * 1350 + 1800;
     scheduleFireEvent(finalDelay, () => {
       if (fireDetected || fireLocalized) return;
       setFireActive(false);
@@ -1259,7 +1293,7 @@ export default function SimulationPage() {
     addEvent("flood", `Начало потопа: вода появилась в зоне "${roomTitle}"`, "WARNING");
     sendSimulationTick([{ kind: "environment:trigger", entityId: "resident", trigger: "flood", payload: { x: point.x, y: point.y, room: roomTitle } }]);
 
-    const sensors = ["leak_sensor", "leak_sensor_bath", "water_flow"]
+    const sensors = ["leak_sensor", "leak_sensor_bath", "water_flow", "water_leak_sensor"]
       .map((id) => ({ id, marker: availableMarkerFor(id) }))
       .filter((item): item is { id: string; marker: DeviceMarker } => Boolean(item.marker))
       .sort((a, b) => distance(point, a.marker) - distance(point, b.marker));
@@ -1368,27 +1402,29 @@ export default function SimulationPage() {
     wsReqIdRef.current = `sim-ui-${Date.now()}`;
     clearStartAckTimer();
 
-    const sentToBackend = sendWsMessage(
-      "simulation:start",
-      buildSimulationStartPayload({
-        rooms: roomsForPlan,
-        markers: devicePositions,
-        scenarios: selectedScenarios,
-        deviceIds: placedDeviceIds,
-        deviceTypes: Object.fromEntries(devicesForPlan.map((device) => [device.id, device.type])),
-        speed,
-      })
-    );
+    const startPayload = buildSimulationStartPayload({
+      rooms: roomsForPlan,
+      markers: devicePositions,
+      scenarios: selectedScenarios,
+      deviceIds: placedDeviceIds,
+      deviceTypes: Object.fromEntries(devicesForPlan.map((device) => [device.id, device.type])),
+      speed,
+    });
+
+    const handleScenarioStartSent = () => {
+      addEvent("websocket", "Запрос на запуск отправлен, ждём подтверждение бэка", "INFO");
+      wsStartAckTimerRef.current = setTimeout(() => {
+        startLocalSimulation("Бэк не подтвердил запуск за 2 секунды, сценарий продолжен локально");
+      }, 2000);
+    };
+
+    const sentToBackend = sendWsMessageWhenReady("simulation:start", startPayload, handleScenarioStartSent);
 
     if (!sentToBackend) {
       startLocalSimulation("Бэк симуляции недоступен, сценарий запущен локально");
       return;
     }
 
-    addEvent("websocket", "Запрос на запуск отправлен, ждём подтверждение бэка", "INFO");
-    wsStartAckTimerRef.current = setTimeout(() => {
-      startLocalSimulation("Бэк не подтвердил запуск за 2 секунды, сценарий продолжен локально");
-    }, 2000);
   }
 
   function onPause() {
@@ -1447,7 +1483,7 @@ export default function SimulationPage() {
   }
 
   useEffect(() => {
-    if (status !== "running" || runScenarios.length === 0) {
+    if (status !== "running" || (runScenarios.length === 0 && !fireActive)) {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       return;
@@ -1456,6 +1492,11 @@ export default function SimulationPage() {
     const delay = speedToDelay(speed);
 
     timerRef.current = setInterval(() => {
+      if (runScenarios.length === 0) {
+        sendSimulationTick();
+        return;
+      }
+
       if (runMode === "parallel") {
         const maxLen = Math.max(...runScenarios.map((s) => s.chain.length), 0);
         const next = runStepRef.current + 1;
@@ -1544,7 +1585,7 @@ export default function SimulationPage() {
     };
     // sendSimulationTick reads the current WebSocket ref and tick ref, so it is safe for this interval.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, speed, runMode, runScenarios]);
+  }, [status, speed, runMode, runScenarios, fireActive]);
 
   useEffect(() => {
     const url = resolveSimulationWsUrl();
@@ -1570,7 +1611,7 @@ export default function SimulationPage() {
         sendWsMessage("hello", {
           client: "sim-ui",
           version: "0.1.0",
-          features: ["multiscenario", "floor-v1", "fire", "flood", "human-move", "device-trigger"],
+          features: ["multiscenario", "floor-v1", "fire", "human-move", "device-trigger"],
         });
       });
 

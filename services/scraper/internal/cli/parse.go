@@ -17,6 +17,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/wildberries"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/yandex"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/apify"
 	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
 )
 
@@ -128,22 +129,22 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		}
 	}
 
-	if shouldRun(domain.PageTypeCategory, domain.SourceWildberries) {
-		categoryParsers := []parser.SourceParser[[]string]{
-			wildberries.NewCategoryParser(),
-		}
-		categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
-		categoryResults := categoryWorker.Parse(ctx)
-		for _, urls := range categoryResults {
-			for _, productURL := range urls {
-				if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
-					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from category")
-				} else {
-					logger.Debug().Str("url", productURL).Msg("created listing task from category")
-				}
-        	}
-    	}
-	}
+	//if shouldRun(domain.PageTypeCategory, domain.SourceWildberries) {
+	//	categoryParsers := []parser.SourceParser[[]string]{
+	//		wildberries.NewCategoryParser(),
+	//	}
+	//	categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
+	//	categoryResults := categoryWorker.Parse(ctx)
+	//	for _, urls := range categoryResults {
+	//		for _, productURL := range urls {
+	//			if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
+	//				logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from category")
+	//			} else {
+	//				logger.Debug().Str("url", productURL).Msg("created listing task from category")
+	//			}
+    //  	}
+    //	}
+	//}
 
 	if shouldRun(domain.PageTypeDiscovery, domain.SourceDns) {
 		discoveryParsersDns := []parser.SourceParser[[]string]{
@@ -159,6 +160,42 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from DNS discovery")
 				} else {
 					logger.Debug().Str("url", productURL).Msg("created listing task from DNS discovery")
+				}
+			}
+		}
+	}
+
+	if shouldRun(domain.PageTypeDiscovery, domain.SourceApifyYandexMarket) {
+		snapshots, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeDiscovery.String(), domain.SourceApifyYandexMarket)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to get Apify snapshots")
+		} else {
+			logger.Info().Msgf("found %d unprocessed Apify snapshots", len(snapshots))
+			for _, snap := range snapshots {
+				files, err := parser.ExtractArchive(snap.WARCBundle)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("extract archive")
+					continue
+				}
+				jsonData, err := parser.FindFile(files, "apify_result.json")
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("find apify_result.json")
+					continue
+				}
+				listings, err := apify.ParseApifyResult(jsonData, cfg.Wildberries.BrandAliases, snap.ID)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("parse apify result")
+					continue
+				}
+				for _, list := range listings {
+					if err := snapshotRepo.SaveListingParseResult(list); err != nil {
+						logger.Error().Err(err).Msg("failed to save listing from Apify")
+					}
+				}
+				if err := snapshotRepo.SetProcessed(snap.ID); err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("set processed")
+				} else {
+					logger.Debug().Int("snapshot_id", snap.ID).Msg("Apify snapshot processed")
 				}
 			}
 		}

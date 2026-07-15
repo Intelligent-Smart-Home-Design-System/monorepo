@@ -97,6 +97,7 @@ type ListingParseResult struct {
 	ExtractorVer string
 	ParsedAt     time.Time
 	Processed    bool
+	HasSmartHomeMarkers bool
 }
 
 const (
@@ -105,6 +106,7 @@ const (
     SourcePrinter     = "printer"
     SourceYandex      = "yandex"
 	SourceDns         = "dns"
+	SourceApifyYandexMarket = "apify_yandex_market"
 )
 
 type DirectCompatibilityRecord struct {

@@ -321,7 +321,6 @@ Incident приходит внутри `stateChanges[]`.
             "x": 1200,
             "y": 800,
             "size": 500,
-            "intensity": 1,
             "points": [
               [950, 550],
               [1450, 550],

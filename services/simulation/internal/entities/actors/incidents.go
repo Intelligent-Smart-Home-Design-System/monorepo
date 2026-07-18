@@ -76,13 +76,12 @@ type IncidentZoneData struct {
 
 // IncidentBlockData описывает одну активную клетку incident и ее polygon для отображения.
 type IncidentBlockData struct {
-	ID        string       `json:"id"`
-	RoomID    string       `json:"roomID"`
-	X         float64      `json:"x"`
-	Y         float64      `json:"y"`
-	Size      float64      `json:"size"`
-	Intensity float64      `json:"intensity"`
-	Points    [][2]float64 `json:"points"`
+	ID     string       `json:"id"`
+	RoomID string       `json:"roomID"`
+	X      float64      `json:"x"`
+	Y      float64      `json:"y"`
+	Size   float64      `json:"size"`
+	Points [][2]float64 `json:"points"`
 }
 
 // IncidentGridTemplate хранит общую неизменяемую геометрию BFS-сетки для всех incident симуляции.
@@ -594,13 +593,12 @@ func (g *IncidentGrid) roomDoors(roomID string) []*api.Door {
 // blockData преобразует внутреннюю клетку grid в DTO блока incident и возвращает его.
 func (g *IncidentGrid) blockData(cell *incidentCell) *IncidentBlockData {
 	return &IncidentBlockData{
-		ID:        cell.id,
-		RoomID:    cell.roomID,
-		X:         cell.x,
-		Y:         cell.y,
-		Size:      g.cellSize,
-		Intensity: 1,
-		Points:    g.clippedBlockPoints(cell),
+		ID:     cell.id,
+		RoomID: cell.roomID,
+		X:      cell.x,
+		Y:      cell.y,
+		Size:   g.cellSize,
+		Points: g.clippedBlockPoints(cell),
 	}
 }
 

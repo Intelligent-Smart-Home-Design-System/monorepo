@@ -41,7 +41,6 @@ export type IncidentBlock = {
   x: number;
   y: number;
   size: number;
-  intensity?: number;
   points: Array<[number, number]>;
 };
 
@@ -69,8 +68,7 @@ export function resolveSimulationWsUrl() {
   const fromEnv = process.env.NEXT_PUBLIC_SIM_WS_URL?.trim();
   if (fromEnv) return withToken(fromEnv, token);
 
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  const base = apiBase || defaultGatewayOrigin();
+  const base = defaultGatewayOrigin();
   if (!base) return null;
 
   try {

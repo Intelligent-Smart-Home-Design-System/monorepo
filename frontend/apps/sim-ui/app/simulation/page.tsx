@@ -919,7 +919,6 @@ export default function SimulationPage() {
               id: `${kind}:${block.id}`,
               kind,
               points,
-              intensity: block.intensity,
             },
           ];
         })

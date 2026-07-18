@@ -81,7 +81,6 @@ services:
       dockerfile: services/main-pipeline/Dockerfile
     depends_on:
       - temporal
-      - floor-parser-worker
       - layout-worker
       - device-selection-worker
     environment:
@@ -165,7 +164,6 @@ services:
       target: next
       args:
         APP: sim-ui
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8090}
     ports:
       - "3001:3000"
     restart: unless-stopped
@@ -191,24 +189,6 @@ services:
       - ./services/main-pipeline/nginx/conf.d:/etc/nginx/conf.d:ro
     ports:
       - "8090:80"
-    restart: unless-stopped
-
-  floor-parser-worker:
-    build:
-      context: services/floor-parser
-    depends_on:
-      - temporal
-    environment:
-      TEMPORAL_ADDRESS: temporal:7233
-      TEMPORAL_NAMESPACE: default
-      TEMPORAL_TASK_QUEUE: floor-parser
-      METRICS_PORT: 2113
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
-    ports:
-      - "2113:2113"
-    networks:
-      - default
-      - monorepo-monitoring
     restart: unless-stopped
 
   floor-parser-api:

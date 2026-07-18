@@ -52,7 +52,7 @@ func illuminationPoint(apartmentStruct *apartment.Apartment, room apartment.Room
 		return &fallback, nil
 	}
 
-	roomWindows := getRoomWindows(apartmentStruct, room.ID)
+	roomWindows := getRoomWindows(apartmentStruct, room.Name)
 	if len(roomWindows) > 0 && len(roomWindows[0].Points) > 0 {
 		windowCenter := point.GetObjectCenter(roomWindows[0].Points)
 		return cornerNearWindow(room.Area, windowCenter), nil

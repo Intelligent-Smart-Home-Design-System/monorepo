@@ -8,7 +8,7 @@ import (
 
 const (
 	baseDeviceAngle    = 100
-	doorZoneDepth      = 1.5
+	doorZoneDepth      = 1500
 	degreePerDirection = 30
 )
 
@@ -117,15 +117,23 @@ func (r *Room) CreateObjectZone(objectPoints []point.Point, objectWidth float64)
 	return NewZone(points)
 }
 
-func (r *Room) GetTheOppositePoint(p point.Point) (point.Point, float64) {
+func (r *Room) GetTheOppositePoint(ap *Apartment, p point.Point) (point.Point, float64) {
 	bestPoint := r.Area[0]
-	maxDist := point.CalculatePointsDistance(p, bestPoint)
+	maxDist := 0.0
 
-	for _, corner := range r.Area[1:] {
-		dist := point.CalculatePointsDistance(p, corner)
-		if dist > maxDist {
+	for _, wID := range r.Walls {
+		wall, ok := ap.wallsByID[wID]
+		if !ok {
+			continue
+		}
+
+		wallSeg := point.Segment{From: wall.Points[0], To: wall.Points[1]}
+		closest := point.ClosestPointOnSegment(p, wallSeg)
+		dist := point.CalculatePointsDistance(p, closest)
+		flag := closest.X == p.X || closest.Y == p.Y
+		if dist > maxDist || (dist == maxDist && flag) {
 			maxDist = dist
-			bestPoint = corner
+			bestPoint = closest
 		}
 	}
 

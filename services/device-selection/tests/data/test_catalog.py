@@ -47,6 +47,18 @@ class TestApplyFilter:
     def test_neq_match(self):
         assert _apply_filter("wifi", Filter("protocol", FilterOp.NEQ, "zigbee")) is True
 
+    def test_eq_scalar_matches_list_attribute_member(self):
+        assert _apply_filter(["methane", "natural_gas"], Filter("gas_types", FilterOp.EQ, "methane")) is True
+
+    def test_eq_scalar_does_not_match_missing_list_attribute_member(self):
+        assert _apply_filter(["natural_gas"], Filter("gas_types", FilterOp.EQ, "methane")) is False
+
+    def test_neq_scalar_matches_missing_list_attribute_member(self):
+        assert _apply_filter(["natural_gas"], Filter("gas_types", FilterOp.NEQ, "methane")) is True
+
+    def test_neq_scalar_does_not_match_list_attribute_member(self):
+        assert _apply_filter(["methane", "natural_gas"], Filter("gas_types", FilterOp.NEQ, "methane")) is False
+
     def test_eq_type_mismatch_raises(self):
         with pytest.raises(TypeError, match="type mismatch"):
             _apply_filter("5", Filter("wattage", FilterOp.EQ, 5))

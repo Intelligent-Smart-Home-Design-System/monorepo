@@ -44,10 +44,10 @@ func placeRobotVacuumOnLevel(t *testing.T, level string) (*device.Placement, *fi
 func testApartment() *apartment.Apartment {
 	return &apartment.Apartment{
 		Walls: []apartment.Wall{
-			{ID: "w1", Points: []point.Point{{X: 0, Y: 0}, {X: 4, Y: 0}}},
-			{ID: "w2", Points: []point.Point{{X: 4, Y: 0}, {X: 4, Y: 4}}},
-			{ID: "w3", Points: []point.Point{{X: 4, Y: 4}, {X: 0, Y: 4}}},
-			{ID: "w4", Points: []point.Point{{X: 0, Y: 4}, {X: 0, Y: 0}}},
+			{ID: "w1", Points: []point.Point{{X: 0, Y: 0}, {X: 4000, Y: 0}}},
+			{ID: "w2", Points: []point.Point{{X: 4000, Y: 0}, {X: 4000, Y: 4000}}},
+			{ID: "w3", Points: []point.Point{{X: 4000, Y: 4000}, {X: 0, Y: 4000}}},
+			{ID: "w4", Points: []point.Point{{X: 0, Y: 4000}, {X: 0, Y: 0}}},
 		},
 		Rooms: []apartment.Room{
 			{
@@ -55,9 +55,9 @@ func testApartment() *apartment.Apartment {
 				Name: apartment.RoomLiving,
 				Area: []point.Point{
 					{X: 0, Y: 0},
-					{X: 4, Y: 0},
-					{X: 4, Y: 4},
-					{X: 0, Y: 4},
+					{X: 4000, Y: 0},
+					{X: 4000, Y: 4000},
+					{X: 0, Y: 4000},
 				},
 				Walls: []string{"w1", "w2", "w3", "w4"},
 			},
@@ -65,10 +65,10 @@ func testApartment() *apartment.Apartment {
 				ID:   "r2",
 				Name: apartment.RoomBathroom,
 				Area: []point.Point{
-					{X: 5, Y: 0},
-					{X: 7, Y: 0},
-					{X: 7, Y: 2},
-					{X: 5, Y: 2},
+					{X: 5000, Y: 0},
+					{X: 7000, Y: 0},
+					{X: 7000, Y: 2000},
+					{X: 5000, Y: 2000},
 				},
 			},
 		},

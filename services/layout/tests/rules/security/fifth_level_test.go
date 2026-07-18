@@ -19,7 +19,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 			ID: "1",
 			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 1, Y: 0},
+				{X: 1000, Y: 0},
 			},
 			Rooms: []string{"1"},
 		},
@@ -30,33 +30,33 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 			ID: "1",
 			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
+				{X: 3000, Y: 0},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 		{
 			ID: "3",
 			Points: []point.Point{
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 		{
 			ID: "4",
 			Points: []point.Point{
-				{X: 0, Y: 3},
+				{X: 0, Y: 3000},
 				{X: 0, Y: 0},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 	}
 
@@ -66,9 +66,9 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 			Name: "hall",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 			Doors: []string{"1"},
 			Walls: []string{"1", "2", "3", "4"},
@@ -102,7 +102,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 	for _, devicePlacement := range globalPlacement.Placements["1"] {
 		switch devicePlacement.Device.Type {
 		case "smart_siren":
-			assert.Equal(t, &point.Point{X: 1.5, Y: 1.5}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 1500, Y: 1500}, devicePlacement.Position)
 		}
 	}
 
@@ -132,7 +132,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 			ID: "1",
 			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 1, Y: 0},
+				{X: 1000, Y: 0},
 			},
 			Rooms: []string{"1"},
 		},
@@ -143,33 +143,33 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 			ID: "1",
 			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
+				{X: 3000, Y: 0},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 		{
 			ID: "3",
 			Points: []point.Point{
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 		{
 			ID: "4",
 			Points: []point.Point{
-				{X: 0, Y: 3},
+				{X: 0, Y: 3000},
 				{X: 0, Y: 0},
 			},
-			Width: 3,
+			Width: 3000,
 		},
 	}
 
@@ -179,9 +179,9 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 			Name: "hall",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 3, Y: 0},
-				{X: 3, Y: 3},
-				{X: 0, Y: 3},
+				{X: 3000, Y: 0},
+				{X: 3000, Y: 3000},
+				{X: 0, Y: 3000},
 			},
 			Doors: []string{"1"},
 			Walls: []string{"1", "2", "3", "4"},

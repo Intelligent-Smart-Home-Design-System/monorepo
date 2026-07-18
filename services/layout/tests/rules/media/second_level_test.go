@@ -16,12 +16,12 @@ import (
 func TestSecondLevelScript(t *testing.T) {
 	sofaFurniture := apartment.Furniture{
 		ID:     "1",
-		Name:   apartment.Sofa,
+		Category:   apartment.Sofa,
 		Points: []point.Point{
-			{X: 3, Y: 5},
-			{X: 6, Y: 5},
-			{X: 6, Y: 4},
-			{X: 3, Y: 4},
+			{X: 3000, Y: 5000},
+			{X: 6000, Y: 5000},
+			{X: 6000, Y: 4000},
+			{X: 3000, Y: 4000},
 		},
 	}
 
@@ -30,33 +30,33 @@ func TestSecondLevelScript(t *testing.T) {
 			ID: "1", 
 			Points: []point.Point{
 				{X: 0, Y: 0}, 
-				{X: 9, Y: 0},
+				{X: 9000, Y: 0},
 			},
-			Width: 9,
+			Width: 9000,
 		},
 		{
 			ID: "2", 
 			Points: []point.Point{
-				{X: 9, Y: 0}, 
-				{X: 9, Y: 7},
+				{X: 9000, Y: 0}, 
+				{X: 9000, Y: 7000},
 			},
-			Width: 7,
+			Width: 7000,
 		},
 		{
 			ID: "3", 
 			Points: []point.Point{
-				{X: 9, Y: 7}, 
-				{X: 0, Y: 7},
+				{X: 9000, Y: 7000}, 
+				{X: 0, Y: 7000},
 			},
-			Width: 9,
+			Width: 9000,
 		},
 		{
 			ID: "4", 
 			Points: []point.Point{
-				{X: 0, Y: 7}, 
+				{X: 0, Y: 7000}, 
 				{X: 0, Y: 0},
 			},
-			Width: 7,
+			Width: 7000,
 		},
 	}
 
@@ -65,9 +65,9 @@ func TestSecondLevelScript(t *testing.T) {
 		Name: "living",
 		Area: []point.Point{
 			{X: 0, Y: 0},
-			{X: 9, Y: 0},
-			{X: 9, Y: 7},
-			{X: 0, Y: 7},
+			{X: 9000, Y: 0},
+			{X: 9000, Y: 7},
+			{X: 0, Y: 7000},
 		},
 		AreaM2:     63,
 		Furniture:  []string{"1"},
@@ -105,15 +105,15 @@ func TestSecondLevelScript(t *testing.T) {
 		case "smart_tv":
 			foundTV = true
 
-			assert.Equal(t, &point.Point{X: 4.5, Y: 7.0}, devicePlacement.Position)
+			assert.Equal(t, &point.Point{X: 4500.0, Y: 7000.0}, devicePlacement.Position)
 		case "smart_speaker":
 			foundSpeaker = true
 
-			assert.Equal(t, 7.0, devicePlacement.Position.Y)
+			assert.Equal(t, 7000.0, devicePlacement.Position.Y)
 
-			tvX := 4.5
-			isLeft := devicePlacement.Position.X <= tvX - 0.5
-			isRight := devicePlacement.Position.X >= tvX + 0.5
+			tvX := 4500.0
+			isLeft := devicePlacement.Position.X <= tvX - 500.0
+			isRight := devicePlacement.Position.X >= tvX + 500.0
 			assert.True(t, isLeft || isRight)
 		}
 	}

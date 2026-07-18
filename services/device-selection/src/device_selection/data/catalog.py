@@ -91,6 +91,11 @@ def _apply_filter(attr: Any, f: Filter) -> bool:
         return attr is not None
     if attr is None:
         return False
+    if isinstance(attr, list) and not isinstance(f.value, list):
+        if f.op == FilterOp.EQ:
+            return f.value in attr
+        if f.op == FilterOp.NEQ:
+            return f.value not in attr
     if f.op != FilterOp.CONTAINS:
         if type(attr) is not type(f.value) and not _numeric_compatible(attr, f.value):
             raise TypeError(
@@ -121,4 +126,3 @@ def _apply_filter(attr: Any, f: Filter) -> bool:
             return f.value in attr
         case _:
             raise ValueError(f"unknown filter op: {f.op}")
-

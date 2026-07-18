@@ -85,11 +85,16 @@ type IncidentBlockData struct {
 	Points    [][2]float64 `json:"points"`
 }
 
-// IncidentGrid хранит расчетную BFS-сетку и текущее распространение incident.
-type IncidentGrid struct {
+// IncidentGridTemplate хранит общую неизменяемую геометрию BFS-сетки для всех incident симуляции.
+type IncidentGridTemplate struct {
 	cellSize float64
 	floor    *api.Floor
 	cells    map[string]*incidentCell
+}
+
+// IncidentGrid хранит отдельное состояние распространения incident поверх общей расчетной сетки.
+type IncidentGrid struct {
+	*IncidentGridTemplate
 	burning  map[string]bool
 	frontier []string
 }
@@ -207,10 +212,14 @@ func (i *Incident) Process(process simgo.Process) {
 	}
 }
 
-// start создает новую BFS-сетку и активирует клетку в координатах события.
+// start очищает состояние incident в общей BFS-сетке и активирует клетку в координатах события.
 func (i *Incident) start(input IncidentInData) {
 	i.applyActivation(input)
-	i.grid = NewIncidentGrid(i.enginePort.GetFloor(), i.CellSize)
+	if i.grid == nil {
+		i.grid = NewIncidentGrid(i.enginePort.GetFloor(), i.CellSize)
+	} else {
+		i.grid.Reset()
+	}
 	i.grid.Ignite(i.X, i.Y, i.RoomID)
 }
 
@@ -223,8 +232,15 @@ func (i *Incident) reset() {
 		}
 		i.notifyObservers(zones)
 	}
-	i.grid = nil
+	if i.grid != nil {
+		i.grid.Reset()
+	}
 	i.emitZones([]*IncidentZoneData{})
+}
+
+// SetGridTemplate подключает incident к общей расчетной сетке и создает его независимое BFS-состояние.
+func (i *Incident) SetGridTemplate(template *IncidentGridTemplate) {
+	i.grid = NewIncidentGridFromTemplate(template)
 }
 
 // emitZones уведомляет observers и отправляет полный snapshot incident наружу.
@@ -300,21 +316,44 @@ func (i *Incident) SetReceivers(actions []api.EdgeDTO) {
 // OnTick помечает incident как tickable-сущность; дополнительной логики не выполняет.
 func (i *Incident) OnTick() {}
 
-// NewIncidentGrid создает расчетную BFS-сетку по floor и возвращает готовый grid.
-func NewIncidentGrid(floor *api.Floor, cellSize float64) *IncidentGrid {
+// NewIncidentGridTemplate один раз строит общую расчетную BFS-сетку по floor.
+func NewIncidentGridTemplate(floor *api.Floor, cellSize float64) *IncidentGridTemplate {
 	if cellSize <= 0 {
 		cellSize = defaultIncidentCellSize
 	}
 
-	grid := &IncidentGrid{
+	template := &IncidentGridTemplate{
 		cellSize: cellSize,
 		floor:    floor,
 		cells:    make(map[string]*incidentCell),
-		burning:  make(map[string]bool),
 	}
-	grid.buildCells()
+	template.buildCells()
 
-	return grid
+	return template
+}
+
+// CellSize возвращает размер клетки общей расчетной сетки.
+func (t *IncidentGridTemplate) CellSize() float64 {
+	return t.cellSize
+}
+
+// NewIncidentGrid создает расчетную сетку и отдельное состояние распространения.
+func NewIncidentGrid(floor *api.Floor, cellSize float64) *IncidentGrid {
+	return NewIncidentGridFromTemplate(NewIncidentGridTemplate(floor, cellSize))
+}
+
+// NewIncidentGridFromTemplate создает независимое BFS-состояние поверх готовой общей сетки.
+func NewIncidentGridFromTemplate(template *IncidentGridTemplate) *IncidentGrid {
+	return &IncidentGrid{
+		IncidentGridTemplate: template,
+		burning:              make(map[string]bool),
+	}
+}
+
+// Reset очищает активные клетки и frontier, сохраняя рассчитанную геометрию сетки.
+func (g *IncidentGrid) Reset() {
+	clear(g.burning)
+	g.frontier = g.frontier[:0]
 }
 
 // Ignite выбирает ближайшую клетку к стартовой точке, активирует ее и задает начальный frontier.
@@ -389,7 +428,11 @@ func (g *IncidentGrid) Zones() []*IncidentZoneData {
 }
 
 // buildCells нарезает комнаты floor на допустимые клетки grid; ничего не возвращает.
-func (g *IncidentGrid) buildCells() {
+func (g *IncidentGridTemplate) buildCells() {
+	if g.floor == nil {
+		return
+	}
+
 	for _, room := range g.floor.Rooms {
 		if len(room.Area) == 0 {
 			continue
@@ -512,7 +555,8 @@ func (g *IncidentGrid) crossesBlockingWall(roomID string, move segment) bool {
 	return false
 }
 
-// crossesDoorBetween проверяет, пересекает ли переход дверь между комнатами, и возвращает результат.
+// crossesDoorBetween проверяет, может ли инцидент перейти из клетки одной комнаты в
+// клетку другой комнаты именно через соединяющую их дверь.
 func (g *IncidentGrid) crossesDoorBetween(fromRoomID, toRoomID string, move segment) bool {
 	for _, edge := range g.floor.Adjacency[fromRoomID] {
 		if edge.NeighborRoomID != toRoomID || edge.Door == nil {
@@ -525,6 +569,9 @@ func (g *IncidentGrid) crossesDoorBetween(fromRoomID, toRoomID string, move segm
 			door.Points[1][0], door.Points[1][1],
 		}
 		if _, intersects := intersectSegments(move, doorSeg); intersects {
+			if pointToSegmentDistance([2]float64{move.x1, move.y1}, doorSeg) > g.cellSize {
+				continue
+			}
 			return true
 		}
 	}
@@ -595,7 +642,7 @@ func (g *IncidentGrid) clippedBlockPoints(cell *incidentCell) [][2]float64 {
 }
 
 // cellID строит стабильный ID по индексам содержащей координаты клетки.
-func (g *IncidentGrid) cellID(roomID string, x, y float64) string {
+func (g *IncidentGridTemplate) cellID(roomID string, x, y float64) string {
 	column := int64(math.Floor(x / g.cellSize))
 	row := int64(math.Floor(y / g.cellSize))
 	return roomID + ":" + strconv.FormatInt(column, 10) + ":" + strconv.FormatInt(row, 10)

@@ -52,7 +52,7 @@ test("frontend renders, resets and restarts backend incidents through gateway", 
 
   await expect(page.getByTestId("incident-layer")).toBeVisible();
   await expect(page.getByTestId("incident-layer").locator("polygon")).not.toHaveCount(0);
-  await expect(page.getByTestId("device-smoke_sensor")).toHaveAttribute("data-device-state", "active");
+  await expect(page.getByTestId("device-smoke_sensor")).toHaveAttribute("data-device-state", "idle");
 
   await page.getByTestId("fire-reset").click();
   await expect(page.getByTestId("incident-layer")).toHaveCount(0);

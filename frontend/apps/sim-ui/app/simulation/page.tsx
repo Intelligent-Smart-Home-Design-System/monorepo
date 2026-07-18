@@ -1025,11 +1025,8 @@ export default function SimulationPage() {
     setFireMode(false);
     setFirePoint(null);
     setFireActive(false);
-    setIncidentPolygons((polygons) => polygons.filter((polygon) => polygon.kind !== "fire:spread" && polygon.kind !== "smoke:spread"));
-    sendSimulationTick([
-      { kind: "fire:spread", entityId: "fire", payload: { reset: true } },
-      { kind: "smoke:spread", entityId: "smoke", payload: { reset: true } },
-    ]);
+    setIncidentPolygons((polygons) => polygons.filter((polygon) => polygon.kind !== "fire:spread"));
+    sendSimulationTick([{ kind: "fire:spread", entityId: "fire", payload: { reset: true } }]);
   }
 
   function resetWater() {
@@ -1049,10 +1046,7 @@ export default function SimulationPage() {
     }
 
     const activation = buildIncidentActivation(floorSource, point, room.id);
-    const inputs: SimEventInput[] = [
-      { kind: "fire:spread", entityId: "fire", payload: activation },
-      { kind: "smoke:spread", entityId: "smoke", payload: activation },
-    ];
+    const inputs: SimEventInput[] = [{ kind: "fire:spread", entityId: "fire", payload: activation }];
     const markFireStarted = () => {
       setFirePoint(point);
       setFireActive(true);

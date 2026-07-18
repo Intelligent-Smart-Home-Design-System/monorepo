@@ -101,6 +101,40 @@ func TestIncidentApplyActivation_KeepsConfiguredFallback(t *testing.T) {
 	}
 }
 
+// TestIncidentGrids_ShareTopologyButKeepIndependentState проверяет повторное использование
+// рассчитанных клеток разными incident без смешивания их burning/frontier.
+func TestIncidentGrids_ShareTopologyButKeepIndependentState(t *testing.T) {
+	floor := &api.Floor{
+		Rooms: []api.Room{{
+			ID:   "room_1",
+			Area: [][2]float64{{0, 0}, {2, 0}, {2, 2}, {0, 2}},
+		}},
+	}
+	template := NewIncidentGridTemplate(floor, 0.5)
+	fireGrid := NewIncidentGridFromTemplate(template)
+	smokeGrid := NewIncidentGridFromTemplate(template)
+
+	if fireGrid.IncidentGridTemplate != smokeGrid.IncidentGridTemplate {
+		t.Fatal("incident grids do not share their calculated topology")
+	}
+
+	fireGrid.Ignite(0.25, 0.25, "room_1")
+	if len(fireGrid.burning) != 1 {
+		t.Fatalf("fire grid has %d active cells, expected 1", len(fireGrid.burning))
+	}
+	if len(smokeGrid.burning) != 0 || len(smokeGrid.frontier) != 0 {
+		t.Fatal("fire activation leaked into smoke state")
+	}
+
+	fireGrid.Reset()
+	if len(fireGrid.burning) != 0 || len(fireGrid.frontier) != 0 {
+		t.Fatal("reset did not clear incident state")
+	}
+	if len(template.cells) == 0 {
+		t.Fatal("reset removed shared calculated cells")
+	}
+}
+
 // TestIncidentGrid_DoesNotCrossWallWithoutDoor проверяет, что incident не проходит через общую стену без двери.
 func TestIncidentGrid_DoesNotCrossWallWithoutDoor(t *testing.T) {
 	floor := &api.Floor{
@@ -180,6 +214,53 @@ func TestIncidentGrid_CrossesWallThroughDoor(t *testing.T) {
 		}
 	}
 	t.Fatal("incident did not cross through the door")
+}
+
+// TestIncidentGrid_DoesNotJumpIntoNeighborRoomFromCenter проверяет, что инцидент не попадает
+// в соседнюю комнату сразу после старта из центра, а сначала расходится внутри своей комнаты.
+func TestIncidentGrid_DoesNotJumpIntoNeighborRoomFromCenter(t *testing.T) {
+	door := api.Door{
+		ID:     "door_1",
+		Points: [2][2]float64{{10, 4}, {10, 6}},
+		Width:  1,
+		Rooms:  []string{"room_1", "room_2"},
+	}
+	floor := &api.Floor{
+		Walls: []api.Wall{
+			{ID: "wall_shared", Points: [2][2]float64{{10, 0}, {10, 10}}, Width: 0.1},
+		},
+		Doors: []api.Door{door},
+		Rooms: []api.Room{
+			{
+				ID:    "room_1",
+				Area:  [][2]float64{{0, 0}, {10, 0}, {10, 10}, {0, 10}},
+				Walls: []string{"wall_shared"},
+				Doors: []string{"door_1"},
+			},
+			{
+				ID:    "room_2",
+				Area:  [][2]float64{{10, 0}, {20, 0}, {20, 10}, {10, 10}},
+				Walls: []string{"wall_shared"},
+				Doors: []string{"door_1"},
+			},
+		},
+		Adjacency: map[string][]api.RoomEdge{
+			"room_1": {{NeighborRoomID: "room_2", Door: &door}},
+			"room_2": {{NeighborRoomID: "room_1", Door: &door}},
+		},
+	}
+
+	grid := NewIncidentGrid(floor, 1)
+	grid.Ignite(5, 5, "room_1")
+
+	for i := 0; i < 4; i++ {
+		grid.Step()
+		for _, zone := range grid.Zones() {
+			if zone.RoomID == "room_2" {
+				t.Fatalf("incident jumped into neighbor room too early on step %d", i+1)
+			}
+		}
+	}
 }
 
 // TestIncidentGrid_ClipsBlockByWall проверяет, что polygon блока обрезается по стене.

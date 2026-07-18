@@ -272,7 +272,7 @@ function makeFloorCoordinateMapper(source: unknown) {
       x: minX + ((point.x - padding) / scale) * width,
       y: minY + ((point.y - padding) / scale) * height,
     }),
-    cellSize: Math.min(width, height) * 0.05,
+    cellSize: Math.min(width, height) * 0.0125,
   };
 }
 

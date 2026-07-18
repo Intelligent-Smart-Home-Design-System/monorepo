@@ -202,14 +202,14 @@ func clipPolygonByLineKeepingPoint(polygon [][2]float64, line segment, keepPoint
 		return polygon
 	}
 
-	keepSign := signedDistanceToLine(keepPoint, line)
-	if math.Abs(keepSign) <= blockEpsilon {
+	keepDistance := signedDistanceToLine(keepPoint, line)
+	if math.Abs(keepDistance) <= blockEpsilon {
 		return polygon
 	}
 
 	inside := func(point [2]float64) bool {
 		distance := signedDistanceToLine(point, line)
-		return distance*keepSign >= -blockEpsilon
+		return distance*keepDistance >= -blockEpsilon
 	}
 
 	var clipped [][2]float64
@@ -236,6 +236,22 @@ func clipPolygonByLineKeepingPoint(polygon [][2]float64, line segment, keepPoint
 // signedDistanceToLine считает ориентированное расстояние точки до линии и возвращает его знак/величину.
 func signedDistanceToLine(point [2]float64, line segment) float64 {
 	return (line.x2-line.x1)*(point[1]-line.y1) - (line.y2-line.y1)*(point[0]-line.x1)
+}
+
+// pointToSegmentDistance считает кратчайшее расстояние от точки до отрезка.
+func pointToSegmentDistance(point [2]float64, line segment) float64 {
+	dx := line.x2 - line.x1
+	dy := line.y2 - line.y1
+	if math.Abs(dx) < blockEpsilon && math.Abs(dy) < blockEpsilon {
+		return math.Hypot(point[0]-line.x1, point[1]-line.y1)
+	}
+
+	t := ((point[0]-line.x1)*dx + (point[1]-line.y1)*dy) / (dx*dx + dy*dy)
+	t = math.Max(0, math.Min(1, t))
+
+	closestX := line.x1 + t*dx
+	closestY := line.y1 + t*dy
+	return math.Hypot(point[0]-closestX, point[1]-closestY)
 }
 
 // lineIntersection ищет пересечение отрезка ab с линией и возвращает точку и признак успеха.

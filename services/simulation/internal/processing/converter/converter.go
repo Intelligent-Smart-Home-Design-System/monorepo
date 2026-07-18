@@ -21,6 +21,17 @@ var (
 // Если парсинг не удался, то возвращает ошибку.
 func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) (map[string]entities.Entity, error) {
 	IDToEntity := make(map[string]entities.Entity)
+	var incidentGridTemplate *actors.IncidentGridTemplate
+
+	attachIncidentGrid := func(incident *actors.Incident) error {
+		if incidentGridTemplate == nil {
+			incidentGridTemplate = actors.NewIncidentGridTemplate(engineAPI.GetFloor(), incident.CellSize)
+		} else if incident.CellSize != incidentGridTemplate.CellSize() {
+			return fmt.Errorf("incident %q uses cellSize %v, expected shared cellSize %v", incident.ID, incident.CellSize, incidentGridTemplate.CellSize())
+		}
+		incident.SetGridTemplate(incidentGridTemplate)
+		return nil
+	}
 
 	for _, entityDTO := range entitiesData {
 		entityType := normalizeEntityType(entityDTO)
@@ -110,6 +121,9 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			if err != nil {
 				return nil, err
 			}
+			if err := attachIncidentGrid(fire); err != nil {
+				return nil, err
+			}
 
 			IDToEntity[entityDTO.ID] = fire
 		case entities.TypeFlood:
@@ -117,11 +131,17 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			if err != nil {
 				return nil, err
 			}
+			if err := attachIncidentGrid(flood); err != nil {
+				return nil, err
+			}
 
 			IDToEntity[entityDTO.ID] = flood
 		case entities.TypeSmoke:
 			smoke, err := actors.NewSmoke(entityDTO.Info, engineAPI)
 			if err != nil {
+				return nil, err
+			}
+			if err := attachIncidentGrid(smoke); err != nil {
 				return nil, err
 			}
 

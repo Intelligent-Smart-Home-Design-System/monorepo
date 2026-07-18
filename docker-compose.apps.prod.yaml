@@ -49,7 +49,6 @@ services:
       dockerfile: services/main-pipeline/Dockerfile
     depends_on:
       - temporal
-      - floor-parser-worker
       - layout-worker
       - device-selection-worker
     environment:
@@ -129,7 +128,6 @@ services:
       target: next
       args:
         APP: sim-ui
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8090}
     ports:
       - "3001:3000"
     restart: unless-stopped
@@ -147,6 +145,7 @@ services:
     depends_on:
       - api-gateway
       - frontend-api
+      - floor-parser-api
       - web
       - sim-ui
       - simulation
@@ -156,18 +155,16 @@ services:
       - "8090:80"
     restart: unless-stopped
 
-  floor-parser-worker:
+  floor-parser-api:
     build:
       context: services/floor-parser
-    depends_on:
-      - temporal
+    command: ["python", "-m", "app.floor_parser.main"]
     environment:
-      TEMPORAL_ADDRESS: temporal:7233
-      TEMPORAL_NAMESPACE: default
-      TEMPORAL_TASK_QUEUE: floor-parser
-      METRICS_PORT: 2113
-    ports:
-      - "2113:2113"
+      PARSER_HOST: 0.0.0.0
+      PARSER_PORT: 8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
+    expose:
+      - "8080"
     restart: unless-stopped
 
   layout-worker:

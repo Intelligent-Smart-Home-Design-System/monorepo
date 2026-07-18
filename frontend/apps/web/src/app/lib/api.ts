@@ -22,13 +22,8 @@ import {
   persistAuthResponse,
 } from "./auth";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
 const AUTH_PATHS = getAuthPaths();
 let refreshPromise: Promise<string | null> | null = null;
-
-function buildUrl(path: string) {
-  return `${API_BASE_URL}${path}`;
-}
 
 async function requestJson<T>(path: string, init?: RequestInit, allowRefresh = true): Promise<T> {
   const headers = new Headers(init?.headers ?? {});
@@ -43,7 +38,7 @@ async function requestJson<T>(path: string, init?: RequestInit, allowRefresh = t
 
   let response: Response;
   try {
-    response = await fetch(buildUrl(path), {
+    response = await fetch(path, {
       ...init,
       headers,
       cache: "no-store",
@@ -80,7 +75,7 @@ async function requestForm<T>(path: string, formData: FormData, allowRefresh = t
 
   let response: Response;
   try {
-    response = await fetch(buildUrl(path), {
+    response = await fetch(path, {
       method: "POST",
       body: formData,
       headers,

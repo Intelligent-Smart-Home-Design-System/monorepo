@@ -10,7 +10,6 @@ export type IncidentPolygon = {
   id: string;
   kind: IncidentKind;
   points: Point[];
-  intensity?: number;
 };
 
 type Props = {

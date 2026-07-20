@@ -37,6 +37,11 @@ import {
   type LogLevel,
 } from "@/app/simulation/Mockdata";
 
+interface PlacedDevice {
+  id: string;
+  x: number;
+  y: number;
+}
 type Status = "empty" | "loading" | "running" | "paused" | "error";
 type Speed = number;
 type Filter = "ALL" | LogLevel;
@@ -579,10 +584,10 @@ export default function SimulationPage() {
 
         setPlanDependencies(dependencies);
 
-        const list = layout?.devices || [];
+        const list: PlacedDevice[] = layout?.devices || [];
         if (list.length) {
-          setPlacedDeviceIds(list.map((d: any) => d.id));
-          setDevicePositions(list.map((d: any) => ({ id: d.id, x: d.x, y: d.y })));
+          setPlacedDeviceIds(list.map((d) => d.id));
+          setDevicePositions(list.map((d) => ({ id: d.id, x: d.x, y: d.y })));
         }
 
         urlParams.delete("config");

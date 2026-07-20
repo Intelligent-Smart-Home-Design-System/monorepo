@@ -115,6 +115,7 @@ export type ApiPipelineResult = {
     request_id?: string;
     parsed_floor_plan?: unknown;
     layout?: unknown;
+    dependencies?: Record<string, string[]> | null;
     device_selection?: unknown;
     stages?: ApiPlanStageArtifact[] | null;
     artifacts?: ApiPlanStageArtifact[] | null;

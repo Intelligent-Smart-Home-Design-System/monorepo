@@ -21,7 +21,8 @@ type PlaceDevicesInput struct {
 }
 
 type PlaceDevicesOutput struct {
-	Layout map[string]interface{} `json:"layout"`
+	Layout       map[string]interface{} `json:"layout"`
+	Dependencies map[string][]string    `json:"dependencies"`
 }
 
 type Activities struct {
@@ -70,6 +71,12 @@ func (a *Activities) PlaceDevices(ctx context.Context, input PlaceDevicesInput) 
 		return PlaceDevicesOutput{}, err
 	}
 
+	dependencies, err := a.engine.MakeScenarioDependencies(layout)
+	if err != nil {
+		logger.Error("failed to generate scenario dependencies", "request_id", input.RequestID, "error", err)
+		return PlaceDevicesOutput{}, err
+	}
+
 	devicesPlaced := countPlacements(layout)
 	roomsWithDevices := len(layout.Placements)
 	logger.Info("devices placed",
@@ -94,7 +101,7 @@ func (a *Activities) PlaceDevices(ctx context.Context, input PlaceDevicesInput) 
 		"devices_placed", devicesPlaced,
 		"duration_ms", time.Since(startedAt).Milliseconds(),
 	)
-	return PlaceDevicesOutput{Layout: out}, nil
+	return PlaceDevicesOutput{Layout: out, Dependencies: dependencies}, nil
 }
 
 func countPlacements(layout *apartment.Layout) int {

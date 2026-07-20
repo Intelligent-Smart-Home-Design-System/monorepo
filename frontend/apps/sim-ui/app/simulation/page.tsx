@@ -554,6 +554,50 @@ export default function SimulationPage() {
   const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
   const [wsError, setWsError] = useState<string | null>(null);
 
+  const [planDependencies, setPlanDependencies] = useState<Record<string, string[]>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem("simulation-plan-dependencies");
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const configRaw = urlParams.get("config");
+
+      if (configRaw) {
+        const { layout, dependencies } = JSON.parse(decodeURIComponent(configRaw));
+
+        window.localStorage.setItem("simulation-plan-layout", JSON.stringify(layout));
+        window.localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
+
+        setPlanDependencies(dependencies);
+
+        const list = layout?.devices || [];
+        if (list.length) {
+          setPlacedDeviceIds(list.map((d: any) => d.id));
+          setDevicePositions(list.map((d: any) => ({ id: d.id, x: d.x, y: d.y })));
+        }
+
+        urlParams.delete("config");
+        const nextQuery = urlParams.toString();
+        window.history.replaceState(
+          null,
+          "",
+          nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname
+        );
+      }
+    } catch (err) {
+      console.error("Не удалось распарсить конфигурацию симуляции из URL:", err);
+    }
+  }, []);
+
   const externalDeviceMap = useMemo(() => new Map(externalDevices.map((device) => [device.id, device])), [externalDevices]);
   const deviceTypeMap = useMemo<Record<string, string | undefined>>(() => {
     return Object.fromEntries(externalDevices.map((device) => [device.id, device.type]));
@@ -767,12 +811,16 @@ export default function SimulationPage() {
 
     if (!wasActive) {
       addEvent(sensorId, "Датчик движения обнаружил жителя", "INFO");
+
+      const connectedExecutors = planDependencies[sensorId] || [];
+      const affectedDevices = [sensorId, ...connectedExecutors];
+
       sendSimulationTick([
         {
           kind: "human:trigger",
           entityId: "resident",
           trigger: sensorId,
-          devicesPayload: [sensorId],
+          devicesPayload: affectedDevices,
           payload: { turn_on: true, to: { x: point.x, y: point.y }, x: point.x, y: point.y },
         },
       ]);
@@ -1119,6 +1167,7 @@ export default function SimulationPage() {
         deviceIds: placedDeviceIds,
         deviceTypes: Object.fromEntries(devicesForPlan.map((device) => [device.id, device.type])),
         speed,
+        dependencies: planDependencies
       });
     lastStartPayloadRef.current = startPayload;
     const sentToBackend = sendWsMessage("simulation:start", startPayload);

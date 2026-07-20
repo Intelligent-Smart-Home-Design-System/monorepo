@@ -67,8 +67,8 @@ type EntityConfig = {
   entities: Record<string, { description?: string }>;
 };
 type LayoutDeviceConfig = {
-  types: Record<string, { name?: string; tracks?: string[] }>;
-  traits?: any;
+  types: Record<string, { description?: string; name?: string; tracks?: string[] }>;
+  traits?: Record<string, unknown>;
 };
 
 const PLAN_STORAGE_KEY = "simulation-plan-layout";

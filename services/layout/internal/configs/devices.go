@@ -8,13 +8,15 @@ import (
 var globalDevicesConfig *Devices
 
 type Devices struct {
-	Devices map[string]Device `json:"device_types"`
+	Devices map[string]Device `json:"types"`
 }
 
 type Device struct {
-	Name    string                 `json:"name"`
-	Price   PriceRange             `json:"price_range"`
-	Tracks  []string               `json:"tracks"`
+	Name   string     `json:"description"`
+	Price  PriceRange `json:"price_range"`
+	Tracks []string   `json:"tracks"`
+	Title  string     `json:"title,omitempty"`
+	Traits []string   `json:"traits,omitempty"`
 }
 
 func LoadDevicesConfig(path string) error {
@@ -42,11 +44,3 @@ func CreateGlobalDevicesConfig(config *Devices) {
 func GetGlobalDevicesConfig() *Devices {
 	return globalDevicesConfig
 }
-
-// func (d *Devices) GetDeviceFilter(deviceType string) filters.DeviceFilter {
-// 	if d.Filters != nil {
-// 		return d.Filters[deviceType]
-// 	}
-
-// 	return nil
-// }

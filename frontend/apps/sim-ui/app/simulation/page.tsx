@@ -67,7 +67,8 @@ type EntityConfig = {
   entities: Record<string, { description?: string }>;
 };
 type LayoutDeviceConfig = {
-  device_types: Record<string, { name?: string; tracks?: string[] }>;
+  types: Record<string, { name?: string; tracks?: string[] }>;
+  traits?: any;
 };
 
 const PLAN_STORAGE_KEY = "simulation-plan-layout";
@@ -634,7 +635,7 @@ export default function SimulationPage() {
       return Array.from(ids);
     }
 
-    Object.keys(LAYOUT_DEVICES.device_types ?? {}).forEach((id) => ids.add(id));
+    Object.keys(LAYOUT_DEVICES.types ?? {}).forEach((id) => ids.add(id));
     baseScenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
     scenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
     return Array.from(ids);

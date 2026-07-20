@@ -127,11 +127,35 @@ export function buildSimulationStartPayload(args: {
   deviceIds?: string[];
   deviceTypes?: Record<string, string | undefined>;
   speed: number;
+  dependencies?: Record<string, string[]>;
 }) {
   const deviceIds = Array.from(new Set([...args.scenarios.flatMap((scenario) => scenario.chain), ...(args.deviceIds ?? [])]));
   const markerMap = new Map(args.markers.map((marker) => [marker.id, marker]));
   const floorCoordinates = makeFloorCoordinateMapper(args.floorSource);
   const regularDevices = deviceIds.filter((id) => id !== "fire" && id !== "flood" && id !== "smoke");
+  let backendScenarios = [];
+
+  if (args.dependencies && Object.keys(args.dependencies).length > 0) {
+    backendScenarios = Object.entries(args.dependencies).map(([triggerId, targetIds]) => ({
+      id: triggerId,
+      edges: targetIds.map((targetId) => ({
+        to: targetId,
+        action: "trigger",
+      })),
+    }));
+  } else {
+    backendScenarios = args.scenarios.flatMap((scenario) => {
+      return scenario.chain.slice(0, -1).map((id, index) => ({
+        id,
+        edges: [
+          {
+            to: scenario.chain[index + 1],
+            action: "trigger",
+          },
+        ],
+      }));
+    });
+  }
 
   return {
     dtSim: Math.max(0.1, 1 / Math.max(args.speed || 1, 0.1)),
@@ -159,17 +183,7 @@ export function buildSimulationStartPayload(args: {
         info: { id: type, cellSize: floorCoordinates.cellSize },
       })),
     ],
-    scenarios: args.scenarios.flatMap((scenario) => {
-      return scenario.chain.slice(0, -1).map((id, index) => ({
-        id,
-        edges: [
-          {
-            to: scenario.chain[index + 1],
-            action: "trigger",
-          },
-        ],
-      }));
-    }),
+    scenarios: backendScenarios,
   };
 }
 

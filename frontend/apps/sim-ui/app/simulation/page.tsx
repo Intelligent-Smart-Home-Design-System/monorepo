@@ -582,13 +582,15 @@ export default function SimulationPage() {
         window.localStorage.setItem("simulation-plan-layout", JSON.stringify(layout));
         window.localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
 
-        setPlanDependencies(dependencies);
+        setTimeout(() => {
+          setPlanDependencies(dependencies);
 
-        const list: PlacedDevice[] = layout?.devices || [];
-        if (list.length) {
-          setPlacedDeviceIds(list.map((d) => d.id));
-          setDevicePositions(list.map((d) => ({ id: d.id, x: d.x, y: d.y })));
-        }
+          const list: PlacedDevice[] = layout?.devices || [];
+          if (list.length) {
+            setPlacedDeviceIds(list.map((d) => d.id));
+            setDevicePositions(list.map((d) => ({ id: d.id, x: d.x, y: d.y })));
+          }
+        }, 0);
 
         urlParams.delete("config");
         const nextQuery = urlParams.toString();

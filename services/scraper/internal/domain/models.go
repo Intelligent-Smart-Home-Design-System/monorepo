@@ -107,6 +107,7 @@ const (
     SourceYandex      = "yandex"
 	SourceDns         = "dns"
 	SourceApifyYandexMarket = "apify_yandex_market"
+	SourceOzon        = "ozon"
 )
 
 type DirectCompatibilityRecord struct {

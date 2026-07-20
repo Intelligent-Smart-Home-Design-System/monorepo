@@ -18,6 +18,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/yandex"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/apify"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/ozon"
 	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
 )
 
@@ -196,6 +197,42 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("set processed")
 				} else {
 					logger.Debug().Int("snapshot_id", snap.ID).Msg("Apify snapshot processed")
+				}
+			}
+		}
+	}
+
+	if shouldRun(domain.PageTypeDiscovery, domain.SourceOzon) {
+		snapshots, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeDiscovery.String(), domain.SourceOzon)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to get Ozon snapshots")
+		} else {
+			logger.Info().Msgf("found %d unprocessed Ozon snapshots", len(snapshots))
+			for _, snap := range snapshots {
+				files, err := parser.ExtractArchive(snap.WARCBundle)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("extract archive")
+					continue
+				}
+				jsonData, err := parser.FindFile(files, "apify_result.json")
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("find apify_result.json")
+					continue
+				}
+				listings, err := ozon.ParseOzonResult(jsonData, cfg.Wildberries.BrandAliases, snap.ID)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("parse ozon result")
+					continue
+				}
+				for _, list := range listings {
+					if err := snapshotRepo.SaveListingParseResult(list); err != nil {
+						logger.Error().Err(err).Msg("failed to save listing from Ozon")
+					}
+				}
+				if err := snapshotRepo.SetProcessed(snap.ID); err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("set processed")
+				} else {
+					logger.Debug().Int("snapshot_id", snap.ID).Msg("Ozon snapshot processed")
 				}
 			}
 		}

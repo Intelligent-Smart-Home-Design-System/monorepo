@@ -1068,12 +1068,14 @@ function loadUploadedPlan(): UploadedPlanState | null {
 type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
 
 function simulationUrl() {
-  return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "http://127.0.0.1:3001/simulation";
+  return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
 }
 
 function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
+  } else {
+    localStorage.removeItem("simulation-floor");
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
@@ -1094,6 +1096,8 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown) {
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
+  } else {
+    localStorage.removeItem("simulation-floor");
   }
 
   const url = new URL(simulationUrl(), window.location.origin);

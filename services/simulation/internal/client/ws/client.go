@@ -66,6 +66,8 @@ func (c *Client) route(msg api.Message) {
 	switch msg.Type {
 	case "hello":
 		c.handleHello()
+	case "ping":
+		c.handlePing(msg)
 	case "simulation:start":
 		c.handleSimulationStart(msg)
 	case "simulation:tick":
@@ -75,6 +77,11 @@ func (c *Client) route(msg api.Message) {
 	default:
 		c.sendError(msg.ReqID, "UNKNOWN_TYPE", "unknown message type")
 	}
+}
+
+// handlePing подтверждает прикладной heartbeat, не затрагивая состояние и время симуляции.
+func (c *Client) handlePing(msg api.Message) {
+	c.send(api.Message{Type: "pong", Ts: time.Now(), ReqID: msg.ReqID})
 }
 
 // handleHello обрабатывает сообщение "hello" от клиента, отправляя обратно "hello:ack" с информацией о сервере и версии

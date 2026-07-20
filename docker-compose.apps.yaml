@@ -48,7 +48,7 @@ services:
       timeout: 5s
       retries: 20
     ports:
-      - "5432:5432"
+      - "${CATALOG_DB_HOST_PORT:-5432}:5432"
     volumes:
       - catalog-postgresql-data:/var/lib/postgresql/data
 
@@ -81,7 +81,6 @@ services:
       dockerfile: services/main-pipeline/Dockerfile
     depends_on:
       - temporal
-      - floor-parser-worker
       - layout-worker
       - device-selection-worker
     environment:
@@ -110,6 +109,8 @@ services:
         condition: service_started
       main-pipeline:
         condition: service_started
+      simulation:
+        condition: service_started
       catalog-db-migrate:
         condition: service_completed_successfully
     environment:
@@ -119,6 +120,7 @@ services:
       HTTP_ADDRESS: :8080
       METRICS_ADDRESS: :2116
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      SIMULATION_WS_URL: ws://simulation:8080/ws/simulation
       LOG_LEVEL: info
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
@@ -166,6 +168,14 @@ services:
       - "3001:3000"
     restart: unless-stopped
 
+  simulation:
+    build:
+      context: .
+      dockerfile: services/simulation/Dockerfile
+    expose:
+      - "8080"
+    restart: unless-stopped
+
   nginx:
     image: nginx:1.27-alpine
     depends_on:
@@ -174,28 +184,11 @@ services:
       - floor-parser-api
       - web
       - sim-ui
+      - simulation
     volumes:
       - ./services/main-pipeline/nginx/conf.d:/etc/nginx/conf.d:ro
     ports:
       - "8090:80"
-    restart: unless-stopped
-
-  floor-parser-worker:
-    build:
-      context: services/floor-parser
-    depends_on:
-      - temporal
-    environment:
-      TEMPORAL_ADDRESS: temporal:7233
-      TEMPORAL_NAMESPACE: default
-      TEMPORAL_TASK_QUEUE: floor-parser
-      METRICS_PORT: 2113
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-otel-collector:4318}
-    ports:
-      - "2113:2113"
-    networks:
-      - default
-      - monorepo-monitoring
     restart: unless-stopped
 
   floor-parser-api:

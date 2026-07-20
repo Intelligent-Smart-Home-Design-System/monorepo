@@ -81,7 +81,7 @@ export function ControlPanel(props: Props) {
   const [scenarioQuery, setScenarioQuery] = useState("");
   const [selectedDeviceTypes, setSelectedDeviceTypes] = useState<DeviceType[]>([]);
 
-  const canStart = selectedScenarioIds.length > 0 && (status === "empty" || status === "paused" || status === "error");
+  const canStart = status === "empty" || status === "paused" || status === "error";
   const canPause = status === "running";
   const canStop = status === "running" || status === "paused" || status === "loading";
   const isBusy = status === "loading";
@@ -304,7 +304,7 @@ export function ControlPanel(props: Props) {
         </div>
 
         <div className="action-cluster">
-          <button type="button" className={btnClass(canStart)} disabled={!canStart || isBusy} onClick={onStart}>
+          <button type="button" className={btnClass(canStart)} disabled={!canStart || isBusy} onClick={onStart} data-testid="simulation-start">
             Запуск
           </button>
           <button type="button" className={btnClass(false)} disabled={!canPause || isBusy} onClick={onPause}>

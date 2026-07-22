@@ -12,30 +12,72 @@ type taxonomySchemas struct {
 	compiled map[string]*gojsonschema.Schema
 }
 
+type traitDef struct {
+	Properties map[string]interface{} `json:"properties"`
+	Required   []string               `json:"required"`
+}
+
+type typeDef struct {
+	Traits               []string          `json:"traits"`
+	PropertyDescriptions map[string]string `json:"property_descriptions"`
+	ExtraSchema          struct {
+		Properties map[string]interface{} `json:"properties"`
+		Required   []string               `json:"required"`
+	} `json:"extra_schema"`
+}
+
+type rawTaxonomy struct {
+	Traits map[string]traitDef `json:"traits"`
+	Types  map[string]typeDef  `json:"types"`
+}
+
 func loadTaxonomySchemas(path string) (*taxonomySchemas, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 
-	var raw map[string]struct {
-		Schema json.RawMessage `json:"schema"`
-	}
+	var raw rawTaxonomy
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	compiled := make(map[string]*gojsonschema.Schema)
-	for category, entry := range raw {
-		if len(entry.Schema) == 0 {
-			continue
+
+	for category, tdef := range raw.Types {
+		mergedProperties := make(map[string]interface{})
+		var mergedRequired []string
+
+		for _, traitName := range tdef.Traits {
+			if trait, ok := raw.Traits[traitName]; ok {
+				for propName, propVal := range trait.Properties {
+					mergedProperties[propName] = propVal
+				}
+				mergedRequired = append(mergedRequired, trait.Required...)
+			}
 		}
-		s, err := gojsonschema.NewSchema(gojsonschema.NewBytesLoader(entry.Schema))
+
+		for propName, propVal := range tdef.ExtraSchema.Properties {
+			mergedProperties[propName] = propVal
+		}
+		mergedRequired = append(mergedRequired, tdef.ExtraSchema.Required...)
+
+		schemaMap := map[string]interface{}{
+			"$schema":    "http://json-schema.org/draft-07/schema#",
+			"type":       "object",
+			"properties": mergedProperties,
+			"required":   mergedRequired,
+		}
+
+		loader := gojsonschema.NewGoLoader(schemaMap)
+		s, err := gojsonschema.NewSchema(loader)
 		if err != nil {
 			return nil, fmt.Errorf("compile schema for %q: %w", category, err)
 		}
+
 		compiled[category] = s
 	}
+
 	return &taxonomySchemas{compiled: compiled}, nil
 }
 

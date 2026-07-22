@@ -10,7 +10,7 @@ func TestHouseholdLevel2(t *testing.T) {
 	_, robotFilter := placeRobotVacuumOnLevel(t, "2")
 
 	assert.Equal(t, float64(72), robotFilter.NoiseLevelDB)
-	assert.Equal(t, float64(3500), robotFilter.SuctionPowerPA)
+	assert.Equal(t, 3500, robotFilter.SuctionPowerPA)
 	assert.Equal(t, "lidar", robotFilter.NavigationType)
 	assert.True(t, robotFilter.RoomMapping)
 	assert.False(t, robotFilter.WetCleaning)

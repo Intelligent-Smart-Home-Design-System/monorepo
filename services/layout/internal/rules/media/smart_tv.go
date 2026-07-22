@@ -64,7 +64,7 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 		deviceFilter := &filters.SmartTVFilter{
 			Resolution:     smartTVFilters.Resolution,
 			Width:          smartTVFilters.Width,
-			RefreshRatehHZ: smartTVFilters.RefreshRatehHZ,
+			RefreshRateHZ: smartTVFilters.RefreshRateHZ,
 			MaxWidthMM:      maxWidth,
 		}
 

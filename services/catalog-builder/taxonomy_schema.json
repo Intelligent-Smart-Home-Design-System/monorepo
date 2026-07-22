@@ -530,11 +530,11 @@
             ],
             "description": "Detection technology. pir = passive infrared, detects movement only. radar/microwave = can detect stationary presence."
           },
-          "detection_range_m": {
+          "detection_range_mm": {
             "type": "number",
-            "minimum": 0.5,
-            "maximum": 30,
-            "description": "Maximum detection range in meters, e.g. 7."
+            "minimum": 500,
+            "maximum": 30000,
+            "description": "Maximum detection range in millimeters, e.g. 7000."
           },
           "detection_angle_deg": {
             "type": "number",

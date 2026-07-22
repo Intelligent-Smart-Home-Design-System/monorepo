@@ -13,7 +13,7 @@ func TestHouseholdLevel1(t *testing.T) {
 	assert.Equal(t, "household", placement.Device.Track)
 
 	assert.Equal(t, float64(75), robotFilter.NoiseLevelDB)
-	assert.Equal(t, float64(2000), robotFilter.SuctionPowerPA)
+	assert.Equal(t, 2000, robotFilter.SuctionPowerPA)
 	assert.Equal(t, "basic", robotFilter.NavigationType)
 	assert.False(t, robotFilter.RoomMapping)
 	assert.False(t, robotFilter.WetCleaning)

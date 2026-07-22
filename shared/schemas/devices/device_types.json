@@ -192,11 +192,11 @@
     },
     "motion_detection": {
       "properties": {
-        "detection_range_m": {
+        "detection_range_mm": {
           "type": "number",
-          "minimum": 0.5,
-          "maximum": 30,
-          "description": "Maximum detection range in meters",
+          "minimum": 500,
+          "maximum": 30000,
+          "description": "Maximum detection range in millimeters",
           "filterable": true
         },
         "detection_angle_deg": {
@@ -289,18 +289,18 @@
           ],
           "description": "Intended usage environment"
         },
-        "detection_range_m": {
+        "detection_range_mm": {
           "type": "number",
-          "minimum": 0.5,
-          "maximum": 100,
-          "description": "Maximum detection range for motion (if supported)",
+          "minimum": 500,
+          "maximum": 100000,
+          "description": "Maximum detection range for motion in millimeters (if supported)",
           "filterable": true
         },
-        "recommended_range_m": {
+        "recommended_range_mm": {
           "type": "number",
-          "minimum": 0.5,
-          "maximum": 100,
-          "description": "Recommended range for optimal performance",
+          "minimum": 500,
+          "maximum": 100000,
+          "description": "Recommended range for optimal performance in millimeters",
           "filterable": true
         }
       },
@@ -663,17 +663,17 @@
           "description": "Maximum electrical load in kilowatts (for thermostat)",
           "filterable": true
         },
-        "cable_length_m": {
+        "cable_length_mm": {
           "type": "number",
-          "minimum": 1,
-          "maximum": 200,
-          "description": "Length of heating cable in meters (for floor sensor)"
+          "minimum": 1000,
+          "maximum": 200000,
+          "description": "Length of heating cable in millimeters (for floor sensor)"
         },
         "cable_length": {
           "type": "number",
-          "minimum": 1,
-          "maximum": 200,
-          "description": "Length of cable in meters (alternative name)",
+          "minimum": 1000,
+          "maximum": 200000,
+          "description": "Length of cable in millimeters (alternative name)",
           "filterable": true
         }
       },
@@ -753,17 +753,17 @@
           "description": "Display resolution",
           "filterable": true
         },
-        "width_m": {
+        "width_mm": {
           "type": "number",
-          "minimum": 0.5,
-          "maximum": 3,
-          "description": "Physical width of the TV in meters"
+          "minimum": 500,
+          "maximum": 3000,
+          "description": "Physical width of the TV in millimeters"
         },
         "width": {
           "type": "number",
-          "minimum": 0.5,
-          "maximum": 3,
-          "description": "Physical width of the TV in meters (alternative name)",
+          "minimum": 500,
+          "maximum": 3000,
+          "description": "Physical width of the TV in millimeters (alternative name)",
           "filterable": true
         },
         "refresh_rate_hz": {
@@ -773,11 +773,11 @@
           "description": "Screen refresh rate in Hertz",
           "filterable": true
         },
-        "max_width_m": {
+        "max_width_mm": {
           "type": "number",
-          "minimum": 0.5,
-          "maximum": 3,
-          "description": "Maximum physical width (if adjustable)",
+          "minimum": 500,
+          "maximum": 3000,
+          "description": "Maximum physical width in millimeters (if adjustable)",
           "filterable": true
         }
       },
@@ -1054,7 +1054,7 @@
         "ecosystem": "Smart home ecosystems this device can connect to through any connection path.",
         "protocol": "Wireless protocols supported by this device.",
         "sensor_type": "Detection technology. pir = passive infrared, detects movement only. radar/microwave = can detect stationary presence.",
-        "detection_range_m": "Maximum detection range in meters, e.g. 7.",
+        "detection_range_mm": "Maximum detection range in millimeters, e.g. 7000.",
         "detection_angle_deg": "Horizontal detection angle in degrees, e.g. 100. Indicates the value at the maximum detection range.",
         "has_light_sensor": "Whether the device also includes an ambient light sensor reporting lux values.",
         "retrigger_interval_s": "Minimum interval in seconds between consecutive motion detection events (blind time).",
@@ -1092,9 +1092,9 @@
         ]
       }
     },
-    "camera": {
+    "smart_camera": {
       "description": "An indoor or outdoor smart surveillance camera with remote viewing capability",
-      "title": "Camera",
+      "title": "SmartCamera",
       "schema_description": "A smart home surveillance camera",
       "traits": [
         "base",
@@ -1123,13 +1123,13 @@
         "battery_life_months": "Expected battery life in months if battery-powered.",
         "ip_rating": "Ingress protection rating, relevant for outdoor cameras, e.g. 'IP66'.",
         "field_of_view_deg": "Horizontal field of view in degrees, e.g. 130.",
-        "detection_range_m": "Maximum detection range for motion (if supported).",
-        "recommended_range_m": "Recommended range for optimal performance."
+        "detection_range_mm": "Maximum detection range for motion in millimeters (if supported).",
+        "recommended_range_mm": "Recommended range for optimal performance in millimeters."
       },
       "extra_schema": {
         "properties": {
           "type": {
-            "const": "camera"
+            "const": "smart_camera"
           }
         },
         "required": [
@@ -1433,7 +1433,7 @@
         "cooling_power_btu": "Cooling capacity in BTU/h",
         "cooling_power_w": "Cooling capacity in Watts",
         "cooling_power_watts": "Cooling capacity in Watts (alternative)",
-        "indoor_unit_length_mm": "Length of indoor unit",
+        "indoor_unit_length_mm": "Length of indoor unit in millimeters",
         "recommended_area_m2": "Recommended room area"
       },
       "extra_schema": {
@@ -1495,8 +1495,8 @@
         "ecosystem": "Ecosystem support",
         "protocol": "Wireless protocol",
         "battery_life_months": "Battery life if applicable",
-        "cable_length_m": "Length of sensor cable",
-        "cable_length": "Length of cable (alternative)"
+        "cable_length_mm": "Length of sensor cable in millimeters",
+        "cable_length": "Length of cable in millimeters (alternative)"
       },
       "extra_schema": {
         "properties": {
@@ -1563,10 +1563,10 @@
         "ecosystem": "Ecosystems (Google TV, Apple Home, etc.)",
         "protocol": "Wireless protocols",
         "resolution": "Display resolution",
-        "width_m": "Physical width in meters",
-        "width": "Physical width in meters (alternative)",
+        "width_mm": "Physical width of the TV in millimeters",
+        "width": "Physical width of the TV in millimeters (alternative)",
         "refresh_rate_hz": "Refresh rate",
-        "max_width_m": "Maximum physical width (if adjustable)"
+        "max_width_mm": "Maximum physical width in millimeters (if adjustable)"
       },
       "extra_schema": {
         "properties": {

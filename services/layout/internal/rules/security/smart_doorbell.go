@@ -52,9 +52,9 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	}
 
 	if configFilters == nil {
-		configFilters = &filters.SmartDoorBellFilter{}
+		configFilters = &filters.SmartDoorbellFilter{}
 	}
-	smartDoorBellFilters := configFilters.(*filters.SmartDoorBellFilter)
+	smartDoorBellFilters := configFilters.(*filters.SmartDoorbellFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

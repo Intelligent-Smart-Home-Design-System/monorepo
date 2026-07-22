@@ -95,6 +95,13 @@
           "maximum": 300,
           "description": "Estimated battery life in months"
         },
+        "battery_life_years": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 25,
+          "description": "Estimated battery life in years (alternative to months)",
+          "filterable": true
+        },
         "rechargeable": {
           "type": "boolean",
           "description": "Whether the device has a built-in rechargeable battery."
@@ -189,13 +196,15 @@
           "type": "number",
           "minimum": 0.5,
           "maximum": 30,
-          "description": "Maximum detection range in meters"
+          "description": "Maximum detection range in meters",
+          "filterable": true
         },
         "detection_angle_deg": {
           "type": "number",
           "minimum": 10,
           "maximum": 360,
-          "description": "Detection angle in degrees"
+          "description": "Detection angle in degrees",
+          "filterable": true
         }
       },
       "required": []
@@ -231,15 +240,18 @@
             "2K",
             "4K"
           ],
-          "description": "Video resolution"
+          "description": "Video resolution",
+          "filterable": true
         },
         "has_night_vision": {
           "type": "boolean",
-          "description": "Supports night vision or infrared recording"
+          "description": "Supports night vision or infrared recording",
+          "filterable": true
         },
         "has_two_way_audio": {
           "type": "boolean",
-          "description": "Has microphone and speaker for two-way communication"
+          "description": "Has microphone and speaker for two-way communication",
+          "filterable": true
         },
         "has_motion_detection": {
           "type": "boolean",
@@ -261,7 +273,8 @@
           "type": "integer",
           "minimum": 60,
           "maximum": 360,
-          "description": "Horizontal field of view in degrees"
+          "description": "Horizontal field of view in degrees",
+          "filterable": true
         },
         "ptz": {
           "type": "boolean",
@@ -275,6 +288,20 @@
             "both"
           ],
           "description": "Intended usage environment"
+        },
+        "detection_range_m": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 100,
+          "description": "Maximum detection range for motion (if supported)",
+          "filterable": true
+        },
+        "recommended_range_m": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 100,
+          "description": "Recommended range for optimal performance",
+          "filterable": true
         }
       },
       "required": []
@@ -295,7 +322,8 @@
             ]
           },
           "uniqueItems": true,
-          "description": "Methods supported for unlocking"
+          "description": "Methods supported for unlocking",
+          "filterable": true
         },
         "auto_lock": {
           "type": "boolean",
@@ -326,7 +354,8 @@
           "type": "integer",
           "minimum": 80,
           "maximum": 130,
-          "description": "Maximum siren volume in decibels"
+          "description": "Maximum siren volume in decibels",
+          "filterable": true
         },
         "has_strobe_light": {
           "type": "boolean",
@@ -405,7 +434,8 @@
             ]
           },
           "uniqueItems": true,
-          "description": "Types of gas or hazard the sensor can detect"
+          "description": "Types of gas or hazard the sensor can detect",
+          "filterable": true
         }
       },
       "required": []
@@ -420,7 +450,8 @@
           "type": "integer",
           "minimum": 60,
           "maximum": 120,
-          "description": "Volume of the audible alert in decibels"
+          "description": "Volume of the audible alert in decibels",
+          "filterable": true
         }
       },
       "required": []
@@ -440,6 +471,314 @@
           "minimum": 0.1,
           "maximum": 10,
           "description": "Minimum detectable water layer thickness in millimeters"
+        },
+        "probe_type": {
+          "type": "string",
+          "enum": [
+            "contact",
+            "cable"
+          ],
+          "description": "Type of leak detection probe: contact (two metal contacts) or cable (sensing rope)",
+          "filterable": true
+        }
+      },
+      "required": []
+    },
+    "temperature_sensor_spec": {
+      "properties": {
+        "temp_min_c": {
+          "type": "number",
+          "minimum": -40,
+          "maximum": 100,
+          "description": "Minimum measurable temperature in degrees Celsius"
+        },
+        "temp_max_c": {
+          "type": "number",
+          "minimum": -40,
+          "maximum": 100,
+          "description": "Maximum measurable temperature in degrees Celsius"
+        },
+        "accuracy_c": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Temperature measurement accuracy in ±°C"
+        },
+        "temperature_range": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number",
+              "description": "Minimum temperature"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum temperature"
+            }
+          },
+          "description": "Measurable temperature range as an object with min/max"
+        }
+      },
+      "required": []
+    },
+    "humidity_sensor_spec": {
+      "properties": {
+        "humidity_range_min_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum measurable humidity in %"
+        },
+        "humidity_range_max_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Maximum measurable humidity in %"
+        }
+      },
+      "required": []
+    },
+    "co2_sensor_spec": {
+      "properties": {
+        "co2_range_min_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "Minimum measurable CO2 concentration in ppm"
+        },
+        "co2_range_max_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50000,
+          "description": "Maximum measurable CO2 concentration in ppm"
+        }
+      },
+      "required": []
+    },
+    "actuator_spec": {
+      "properties": {},
+      "required": []
+    },
+    "humidifier_spec": {
+      "properties": {
+        "tank_volume_l": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 20,
+          "description": "Water tank volume in liters"
+        },
+        "tank_volume_liters": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 20,
+          "description": "Water tank volume in liters (alternative name)",
+          "filterable": true
+        },
+        "serviced_area_m2": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 150,
+          "description": "Maximum area the humidifier can effectively cover in square meters",
+          "filterable": true
+        }
+      },
+      "required": []
+    },
+    "air_purifier_spec": {
+      "properties": {
+        "serviced_area_m2": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 200,
+          "description": "Recommended room area in square meters",
+          "filterable": true
+        },
+        "hepa_filter": {
+          "type": "boolean",
+          "description": "Whether the purifier uses a HEPA filter",
+          "filterable": true
+        }
+      },
+      "required": []
+    },
+    "air_conditioner_spec": {
+      "properties": {
+        "noise_level_db": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 70,
+          "description": "Typical noise level in decibels",
+          "filterable": true
+        },
+        "max_noise_level_db": {
+          "type": "number",
+          "minimum": 30,
+          "maximum": 80,
+          "description": "Maximum noise level in decibels",
+          "filterable": true
+        },
+        "cooling_power_btu": {
+          "type": "number",
+          "minimum": 5000,
+          "maximum": 50000,
+          "description": "Cooling capacity in BTU/h",
+          "filterable": true
+        },
+        "cooling_power_w": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 15000,
+          "description": "Cooling capacity in Watts"
+        },
+        "cooling_power_watts": {
+          "type": "number",
+          "minimum": 500,
+          "maximum": 15000,
+          "description": "Cooling capacity in Watts (alternative name)",
+          "filterable": true
+        },
+        "indoor_unit_length_mm": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 2000,
+          "description": "Length of indoor unit in millimeters",
+          "filterable": true
+        },
+        "recommended_area_m2": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 200,
+          "description": "Recommended room area in square meters",
+          "filterable": true
+        }
+      },
+      "required": []
+    },
+    "floor_heating_spec": {
+      "properties": {
+        "max_load_kw": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 10,
+          "description": "Maximum electrical load in kilowatts (for thermostat)",
+          "filterable": true
+        },
+        "cable_length_m": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Length of heating cable in meters (for floor sensor)"
+        },
+        "cable_length": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Length of cable in meters (alternative name)",
+          "filterable": true
+        }
+      },
+      "required": []
+    },
+    "robot_vacuum_spec": {
+      "properties": {
+        "noise_level_db": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 90,
+          "description": "Operating noise level in decibels",
+          "filterable": true
+        },
+        "suction_power_pa": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 20000,
+          "description": "Suction power in Pascals",
+          "filterable": true
+        },
+        "navigation_type": {
+          "type": "string",
+          "enum": [
+            "basic",
+            "lidar",
+            "lidar_ai",
+            "vslam"
+          ],
+          "description": "Navigation technology",
+          "filterable": true
+        },
+        "room_mapping": {
+          "type": "boolean",
+          "description": "Supports creating and saving a map of the home",
+          "filterable": true
+        },
+        "wet_cleaning": {
+          "type": "boolean",
+          "description": "Supports mopping function",
+          "filterable": true
+        },
+        "carpet_detection": {
+          "type": "boolean",
+          "description": "Can detect carpets and adjust cleaning",
+          "filterable": true
+        },
+        "obstacle_avoidance": {
+          "type": "boolean",
+          "description": "Can avoid obstacles like cables and shoes",
+          "filterable": true
+        },
+        "auto_empty_station": {
+          "type": "boolean",
+          "description": "Comes with or supports an auto-empty dustbin station",
+          "filterable": true
+        },
+        "voice_assistant_support": {
+          "type": "boolean",
+          "description": "Supports voice assistant control (Alexa, Google, etc.)",
+          "filterable": true
+        }
+      },
+      "required": []
+    },
+    "tv_spec": {
+      "properties": {
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "HD",
+            "Full HD",
+            "2K",
+            "4K",
+            "8K"
+          ],
+          "description": "Display resolution",
+          "filterable": true
+        },
+        "width_m": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 3,
+          "description": "Physical width of the TV in meters"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 3,
+          "description": "Physical width of the TV in meters (alternative name)",
+          "filterable": true
+        },
+        "refresh_rate_hz": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 240,
+          "description": "Screen refresh rate in Hertz",
+          "filterable": true
+        },
+        "max_width_m": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 3,
+          "description": "Maximum physical width (if adjustable)",
+          "filterable": true
         }
       },
       "required": []
@@ -467,12 +806,14 @@
         "protocol": "Wireless protocols supported by this device.",
         "battery_type": "Battery type required.",
         "battery_life_months": "Expected battery life in months as stated by manufacturer.",
+        "battery_life_years": "Expected battery life in years (alternative).",
         "ip_rating": "Ingress protection rating, e.g. 'IP67'. Indicates water and dust resistance.",
         "has_audio_alert": "Whether the sensor emits an audible alarm when a leak is detected.",
         "audio_alert_volume_db": "Volume of the audible alert in decibels, e.g. 85.",
         "detects_leaks_above": "Whether the sensor can detect water dripping from above via contacts on top.",
         "detects_leaks_below": "Whether the sensor detects water on the floor via bottom contacts.",
-        "min_detected_water_level_mm": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5."
+        "min_detected_water_level_mm": "For leak detection below the device via bottom contacts - minimum detectable water layer thickness in millimeters, e.g. 0.5.",
+        "probe_type": "Type of leak detection probe: contact (metal contacts) or cable (sensing rope)."
       },
       "extra_schema": {
         "properties": {
@@ -559,6 +900,8 @@
         "audio_alert_volume_db": "Volume of the audible alert in decibels, e.g. 85.",
         "power_source": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed",
         "battery_type": "Battery type required.",
+        "battery_life_months": "Expected battery life in months.",
+        "battery_life_years": "Expected battery life in years (alternative).",
         "ip_rating": "Ingress protection rating, e.g. 'IP20'."
       },
       "extra_schema": {
@@ -601,7 +944,8 @@
         "battery_life_months": "Expected battery life in months as stated by manufacturer.",
         "ip_rating": "Ingress protection rating for outdoor use, e.g. 'IP65'.",
         "local_storage": "Whether the device supports local video storage, e.g. via microSD card.",
-        "cloud_storage": "Whether the device supports cloud video storage."
+        "cloud_storage": "Whether the device supports cloud video storage.",
+        "field_of_view_deg": "Horizontal field of view in degrees."
       },
       "extra_schema": {
         "properties": {
@@ -778,7 +1122,9 @@
         "power_source": "Power sources supported by this device. ac_dc_adapter means An AC/DC adapter is a power supply that allows the device to run by plugging it into an outlet. battery = disposable batteries, rechargeable_battery = built-in rechargeable battery charged via USB or other means. Multiple values allowed",
         "battery_life_months": "Expected battery life in months if battery-powered.",
         "ip_rating": "Ingress protection rating, relevant for outdoor cameras, e.g. 'IP66'.",
-        "field_of_view_deg": "Horizontal field of view in degrees, e.g. 130."
+        "field_of_view_deg": "Horizontal field of view in degrees, e.g. 130.",
+        "detection_range_m": "Maximum detection range for motion (if supported).",
+        "recommended_range_m": "Recommended range for optimal performance."
       },
       "extra_schema": {
         "properties": {
@@ -804,7 +1150,7 @@
         "siren"
       ],
       "property_descriptions": {
-        "name": "Product name as it appears in the listing, e.g. 'Aqara Presence Sensor FP2'",
+        "name": "Product name as it appears in the listing, e.g. 'Aqara Siren'",
         "brand": "Normalized lowercase brand name, e.g. 'aqara', 'tuya', 'sonoff'",
         "model": "Model identifier as stated by the manufacturer.",
         "ecosystem": "Smart home ecosystems this device can connect to through any connection path.",
@@ -858,6 +1204,451 @@
         "properties": {
           "type": {
             "const": "smart_hub"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "temperature_sensor": {
+      "description": "Measures ambient temperature, often battery-powered",
+      "title": "TemperatureSensor",
+      "schema_description": "A smart home temperature sensor",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "ip_rated",
+        "power_source",
+        "temperature_sensor_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name as displayed, e.g. 'Aqara Temperature Sensor'",
+        "brand": "Normalized lower-case brand name",
+        "model": "Manufacturer model number",
+        "ecosystem": "Smart home ecosystems the device works with",
+        "protocol": "Wireless protocols supported",
+        "battery_type": "Required battery type",
+        "battery_life_months": "Expected battery life in months",
+        "battery_life_years": "Expected battery life in years (alternative)",
+        "ip_rating": "Ingress protection rating",
+        "temp_min_c": "Minimum measurable temperature",
+        "temp_max_c": "Maximum measurable temperature",
+        "accuracy_c": "Measurement accuracy",
+        "temperature_range": "Measurable temperature range as an object with min/max"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "temperature_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "humidity_sensor": {
+      "description": "Measures relative humidity, often combined with temperature sensor",
+      "title": "HumiditySensor",
+      "schema_description": "A smart home humidity sensor",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "ip_rated",
+        "power_source",
+        "humidity_sensor_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Normalized brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems",
+        "protocol": "Wireless protocols",
+        "battery_type": "Battery type",
+        "battery_life_months": "Battery life in months",
+        "ip_rating": "IP rating",
+        "humidity_range_min_percent": "Minimum measurable humidity",
+        "humidity_range_max_percent": "Maximum measurable humidity"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "humidity_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "co2_sensor": {
+      "description": "Detects carbon dioxide concentration, typically for air quality monitoring",
+      "title": "CO2Sensor",
+      "schema_description": "A smart home CO2 sensor",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "ip_rated",
+        "power_source",
+        "co2_sensor_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Normalized brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems",
+        "protocol": "Wireless protocols",
+        "battery_type": "Battery type",
+        "battery_life_months": "Battery life",
+        "ip_rating": "IP rating",
+        "co2_range_min_ppm": "Minimum measurable CO2",
+        "co2_range_max_ppm": "Maximum measurable CO2"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "co2_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_radiator_actuator": {
+      "description": "Electronically controlled valve for radiators, allows per-room temperature control",
+      "title": "SmartRadiatorActuator",
+      "schema_description": "A smart radiator thermostat / actuator",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "power_source",
+        "actuator_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name, e.g. 'Aqara Radiator Thermostat E1'",
+        "brand": "Normalized brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems",
+        "protocol": "Wireless protocols",
+        "battery_type": "Battery type",
+        "battery_life_months": "Battery life"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_radiator_actuator"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_humidifier": {
+      "description": "Smart humidifier that can be controlled remotely and may include humidity sensor",
+      "title": "SmartHumidifier",
+      "schema_description": "A smart home humidifier",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source",
+        "humidifier_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Normalized brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems",
+        "protocol": "Wireless protocols",
+        "power_source": "Power source (mains, USB, etc.)",
+        "tank_volume_l": "Water tank capacity in liters",
+        "tank_volume_liters": "Water tank capacity in liters (alternative)",
+        "serviced_area_m2": "Effective coverage area"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_humidifier"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "air_purifier": {
+      "description": "Smart air purifier with filter and remote control",
+      "title": "AirPurifier",
+      "schema_description": "A smart air purifier",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source",
+        "air_purifier_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Ecosystem support",
+        "protocol": "Wireless protocol",
+        "serviced_area_m2": "Recommended room area",
+        "hepa_filter": "Whether HEPA filter is present"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "air_purifier"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "air_conditioner": {
+      "description": "Smart air conditioner (window, split, or portable) with remote control and climate management",
+      "title": "AirConditioner",
+      "schema_description": "A smart air conditioner",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source",
+        "air_conditioner_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems",
+        "protocol": "Wireless protocols (Wi-Fi, IR, etc.)",
+        "noise_level_db": "Typical noise level",
+        "max_noise_level_db": "Maximum noise level",
+        "cooling_power_btu": "Cooling capacity in BTU/h",
+        "cooling_power_w": "Cooling capacity in Watts",
+        "cooling_power_watts": "Cooling capacity in Watts (alternative)",
+        "indoor_unit_length_mm": "Length of indoor unit",
+        "recommended_area_m2": "Recommended room area"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "air_conditioner"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_floor_thermostat": {
+      "description": "Thermostat for electric underfloor heating systems, typically wall-mounted",
+      "title": "SmartFloorThermostat",
+      "schema_description": "A smart floor heating thermostat",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source",
+        "floor_heating_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Ecosystem support",
+        "protocol": "Wireless protocol",
+        "max_load_kw": "Maximum electrical load"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_floor_thermostat"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "floor_temperature_sensor": {
+      "description": "Wired or wireless sensor that measures floor temperature, used with floor heating systems",
+      "title": "FloorTemperatureSensor",
+      "schema_description": "A floor temperature sensor",
+      "traits": [
+        "base",
+        "connectivity",
+        "battery_operated",
+        "ip_rated",
+        "power_source",
+        "floor_heating_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Ecosystem support",
+        "protocol": "Wireless protocol",
+        "battery_life_months": "Battery life if applicable",
+        "cable_length_m": "Length of sensor cable",
+        "cable_length": "Length of cable (alternative)"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "floor_temperature_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "robot_vacuum": {
+      "description": "Autonomous robotic vacuum cleaner, may include mopping and self-emptying station",
+      "title": "RobotVacuum",
+      "schema_description": "A robotic vacuum cleaner",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source",
+        "robot_vacuum_spec"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems",
+        "protocol": "Wireless protocols (Wi-Fi, etc.)",
+        "noise_level_db": "Noise level during operation",
+        "suction_power_pa": "Suction power in Pascals",
+        "navigation_type": "Type of navigation system",
+        "room_mapping": "Ability to create and store maps",
+        "wet_cleaning": "Supports mopping",
+        "carpet_detection": "Automatically detects carpets",
+        "obstacle_avoidance": "Avoids obstacles",
+        "auto_empty_station": "Comes with auto-empty station",
+        "voice_assistant_support": "Works with voice assistants"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "robot_vacuum"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_tv": {
+      "description": "Smart television with internet connectivity and smart home integration",
+      "title": "SmartTV",
+      "schema_description": "A smart TV",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source",
+        "tv_spec"
+      ],
+      "property_descriptions": {
+        "name": "TV model name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Ecosystems (Google TV, Apple Home, etc.)",
+        "protocol": "Wireless protocols",
+        "resolution": "Display resolution",
+        "width_m": "Physical width in meters",
+        "width": "Physical width in meters (alternative)",
+        "refresh_rate_hz": "Refresh rate",
+        "max_width_m": "Maximum physical width (if adjustable)"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_tv"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_speaker": {
+      "description": "Smart speaker with voice assistant, often used as a hub for music and voice control",
+      "title": "SmartSpeaker",
+      "schema_description": "A smart speaker",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Supported ecosystems (Alexa, Google Assistant, etc.)",
+        "protocol": "Wireless protocols (Wi-Fi, Bluetooth)"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_speaker"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "subwoofer": {
+      "description": "Wireless or wired subwoofer for enhanced bass, can be part of a smart audio system",
+      "title": "Subwoofer",
+      "schema_description": "A subwoofer for smart home audio",
+      "traits": [
+        "base",
+        "connectivity",
+        "power_source"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number",
+        "ecosystem": "Ecosystem compatibility",
+        "protocol": "Wireless protocols if any"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "subwoofer"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "ceiling_speakers": {
+      "description": "In-ceiling speakers, often passive, can be driven by smart amplifiers",
+      "title": "CeilingSpeakers",
+      "schema_description": "In-ceiling speakers",
+      "traits": [
+        "base"
+      ],
+      "property_descriptions": {
+        "name": "Product name",
+        "brand": "Brand name",
+        "model": "Model number"
+      },
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "ceiling_speakers"
           }
         },
         "required": [

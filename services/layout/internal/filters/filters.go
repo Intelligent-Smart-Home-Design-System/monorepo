@@ -8,25 +8,25 @@ type DeviceFilter interface{}
 
 type WaterLeakSensorFilter struct {
 	ProbeType        string  `json:"probe_type,omitempty"`
-	AlarmVolumeDB    float64 `json:"alarm_volume_db,omitempty"`
+	AudioAlertVolumeDB    float64 `json:"audio_alert_volume_db,omitempty"`
 	BatteryLifeYears float64 `json:"battery_life_years,omitempty"`
 }
 
 type GasLeakSensorFilter struct {
-	GasTypes         []string `json:"gas_types,omitempty"`
-	AlarmVolumeDB    float64  `json:"alarm_volume_db,omitempty"`
+	DetectedGas         []string `json:"detected_gas,omitempty"`
+	AudioAlertVolumeDB    float64  `json:"audio_alert_volume_db,omitempty"`
 	BatteryLifeYears float64  `json:"battery_life_years,omitempty"`
 }
 
 type SmartLockFilter struct {
-	UnlockMethods []string `json:"unlock_methods,omitempty"`
+	AccessMethods []string `json:"access_methods,omitempty"`
 }
 
 type SmartDoorBellFilter struct {
 	Resolution  string  `json:"resolution,omitempty"`
-	Angle       float64 `json:"angle,omitempty"`
-	NightVision bool    `json:"night_vision,omitempty"`
-	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
+	FieldOfViewDeg       float64 `json:"field_of_view_deg,omitempty"`
+	HasNightVision bool    `json:"has_night_vision,omitempty"`
+	HasTwoWayAudio bool    `json:"has_two_way_audio,omitempty"`
 }
 
 type DoorSensorFilter struct{}
@@ -34,21 +34,21 @@ type DoorSensorFilter struct{}
 type WindowSensorFilter struct{}
 
 type MotionSensorFilter struct {
-	Angle float64 `json:"angle,omitempty"`
-	Range float64 `json:"range,omitempty"`
+	DetectionAngleDeg float64 `json:"detection_angle_deg,omitempty"`
+	DetectionRangeDeg float64 `json:"detection_range_deg,omitempty"`
 }
 
 type CameraFilter struct {
-	Angle       float64 `json:"angle,omitempty"`
-	Range       float64 `json:"range,omitempty"`
-	NightVision bool    `json:"night_vision,omitempty"`
+	FieldOfViewDeg       float64 `json:"field_of_view_deg,omitempty"`
+	DetectionRangeDeg       float64 `json:"detection_range_deg,omitempty"`
+	HasNightVision bool    `json:"has_night_vision,omitempty"`
 	Resolution  string  `json:"resolution,omitempty"`
 
 	RecommendedRangeMM float64      `json:"recommended_range_mm,omitempty"`
 }
 
 type SmartSirenFilter struct {
-	VolumeDB float64 `json:"volume_db,omitempty"`
+	MaxVolumeDB float64 `json:"max_volume_db,omitempty"`
 }
 
 type AirConditionerFilter struct {

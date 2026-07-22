@@ -66,6 +66,59 @@ func (r *TrackedPageRepo) GetTasks(source, pageType string, limit int) ([]domain
 	return tasks, rows.Err()
 }
 
+// GetFailedTasks selects pages deactivated after repeated failures
+// (is_active = false, see SetStatus) whose last attempt falls within the
+// given window — old, long-dead pages aren't retried forever by default.
+func (r *TrackedPageRepo) GetFailedTasks(source, pageType string, since time.Time, limit int) ([]domain.ScrapeTask, error) {
+	query := `
+        SELECT id, source_name, page_type, url, first_seen_at, last_scraped_at
+        FROM tracked_pages
+        WHERE is_active = false AND last_scraped_at >= $1`
+	args := []any{since}
+	argN := 2
+
+	if source != "" {
+		query += fmt.Sprintf(" AND source_name = $%d", argN)
+		args = append(args, source)
+		argN++
+	}
+	if pageType != "" {
+		query += fmt.Sprintf(" AND page_type = $%d", argN)
+		args = append(args, pageType)
+		argN++
+	}
+
+	query += " ORDER BY last_scraped_at ASC"
+
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argN)
+		args = append(args, limit)
+	}
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []domain.ScrapeTask
+	for rows.Next() {
+		var t domain.ScrapeTask
+		var pt string
+		var lastScraped sql.NullTime
+		if err := rows.Scan(&t.ID, &t.Source, &pt, &t.URL, &t.FirstSeenAt, &lastScraped); err != nil {
+			return nil, err
+		}
+		t.PageType = domain.PageTypeFromString(pt)
+		if lastScraped.Valid {
+			ts := lastScraped.Time
+			t.LastScrapedAt = &ts
+		}
+		tasks = append(tasks, t)
+	}
+	return tasks, rows.Err()
+}
+
 func (r *TrackedPageRepo) SetStatus(taskID int, success bool, durationMs int) error {
 	now := time.Now()
 	if success {
@@ -74,7 +127,8 @@ func (r *TrackedPageRepo) SetStatus(taskID int, success bool, durationMs int) er
             SET last_scraped_at = $1,
                 last_successful_scrape_at = $1,
                 scrape_count = scrape_count + 1,
-                consecutive_failures = 0
+                consecutive_failures = 0,
+                is_active = true
             WHERE id = $2
         `, now, taskID)
 		return err

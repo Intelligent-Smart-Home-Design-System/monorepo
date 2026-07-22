@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/rs/zerolog"
 
@@ -27,10 +28,18 @@ func ScrapePhase(
 	sources, pageTypes []string,
 	discoveryOnly bool,
 	sqlPageType string,
+	retryFailed bool,
+	retrySince time.Time,
 ) error {
 	sourceFilter, pageTypeFilter := scrapeTaskFilters(sources, pageTypes, discoveryOnly, sqlPageType)
 
-	allTasks, err := taskRepo.GetTasks(sourceFilter, pageTypeFilter, 0)
+	var allTasks []domain.ScrapeTask
+	var err error
+	if retryFailed {
+		allTasks, err = taskRepo.GetFailedTasks(sourceFilter, pageTypeFilter, retrySince, 0)
+	} else {
+		allTasks, err = taskRepo.GetTasks(sourceFilter, pageTypeFilter, 0)
+	}
 	if err != nil {
 		return fmt.Errorf("get tasks: %w", err)
 	}
@@ -94,7 +103,7 @@ func ScrapePhase(
 
 	tasksCh := make(chan domain.ScrapeTask)
 	resultsCh := make(chan domain.ScrapeResult)
-	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
+	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh, cfg.Scraping.MaxConcurrency)
 
 	go func() {
 		defer close(tasksCh)
@@ -118,7 +127,12 @@ func ScrapePhase(
 		taskLog.Debug().Int("task_id", result.TrackedPageID).Int("resources", len(result.Resources)).Err(result.Err).Msg("run: received result for task")
 
 		if result.Err != nil {
-			taskLog.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
+			taskLog.Error().
+				Err(result.Err).
+				Int("task_id", result.TrackedPageID).
+				Int64("listings_scraped", m.SuccessCount(source, domain.PageTypeListing.String())).
+				Int64("categories_scraped", m.SuccessCount(source, domain.PageTypeCategory.String())).
+				Msg("scrape error")
 			m.AddTaskFinished(ctx, source, pageType, metrics.StatusFailure, 1)
 			m.RecordTaskDuration(ctx, source, pageType, result.DurationMs)
 			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
@@ -127,7 +141,11 @@ func ScrapePhase(
 			continue
 		}
 		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
-			taskLog.Error().Err(err).Msg("save snapshot")
+			taskLog.Error().
+				Err(err).
+				Int64("listings_scraped", m.SuccessCount(source, domain.PageTypeListing.String())).
+				Int64("categories_scraped", m.SuccessCount(source, domain.PageTypeCategory.String())).
+				Msg("save snapshot")
 			m.AddTaskFinished(ctx, source, pageType, metrics.StatusFailure, 1)
 		} else {
 			taskLog.Info().Msg("snapshot saved successfully")

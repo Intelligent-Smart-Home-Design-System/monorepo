@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog"
 
@@ -65,6 +66,7 @@ func (p *DiscoveryPipeline) Run(ctx context.Context) error {
 			if err := ScrapePhase(
 				ctx, p.Log, p.Metrics, p.Tasks, p.Snapshots, p.ScraperMap, p.Cfg,
 				[]string{src.Name()}, nil, true, pageType.String(),
+				false, time.Time{},
 			); err != nil {
 				return err
 			}

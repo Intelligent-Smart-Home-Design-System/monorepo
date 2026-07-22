@@ -2,6 +2,7 @@ package netproxy
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -99,8 +100,23 @@ func (f *httpForwarder) serve(w http.ResponseWriter, r *http.Request) {
 	f.serveHTTP(w, r)
 }
 
+// dialUpstream connects to the real upstream proxy. When the upstream itself
+// is TLS-fronted (scheme https, e.g. a Cloudflare-fronted mobile-proxy
+// endpoint), we TLS-dial it directly — skipping cert verification here since
+// these providers commonly present a cert that doesn't match the bare IP we
+// connect to. This only affects the proxy leg: the actual target site
+// (e.g. dns-shop.ru) gets its own separate, fully-verified TLS handshake
+// performed by the real client (Chrome/http.Client) through the CONNECT
+// tunnel we splice below — we never terminate or inspect that inner TLS.
+func (f *httpForwarder) dialUpstream() (net.Conn, error) {
+	if f.upstream.Scheme == "https" {
+		return tls.Dial("tcp", f.upstream.Host, &tls.Config{InsecureSkipVerify: true})
+	}
+	return net.Dial("tcp", f.upstream.Host)
+}
+
 func (f *httpForwarder) serveConnect(w http.ResponseWriter, r *http.Request) {
-	upstreamConn, err := net.Dial("tcp", f.upstream.Host)
+	upstreamConn, err := f.dialUpstream()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return

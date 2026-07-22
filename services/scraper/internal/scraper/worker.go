@@ -14,23 +14,36 @@ type Scraper interface {
 	Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error)
 }
 
+// defaultMaxConcurrency caps in-flight scrape goroutines when the caller
+// doesn't configure one. Sources like dns share a single browser tab/proxy
+// session per Scraper instance, so unbounded concurrency just piles up
+// contention (and, during a proxy rotation, races on the shared client) rather
+// than doing real parallel work.
+const defaultMaxConcurrency = 3
+
 // Worker processes pages using the appropriate scraper
 type Worker struct {
 	logger          zerolog.Logger
 	sourceToScraper map[string]Scraper
 	results         chan<- domain.ScrapeResult
 	wg              sync.WaitGroup
+	sem             chan struct{}
 }
 
 func NewWorker(
 	logger zerolog.Logger,
 	sourceToScraper map[string]Scraper,
 	results chan<- domain.ScrapeResult,
+	maxConcurrency int,
 ) *Worker {
+	if maxConcurrency <= 0 {
+		maxConcurrency = defaultMaxConcurrency
+	}
 	return &Worker{
 		logger:          logger,
 		sourceToScraper: sourceToScraper,
 		results:         results,
+		sem:             make(chan struct{}, maxConcurrency),
 	}
 }
 
@@ -47,7 +60,15 @@ func (w *Worker) Run(ctx context.Context, tasks <-chan domain.ScrapeTask) {
 				close(w.results)
 				return
 			}
+			select {
+			case w.sem <- struct{}{}:
+			case <-ctx.Done():
+				w.wg.Wait()
+				close(w.results)
+				return
+			}
 			w.wg.Go(func() {
+				defer func() { <-w.sem }()
 				result, err := w.processTask(ctx, task)
 				if err != nil {
 					w.logger.Error().

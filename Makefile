@@ -1,5 +1,6 @@
 PIPELINE_DIR := services/pipeline-worker
 PIPELINE_ENV_SHIFT := services/pipeline-worker/.env.shift
+PIPELINE_CONFIG ?= /app/config/pipeline.toml
 
 # Windows cmd.exe does not have /dev/null — use nul there.
 ifeq ($(OS),Windows_NT)
@@ -76,8 +77,8 @@ pipeline-stack-up: monitoring-up pipeline-build pipeline-up ## Отдельна�
 
 pipeline-stack-down: pipeline-down monitoring-down ## Остановить мониторинг + pipeline
 
-pipeline-trigger: ## Запустить catalog pipeline workflow (стек должен быть поднят: make pipeline-up)
-	$(COMPOSE_PIPELINE) --profile tools run --rm --no-deps pipeline-trigger
+pipeline-trigger: ## Запустить catalog pipeline workflow (стек должен быть поднят: make pipeline-up). Оверрайд: make pipeline-trigger PIPELINE_CONFIG=/app/config/pipeline.retry-failed.toml
+	$(COMPOSE_PIPELINE) --profile tools run --rm --no-deps -e PIPELINE_CONFIG=$(PIPELINE_CONFIG) pipeline-trigger
 
 pipeline-logs: ## Логи pipeline-worker, temporal, catalog-postgresql
 	$(COMPOSE_PIPELINE) logs -f pipeline-worker temporal temporal-ui catalog-postgresql

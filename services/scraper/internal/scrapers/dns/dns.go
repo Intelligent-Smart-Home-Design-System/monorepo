@@ -43,7 +43,7 @@ func NewScraper(log zerolog.Logger, timeout time.Duration, proxyURL, userAgent s
 }
 
 func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-	body, statusCode, status, err := s.getHTML(ctx, task.URL)
+	body, statusCode, status, err := s.getHTML(ctx, task.ID, task.URL)
 	if err != nil {
 		return nil, err
 	}

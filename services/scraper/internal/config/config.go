@@ -24,7 +24,8 @@ type DatabaseConfig struct {
 }
 
 type ScrapingConfig struct {
-    MaxRetries   int           `mapstructure:"max_retries"`
+    MaxRetries     int           `mapstructure:"max_retries"`
+    MaxConcurrency int           `mapstructure:"max_concurrency"` // in-flight scrape goroutines per phase; 0 = default (3)
     RateLimitRps float64       `mapstructure:"rate_limit_rps"`
     Timeout      time.Duration `mapstructure:"timeout"`
     UserAgent    string        `mapstructure:"user_agent"`
@@ -33,6 +34,8 @@ type ScrapingConfig struct {
     WBSessionPath string       `mapstructure:"wb_session_path"`
     WBSessionMaxAge time.Duration `mapstructure:"wb_session_max_age"` // freshness for discovery API (default 30m)
     WBRPS         float64      `mapstructure:"wb_rps"`
+    RetryFailed  bool          `mapstructure:"retry_failed"`  // if true, scrape only retries pages deactivated by repeated failures
+    RetrySince   time.Duration `mapstructure:"retry_since"`   // with retry_failed, only pages last attempted within this window; 0 = default (7 days)
 }
 
 type WildberriesDiscoveryConfig struct {

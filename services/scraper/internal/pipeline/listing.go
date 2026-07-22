@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"time"
 
 	"github.com/rs/zerolog"
 
@@ -23,6 +24,8 @@ type ListingPipeline struct {
 	ScraperMap map[string]scraper.Scraper
 	SourceNames []string
 	PageTypes  []string
+	RetryFailed bool
+	RetrySince  time.Time
 }
 
 func (p *ListingPipeline) Run(ctx context.Context) error {
@@ -42,6 +45,7 @@ func (p *ListingPipeline) Run(ctx context.Context) error {
 	if err := ScrapePhase(
 		ctx, p.Log, p.Metrics, p.Tasks, p.Snapshots, p.ScraperMap, p.Cfg,
 		p.SourceNames, p.PageTypes, false, pageTypeFilter,
+		p.RetryFailed, p.RetrySince,
 	); err != nil {
 		return err
 	}

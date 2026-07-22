@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -27,6 +28,9 @@ type Collector struct {
 	tasksFinished   metric.Int64Counter
 	taskDuration    metric.Float64Histogram
 	parseSnapshots  metric.Int64Counter
+
+	successMu     sync.Mutex
+	successCounts map[string]int64 // key: source+"|"+pageType
 }
 
 func New(meter metric.Meter) (*Collector, error) {
@@ -68,6 +72,7 @@ func New(meter metric.Meter) (*Collector, error) {
 		tasksFinished:  tasksFinished,
 		taskDuration:   taskDuration,
 		parseSnapshots: parseSnapshots,
+		successCounts:  make(map[string]int64),
 	}, nil
 }
 
@@ -92,6 +97,25 @@ func (c *Collector) AddTaskFinished(ctx context.Context, source, pageType, statu
 		attribute.String("page_type", pageType),
 		attribute.String("status", status),
 	))
+
+	if status == StatusSuccess {
+		key := source + "|" + pageType
+		c.successMu.Lock()
+		c.successCounts[key] += delta
+		c.successMu.Unlock()
+	}
+}
+
+// SuccessCount returns how many tasks have finished successfully so far
+// in this process for the given source and page type.
+func (c *Collector) SuccessCount(source, pageType string) int64 {
+	if c == nil {
+		return 0
+	}
+	key := source + "|" + pageType
+	c.successMu.Lock()
+	defer c.successMu.Unlock()
+	return c.successCounts[key]
 }
 
 func (c *Collector) RecordTaskDuration(ctx context.Context, source, pageType string, durationMs int) {

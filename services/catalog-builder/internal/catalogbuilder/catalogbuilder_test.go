@@ -279,16 +279,19 @@ func TestBuild_MatterEcosystemGetsBridgeCompatIfNoMatter(t *testing.T) {
 }
 
 const minimalSchema = `{
-	"smart_lamp": {
-		"schema": {
-			"$schema": "http://json-schema.org/draft-07/schema#",
-			"type": "object",
-			"required": ["socket_type"],
-			"properties": {
-				"socket_type": {"type": "string"}
-			}
-		}
-	}
+    "traits": {
+        "socket_holder": {
+            "properties": {
+                "socket_type": { "type": "string" }
+            },
+            "required": ["socket_type"]
+        }
+    },
+    "types": {
+        "smart_lamp": {
+            "traits": ["socket_holder"]
+        }
+    }
 }`
 
 func TestBuild_StrictSchema_ExcludesInvalidDevice(t *testing.T) {

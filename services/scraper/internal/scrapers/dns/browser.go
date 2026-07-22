@@ -35,11 +35,6 @@ func (s *Scraper) activateBrowser(ctx context.Context) error {
 		return nil
 	}
 
-	// newBrowserLauncher() already sets proxy-server via applyBrowserProxy to
-	// the local forwarder (netproxy.BrowserProxyServer) — do not overwrite it
-	// with the raw upstream s.proxyURL here: Chrome's --proxy-server flag
-	// can't take embedded credentials, so that overwrite broke every browser
-	// launch with net::ERR_NO_SUPPORTED_PROXIES.
 	l := s.newBrowserLauncher()
 
 	controlURL, err := l.Launch()

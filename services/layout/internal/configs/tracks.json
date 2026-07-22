@@ -31,14 +31,14 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "contact",
-              "alarm_vulume_db": 65,
+              "audio_alert_volume_db": 65,
               "battery_life_years": 1
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane"
+              "detected_gas": [
+                "natural_gas"
               ],
-              "alarm_volume_db": 65,
+              "audio_alert_volume_db": 65,
               "battery_life_years": 1
             }
           }
@@ -83,26 +83,25 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "contact",
-              "alarm_vulume_db": 75,
+              "audio_alert_volume_db": 75,
               "battery_life_years": 2
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
+              "detected_gas": [
                 "natural_gas"
               ],
-              "alarm_volume_db": 75,
+              "audio_alert_volume_db": 75,
               "battery_life_years": 2
             },
             "smart_doorbell": {
               "resolution": "720p",
-              "angle": 90,
-              "night_vision": false,
-              "two_way_audio": false
+              "field_of_view_deg": 90,
+              "has_night_vision": false,
+              "has_two_way_audio": false
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
+              "access_methods": [
+                "keypad",
                 "fingerprint"
               ]
             }
@@ -167,26 +166,25 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "cable",
-              "alarm_vulume_db": 85,
+              "audio_alert_volume_db": 85,
               "battery_life_years": 2
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
+              "detected_gas": [
                 "natural_gas"
               ],
-              "alarm_volume_db": 85,
+              "audio_alert_volume_db": 85,
               "battery_life_years": 2
             },
             "smart_doorbell": {
               "resolution": "1080p",
-              "angle": 105,
-              "night_vision": false,
-              "two_way_audio": true
+              "field_of_view_deg": 105,
+              "has_night_vision": false,
+              "has_two_way_audio": true
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
+              "access_methods": [
+                "keypad",
                 "fingerprint",
                 "app"
               ]
@@ -194,8 +192,8 @@
             "door_sensor": {},
             "window_sensor": {},
             "motion_sensor": {
-              "angle": 110,
-              "range": 4000
+              "detection_angle_deg": 110,
+              "detection_range_m": 4000
             }
           }
         },
@@ -238,6 +236,8 @@
               "hallway"
             ],
             "window_sensor": [
+              "hall",
+              "hallway",
               "livingroom",
               "bedroom"
             ],
@@ -265,27 +265,26 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "cable",
-              "alarm_vulume_db": 100,
+              "audio_alert_volume_db": 100,
               "battery_life_years": 3
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
+              "detected_gas": [
                 "natural_gas",
-                "propan"
+                "lpg"
               ],
-              "alarm_volume_db": 100,
+              "audio_alert_volume_db": 100,
               "battery_life_years": 3
             },
             "smart_doorbell": {
               "resolution": "2K",
-              "angle": 130,
-              "night_vision": true,
-              "two_way_audio": true
+              "field_of_view_deg": 130,
+              "has_night_vision": true,
+              "has_two_way_audio": true
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
+              "access_methods": [
+                "keypad",
                 "fingerprint",
                 "app",
                 "face_recognition"
@@ -294,13 +293,13 @@
             "door_sensor": {},
             "window_sensor": {},
             "motion_sensor": {
-              "angle": 130,
-              "range": 8000
+              "detection_angle_deg": 130,
+              "detection_range_m": 8000
             },
             "camera": {
-              "angle": 110,
-              "range": 10000,
-              "night_vision": true,
+              "field_of_view_deg": 110,
+              "detection_range_m": 10000,
+              "has_night_vision": true,
               "resolution": "2K"
             }
           }
@@ -345,6 +344,8 @@
               "hallway"
             ],
             "window_sensor": [
+              "hall",
+              "hallway",
               "livingroom",
               "bedroom"
             ],
@@ -378,28 +379,27 @@
           "device_filters": {
             "water_leak_sensor": {
               "probe_type": "cable",
-              "alarm_vulume_db": 100,
+              "audio_alert_volume_db": 100,
               "battery_life_years": 4
             },
             "gas_leak_sensor": {
-              "gas_types": [
-                "methane",
+              "detected_gas": [
                 "natural_gas",
-                "propan",
+                "lpg",
                 "carbon_monoxide"
               ],
-              "alarm_volume_db": 100,
+              "audio_alert_volume_db": 100,
               "battery_life_years": 4
             },
             "smart_doorbell": {
               "resolution": "4K",
-              "angle": 150,
-              "night_vision": true,
-              "two_way_audio": true
+              "field_of_view_deg": 150,
+              "has_night_vision": true,
+              "has_two_way_audio": true
             },
             "smart_lock": {
-              "unlock_methods": [
-                "password",
+              "access_methods": [
+                "keypad",
                 "fingerprint",
                 "app",
                 "face_recognition"
@@ -408,17 +408,17 @@
             "door_sensor": {},
             "window_sensor": {},
             "motion_sensor": {
-              "angle": 150,
-              "range": 10000
+              "detection_angle_deg": 150,
+              "detection_range_m": 10000
             },
             "camera": {
-              "angle": 110,
-              "range": 12000,
-              "night_vision": true,
+              "field_of_view_deg": 110,
+              "detection_range_m": 12000,
+              "has_night_vision": true,
               "resolution": "2K"
             },
             "smart_siren": {
-              "volume_db": 85
+              "max_volume_db": 85
             }
           }
         }

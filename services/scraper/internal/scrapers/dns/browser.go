@@ -14,14 +14,14 @@ import (
 )
 
 type pageCapture struct {
-	HTML       []byte
-	NavStatus  int
-	Title      string
-	FinalURL   string
+	HTML      []byte
+	NavStatus int
+	Title     string
+	FinalURL  string
 }
 
 func (s *Scraper) newBrowserPage(browser *rod.Browser) (*rod.Page, error) {
-	if s.browserUserMode {
+	if s.forceBrowser {
 		return browser.Page(proto.TargetCreateTarget{URL: "about:blank"})
 	}
 	return stealth.Page(browser)
@@ -36,6 +36,11 @@ func (s *Scraper) activateBrowser(ctx context.Context) error {
 	}
 
 	l := s.newBrowserLauncher()
+
+	if s.proxyURL != "" {
+		l.Set("proxy-server", s.proxyURL)
+	}
+
 	controlURL, err := l.Launch()
 	if err != nil {
 		s.log.Error().Err(err).Msg("dns browser: launch failed")

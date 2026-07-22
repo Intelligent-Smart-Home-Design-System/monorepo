@@ -1,7 +1,9 @@
 package netproxy
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -124,4 +126,115 @@ func NewHTTPClient(timeout time.Duration, proxyURL string) (*http.Client, error)
 		Timeout:   timeout,
 		Transport: transport,
 	}, nil
+}
+
+func fetchIP(ctx context.Context, proxyURL string) (string, error) {
+	transport := &http.Transport{}
+
+	if err := ConfigureTransport(transport, proxyURL); err != nil {
+		return "", fmt.Errorf("failed to config check transport: %w", err)
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://icanhazip.com", nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(body)), nil
+}
+
+// RotateSharedProxy блокирует поток, определяет текущий IP и ждет автоматической
+// смены IP со стороны провайдера на Общем тарифе.
+func RotateSharedProxy(ctx context.Context, proxyURL string, log func(string)) {
+	log("netproxy: инициировано ожидание авто-ротации IP на общем тарифе...")
+
+	oldIP, err := fetchIP(ctx, proxyURL)
+	if err != nil {
+		log("netproxy: не удалось определить стартовый IP (возможно, сеть уже обрывается), начинаем цикл ожидания...")
+	} else if oldIP != "" {
+		log("netproxy: текущий заблокированный IP: " + oldIP + ". Ожидаем таймер провайдера...")
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			log("netproxy: ожидания смены IP прервано по context.Context")
+			return
+		default:
+			time.Sleep(5 * time.Second)
+
+			currentIP, err := fetchIP(ctx, proxyURL)
+			if err != nil {
+				log("netproxy: сеть временно пропала, модем на вышке меняет сессию...")
+				continue
+			}
+
+			if currentIP != "" && currentIP != oldIP {
+				log("netproxy: Общий прокси успешно обновил IP на: " + currentIP)
+				return
+			}
+		}
+	}
+}
+
+func RotateProxyViaAPI(ctx context.Context, proxyURL string, rotationURL string, log func(string)) error {
+	log("netproxy: запуск принудительной ротации мобильного прокси IParchitect...")
+
+	oldIP, err := fetchIP(ctx, proxyURL)
+	if err != nil {
+		log("netproxy: не удалось определить стартовый IP, продолжаем вслепую...")
+	} else if oldIP != "" {
+		log("netproxy: зафиксирован старый забаненный IP: " + oldIP)
+	}
+
+	rotateReq, err := http.NewRequestWithContext(ctx, http.MethodGet, rotationURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create rotation request: %w", err)
+	}
+
+	rotateResp, err := http.DefaultClient.Do(rotateReq)
+	if err != nil {
+		log("netproxy: отправка запроса на смену IP вернула ошибку: " + err.Error())
+	} else {
+		_ = rotateResp.Body.Close()
+		log("netproxy: сигнал на смену IP успешно отправлен в IParchitect")
+	}
+
+	time.Sleep(3 * time.Second)
+
+	for {
+		select {
+		case <-ctx.Done():
+			log("netproxy: ожидание смены IP прервано по context.Context")
+			return ctx.Err()
+		default:
+			time.Sleep(2 * time.Second)
+
+			currentIP, err := fetchIP(ctx, proxyURL)
+			if err != nil {
+				log("netproxy: сеть временно недоступна (модем меняет вышку)...")
+				continue
+			}
+			if currentIP != "" && currentIP != oldIP {
+				log("netproxy: мобильный прокси успешно сменил IP на: " + currentIP)
+				return nil
+			}
+		}
+	}
 }

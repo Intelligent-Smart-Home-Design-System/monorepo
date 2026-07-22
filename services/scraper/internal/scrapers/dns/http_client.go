@@ -29,6 +29,11 @@ func newScraperClient(timeout time.Duration, proxyURL string) (*http.Client, err
 
 func setNavigationHeaders(req *http.Request, userAgent, referer string) {
 	req.Header.Set("User-Agent", userAgent)
+	// ---
+	req.Header.Set("Sec-Ch-Ua", `"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"`)
+	req.Header.Set("Sec-Ch-Ua-Mobile", "?1")
+	req.Header.Set("Sec-Ch-Ua-Platform", `"Android"`)
+	// -
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
 	req.Header.Set("Cache-Control", "no-cache")
@@ -98,7 +103,7 @@ func (s *Scraper) warmup(ctx context.Context) error {
 	}
 	s.mu.Unlock()
 
-	if s.browserMode {
+	if s.browserMode || s.forceBrowser {
 		if err := s.activateBrowser(ctx); err != nil {
 			return err
 		}
@@ -168,65 +173,82 @@ func isAuthBlocked(status int) bool {
 }
 
 func (s *Scraper) getHTML(ctx context.Context, pageURL string) ([]byte, int, string, error) {
-	if err := s.warmup(ctx); err != nil {
-		return nil, 0, "", err
-	}
+	const maxAttempts = 3
 
-	if s.browserMode {
-		body, err := s.browserGetHTML(ctx, pageURL)
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if err := s.warmup(ctx); err != nil {
+			return nil, 0, "", err
+		}
+
+		if s.browserMode {
+			body, err := s.browserGetHTML(ctx, pageURL)
+			if err != nil {
+				return nil, 0, "", err
+			}
+			return body, http.StatusOK, http.StatusText(http.StatusOK), nil
+		}
+
+		referer := dnsOrigin
+		if u, err := url.Parse(pageURL); err == nil && u.Host != "" {
+			referer = fmt.Sprintf("%s://%s/", u.Scheme, u.Host)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
 		if err != nil {
 			return nil, 0, "", err
 		}
-		return body, http.StatusOK, http.StatusText(http.StatusOK), nil
+		setNavigationHeaders(req, s.userAgent, referer)
+
+		resp, err := s.client.Do(req)
+		if err != nil {
+			if attempt == maxAttempts {
+				return nil, 0, "", err
+			}
+			s.log.Error().Err(err).Msg("Сетевая ошибка при запросе, пробуем сбросить сессию")
+			s.prepareForProxyRotation()
+			continue
+		}
+
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			return nil, resp.StatusCode, resp.Status, readErr
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			return body, resp.StatusCode, resp.Status, nil
+		}
+
+		if !isAuthBlocked(resp.StatusCode) {
+			return body, resp.StatusCode, resp.Status, fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+
+		if attempt == maxAttempts {
+			s.log.Error().Int("status", resp.StatusCode).Msg("Превышено количество попыток обхода блокировки. Завершаем работу.")
+			return body, resp.StatusCode, resp.Status, fmt.Errorf("HTTP %d: blocked after max retries", resp.StatusCode)
+		}
+
+		s.log.Warn().
+			Int("status", resp.StatusCode).
+			Int("attempt", attempt).
+			Str("url", pageURL).
+			Msg("dns fetch: HTTP blocked. Запускаем ротацию мобильного прокси...")
+		s.prepareForProxyRotation()
+
+		netproxy.RotateSharedProxy(ctx, s.proxyURL, func(msg string) {
+			s.log.Info().Msg(msg)
+		})
+
 	}
 
-	referer := dnsOrigin
-	if u, err := url.Parse(pageURL); err == nil && u.Host != "" {
-		referer = fmt.Sprintf("%s://%s/", u.Scheme, u.Host)
-	}
+	return nil, 0, "", fmt.Errorf("unexpected end of getHTML loop")
+}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
-	if err != nil {
-		return nil, 0, "", err
-	}
-	setNavigationHeaders(req, s.userAgent, referer)
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, 0, "", err
-	}
-
-	body, readErr := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if readErr != nil {
-		return nil, resp.StatusCode, resp.Status, readErr
-	}
-
-	if resp.StatusCode == http.StatusOK {
-		return body, resp.StatusCode, resp.Status, nil
-	}
-
-	if !isAuthBlocked(resp.StatusCode) {
-		return body, resp.StatusCode, resp.Status, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
-	s.log.Warn().
-		Int("status", resp.StatusCode).
-		Str("url", pageURL).
-		Msg("dns fetch: HTTP blocked, switching to headless browser")
-
+func (s *Scraper) prepareForProxyRotation() {
 	s.mu.Lock()
 	s.warmedUp = false
-	s.browserMode = true
+	// Очищаем старые забаненные куки Qrator/DNS из клиента
+	newJar, _ := cookiejar.New(nil)
+	s.client.Jar = newJar
 	s.mu.Unlock()
-
-	if err := s.warmup(ctx); err != nil {
-		return nil, resp.StatusCode, resp.Status, err
-	}
-
-	body, err = s.browserGetHTML(ctx, pageURL)
-	if err != nil {
-		return nil, resp.StatusCode, resp.Status, err
-	}
-	return body, http.StatusOK, http.StatusText(http.StatusOK), nil
 }

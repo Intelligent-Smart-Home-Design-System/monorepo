@@ -1,3 +1,5 @@
+//go:build integration
+
 package sources
 
 import (
@@ -43,6 +45,7 @@ func TestDNSE2E_ListingScrapeParse(t *testing.T) {
 			Timeout:      90 * time.Second,
 			RateLimitRps: 1,
 			UserAgent:    "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+			Proxy:        "",
 		},
 		Dns: config.DnsConfig{
 			BrowserUserMode: &browserUserMode,
@@ -53,7 +56,7 @@ func TestDNSE2E_ListingScrapeParse(t *testing.T) {
 			},
 		},
 	}
-	applyLiveNetworkConfig(&cfg)
+	// applyLiveNetworkConfig(&cfg)
 
 	registry, err := NewRegistry(cfg, zerolog.Nop())
 	require.NoError(t, err)

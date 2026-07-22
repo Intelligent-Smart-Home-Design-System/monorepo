@@ -13,17 +13,17 @@ import (
 )
 
 type Scraper struct {
-	log             zerolog.Logger
-	client          *http.Client
-	proxyURL        string
-	userAgent       string
-	browserUserMode bool
-	mu              sync.Mutex
-	warmedUp        bool
-	browserMu       sync.Mutex
-	browser         *rod.Browser
-	browserPage     *rod.Page
-	browserMode     bool
+	log          zerolog.Logger
+	client       *http.Client
+	proxyURL     string
+	userAgent    string
+	forceBrowser bool
+	mu           sync.Mutex
+	warmedUp     bool
+	browserMu    sync.Mutex
+	browser      *rod.Browser
+	browserPage  *rod.Page
+	browserMode  bool
 }
 
 func NewScraper(log zerolog.Logger, timeout time.Duration, proxyURL, userAgent string, browserUserMode *bool) *Scraper {
@@ -34,11 +34,11 @@ func NewScraper(log zerolog.Logger, timeout time.Duration, proxyURL, userAgent s
 		proxyURL = ""
 	}
 	return &Scraper{
-		log:             log.With().Str("source", "dns").Logger(),
-		client:          client,
-		proxyURL:        proxyURL,
-		userAgent:       userAgent,
-		browserUserMode: defaultBrowserUserMode(browserUserMode),
+		log:          log.With().Str("source", "dns").Logger(),
+		client:       client,
+		proxyURL:     proxyURL,
+		userAgent:    userAgent,
+		forceBrowser: defaultBrowserUserMode(browserUserMode),
 	}
 }
 

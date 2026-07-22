@@ -29,7 +29,7 @@ func containerChromiumBin() string {
 }
 
 func (s *Scraper) newBrowserLauncher() *launcher.Launcher {
-	if s.browserUserMode {
+	if s.forceBrowser {
 		profile := resolveBrowserProfileDir()
 		mode := "user"
 		if isContainerRuntime() {

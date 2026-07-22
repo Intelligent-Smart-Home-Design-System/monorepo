@@ -12,7 +12,7 @@ import (
 
 func loadProbeFixture(t *testing.T) []byte {
 	t.Helper()
-	path := filepath.Join("testdata", "probe", "02_https_www_dns_shop_ru_product_420b8a9ab11ad0a4_datcik_moes_zigbee_flood_sensor_w.html")
+	path := filepath.Join("testdata", "hand_scrape_moes.html")
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return data
@@ -29,7 +29,7 @@ func TestExtractProductBuyRequest(t *testing.T) {
 	assert.NotEmpty(t, payload.Hash)
 	require.Len(t, payload.Containers, 1)
 	assert.Equal(t, "5608711", payload.Containers[0].Data.ID)
-	assert.Equal(t, "as-n3NQhU", payload.Containers[0].ID)
+	assert.Equal(t, "as-ep2lqb", payload.Containers[0].ID)
 	assert.True(t, payload.Containers[0].Data.Params.IsCard)
 }
 

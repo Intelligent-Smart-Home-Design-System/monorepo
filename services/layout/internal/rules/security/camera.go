@@ -60,7 +60,7 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 	if configFilters == nil {
 		configFilters = &filters.CameraFilter{
 			FieldOfViewDeg: defaultCameraAngle,
-			DetectionRangeDeg: defaultCameraRange,
+			DetectionRangeMM: defaultCameraRange,
 		}
 	}
 	cameraFilters := configFilters.(*filters.CameraFilter)
@@ -91,7 +91,7 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 		if distance != -1 {
 			deviceFilter = &filters.CameraFilter{
 				FieldOfViewDeg: cameraFilters.FieldOfViewDeg,
-				DetectionRangeDeg: cameraFilters.DetectionRangeDeg,
+				DetectionRangeMM: cameraFilters.DetectionRangeMM,
 				HasNightVision: cameraFilters.HasNightVision,
 				Resolution: cameraFilters.Resolution,
 				RecommendedRangeMM: distance,
@@ -99,10 +99,10 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 		} else {
 			deviceFilter = &filters.CameraFilter{
 				FieldOfViewDeg: cameraFilters.FieldOfViewDeg,
-				DetectionRangeDeg: cameraFilters.DetectionRangeDeg,
+				DetectionRangeMM: cameraFilters.DetectionRangeMM,
 				HasNightVision: cameraFilters.HasNightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRangeMM: cameraFilters.DetectionRangeDeg,
+				RecommendedRangeMM: cameraFilters.DetectionRangeMM,
 			}
 		}
 
@@ -172,7 +172,7 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 	maxCoverage := 0.0
 
 	for _, corner := range room.Area {
-		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, corner, filter.DetectionRangeDeg, filter.FieldOfViewDeg)
+		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, corner, filter.DetectionRangeMM, float64(filter.FieldOfViewDeg))
 
 		if maxCoverage < coverage {
 			maxCoverage = coverage
@@ -195,7 +195,7 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 			}
 
 			wallCenter := point.GetObjectCenter(wall.Points)
-			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, wallCenter, filter.DetectionRangeDeg, filter.FieldOfViewDeg)
+			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, wallCenter, filter.DetectionRangeMM, float64(filter.FieldOfViewDeg))
 
 			if maxCoverage < coverage {
 				maxCoverage = coverage

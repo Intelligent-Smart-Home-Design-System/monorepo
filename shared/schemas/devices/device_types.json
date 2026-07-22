@@ -748,9 +748,9 @@
         ]
       }
     },
-    "smart_camera": {
+    "camera": {
       "description": "An indoor or outdoor smart surveillance camera with remote viewing capability",
-      "title": "SmartCamera",
+      "title": "Camera",
       "schema_description": "A smart home surveillance camera",
       "traits": [
         "base",
@@ -783,7 +783,7 @@
       "extra_schema": {
         "properties": {
           "type": {
-            "const": "smart_camera"
+            "const": "camera"
           }
         },
         "required": [

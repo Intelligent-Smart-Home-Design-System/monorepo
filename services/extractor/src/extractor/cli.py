@@ -98,9 +98,10 @@ def run_sample(
     settings = Settings.from_toml(config_path)
     taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
     listing = ListingSnapshot.model_validate_json(parsed_listing_path.read_text())
+    known_types = list(taxonomy.get("types", taxonomy).keys())
     
     typer.echo(f"Loaded listing: {listing.name}", err=True)
-    typer.echo(f"Known device types: {', '.join(taxonomy.keys())}", err=True)
+    typer.echo(f"Known device types: {', '.join(known_types)}", err=True)
 
     extractor = make_extractor(settings)
 

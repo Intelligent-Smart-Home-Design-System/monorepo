@@ -143,8 +143,8 @@
         ]
       }
     },
-    "door_sensor": {
-      "description": "Датчик открытия дверей",
+    "door_window_sensor": {
+      "description": "Датчик открытия дверей/окон",
       "price_range": {
         "min": 1500,
         "max": 3000
@@ -152,7 +152,7 @@
       "tracks": [
         "security"
       ],
-      "title": "DoorSensor",
+      "title": "DoorWindowSensor",
       "traits": [
         "base",
         "connectivity"
@@ -160,32 +160,7 @@
       "extra_schema": {
         "properties": {
           "type": {
-            "const": "door_sensor"
-          }
-        },
-        "required": [
-          "type"
-        ]
-      }
-    },
-    "window_sensor": {
-      "description": "Датчик открытия окон",
-      "price_range": {
-        "min": 1500,
-        "max": 3000
-      },
-      "tracks": [
-        "security"
-      ],
-      "title": "WindowSensor",
-      "traits": [
-        "base",
-        "connectivity"
-      ],
-      "extra_schema": {
-        "properties": {
-          "type": {
-            "const": "window_sensor"
+            "const": "door_window_sensor"
           }
         },
         "required": [

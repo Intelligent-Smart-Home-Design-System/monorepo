@@ -21,24 +21,6 @@ class ModelMetrics:
     model_name: str
     listing_results: list[ListingResult] = field(default_factory=list)
 
-    def _iter_all_properties(self, taxonomy: dict) -> dict[str, dict]:
-        traits_db = taxonomy.get("traits", {})
-        types_db = taxonomy.get("types", taxonomy)
-        all_props: dict[str, dict] = {}
-
-        for trait_data in traits_db.values():
-            for prop_name, prop_schema in trait_data.get("properties", {}).items():
-                all_props[prop_name] = prop_schema
-
-        for type_name, type_data in types_db.items():
-            if type_name == "traits":
-                continue
-            extra = type_data.get("extra_schema", {})
-            for prop_name, prop_schema in extra.get("properties", {}).items():
-                all_props[prop_name] = prop_schema
-
-        return all_props
-
     def compute_summary(self, taxonomy: dict) -> dict:
         n = len(self.listing_results)
         if n == 0:
@@ -61,22 +43,26 @@ class ModelMetrics:
         }
 
     def _get_field_type(self, field_name: str, taxonomy: dict) -> str | None:
-        all_props = self._iter_all_properties(taxonomy)
-        if field_name in all_props:
-            f = all_props[field_name]
-            if f.get("type") == "array":
-                items = f.get("items", {})
-                if items.get("type") == "string" and "enum" in items:
-                    return "string_enum_set"
-                return "array"
-            return "scalar"
+        """Get field type from taxonomy schema. Returns 'scalar', 'string_enum_set', or 'array'."""
+        for type_data in taxonomy.values():
+            schema = type_data.get("schema", {})
+            props = schema.get("properties", {})
+            if field_name in props:
+                f = props[field_name]
+                if f.get("type") == "array":
+                    items = f.get("items", {})
+                    if items.get("type") == "string" and "enum" in items:
+                        return "string_enum_set"
+                    return "array"
+                return "scalar"
         return None
 
     def _get_enum_values(self, field_name: str, taxonomy: dict) -> list[str] | None:
-        all_props = self._iter_all_properties(taxonomy)
-        if field_name in all_props:
-            items = all_props[field_name].get("items", {})
-            return items.get("enum")
+        for type_data in taxonomy.values():
+            props = type_data.get("schema", {}).get("properties", {})
+            if field_name in props:
+                items = props[field_name].get("items", {})
+                return items.get("enum")
         return None
 
     def _compute_scalar_metrics(self, taxonomy: dict) -> dict:

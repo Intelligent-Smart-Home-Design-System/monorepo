@@ -1,3 +1,5 @@
+llm_source = "local"
+
 [taxonomy]
 path = "taxonomy_schema.json"
 
@@ -53,20 +55,32 @@ protocol = "Include {value} IF AND ONLY IF the device explicitly supports the {v
 power_source = "Include {value} if and only if the device can be powered by {value}."
 access_methods = "Include {value} if and only if the device can be unlocked using {value}."
 
-[yandex_cloud]
-folder = "b1ghdbj0nn88kkalmtlj"
-llm_model = "gpt-oss-120b/latest"
+# [yandex_cloud]
+# folder = "b1ghdbj0nn88kkalmtlj"
+# llm_model = "gpt-oss-120b/latest"
 
 # "qwen3-235b-a22b-fp8/latest"
 # "gpt-oss-120b/latest"
 # "gemma-3-27b-it/latest"
 
+# Локальный Qwen через Ollama / vLLM (OpenAI-compatible API):
+[local_llm]
+base_url = "http://localhost:11434/v1"
+model = "Qwen/Qwen2.5-14B-Instruct-GPTQ-Int8"
+api_key = "ollama"
+temperature = 0
+
 [database]
 host = "localhost"
 port = 5432
-name = "catalog"
+name = "smart_home"
 user = "catalog"
+password = "catalog"
 
 [logging]
 level = "INFO"
 format = "json"  # or "console"
+
+# Pre-LLM gate (see docs/ARCHITECTURE.md and monorepo/docs/catalog-pipeline-architecture.md)
+[pre_llm_gate]
+no_dups_check = true

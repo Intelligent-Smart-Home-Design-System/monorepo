@@ -60,7 +60,6 @@ class Worker:
                         listing_id=listing.id,
                         error=str(result),
                         error_type=type(result).__name__,
-                        exc_info=result
                     )
                     continue
 

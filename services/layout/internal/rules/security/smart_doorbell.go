@@ -24,14 +24,9 @@ func (sd *SmartDoorBellRule) Type() string {
 }
 
 func (sd *SmartDoorBellRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -57,9 +52,9 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	}
 
 	if configFilters == nil {
-		configFilters = &filters.SmartDoorBellFilter{}
+		configFilters = &filters.SmartDoorbellFilter{}
 	}
-	smartDoorBellFilters := configFilters.(*filters.SmartDoorBellFilter)
+	smartDoorBellFilters := configFilters.(*filters.SmartDoorbellFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

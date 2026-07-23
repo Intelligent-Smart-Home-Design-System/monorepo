@@ -27,14 +27,9 @@ func (ss *SmartSirenRule) Type() string {
 }
 
 func (ss *SmartSirenRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -75,7 +70,7 @@ func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 
 			if deviceCnt < maxCount {
 				if zr.OrigRoom.AreaM2 >= MetersCoverage {
-					smartSirenFilters.VolumeDB *= CoeffDB
+					smartSirenFilters.MaxVolumeDB = int(float64(smartSirenFilters.MaxVolumeDB) * CoeffDB)
 				}
 
 				layout.AddDeviceToLayout(deviceType, ss.track, zr.OrigRoom.ID, zoneCenter, nil, smartSirenFilters)

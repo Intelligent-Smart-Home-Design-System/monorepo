@@ -2,7 +2,6 @@ package lighting
 
 import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
 type MotionSensorRule struct {
@@ -10,9 +9,7 @@ type MotionSensorRule struct {
 }
 
 func NewMotionSensorRule() *MotionSensorRule {
-	return &MotionSensorRule{
-		track: "lighting",
-	}
+	return &MotionSensorRule{track: "lighting"}
 }
 
 func (r *MotionSensorRule) Type() string {
@@ -21,15 +18,31 @@ func (r *MotionSensorRule) Type() string {
 
 func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	ap := zonedAp.OrigAp
-	devicesRooms, err := ap.GetRoomsByNames([]string{apartment.RoomPassage, apartment.RoomBathroom})
+	rooms, err := ap.GetRoomsByNames([]string{apartment.RoomPassage, apartment.RoomBathroom})
 	if err != nil {
 		return err
 	}
 
-	for _, room := range devicesRooms {
+	for _, room := range rooms {
 		roomID := room.ID
 
-		layout.AddDeviceToLayout(r.Type(), r.track, roomID, &point.Point{X: 0, Y: 0}, nil, nil)
+		if room.Name == apartment.RoomPassage {
+			p1, p2, err := corridorEndPoints(*room)
+			if err != nil {
+				return err
+			}
+
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p1, nil, nil)
+			layout.AddDeviceToLayout(r.Type(), r.track, roomID, p2, nil, nil)
+			continue
+		}
+
+		sensorPoint, err := cornerNearDoor(ap, *room)
+		if err != nil {
+			return err
+		}
+
+		layout.AddDeviceToLayout(r.Type(), r.track, roomID, sensorPoint, nil, nil)
 	}
 
 	return nil

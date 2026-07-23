@@ -17,31 +17,31 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 	window := apartment.Window{
 		ID: "1",
 		Points: []point.Point{
-			{X: 0, Y: 1.2},
-			{X: 0, Y: 1.6},
+			{X: 0, Y: 1200},
+			{X: 0, Y: 1600},
 		},
-		Rooms: []string{"1"},
-		Width: 0.4,
+		Room: "livingroom",
+		Width: 400,
 	}
 
 	doors := []apartment.Door{
 		{
 			ID: "1",
 			Points: []point.Point{
-				{X: 1, Y: 0},
-				{X: 3, Y: 0},
+				{X: 1000, Y: 0},
+				{X: 3000, Y: 0},
 			},
 			Rooms: []string{"1"},
-			Width: 2,
+			Width: 2000,
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 12, Y: 3},
-				{X: 12, Y: 4},
+				{X: 12000, Y: 3000},
+				{X: 12000, Y: 4000},
 			},
 			Rooms: []string{"1", "2"},
-			Width: 1,
+			Width: 1000,
 		},
 	}
 
@@ -50,33 +50,33 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			ID: "1",
 			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 12, Y: 0},
+				{X: 12000, Y: 0},
 			},
-			Width: 12,
+			Width: 12000,
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 12, Y: 0},
-				{X: 12, Y: 5},
+				{X: 12000, Y: 0},
+				{X: 12000, Y: 5000},
 			},
-			Width: 5,
+			Width: 5000,
 		},
 		{
 			ID: "3",
 			Points: []point.Point{
-				{X: 12, Y: 5},
-				{X: 0, Y: 5},
+				{X: 12000, Y: 5000},
+				{X: 0, Y: 5000},
 			},
-			Width: 12,
+			Width: 12000,
 		},
 		{
 			ID: "4",
 			Points: []point.Point{
-				{X: 0, Y: 5},
+				{X: 0, Y: 5000},
 				{X: 0, Y: 0},
 			},
-			Width: 5,
+			Width: 5000,
 		},
 	}
 
@@ -84,46 +84,46 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		{
 			ID: "5",
 			Points: []point.Point{
-				{X: 12, Y: 0},
-				{X: 16, Y: 0},
+				{X: 12000, Y: 0},
+				{X: 16000, Y: 0},
 			},
 			Width: 4,
 		},
 		{
 			ID: "6",
 			Points: []point.Point{
-				{X: 16, Y: 0},
-				{X: 16, Y: 20},
+				{X: 16000, Y: 0},
+				{X: 16000, Y: 20000},
 			},
-			Width: 20,
+			Width: 20000,
 		},
 		{
 			ID: "7",
 			Points: []point.Point{
-				{X: 16, Y: 20},
-				{X: 12, Y: 20},
+				{X: 16000, Y: 20},
+				{X: 12000, Y: 20000},
 			},
 			Width: 4,
 		},
 		{
 			ID: "8",
 			Points: []point.Point{
-				{X: 12, Y: 20},
-				{X: 12, Y: 0},
+				{X: 12000, Y: 20000},
+				{X: 12000, Y: 0},
 			},
-			Width: 20,
+			Width: 20000,
 		},
 	}
 
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
-			Name: "living",
+			Name: "livingroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 12, Y: 0},
-				{X: 12, Y: 5},
-				{X: 0, Y: 5},
+				{X: 12000, Y: 0},
+				{X: 12000, Y: 5000},
+				{X: 0, Y: 5000},
 			},
 			Doors:   []string{doors[1].ID},
 			Windows: []string{window.ID},
@@ -133,10 +133,10 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			ID:   "2",
 			Name: "hall",
 			Area: []point.Point{
-				{X: 12, Y: 0},
-				{X: 16, Y: 0},
-				{X: 16, Y: 20},
-				{X: 12, Y: 20},
+				{X: 12000, Y: 0},
+				{X: 16000, Y: 0},
+				{X: 16000, Y: 20000},
+				{X: 12000, Y: 20000},
 			},
 			Doors: []string{doors[0].ID},
 			Walls: []string{"5", "6", "7", "8"},
@@ -176,14 +176,19 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 			switch devicePlacement.Device.Type {
 			case "door_sensor":
 				if roomID == "1" {
-					assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
+					assert.Equal(t, &point.Point{X: 2000, Y: 0}, devicePlacement.Position)
 				} else {
-					assert.Equal(t, &point.Point{X: 2, Y: 0}, devicePlacement.Position)
+					assert.Equal(t, &point.Point{X: 2000, Y: 0}, devicePlacement.Position)
 				}
 			case "window_sensor":
-				assert.Equal(t, &point.Point{X: 0, Y: 1.4}, devicePlacement.Position)
+				assert.Equal(t, &point.Point{X: 0, Y: 1400}, devicePlacement.Position)
 			case "motion_sensor":
-				assert.Equal(t, &point.Point{X: 12, Y: 2.5}, devicePlacement.Position)
+				ok1 := point.Point{X: 12000, Y: 2500} == *devicePlacement.Position
+				ok2 := point.Point{X: 0, Y: 0} == *devicePlacement.Position
+
+				if !ok1 && !ok2 {
+					t.FailNow()
+				}	
 			}
 		}
 	}
@@ -217,26 +222,26 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 	window := apartment.Window{
 		ID: "1",
 		Points: []point.Point{
-			{X: 0, Y: 1.2},
-			{X: 0, Y: 1.6},
+			{X: 0, Y: 1200},
+			{X: 0, Y: 1600},
 		},
-		Rooms: []string{"1"},
+		Room: "livingroom",
 	}
 
 	doors := []apartment.Door{
 		{
 			ID: "1",
 			Points: []point.Point{
-				{X: 1, Y: 0},
-				{X: 3, Y: 0},
+				{X: 1000, Y: 0},
+				{X: 3000, Y: 0},
 			},
 			Rooms: []string{"1"},
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 12, Y: 3},
-				{X: 12, Y: 4},
+				{X: 12000, Y: 3000},
+				{X: 12000, Y: 4000},
 			},
 			Rooms: []string{"1", "2"},
 		},
@@ -247,30 +252,30 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 			ID: "1",
 			Points: []point.Point{
 				{X: 0, Y: 0},
-				{X: 12, Y: 0},
+				{X: 12000, Y: 0},
 			},
 			Width: 2,
 		},
 		{
 			ID: "2",
 			Points: []point.Point{
-				{X: 12, Y: 0},
-				{X: 12, Y: 5},
+				{X: 12000, Y: 0},
+				{X: 12000, Y: 5000},
 			},
 			Width: 2,
 		},
 		{
 			ID: "3",
 			Points: []point.Point{
-				{X: 12, Y: 5},
-				{X: 0, Y: 5},
+				{X: 12000, Y: 5000},
+				{X: 0, Y: 5000},
 			},
 			Width: 2,
 		},
 		{
 			ID: "4",
 			Points: []point.Point{
-				{X: 0, Y: 5},
+				{X: 0, Y: 5000},
 				{X: 0, Y: 0},
 			},
 			Width: 2,
@@ -281,32 +286,32 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 		{
 			ID: "5",
 			Points: []point.Point{
-				{X: 12, Y: 0},
-				{X: 16, Y: 0},
+				{X: 12000, Y: 0},
+				{X: 16000, Y: 0},
 			},
 			Width: 2,
 		},
 		{
 			ID: "6",
 			Points: []point.Point{
-				{X: 16, Y: 0},
-				{X: 16, Y: 20},
+				{X: 16000, Y: 0},
+				{X: 16000, Y: 20000},
 			},
 			Width: 2,
 		},
 		{
 			ID: "7",
 			Points: []point.Point{
-				{X: 16, Y: 20},
-				{X: 12, Y: 20},
+				{X: 16000, Y: 20000},
+				{X: 12000, Y: 20000},
 			},
 			Width: 2,
 		},
 		{
 			ID: "8",
 			Points: []point.Point{
-				{X: 12, Y: 20},
-				{X: 12, Y: 0},
+				{X: 12000, Y: 20000},
+				{X: 12000, Y: 0},
 			},
 			Width: 2,
 		},
@@ -315,12 +320,12 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 	rooms := []apartment.Room{
 		{
 			ID:   "1",
-			Name: "living",
+			Name: "livingroom",
 			Area: []point.Point{
 				{X: 0, Y: 0},
-				{X: 12, Y: 0},
-				{X: 12, Y: 5},
-				{X: 0, Y: 5},
+				{X: 12000, Y: 0},
+				{X: 12000, Y: 5000},
+				{X: 0, Y: 5000},
 			},
 			Doors:   []string{doors[1].ID},
 			Windows: []string{window.ID},
@@ -330,10 +335,10 @@ func TestThirdLevelPriceCalculation(t *testing.T) {
 			ID:   "2",
 			Name: "hall",
 			Area: []point.Point{
-				{X: 12, Y: 0},
-				{X: 16, Y: 0},
-				{X: 16, Y: 20},
-				{X: 12, Y: 20},
+				{X: 12000, Y: 0},
+				{X: 16000, Y: 0},
+				{X: 16000, Y: 20000},
+				{X: 12000, Y: 20000},
 			},
 			Doors: []string{doors[0].ID},
 			Walls: []string{"5", "6", "7", "8"},

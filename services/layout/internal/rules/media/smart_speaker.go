@@ -10,7 +10,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-const speakerShiftFromTV = 0.5
+const speakerShiftFromTV = 500
 
 type SmartSpeakerRule struct {
 	track string
@@ -40,14 +40,9 @@ func (ss *SmartSpeakerRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 	}
 	smartSpeakerFilters := configFilters.(*filters.SmartSpeaker)
 
-	smartTVRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range smartTVRooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	deviceCnt := 0
@@ -55,7 +50,6 @@ func (ss *SmartSpeakerRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok || deviceCnt >= maxCount {
 			continue
 		}
-
 		bestPoint := findBestSmartSpeakerPoint(zonedAp.OrigAp, zr, layout)
 		if bestPoint == nil {
 			continue
@@ -97,7 +91,7 @@ func findTVPosition(ap *apartment.Apartment, room *apartment.Room, layout *apart
 			continue
 		}
 
-		if strings.ToLower(furniture.Name) == apartment.TV {
+		if strings.ToLower(furniture.Category) == apartment.TV {
 			tvCenter := point.GetObjectCenter(furniture.Points)
 			distance := point.CalculatePointsDistance(furniture.Points[0], furniture.Points[1])
 
@@ -125,7 +119,7 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 	if nearestWall != nil {
 		wallCenter := point.GetObjectCenter(nearestWall.Points)
 		if tvPosition.X < wallCenter.X {
-			res := point.MovePointInDirectionPlusOffset(*tvPosition, *direction, totalShift)
+			res := point.MovePointInDirection(*tvPosition, *direction, totalShift)
 			if !isBlockedPoint(ap, room, res) {
 				return &res
 			}
@@ -135,7 +129,7 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 			X: -direction.X,
 			Y: -direction.Y,
 		}
-		res := point.MovePointInDirectionPlusOffset(*tvPosition, reverseDirection, totalShift)
+		res := point.MovePointInDirection(*tvPosition, reverseDirection, totalShift)
 		if !isBlockedPoint(ap, room, res) {
 			return &res
 		}
@@ -143,7 +137,7 @@ func getPositionNearTV(ap *apartment.Apartment, room *apartment.Room, tvPosition
 		return &res
 	}
 
-	res := point.MovePointInDirectionPlusOffset(*tvPosition, *direction, totalShift)
+	res := point.MovePointInDirection(*tvPosition, *direction, totalShift)
 	return &res
 }
 

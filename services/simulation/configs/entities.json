@@ -36,7 +36,7 @@
     "camera": {
       "description": "Камера наблюдения — видеоконтроль и детекция движения"
     },
-    "smart_bulb": {
+    "smart_lamp": {
       "description": "Умная лампа — регулируемое освещение"
     },
     "smart_dimmer": {

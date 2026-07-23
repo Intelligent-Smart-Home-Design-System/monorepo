@@ -17,11 +17,11 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 	window := apartment.Window{
 		ID:     "1",
 		Points: []point.Point{
-			{X: 3, Y: 0},
-			{X: 5, Y: 0},
+			{X: 3000, Y: 0},
+			{X: 5000, Y: 0},
 		},
-		Width:  2.0,
-		Rooms:  []string{"living_room"},
+		Width:  2000,
+		Room:  "livingroom",
 	}
 
 	walls := []apartment.Wall{
@@ -29,33 +29,33 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 			ID: "1", 
 			Points: []point.Point{
 				{X: 0, Y: 0}, 
-				{X: 8, Y: 0},
+				{X: 8000, Y: 0},
 			},
 			Width: 8,
 		},
 		{
 			ID: "2", 
 			Points: []point.Point{
-				{X: 8, Y: 0}, 
-				{X: 8, Y: 6},
+				{X: 8000, Y: 0}, 
+				{X: 8000, Y: 6000},
 			},
-			Width: 6,
+			Width: 6000,
 		},
 		{
 			ID: "3", 
 			Points: []point.Point{
-				{X: 8, Y: 6},
-				{X: 0, Y: 6},
+				{X: 8000, Y: 6000},
+				{X: 0, Y: 6000},
 			},
-			Width: 8,
+			Width: 8000,
 		},
 		{
 			ID: "4", 
 			Points: []point.Point{
-				{X: 0, Y: 6}, 
+				{X: 0, Y: 6000}, 
 				{X: 0, Y: 0},
 			},
-			Width: 6,
+			Width: 6000,
 		},
 	}
 
@@ -64,9 +64,9 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 		Name: "living",
 		Area: []point.Point{
 			{X: 0, Y: 0},
-			{X: 8, Y: 0},
-			{X: 8, Y: 6},
-			{X: 0, Y: 6},
+			{X: 8000, Y: 0},
+			{X: 8000, Y: 6000},
+			{X: 0, Y: 6000},
 		},
 		Windows:   []string{"1"},
 		Walls:     []string{"1", "2", "3", "4"},
@@ -101,8 +101,8 @@ func TestSimpleFirstLevelScript(t *testing.T) {
 			foundSpeaker = true
 
 			assert.Equal(t, 0.0, devicePlacement.Position.Y)
-			assert.GreaterOrEqual(t, devicePlacement.Position.X, 3.0)
-			assert.LessOrEqual(t, devicePlacement.Position.X, 5.0)
+			assert.GreaterOrEqual(t, devicePlacement.Position.X, 3000.0)
+			assert.LessOrEqual(t, devicePlacement.Position.X, 5000.0)
 		}
 	}
 	assert.True(t, foundSpeaker)

@@ -1,138 +1,775 @@
 {
-  "device_types": {
+  "traits": {
+    "base": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Пользовательское название устройства"
+        },
+        "brand": {
+          "type": "string",
+          "description": "Бренд устройства"
+        },
+        "model": {
+          "type": "string",
+          "description": "Модель или SKU"
+        }
+      },
+      "required": [
+        "name",
+        "brand",
+        "model"
+      ]
+    },
+    "connectivity": {
+      "properties": {
+        "protocol": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ecosystem": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "protocol",
+        "ecosystem"
+      ]
+    }
+  },
+  "types": {
     "water_leak_sensor": {
-      "name": "Датчик протечки воды",
+      "description": "Датчик протечки воды",
       "price_range": {
         "min": 1000,
         "max": 2000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "title": "WaterLeakSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "water_leak_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "gas_leak_sensor": {
-      "name": "Датчик утечки газа",
+      "description": "Датчик утечки газа",
       "price_range": {
         "min": 2000,
         "max": 5000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "title": "GasLeakSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "gas_leak_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "smart_lock": {
-      "name": "Умный замок",
+      "description": "Умный замок",
       "price_range": {
         "min": 25000,
         "max": 28000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "title": "SmartLock",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_lock"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "smart_doorbell": {
-      "name": "Умный дверной звонок",
+      "description": "Умный дверной звонок",
       "price_range": {
         "min": 2000,
         "max": 3000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "title": "SmartDoorbell",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_doorbell"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
-    "door_sensor": {
-      "name": "Датчик открытия дверей",
+    "door_window_sensor": {
+      "description": "Датчик открытия дверей/окон",
       "price_range": {
         "min": 1500,
         "max": 3000
       },
       "tracks": [
         "security"
-      ]
-    },
-    "window_sensor": {
-      "name": "Датчик открытия окон",
-      "price_range": {
-        "min": 1500,
-        "max": 3000
-      },
-      "tracks": [
-        "security"
-      ]
+      ],
+      "title": "DoorWindowSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "door_window_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "motion_sensor": {
-      "name": "Датчик движения",
+      "description": "Датчик движения",
       "price_range": {
         "min": 2000,
         "max": 4000
       },
       "tracks": [
-        "security"
+        "security",
+        "lighting"
       ],
-      "filters": {
-        "angle": 120,
-        "range": 7
+      "title": "MotionSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "motion_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
       }
     },
     "camera": {
-      "name": "Камера",
+      "description": "Камера",
       "price_range": {
         "min": 8000,
         "max": 13000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "title": "Camera",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "camera"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "smart_siren": {
-      "name": "Умная сирена",
+      "description": "Умная сирена",
       "price_range": {
         "min": 3000,
         "max": 6000
       },
       "tracks": [
         "security"
-      ]
+      ],
+      "title": "SmartSiren",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_siren"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "air_conditioner": {
-      "name": "Кондиционер",
+      "description": "Кондиционер",
       "price_range": {
         "min": 5000,
         "max": 200000
       },
       "tracks": [
         "climate"
-      ]
+      ],
+      "title": "AirConditioner",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "air_conditioner"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "temperature_sensor": {
+      "description": "Датчик температуры",
+      "price_range": {
+        "min": 900,
+        "max": 2250
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "TemperatureSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "temperature_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_radiator_actuator": {
+      "description": "Умный радиаторный терморегулятор",
+      "price_range": {
+        "min": 3600,
+        "max": 7200
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "SmartRadiatorActuator",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_radiator_actuator"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "humidity_sensor": {
+      "description": "Датчик влажности",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "HumiditySensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "humidity_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_humidifier": {
+      "description": "Умный увлажнитель",
+      "price_range": {
+        "min": 5400,
+        "max": 13500
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "SmartHumidifier",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_humidifier"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "co2_sensor": {
+      "description": "Датчик CO2",
+      "price_range": {
+        "min": 4500,
+        "max": 13500
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "Co2Sensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "co2_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "air_purifier": {
+      "description": "Очиститель воздуха",
+      "price_range": {
+        "min": 9000,
+        "max": 27000
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "AirPurifier",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "air_purifier"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "floor_temperature_sensor": {
+      "description": "Датчик температуры пола",
+      "price_range": {
+        "min": 0,
+        "max": 1800
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "FloorTemperatureSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "floor_temperature_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_floor_thermostat": {
+      "description": "Умный термостат тёплого пола",
+      "price_range": {
+        "min": 4500,
+        "max": 10800
+      },
+      "tracks": [
+        "climate"
+      ],
+      "title": "SmartFloorThermostat",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_floor_thermostat"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "robot_vacuum": {
+      "description": "Робот-пылесос",
+      "price_range": {
+        "min": 20000,
+        "max": 80000
+      },
+      "tracks": [
+        "household"
+      ],
+      "title": "RobotVacuum",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "robot_vacuum"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_bulb": {
+      "description": "Умная лампа",
+      "price_range": {
+        "min": 700,
+        "max": 1200
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "SmartBulb",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_bulb"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "illumination_sensor": {
+      "description": "Датчик освещённости",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "IlluminationSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "illumination_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "curtains": {
+      "description": "Умные шторы",
+      "price_range": {
+        "min": 7000,
+        "max": 12000
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "Curtains",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "curtains"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "wireless_button_switch": {
+      "description": "Беспроводной кнопочный выключатель",
+      "price_range": {
+        "min": 1200,
+        "max": 2500
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "WirelessButtonSwitch",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "wireless_button_switch"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "smart_dimmer": {
+      "description": "Умный диммер",
+      "price_range": {
+        "min": 2000,
+        "max": 3500
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "SmartDimmer",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_dimmer"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "presence_sensor": {
+      "description": "Датчик присутствия",
+      "price_range": {
+        "min": 1800,
+        "max": 3500
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "PresenceSensor",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "presence_sensor"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "built_in_backlight": {
+      "description": "Встроенная подсветка",
+      "price_range": {
+        "min": 1500,
+        "max": 3000
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "BuiltInBacklight",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "built_in_backlight"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "decorative_luminaire": {
+      "description": "Декоративный светильник",
+      "price_range": {
+        "min": 2000,
+        "max": 5000
+      },
+      "tracks": [
+        "lighting"
+      ],
+      "title": "DecorativeLuminaire",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "decorative_luminaire"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "smart_tv": {
-      "name": "Умный телевизор",
+      "description": "Умный телевизор",
       "price_range": {
         "min": 20000,
         "max": 500000
       },
       "tracks": [
         "media"
-      ]
+      ],
+      "title": "SmartTv",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_tv"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "smart_speaker": {
-      "name": "Умная колонка",
+      "description": "Умная колонка",
       "price_range": {
         "min": 5000,
         "max": 50000
       },
       "tracks": [
         "media"
-      ]
+      ],
+      "title": "SmartSpeaker",
+      "traits": [
+        "base",
+        "connectivity"
+      ],
+      "extra_schema": {
+        "properties": {
+          "type": {
+            "const": "smart_speaker"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
     },
     "subwoofer": {
-      "name": "Сабвуфер",
-      "price_range": {
-        "min": 7000,
-        "max": 30000
-      },
-      "tracks": [
-        "media"
-      ]
+      "subwoofer": {
+        "description": "Сабвуфер",
+        "price_range": {
+          "min": 7000,
+          "max": 30000
+        },
+        "tracks": [
+          "media"
+        ],
+        "title": "Subwoofer",
+        "traits": [
+          "base",
+          "connectivity"
+        ],
+        "extra_schema": {
+          "properties": {
+            "type": {
+              "const": "subwoofer"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      }
     }
   }
 }

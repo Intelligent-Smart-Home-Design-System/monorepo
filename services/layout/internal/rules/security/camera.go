@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultCameraAngle  = 100
-	defaultCameraRange  = 8
+	defaultCameraRange  = 8000
 	minRequiredCoverage = 0.3
 )
 
@@ -28,14 +28,9 @@ func (c *CameraRule) Type() string {
 }
 
 func (c *CameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
-
 	roomsSet := make(map[string]struct{})
-	for _, r := range rooms {
-		roomsSet[r.Name] = struct{}{}
+	for _, name := range deviceRooms {
+		roomsSet[name] = struct{}{}
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
@@ -64,8 +59,8 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 
 	if configFilters == nil {
 		configFilters = &filters.CameraFilter{
-			Angle: defaultCameraAngle,
-			Range: defaultCameraRange,
+			FieldOfViewDeg: defaultCameraAngle,
+			DetectionRangeMM: defaultCameraRange,
 		}
 	}
 	cameraFilters := configFilters.(*filters.CameraFilter)
@@ -95,21 +90,19 @@ func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, d
 		var deviceFilter *filters.CameraFilter
 		if distance != -1 {
 			deviceFilter = &filters.CameraFilter{
-				Angle: cameraFilters.Angle,
-				Range: cameraFilters.Range,
-				NightVision: cameraFilters.NightVision,
+				FieldOfViewDeg: cameraFilters.FieldOfViewDeg,
+				DetectionRangeMM: cameraFilters.DetectionRangeMM,
+				HasNightVision: cameraFilters.HasNightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRangeM: distance,
-				Direction: &direction,
+				RecommendedRangeMM: distance,
 			}
 		} else {
 			deviceFilter = &filters.CameraFilter{
-				Angle: cameraFilters.Angle,
-				Range: cameraFilters.Range,
-				NightVision: cameraFilters.NightVision,
+				FieldOfViewDeg: cameraFilters.FieldOfViewDeg,
+				DetectionRangeMM: cameraFilters.DetectionRangeMM,
+				HasNightVision: cameraFilters.HasNightVision,
 				Resolution: cameraFilters.Resolution,
-				RecommendedRangeM: cameraFilters.Range,
-				Direction: &direction,
+				RecommendedRangeMM: cameraFilters.DetectionRangeMM,
 			}
 		}
 
@@ -164,20 +157,22 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 		entryDoor := room.GetEntryDoor(ap)
 		if entryDoor != nil {
 			doorCenter := point.GetObjectCenter(entryDoor.Points)
-			bestPoint, distance := room.GetTheOppositePoint(doorCenter)
+			bestPoint, distance := room.GetTheOppositePoint(ap, doorCenter)
 
 			direction := point.GetDirectionToPoint(bestPoint, doorCenter)
-			filter.RecommendedRangeM = distance
+			filter.RecommendedRangeMM = distance
 
 			return &bestPoint, direction, distance
 		}
+
+		return nil, point.Point{X: 0, Y: 0}, 0
 	}
 
 	var bestPoint, bestDirection point.Point
 	maxCoverage := 0.0
 
 	for _, corner := range room.Area {
-		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, corner, filter.Range, filter.Angle)
+		direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, corner, filter.DetectionRangeMM, float64(filter.FieldOfViewDeg))
 
 		if maxCoverage < coverage {
 			maxCoverage = coverage
@@ -200,7 +195,7 @@ func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filte
 			}
 
 			wallCenter := point.GetObjectCenter(wall.Points)
-			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, wallCenter, filter.Range, filter.Angle)
+			direction, coverage := apartment.FindBestDirectionForDevicePoint(ap, zr, zr.ViewedZones, wallCenter, filter.DetectionRangeMM, float64(filter.FieldOfViewDeg))
 
 			if maxCoverage < coverage {
 				maxCoverage = coverage

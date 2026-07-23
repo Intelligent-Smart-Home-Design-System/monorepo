@@ -274,6 +274,9 @@ out/
 build/
 coverage/
 dist/
+test-results/
+playwright-report/
+blob-report/
 
 # Logs
 npm-debug.log*
@@ -283,6 +286,11 @@ yarn-error.log*
 
 # Environment and local files
 .env*
+# но шаблоны/конфиги запуска держим в репозитории
+!*.env.example
+!**/.env.example
+!**/.env.prod.example
+!**/.env.shift
 *.pem
 .vercel
 
@@ -296,3 +304,4 @@ terraform.tfvars
 .terraform.lock.hcl
 terraform.tfstate
 terraform.tfstate.backup
+.env

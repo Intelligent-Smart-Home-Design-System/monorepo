@@ -63,7 +63,7 @@ func TestNilApartment(t *testing.T) {
 	}
 
 	storage := storage.NewStorage()
-	err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
+	err1 := configs.LoadTracksConfig(GetTracksPath())
 	err2 := configs.LoadDevicesConfig(GetDevicesPath())
 
 	assert.NoError(t, err1)
@@ -85,7 +85,7 @@ func TestNilRoomsStruct(t *testing.T) {
 	}
 
 	storage := storage.NewStorage()
-	err1 := configs.LoadTracksConfig(GetSimpleTracksPath())
+	err1 := configs.LoadTracksConfig(GetTracksPath())
 	err2 := configs.LoadDevicesConfig(GetDevicesPath())
 
 	assert.NoError(t, err1)

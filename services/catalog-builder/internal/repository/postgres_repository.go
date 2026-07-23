@@ -97,11 +97,6 @@ func (r *PostgresRepository) GetLatestDirectCompatibility(ctx context.Context) (
 }
 
 func (r *PostgresRepository) WriteCatalog(ctx context.Context, catalog *domain.Catalog) error {
-	return r.WriteCatalogLegacy(ctx, catalog)
-}
-
-// WriteCatalogLegacy truncates devices and rebuilds the gold catalog (current behavior).
-func (r *PostgresRepository) WriteCatalogLegacy(ctx context.Context, catalog *domain.Catalog) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)

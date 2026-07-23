@@ -1,45 +1,59 @@
 import json
+import outlines
 import typer
 import asyncio
-import os
 from pathlib import Path
 from extractor.config import Settings
-from extractor.adapters.llm_factory import make_outlines_model
-from extractor.logging_config import setup_logging
-from extractor.telemetry import setup_telemetry
+import structlog
+from openai import AsyncOpenAI, OpenAI
+import os
+import time
+
+from extractor.worker.worker import Worker
 from extractor.domain.models import ListingSnapshot
 from extractor.adapters.outlines_extractor import OutlinesExtractor
-from extractor.adapters.default_pre_llm_gate import DefaultPreLLMGate
-from extractor.adapters.stub_catalog_reader import StubCatalogReader
 from extractor.evaluation.evaluate import evaluate_listing
 from extractor.evaluation.metrics import ModelMetrics
 from extractor.adapters.postgres_repository import PostgresExtractionRepository
 from extractor.domain.models import ExtractionSnapshot
-from extractor.worker.worker import Worker
 
 from datetime import datetime
 
 app = typer.Typer()
 
+def make_client(settings: Settings) -> AsyncOpenAI:
+    api_key = os.environ.get("YANDEX_CLOUD_API_KEY", "")
+    if not api_key:
+        raise ValueError("YANDEX_CLOUD_API_KEY env var not set")
+    return AsyncOpenAI(
+        api_key=settings.yandex_cloud.api_key,
+        base_url="https://ai.api.cloud.yandex.net/v1",
+        project=settings.yandex_cloud.folder,
+        default_headers={"Authorization": f"Api-Key {api_key}"},
+    )
+
 def make_extractor(settings: Settings) -> OutlinesExtractor:
-    llm = settings.llm
-    assert llm is not None
-    outlines_model = make_outlines_model(llm)
-    taxonomy = json.loads(Path(settings.taxonomy.path).read_text(encoding="utf-8"))
+    outlines_model = outlines.from_openai(
+        make_client(settings),
+        f"gpt://{settings.yandex_cloud.folder}/{settings.yandex_cloud.llm_model}"
+    )
+    taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
     return OutlinesExtractor(
         taxonomy=taxonomy,
         model=outlines_model,
         extraction=settings.extraction,
-        temperature=llm.temperature,
+        temperature=settings.yandex_cloud.temperature
     )
 
-def setup_observability(settings: Settings):
-    setup_logging(
-        service="extractor",
-        log_format=settings.logging.format,
-        log_level=settings.logging.level,
+def setup_logging(settings: Settings):
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.JSONRenderer()
+            if settings.logging.format == "json"
+            else structlog.dev.ConsoleRenderer(),
+        ],
     )
-    return setup_telemetry("extractor")
 
 
 @app.command()
@@ -49,61 +63,26 @@ def run(
         "--config", "-c",
         help="Path to config file"
     ),
-    no_dups_check: bool = typer.Option(
-        False,
-        "--no-dups-check",
-        help="Skip pre-LLM hash and catalog-coverage checks; always call LLM.",
-    ),
 ):
     """Run the extraction service."""
     settings = Settings.from_toml(config_path)
-    settings.pre_llm_gate.no_dups_check = no_dups_check
-    shutdown_telemetry = setup_observability(settings)
-    try:
-        asyncio.run(_run(settings))
-    finally:
-        shutdown_telemetry()
+    setup_logging(settings)
+    
+    asyncio.run(_run(settings))
 
 
 async def _run(settings: Settings):
-    import structlog
-
     log = structlog.get_logger()
-    log.info(
-        "extractor_config_loaded",
-        llm_source=settings.llm_source.value,
-        llm_model=settings.llm.model,
-        llm_base_url=settings.llm.base_url,
-        otlp_enabled=bool(os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()),
-    )
     
     repo = await PostgresExtractionRepository.create(settings.database, log)
-    stats = await repo.snapshot_stats()
-    log.info(
-        "extractor_db_connected",
-        config_host=settings.database.host,
-        config_port=settings.database.port,
-        config_db=settings.database.name,
-        **stats,
-    )
     extractor = make_extractor(settings)
-    pre_llm_gate = DefaultPreLLMGate(
-        StubCatalogReader(),
-        no_dups_check=settings.pre_llm_gate.no_dups_check,
-    )
-    log.info(
-        "pre_llm_gate_initialized",
-        stub_mode=True,
-        no_dups_check=settings.pre_llm_gate.no_dups_check,
-    )
 
     try:
         worker = Worker(
             extractor=extractor,
             repository=repo,
-            model=settings.llm.model,
-            batch_size=settings.batch_size,
-            pre_llm_gate=pre_llm_gate,
+            model=settings.yandex_cloud.llm_model,
+            batch_size=settings.batch_size
         )
         await worker.run()
     finally:
@@ -117,8 +96,8 @@ def run_sample(
 ):
     """Run extraction on a single parsed listing and output result in stdout"""
     settings = Settings.from_toml(config_path)
-    taxonomy = json.loads(Path(settings.taxonomy.path).read_text(encoding="utf-8"))
-    listing = ListingSnapshot.model_validate_json(parsed_listing_path.read_text(encoding="utf-8"))
+    taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
+    listing = ListingSnapshot.model_validate_json(parsed_listing_path.read_text())
     
     typer.echo(f"Loaded listing: {listing.name}", err=True)
     typer.echo(f"Known device types: {', '.join(taxonomy.keys())}", err=True)
@@ -155,15 +134,13 @@ async def _run_evaluation(
     model: str = typer.Option(None, "--model", "-m", help="Model to evaluate. Defaults to model from config."),
 ):
     settings = Settings.from_toml(config_path)
-    test_cases = json.loads(listings_path.read_text(encoding="utf-8"))
-    taxonomy = json.loads(Path(settings.taxonomy.path).read_text(encoding="utf-8"))
+    test_cases = json.loads(listings_path.read_text())
+    taxonomy = json.loads(Path(settings.taxonomy.path).read_text())
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    llm = settings.llm
-    assert llm is not None
     if model is not None:
-        llm.model = model
-    model_name = llm.model
+        settings.yandex_cloud.llm_model = model # override
+    model_name = settings.yandex_cloud.llm_model
     extractor = make_extractor(settings)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -222,7 +199,7 @@ async def _run_evaluation(
 
     safe_name = model_name.replace("/", "_")
     out_path = output_dir / f"{timestamp}_{safe_name}.json"
-    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2))
     typer.echo(f"Results: {out_path}")
     typer.echo(f"Type accuracy: {summary['type_accuracy']:.0%}")
     typer.echo(f"Perfect extraction: {summary['perfect_extraction_rate']:.0%}")
@@ -233,7 +210,7 @@ async def _run_evaluation(
 import statistics
 
 def summarize(results_path: Path) -> None:
-    data = json.loads(results_path.read_text(encoding="utf-8"))
+    data = json.loads(results_path.read_text())
     s = data["summary"]
     model = data.get("model", "unknown")
 

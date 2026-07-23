@@ -18,30 +18,12 @@ class PostgresExtractionRepository(ExtractionRepository):
     async def close(self):
         await self.pool.close()
 
-    async def snapshot_stats(self) -> dict[str, int | str]:
-        async with self.pool.acquire() as conn:
-            return {
-                "database": await conn.fetchval("SELECT current_database()"),
-                "host": await conn.fetchval("SELECT inet_server_addr()::text"),
-                "total_snapshots": await conn.fetchval(
-                    "SELECT count(*) FROM parsed_listing_snapshots"
-                ),
-                "pending_snapshots": await conn.fetchval(
-                    "SELECT count(*) FROM parsed_listing_snapshots WHERE processed IS NOT TRUE"
-                ),
-            }
-
     async def get_pending_snapshots(self, limit: int) -> list[ListingSnapshot]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("""
-                SELECT
-                    pls.*,
-                    tp.source_name
-                FROM parsed_listing_snapshots pls
-                JOIN page_snapshots ps ON ps.id = pls.page_snapshot_id
-                JOIN tracked_pages tp ON tp.id = ps.tracked_page
-                WHERE pls.processed IS NOT TRUE
-                ORDER BY pls.parsed_at DESC
+                SELECT * FROM parsed_listing_snapshots
+                WHERE processed = FALSE
+                ORDER BY parsed_at DESC
                 LIMIT $1
             """, limit)
 
@@ -59,8 +41,6 @@ class PostgresExtractionRepository(ExtractionRepository):
                     model_number=row["extracted_model_number"],
                     category=row["extracted_category"],
                     quantity=row["extracted_quantity"],
-                    source_name=row["source_name"],
-                    extractor_version=row["extractor_version"],
                 )
                 for row in rows
             ]

@@ -1,6 +1,5 @@
 [taxonomy]
 path = "taxonomy_schema.json"
-llm_source = "yandex_cloud"
 
 [extraction]
 
@@ -62,15 +61,6 @@ llm_model = "gpt-oss-120b/latest"
 # "gpt-oss-120b/latest"
 # "gemma-3-27b-it/latest"
 
-# Локальный Qwen — см. llm_source = "local" и [local_llm] выше.
-
-# llm_source = "local"
-# [local_llm]
-# base_url = "http://localhost:11434/v1"
-# model = "qwen2.5:7b"
-# api_key = "ollama"
-# temperature = 0
-
 [database]
 host = "localhost"
 port = 5432
@@ -80,7 +70,3 @@ user = "catalog"
 [logging]
 level = "INFO"
 format = "json"  # or "console"
-
-# Pre-LLM gate (see docs/ARCHITECTURE.md and monorepo/docs/catalog-pipeline-architecture.md)
-# [pre_llm_gate]
-# no_dups_check = false

@@ -16,8 +16,6 @@ class ListingSnapshot(BaseModel):
     model_number: str | None
     category: str | None
     quantity: int | None
-    source_name: str | None = None
-    extractor_version: str | None = None
 
 
 class ExtractionSnapshot(BaseModel):

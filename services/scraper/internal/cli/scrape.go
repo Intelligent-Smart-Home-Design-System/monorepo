@@ -5,28 +5,28 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
-	"slices"
+	"time"
+
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/infra/postgres"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/metrics"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/pipeline"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
-	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
-	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
-	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/sources"
 )
 
-func NewScrapeCmd() *cobra.Command {
+func NewScrapeCmd(log zerolog.Logger, m *metrics.Collector) *cobra.Command {
 	var cfgFile string
-	var sources []string
+	var sourcesFlag []string
 	var pageTypes []string
 	var discoveryOnly bool
 	var cleanupDiscovery bool
+	var retryFailed bool
+	var retrySince time.Duration
 
 	cmd := &cobra.Command{
 		Use:   "scrape",
@@ -34,28 +34,42 @@ func NewScrapeCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
-			return scrape(ctx, cfgFile, sources, pageTypes, discoveryOnly, cleanupDiscovery)
+			return scrape(ctx, log, m, cfgFile, sourcesFlag, pageTypes, discoveryOnly, cleanupDiscovery, retryFailed, retrySince)
 		},
 	}
 
 	cmd.Flags().StringVar(&cfgFile, "config", "./config.toml", "config file")
-	cmd.Flags().StringSliceVar(&sources, "sources", nil, "comma-separated list of sources to scrape (e.g., wildberries,sprut)")
+	cmd.Flags().StringSliceVar(&sourcesFlag, "sources", nil, "comma-separated list of sources to scrape (e.g., wildberries,sprut)")
 	cmd.Flags().StringSliceVar(&pageTypes, "page-types", nil, "comma-separated list of page types (listing, discovery, compatibility)")
 	cmd.Flags().BoolVar(&discoveryOnly, "discovery", false, "if true, scrape only discovery pages")
 	cmd.Flags().BoolVar(&cleanupDiscovery, "cleanup-discovery", false, "if true, delete discovery tasks that are not in config")
+	cmd.Flags().BoolVar(&retryFailed, "retry-failed", false, "if true, only retry pages deactivated by repeated scrape failures instead of the normal queue (defaults to scraping.retry_failed in config)")
+	cmd.Flags().DurationVar(&retrySince, "retry-since", 0, "with retry-failed, only retry pages whose last attempt is within this window (defaults to scraping.retry_since in config, or 7 days)")
 
 	return cmd
 }
 
-func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, discoveryOnly, cleanupDiscovery bool) error {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-
+func scrape(ctx context.Context, logger zerolog.Logger, m *metrics.Collector, cfgFile string, sourcesFlag, pageTypes []string, discoveryOnly, cleanupDiscovery, retryFailedFlag bool, retrySinceFlag time.Duration) error {
 	var cfg config.Config
 	if err := readConfig(cfgFile, &cfg); err != nil {
 		return fmt.Errorf("read config: %w", err)
 	}
 
+	// Flags are overrides; the config file is the default source of truth so
+	// a full run (including retry-failed) can be driven by --config alone.
+	retryFailed := cfg.Scraping.RetryFailed || retryFailedFlag
+	retrySince := cfg.Scraping.RetrySince
+	if retrySinceFlag != 0 {
+		retrySince = retrySinceFlag
+	}
+	if retrySince == 0 {
+		retrySince = 7 * 24 * time.Hour
+	}
+
 	logger.Info().Msgf("rate limit from config: %f", cfg.Scraping.RateLimitRps)
+	logJobStart(logger, "scrape", sourcesFlag, pageTypes, func(e *zerolog.Event) {
+		e.Bool("discovery_only", discoveryOnly)
+	})
 
 	db, err := postgres.NewDB(cfg.Database)
 	if err != nil {
@@ -66,160 +80,37 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	taskRepo := repository.NewTrackedPageRepo(db)
 	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
-	printerScraper := printer.NewPrinterScraper()
-	wildberriesScraper := wbScraper.NewScraper(
-		logger,
-		cfg.Scraping.Timeout,
-		cfg.Scraping.Proxy,
-		cfg.Scraping.WBCardBasket,
-		cfg.Scraping.WBRPS,
-		cfg.Scraping.WBSessionPath,
-		cfg.Wildberries.Discovery.URLTemplate,
-		cfg.Wildberries.Discovery.MaxPages,
-	)
-
-	if cfg.Wildberries.Category.CategoryURL != "" {
-		if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeCategory.String(), cfg.Wildberries.Category.CategoryURL); err != nil {
-			logger.Error().Err(err).Msg("failed to create category task")
-		}
-	}
-
-	if cfg.Yandex.SupportedZigbeeDevicesURL != "" {
-		if err := taskRepo.CreateTask(domain.SourceYandex, domain.PageTypeCompatibility.String(), cfg.Yandex.SupportedZigbeeDevicesURL); err != nil {
-			logger.Error().Err(err).Msg("failed to create Yandex compatibility task")
-		}
-	}
-
-	yandexScraperInstance := yandexScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Scraping.RateLimitRps)
-
-	sourceToScraper := map[string]scraper.Scraper{
-		domain.SourcePrinter:     printerScraper,
-		domain.SourceWildberries: wildberriesScraper,
-		domain.SourceYandex:      yandexScraperInstance,
-	}
-
-	resultsCh := make(chan domain.ScrapeResult)
-	worker := scraper.NewWorker(logger, sourceToScraper, resultsCh)
-
-	if len(cfg.Wildberries.Discovery.DiscoveryTextQueries) > 0 {
-		// Create tasks for queries from config
-		for _, query := range cfg.Wildberries.Discovery.DiscoveryTextQueries {
-			discoveryURL := fmt.Sprintf("wildberries://discovery/%s", query)
-			if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeDiscovery.String(), discoveryURL); err != nil {
-				logger.Error().Err(err).Str("query", query).Msg("failed to create discovery task")
-			}
-		}
-
-		if cleanupDiscovery {
-			allTasks, err := taskRepo.GetTasks()
-			if err != nil {
-				logger.Error().Err(err).Msg("failed to get tasks for cleanup")
-			} else {
-				queriesMap := make(map[string]bool)
-				for _, q := range cfg.Wildberries.Discovery.DiscoveryTextQueries {
-					queriesMap[q] = true
-				}
-				for _, t := range allTasks {
-					if t.Source == domain.SourceWildberries && t.PageType == domain.PageTypeDiscovery {
-						query := strings.TrimPrefix(t.URL, "wildberries://discovery/")
-						if !queriesMap[query] {
-							if err := taskRepo.DeleteTaskByID(t.ID); err != nil {
-								logger.Error().Err(err).Int("task_id", t.ID).Msg("failed to delete stale discovery task")
-							} else {
-								logger.Debug().Str("url", t.URL).Msg("deleted stale discovery task")
-							}
-						}
-					}
-				}
-			}
-		}
-	} else if cleanupDiscovery {
-		allTasks, err := taskRepo.GetTasks()
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to get tasks for cleanup")
-		} else {
-			for _, t := range allTasks {
-				if t.Source == domain.SourceWildberries && t.PageType == domain.PageTypeDiscovery {
-					if err := taskRepo.DeleteTaskByID(t.ID); err != nil {
-						logger.Error().Err(err).Int("task_id", t.ID).Msg("failed to delete discovery task")
-					} else {
-						logger.Debug().Str("url", t.URL).Msg("deleted discovery task (no queries in config)")
-					}
-				}
-			}
-		}
-	}
-
-	allTasks, err := taskRepo.GetTasks()
+	registry, err := sources.NewRegistry(cfg, logger)
 	if err != nil {
-		return fmt.Errorf("get tasks: %w", err)
+		return fmt.Errorf("build source registry: %w", err)
 	}
+	selected := registry.Selected(sourcesFlag)
+	scraperMap := registry.ScraperMap()
 
-	var sourceSet map[string]bool
-	if len(sources) > 0 {
-		sourceSet = make(map[string]bool, len(sources))
-		for _, s := range sources {
-			sourceSet[s] = true
-		}
-	}
-
-	var allowedPageTypes []string
 	if discoveryOnly {
-		allowedPageTypes = []string{domain.PageTypeDiscovery.String()}
-	} else if len(pageTypes) > 0 {
-		allowedPageTypes = pageTypes
+		return (&pipeline.DiscoveryPipeline{
+			Log:              logger,
+			Metrics:          m,
+			Cfg:              cfg,
+			Tasks:            taskRepo,
+			Snapshots:        snapshotRepo,
+			Sources:          selected,
+			ScraperMap:       scraperMap,
+			CleanupDiscovery: cleanupDiscovery,
+		}).Run(ctx)
 	}
 
-	var tasks []domain.ScrapeTask
-	for _, t := range allTasks {
-		if sourceSet != nil && !sourceSet[t.Source] {
-			continue
-		}
-		if len(allowedPageTypes) > 0 && !slices.Contains(allowedPageTypes, t.PageType.String()) {
-			continue
-		}
-		tasks = append(tasks, t)
-	}
-
-	if len(tasks) == 0 {
-		logger.Info().Msg("no active tasks after filtering, exiting")
-		return nil
-	}
-
-	tasksCh := make(chan domain.ScrapeTask)
-	go func() {
-		defer close(tasksCh)
-		for _, task := range tasks {
-			select {
-			case <-ctx.Done():
-				return
-			case tasksCh <- task:
-			}
-		}
-	}()
-
-	go worker.Run(ctx, tasksCh)
-
-	for result := range resultsCh {
-		logger.Debug().Int("task_id", result.TrackedPageID).Int("resources", len(result.Resources)).Err(result.Err).Msg("run: received result for task")
-		if result.Err != nil {
-			logger.Error().Err(result.Err).Int("task_id", result.TrackedPageID).Msg("scrape error")
-			if err := taskRepo.SetStatus(result.TrackedPageID, false, result.DurationMs); err != nil {
-				logger.Error().Err(err).Msg("update status error")
-			}
-			continue
-		}
-		if err := snapshotRepo.SaveResult(result.TrackedPageID, result, result.DurationMs); err != nil {
-			logger.Error().Err(err).Msg("save snapshot")
-		} else {
-			logger.Info().Msg("snapshot saved successfully")
-			if err := taskRepo.SetStatus(result.TrackedPageID, true, result.DurationMs); err != nil {
-				logger.Error().Err(err).Msg("update status")
-			}
-		}
-		logger.Debug().Int("task_id", result.TrackedPageID).Msg("run: finished processing task")
-	}
-
-	logger.Info().Msg("all tasks processed, exiting")
-	return nil
+	return (&pipeline.ListingPipeline{
+		Log:         logger,
+		Metrics:     m,
+		Cfg:         cfg,
+		Tasks:       taskRepo,
+		Snapshots:   snapshotRepo,
+		Sources:     selected,
+		ScraperMap:  scraperMap,
+		SourceNames: sourcesFlag,
+		PageTypes:   pageTypes,
+		RetryFailed: retryFailed,
+		RetrySince:  time.Now().Add(-retrySince),
+	}).Run(ctx)
 }

@@ -51,8 +51,8 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartFloorThermostatFilter{}
 	case "floor_temperature_sensor":
 		filter = &FloorTemperatureSensorFilter{}
-    
-  // Household-устройства
+
+		// Household-устройства
 	case "robot_vacuum":
 		filter = &RobotVacuumFilter{}
 

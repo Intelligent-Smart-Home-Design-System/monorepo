@@ -33,6 +33,8 @@ func CatalogPipelineWorkflow(ctx workflow.Context, input pipeline.WorkflowInput)
 			Command:    job.Command,
 			ConfigPath: job.ConfigPath,
 			EnvMapping: job.EnvMapping,
+			Volumes:    job.Volumes,
+			ShmSize:    job.ShmSize,
 		}
 
 		logger.Info("Starting pipeline job", "job", job.Name, "image", job.Image)

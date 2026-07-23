@@ -24,7 +24,7 @@ func TestTrackedPageRepo_GetTasks(t *testing.T) {
     `, "sprut", "listing", "https://test.com", true)
 	require.NoError(t, err)
 
-	tasks, err := repo.GetTasks()
+	tasks, err := repo.GetTasks("", "", 0)
 	require.NoError(t, err)
 	require.Len(t, tasks, 1)
 

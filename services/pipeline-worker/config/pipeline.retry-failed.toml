@@ -1,0 +1,57 @@
+# Retry-only pipeline: re-scrapes/re-parses dns pages deactivated by repeated
+# failures (is_active=false). No discovery jobs — we're retrying pages
+# already tracked, not finding new ones.
+#
+#   make pipeline-build && make pipeline-up
+#   make pipeline-trigger PIPELINE_CONFIG=/app/config/pipeline.retry-failed.toml
+
+[temporal]
+host_port = "temporal:7233"
+namespace = "default"
+task_queue = "catalog-pipeline"
+schedule_id = "catalog-pipeline-retry-failed"
+schedule_cron = "0 11 * * *"
+schedule_timezone = "Europe/Moscow"
+schedule_enabled = false
+connect_attempts = 30
+workflow_id_prefix = "catalog-pipeline-retry-failed"
+
+[docker]
+host = "unix:///var/run/docker.sock"
+network_name = "catalog-pipeline-network"
+monitoring_network_name = "monorepo-monitoring"
+container_prefix = "catalog-pipeline"
+auto_remove = true
+
+[metrics]
+listen_address = ":2112"
+
+[activity]
+start_to_close_timeout = "2h"
+heartbeat_timeout = "30s"
+maximum_attempts = 3
+initial_interval = "1m"
+backoff_coefficient = 2.0
+maximum_interval = "15m"
+
+[pipeline]
+config_root = "./jobs"
+job_names = [
+  "scraper-scrape",
+  "scraper-parse",
+]
+
+[[jobs]]
+name = "scraper-scrape"
+image = "scraper:latest"
+config_path = "scraper/config.dns-retry-failed.toml"
+command = ["/scraper", "scrape", "--config", "{{config_path}}", "--page-types", "listing", "--sources", "dns"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+shm_size = "2g"
+
+[[jobs]]
+name = "scraper-parse"
+image = "scraper:latest"
+config_path = "scraper/config.dns-retry-failed.toml"
+command = ["/scraper", "parse", "--config", "{{config_path}}", "--page-types", "listing", "--sources", "dns"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }

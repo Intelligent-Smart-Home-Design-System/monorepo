@@ -14,13 +14,17 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/netproxy"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/pathnorm"
 )
+
+const defaultWBUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 type Session struct {
 	UserAgent string    `json:"userAgent"`
@@ -38,6 +42,7 @@ type Cookie struct {
 
 type Scraper struct {
 	client               *http.Client
+	proxyURL             string
 	limiter              *rate.Limiter
 	cardBasket           string
 	sessionPath          string
@@ -45,6 +50,11 @@ type Scraper struct {
 	mu                   sync.RWMutex
 	discoveryURLTemplate string
 	discoveryMaxPages    int
+	browserUserMode      bool
+	browserProfileDir    string
+	browserMu            sync.Mutex
+	browser              *rod.Browser
+	browserPage          *rod.Page
 	log                  zerolog.Logger
 }
 
@@ -56,14 +66,20 @@ func NewScraper(
 	sessionPath string,
 	discoveryURLTemplate string,
 	discoveryMaxPages int,
+	browserUserMode *bool,
+	browserProfileDir string,
 ) *Scraper {
 	transport := &http.Transport{}
-	if proxyURL != "" {
-		if proxy, err := url.Parse(proxyURL); err == nil {
-			transport.Proxy = http.ProxyURL(proxy)
-		}
+	if err := netproxy.ConfigureTransport(transport, proxyURL); err != nil {
+		log.Warn().Err(err).Str("proxy", netproxy.RedactURL(proxyURL)).Msg("wb: invalid proxy URL, requests will be direct")
+		proxyURL = ""
 	}
 	limiter := rate.NewLimiter(rate.Limit(rps), 1)
+	if sessionPath != "" {
+		if abs, err := pathnorm.Abs(sessionPath); err == nil {
+			sessionPath = abs
+		}
+	}
 	var session *Session
 	if data, err := os.ReadFile(sessionPath); err == nil {
 		var sess Session
@@ -76,12 +92,15 @@ func NewScraper(
 			Timeout:   timeout,
 			Transport: transport,
 		},
+		proxyURL:             proxyURL,
 		limiter:              limiter,
 		cardBasket:           cardBasket,
 		sessionPath:          sessionPath,
 		session:              session,
 		discoveryURLTemplate: discoveryURLTemplate,
 		discoveryMaxPages:    discoveryMaxPages,
+		browserUserMode:      defaultBrowserUserMode(browserUserMode),
+		browserProfileDir:    resolveWBBrowserProfile(browserProfileDir),
 		log:                  log,
 	}
 }
@@ -111,30 +130,87 @@ func (s *Scraper) saveSession(sess *Session) error {
 	return os.WriteFile(s.sessionPath, data, 0600)
 }
 
-func (s *Scraper) mineSession() (*Session, error) {
-	s.log.Debug().Msg("mineSession: starting headless browser...")
-	l := launcher.New().Headless(true).Set("no-sandbox").Set("disable-setuid-sandbox")
-	url, err := l.Launch()
+func (s *Scraper) mineSession(ctx context.Context) (*Session, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	mode := "headless"
+	if s.browserUserMode {
+		mode = "user"
+	}
+	s.log.Info().Str("mode", mode).Msg("mineSession: launching browser")
+
+	l := newBrowserLauncher(s.log, s.browserUserMode, s.proxyURL, s.browserProfileDir)
+	controlURL, err := l.Launch()
 	if err != nil {
 		return nil, fmt.Errorf("launch browser: %w", err)
 	}
-	browser := rod.New().ControlURL(url).MustConnect()
-	defer browser.MustClose()
+	browser := rod.New().ControlURL(controlURL)
+	if err := browser.Connect(); err != nil {
+		return nil, fmt.Errorf("connect browser: %w", err)
+	}
+	defer browser.Close()
 
-	page := stealth.MustPage(browser)
-	defer page.MustClose()
-
-	page.MustNavigate("https://www.wildberries.ru/")
-	page.MustWaitIdle()
-	time.Sleep(5 * time.Second)
-
-	cookies := page.MustCookies()
-	var cookieList []Cookie
-	var tokenValue string
-	for _, c := range cookies {
-		if c.Name == "x_wbaas_token" {
-			tokenValue = c.Value
+	var page *rod.Page
+	if s.browserUserMode {
+		page, err = browser.Page(proto.TargetCreateTarget{URL: "about:blank"})
+		if err != nil {
+			return nil, fmt.Errorf("open page: %w", err)
 		}
+	} else {
+		page = stealth.MustPage(browser)
+	}
+	defer page.Close()
+
+	page = page.Context(ctx)
+	if err := page.Navigate("https://www.wildberries.ru/"); err != nil {
+		return nil, fmt.Errorf("navigate: %w", err)
+	}
+	_ = page.MustWaitIdle()
+
+	if s.browserUserMode {
+		s.log.Info().Msg("mineSession: solve captcha in Chrome if shown, then waiting for token...")
+		if err := page.Navigate("https://www.wildberries.ru/catalog/0/search.aspx?search=умный%20дом"); err == nil {
+			_ = page.MustWaitIdle()
+		}
+	}
+
+	deadline := time.Now().Add(45 * time.Second)
+	if s.browserUserMode {
+		if d, ok := ctx.Deadline(); ok {
+			deadline = d
+		} else {
+			deadline = time.Now().Add(5 * time.Minute)
+		}
+		s.log.Info().Time("until", deadline).Msg("mineSession: waiting for x_wbaas_token in visible Chrome")
+	}
+	var cookies []*proto.NetworkCookie
+	var tokenValue string
+	for time.Now().Before(deadline) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		cookies, err = page.Browser().GetCookies()
+		if err != nil {
+			return nil, fmt.Errorf("read cookies: %w", err)
+		}
+		for _, c := range cookies {
+			if c.Name == "x_wbaas_token" && c.Value != "" {
+				tokenValue = c.Value
+				break
+			}
+		}
+		if tokenValue != "" {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if tokenValue == "" {
+		return nil, fmt.Errorf("x_wbaas_token not found in cookies (try -user-mode or complete captcha in visible Chrome)")
+	}
+
+	cookieList := make([]Cookie, 0, len(cookies))
+	for _, c := range cookies {
 		cookieList = append(cookieList, Cookie{
 			Name:   c.Name,
 			Value:  c.Value,
@@ -142,13 +218,13 @@ func (s *Scraper) mineSession() (*Session, error) {
 			Path:   c.Path,
 		})
 	}
-	s.log.Debug().Interface("cookies", cookieList).Msg("mineSession: cookies obtained")
-	if tokenValue == "" {
-		return nil, fmt.Errorf("x_wbaas_token not found in cookies")
-	}
+	s.log.Info().Int("cookies", len(cookieList)).Msg("mineSession: cookies obtained")
 
-	uaVal := page.MustEval(`() => navigator.userAgent`)
-	userAgent := uaVal.Str()
+	uaVal, err := page.Eval(`() => navigator.userAgent`)
+	if err != nil {
+		return nil, fmt.Errorf("user agent: %w", err)
+	}
+	userAgent := uaVal.Value.Str()
 
 	return &Session{
 		UserAgent: userAgent,
@@ -157,7 +233,41 @@ func (s *Scraper) mineSession() (*Session, error) {
 	}, nil
 }
 
-func (s *Scraper) ensureSession() error {
+// Warmup loads session (best-effort) and opens Chrome in user-mode.
+func (s *Scraper) Warmup(ctx context.Context) error {
+	if s.browserUserMode {
+		s.loadSessionBestEffort()
+		return s.activateBrowser(ctx)
+	}
+	return s.ensureSessionFresh()
+}
+
+// RefreshSession mines a fresh browser session and writes it to sessionPath.
+func (s *Scraper) RefreshSession(ctx context.Context) error {
+	sess, err := s.mineSession(ctx)
+	if err != nil {
+		return err
+	}
+	sess.UpdatedAt = time.Now()
+	s.mu.Lock()
+	s.session = sess
+	s.mu.Unlock()
+	if s.sessionPath == "" {
+		return fmt.Errorf("session path is empty")
+	}
+	return s.saveSession(sess)
+}
+
+func (s *Scraper) loadSessionBestEffort() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.session != nil {
+		return
+	}
+	_, _ = s.loadSession()
+}
+
+func (s *Scraper) ensureSessionFresh() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -170,8 +280,12 @@ func (s *Scraper) ensureSession() error {
 		return nil
 	}
 
+	if s.browserUserMode {
+		return fmt.Errorf("WB session missing or expired; run with the same proxy: go run ./cmd/wbsession -config <cfg> -out session.json")
+	}
+
 	s.log.Debug().Msg("ensureSession: session not found or expired, mining new session...")
-	sess, err := s.mineSession()
+	sess, err := s.mineSession(context.Background())
 	if err != nil {
 		return fmt.Errorf("mine session: %w", err)
 	}
@@ -185,11 +299,23 @@ func (s *Scraper) ensureSession() error {
 
 func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 	s.log.Debug().Str("url", url).Msg("fetchJSON: start")
-	if err := s.ensureSession(); err != nil {
-		s.log.Debug().Err(err).Msg("fetchJSON: ensureSession error")
-		return nil, err
+	needsSession := strings.Contains(url, "wildberries.ru/__internal/") || strings.Contains(url, ".geobasket.ru/")
+	if needsSession {
+		if err := s.ensureSessionFresh(); err != nil {
+			s.log.Debug().Err(err).Msg("fetchJSON: ensureSessionFresh error")
+			return nil, err
+		}
+	} else {
+		s.loadSessionBestEffort()
 	}
-	s.log.Debug().Int("token_len", len(s.session.Token)).Msg("fetchJSON: session ok")
+	s.mu.RLock()
+	sess := s.session
+	s.mu.RUnlock()
+	tokenLen := 0
+	if sess != nil {
+		tokenLen = len(sess.Token)
+	}
+	s.log.Debug().Int("token_len", tokenLen).Msg("fetchJSON: session ok")
 	if err := s.limiter.Wait(ctx); err != nil {
 		return nil, err
 	}
@@ -199,9 +325,28 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 		return nil, err
 	}
 
-	s.mu.RLock()
-	req.Header.Set("User-Agent", s.session.UserAgent)
-	for _, c := range s.session.Cookies {
+	ua := defaultWBUserAgent
+	var token string
+	var cookies []Cookie
+	if sess != nil {
+		if sess.UserAgent != "" {
+			ua = sess.UserAgent
+		}
+		token = sess.Token
+		cookies = sess.Cookies
+	}
+	req.Header.Set("User-Agent", ua)
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
+	req.Header.Set("Referer", "https://www.wildberries.ru/")
+	req.Header.Set("Origin", "https://www.wildberries.ru")
+	if token != "" {
+		req.Header.Set("Cookie", "x_wbaas_token="+token)
+	}
+	for _, c := range cookies {
+		if c.Name == "x_wbaas_token" {
+			continue
+		}
 		req.AddCookie(&http.Cookie{
 			Name:   c.Name,
 			Value:  c.Value,
@@ -209,7 +354,6 @@ func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
 			Path:   c.Path,
 		})
 	}
-	s.mu.RUnlock()
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -238,14 +382,25 @@ func (s *Scraper) fetchWithRetry(ctx context.Context, url string) ([]byte, error
 	var lastErr error
 	for i := 0; i < 3; i++ {
 		s.log.Debug().Int("attempt", i+1).Str("url", url).Msg("fetchWithRetry: attempt")
-		body, err := s.fetchJSON(ctx, url)
+
+		var body []byte
+		var err error
+		if s.browserUserMode && strings.Contains(url, "wildberries.ru") {
+			if strings.Contains(url, "__internal/") {
+				body, err = s.fetchJSONViaBrowser(ctx, url)
+			} else {
+				body, err = s.fetchHTMLViaBrowser(ctx, url)
+			}
+		} else {
+			body, err = s.fetchJSON(ctx, url)
+		}
 		if err == nil {
 			s.log.Debug().Msg("fetchWithRetry: success")
 			return body, nil
 		}
 		s.log.Debug().Err(err).Msg("fetchWithRetry: error")
 		lastErr = err
-		if strings.Contains(err.Error(), "session invalid") {
+		if strings.Contains(err.Error(), "session invalid") && !s.browserUserMode {
 			s.mu.Lock()
 			s.session = nil
 			s.mu.Unlock()
@@ -327,12 +482,11 @@ func buildCardURLNew(basket string, nmID int) string {
 }
 
 func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-	if err := s.ensureSession(); err != nil {
-		return nil, fmt.Errorf("ensure session: %w", err)
-	}
-
 	switch task.PageType {
 	case domain.PageTypeListing:
+		if err := s.ensureSessionFresh(); err != nil {
+			return nil, fmt.Errorf("ensure session: %w", err)
+		}
 		return s.scrapeListing(ctx, task)
 	case domain.PageTypeDiscovery:
 		return s.scrapeDiscoveryTask(ctx, task)
@@ -409,8 +563,7 @@ func (s *Scraper) scrapeDiscoveryTask(ctx context.Context, task domain.ScrapeTas
 func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages int, urlTemplate string) ([]domain.Resource, error) {
 	var resources []domain.Resource
 	for page := 1; page <= maxPages; page++ {
-		searchURL := strings.ReplaceAll(urlTemplate, "{query}", url.QueryEscape(query))
-		searchURL = strings.ReplaceAll(searchURL, "{page}", strconv.Itoa(page))
+		searchURL := BuildDiscoverySearchURL(urlTemplate, query, page)
 
 		body, err := s.fetchWithRetry(ctx, searchURL)
 		if err != nil {
@@ -463,4 +616,10 @@ func (s *Scraper) scrapeCategory(ctx context.Context, task domain.ScrapeTask) (*
         Timestamp:    time.Now(),
     }
     return &domain.ScrapeResult{Resources: []domain.Resource{resource}}, nil
+}
+
+// BuildDiscoverySearchURL substitutes {query} and {page} in the discovery API template.
+func BuildDiscoverySearchURL(urlTemplate, query string, page int) string {
+	searchURL := strings.ReplaceAll(urlTemplate, "{query}", url.QueryEscape(query))
+	return strings.ReplaceAll(searchURL, "{page}", strconv.Itoa(page))
 }

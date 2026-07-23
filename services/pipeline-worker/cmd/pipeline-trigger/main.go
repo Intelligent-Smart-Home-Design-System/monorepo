@@ -19,8 +19,11 @@ import (
 )
 
 func main() {
-	log.Logger = logging.New("pipeline-trigger")
 	ctx := context.Background()
+
+	logRuntime := logging.NewWithTelemetry(ctx, "pipeline-trigger")
+	log.Logger = logRuntime.Logger
+	defer shutdownLogs(logRuntime)
 
 	cfg, err := config.Load(configPath())
 	if err != nil {
@@ -100,5 +103,14 @@ func shutdownTracing(runtime *tracing.Runtime) {
 
 	if err := runtime.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Failed to flush tracing provider")
+	}
+}
+
+func shutdownLogs(runtime logging.Runtime) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := runtime.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to flush OTLP log exporter")
 	}
 }

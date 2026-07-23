@@ -74,61 +74,30 @@ class DeviceTypeInfo:
 class OutlinesExtractor:
     def __init__(self, taxonomy: dict[str, Any], model: AsyncModel, extraction: ExtractionConfig, temperature: float = 0):
         """
-            taxonomy: dict of 'traits' and 'types'
+            taxonomy: dict of device type name to { description, schema }
             model: model instance to use for outlines
-            hints: dict of field name to extraction hint.
+            hints: dict of field name to extraction hint. The extraction hint is appended to the description of the respective field.
         """
         self._model = model
         self._temperature = temperature
         self._device_types: dict[str, DeviceTypeInfo] = {}
 
-        traits_db = taxonomy.get("traits", {})
-        types_db = taxonomy.get("types", taxonomy)
-
-        for type_name, type_data in types_db.items():
-            if type_name == "traits":
-                continue
-
-            merged_properties = {}
-            merged_required = []
-
-            for trait_name in type_data.get("traits", []):
-                if trait_name in traits_db:
-                    trait = traits_db[trait_name]
-                    merged_properties.update(trait.get("properties", {}))
-                    merged_required.extend(trait.get("required", []))
-
-            extra = type_data.get("extra_schema", {})
-            merged_properties.update(extra.get("properties", {}))
-            merged_required.extend(extra.get("required", []))
-
-            prop_descriptions = type_data.get("property_descriptions", {})
-            for prop_name, desc in prop_descriptions.items():
-                if prop_name in merged_properties:
-                    merged_properties[prop_name] = dict(merged_properties[prop_name])
-                    merged_properties[prop_name]["description"] = desc
-
-            canonical_schema = {
-                "type": "object",
-                "properties": merged_properties,
-                "required": list(set(merged_required))
-            }
-
+        for type_name, type_data in taxonomy.items():
+            canonical_schema = type_data["schema"]
             preprocessed = _preprocess_schema(canonical_schema, extraction.hints, extraction.hint_templates)
-            
             field_descriptions = "\n".join(
                 f"- {name}: {property["description"]}" if "description" in property.keys() else ""
                 for name, property in preprocessed["properties"].items()
             )
             fields: dict[str, FieldInfo] = {}
             for name, property in preprocessed["properties"].items():
-                if property.get("type") == "array" and "uniqueItems" in property:
+                if property["type"] == "array" and "uniqueItems" in property:
                     del property['uniqueItems']
                     fields[name] = FieldInfo(is_unique_items_array=True)
             
             self._device_types[type_name] = DeviceTypeInfo(
                 name=type_name,
-                description=type_data.get("description", ""),
+                description=type_data["description"],
                 field_descriptions=field_descriptions,
                 fields=fields,
                 preprocessed_schema=JsonSchema(preprocessed),
@@ -212,4 +181,3 @@ IF MISSING: If a protocol, ecosystem, or specification is not explicitly mention
             if field in type_info.fields and type_info.fields[field].is_unique_items_array:
                 result[field] = list(set(result[field]))
         return result
-

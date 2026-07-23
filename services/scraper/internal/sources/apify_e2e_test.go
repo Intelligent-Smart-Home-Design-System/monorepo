@@ -4,6 +4,7 @@ package sources
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -73,4 +74,35 @@ func TestApifyE2E_DiscoveryScrape(t *testing.T) {
 	body := result.Resources[0].ResponseBody
 	t.Logf("e2e apify: query=%q bytes=%d status=%d", query, len(body), result.Resources[0].StatusCode)
 	require.NotEmpty(t, body)
+
+	logItemNames(t, body)
+}
+
+// logItemNames prints a readable name per dataset item. Apify actors vary in
+// field naming, so it tries the common ones and falls back to the raw item.
+func logItemNames(t *testing.T, body []byte) {
+	t.Helper()
+
+	var items []map[string]any
+	if err := json.Unmarshal(body, &items); err != nil {
+		t.Logf("e2e apify: dataset is not a JSON array of objects, skipping name log: %v", err)
+		return
+	}
+
+	nameFields := []string{"name", "title", "productName", "product_name", "itemName"}
+	t.Logf("e2e apify: %d item(s) in dataset", len(items))
+	for i, item := range items {
+		name := ""
+		for _, field := range nameFields {
+			if v, ok := item[field].(string); ok && v != "" {
+				name = v
+				break
+			}
+		}
+		if name == "" {
+			t.Logf("  [%d] (no name field found) raw=%v", i, item)
+			continue
+		}
+		t.Logf("  [%d] %s", i, name)
+	}
 }

@@ -6,120 +6,6 @@ import (
 
 type DeviceFilter interface{}
 
-type WaterLeakSensorFilter struct {
-	ProbeType        string  `json:"probe_type,omitempty"`
-	AlarmVolumeDB    float64 `json:"alarm_volume_db,omitempty"`
-	BatteryLifeYears float64 `json:"battery_life_years,omitempty"`
-}
-
-type GasLeakSensorFilter struct {
-	GasTypes         []string `json:"gas_types,omitempty"`
-	AlarmVolumeDB    float64  `json:"alarm_volume_db,omitempty"`
-	BatteryLifeYears float64  `json:"battery_life_years,omitempty"`
-}
-
-type SmartLockFilter struct {
-	UnlockMethods []string `json:"unlock_methods,omitempty"`
-}
-
-type SmartDoorBellFilter struct {
-	Resolution  string  `json:"resolution,omitempty"`
-	Angle       float64 `json:"angle,omitempty"`
-	NightVision bool    `json:"night_vision,omitempty"`
-	TwoWayAudio bool    `json:"two_way_audio,omitempty"`
-}
-
-type DoorSensorFilter struct{}
-
-type WindowSensorFilter struct{}
-
-type MotionSensorFilter struct {
-	Angle float64 `json:"angle,omitempty"`
-	Range float64 `json:"range,omitempty"`
-}
-
-type CameraFilter struct {
-	Angle       float64 `json:"angle,omitempty"`
-	Range       float64 `json:"range,omitempty"`
-	NightVision bool    `json:"night_vision,omitempty"`
-	Resolution  string  `json:"resolution,omitempty"`
-
-	RecommendedRangeMM float64      `json:"recommended_range_mm,omitempty"`
-}
-
-type SmartSirenFilter struct {
-	VolumeDB float64 `json:"volume_db,omitempty"`
-}
-
-type AirConditionerFilter struct {
-	NoiseLevelDB       float64 `json:"noise_level_db,omitempty"`
-	MaxNoiseLevelDB    float64 `json:"max_noise_level_db,omitempty"`
-	CoolingPowerBTU    float64 `json:"cooling_power_btu,omitempty"`
-	CoolingPowerWatts  float64 `json:"cooling_power_watts,omitempty"`
-	IndoorUnitLengthMM float64 `json:"indoor_unit_length_mm,omitempty"`
-	RecommendedAreaM2  float64 `json:"recommended_area_m2,omitempty"`
-}
-
-type TemperatureRange struct {
-	Min float64 `json:"min,omitempty"`
-	Max float64 `json:"max,omitempty"`
-}
-
-type TemperatureSensorFilter struct {
-	TemperatureRange TemperatureRange `json:"temperature_range,omitempty"`
-	BatteryLifeYears float64          `json:"battery_life_years,omitempty"`
-}
-
-type SmartRadiatorActuatorFilter struct{}
-
-type HumiditySensorFilter struct{}
-
-type SmartHumidifierFilter struct {
-	TankVolumeLiters float64 `json:"tank_volume_liters,omitempty"`
-	ServicedAreaM2   float64 `json:"serviced_area_m2,omitempty"`
-}
-
-type CO2SensorFilter struct{}
-
-type AirPurifierFilter struct {
-	ServicedAreaM2 float64 `json:"serviced_area_m2,omitempty"`
-	HepaFilter     bool    `json:"hepa_filter,omitempty"`
-}
-
-type SmartFloorThermostatFilter struct {
-	MaxLoadKW float64 `json:"max_load_kw,omitempty"`
-}
-
-type FloorTemperatureSensorFilter struct {
-	CableLength float64 `json:"cable_length,omitempty"`
-}
-  
-type RobotVacuumFilter struct {
-	NoiseLevelDB          float64 `json:"noise_level_db,omitempty"`
-	SuctionPowerPA        float64 `json:"suction_power_pa,omitempty"`
-	NavigationType        string  `json:"navigation_type,omitempty"`
-	RoomMapping           bool    `json:"room_mapping,omitempty"`
-	WetCleaning           bool    `json:"wet_cleaning,omitempty"`
-	CarpetDetection       bool    `json:"carpet_detection,omitempty"`
-	ObstacleAvoidance     bool    `json:"obstacle_avoidance,omitempty"`
-	AutoEmptyStation      bool    `json:"auto_empty_station,omitempty"`
-	VoiceAssistantSupport bool    `json:"voice_assistant_support,omitempty"`
-}
-
-type SmartTVFilter struct {
-	Resolution     string  `json:"resolution,omitempty"`
-	Width          float64 `json:"width,omitempty"`
-	RefreshRatehHZ float64 `json:"refresh_rate_hz,omitempty"`
-
-	MaxWidthMM float64 `json:"max_width_mm,omitempty"`
-}
-
-type SmartSpeaker struct{}
-
-type Subwoofer struct{}
-
-type CeilingSpeakers struct{}
-
 // GetCertainFilter конвертирует словарь интерфейсов в структуру определенного устройства
 func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, error) {
 	var filter DeviceFilter
@@ -134,7 +20,7 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 	case "smart_lock":
 		filter = &SmartLockFilter{}
 	case "smart_doorbell":
-		filter = &SmartDoorBellFilter{}
+		filter = &SmartDoorbellFilter{}
 	case "door_sensor":
 		filter = &DoorSensorFilter{}
 	case "window_sensor":
@@ -177,8 +63,6 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartSpeaker{}
 	case "subwoofer":
 		filter = &Subwoofer{}
-	case "ceiling_speakers":
-		filter = &CeilingSpeakers{}
 	}
 
 	if filter == nil {

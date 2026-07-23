@@ -34,8 +34,10 @@ func loadTaxonomySchemas(path string) (*taxonomySchemas, error) {
 		if err != nil {
 			return nil, fmt.Errorf("compile schema for %q: %w", category, err)
 		}
+
 		compiled[category] = s
 	}
+
 	return &taxonomySchemas{compiled: compiled}, nil
 }
 

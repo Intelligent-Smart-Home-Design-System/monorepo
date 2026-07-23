@@ -141,7 +141,14 @@ func (e *Engine) CalculateLayoutPrice(layout *apartment.Layout) *PriceInfo {
 	priceInfo := &PriceInfo{}
 	for _, roomPlacements := range layout.Placements {
 		for _, placement := range roomPlacements {
-			device := devicesConfig.Devices[placement.Device.Type]
+			var device configs.Device
+
+			tp := placement.Device.Type
+			if tp == "door_sensor" || tp == "window_sensor" {
+				device = devicesConfig.Devices["door_window_sensor"]
+			} else {
+				device = devicesConfig.Devices[placement.Device.Type]
+			}
 
 			priceInfo.MinPrice += device.Price.Min
 			priceInfo.MaxPrice += device.Price.Max

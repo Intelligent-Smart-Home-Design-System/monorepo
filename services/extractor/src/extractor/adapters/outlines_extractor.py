@@ -92,7 +92,6 @@ class OutlinesExtractor:
             fields: dict[str, FieldInfo] = {}
             for name, property in preprocessed["properties"].items():
                 if property["type"] == "array" and "uniqueItems" in property:
-                    # outlines doesn't support uniqueItems
                     del property['uniqueItems']
                     fields[name] = FieldInfo(is_unique_items_array=True)
             
@@ -182,4 +181,3 @@ IF MISSING: If a protocol, ecosystem, or specification is not explicitly mention
             if field in type_info.fields and type_info.fields[field].is_unique_items_array:
                 result[field] = list(set(result[field]))
         return result
-

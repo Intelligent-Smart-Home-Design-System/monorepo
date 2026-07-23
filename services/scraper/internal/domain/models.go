@@ -110,6 +110,7 @@ const (
     SourcePrinter     = "printer"
     SourceYandex      = "yandex"
 	SourceDns         = "dns"
+	SourceApifyYandexMarket = "apify_yandex_market"
 	// SourceExample — учебный шаблон (internal/scrapers/example, internal/parsers/example).
 	// Скопируйте пакеты и переименуйте перед продакшеном.
 	SourceExample     = "example"

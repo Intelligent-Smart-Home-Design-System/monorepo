@@ -21,6 +21,7 @@ var builtinOrder = []string{
 	domain.SourceYandex,
 	domain.SourceSprut,
 	domain.SourcePrinter,
+	domain.SourceApifyYandexMarket,
 }
 
 // NewScraper builds a scraper for one source (factory entry point).
@@ -55,6 +56,8 @@ func newSource(name string, cfg config.Config, log zerolog.Logger) (Source, erro
 		return newYandex(cfg, log), nil
 	case domain.SourceDns:
 		return newDNS(cfg, log), nil
+	case domain.SourceApifyYandexMarket:
+		return newApify(cfg, log), nil
 	case domain.SourceSprut:
 		return Sprut{Base: Base{
 			name:    domain.SourceSprut,

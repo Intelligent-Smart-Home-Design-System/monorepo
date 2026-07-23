@@ -10,8 +10,17 @@ type Config struct {
     Wildberries WildberriesConfig `mapstructure:"wildberries"`
     Yandex      YandexConfig      `mapstructure:"yandex"`
     Dns         DnsConfig         `mapstructure:"dns"`
+    Apify       ApifyConfig       `mapstructure:"apify"`
     Example     ExampleConfig     `mapstructure:"example"`
     Jobs        JobsConfig        `mapstructure:"jobs"`
+}
+
+type ApifyConfig struct {
+    APIKey        string   `mapstructure:"api_key"`
+    ActorID       string   `mapstructure:"actor_id"`
+    Region        int      `mapstructure:"region"`
+    MaxItems      int      `mapstructure:"max_items"`
+    SearchQueries []string `mapstructure:"search_queries"`
 }
 
 type DatabaseConfig struct {

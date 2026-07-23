@@ -26,9 +26,7 @@
 - `GET /api/v1/plans/{plan_id}/status` — legacy-статус старого плана.
 - `GET /api/v1/plans/{plan_id}` — legacy-результат с bundles и listings.
 
-Базовый URL задаётся через переменную окружения `NEXT_PUBLIC_API_BASE_URL`.
-
-Если переменная не задана, frontend обращается по относительным путям, например `/api/v1/plans`. Это подходит только если backend проксируется тем же origin.
+Frontend обращается к API по относительным путям, например `/api/v1/plans`. Nginx на том же origin направляет эти запросы в соответствующий backend.
 
 ## Токены, auth и регистрация
 
@@ -69,13 +67,7 @@ npm ci
 npm run dev --workspace @smart-home/web
 ```
 
-Пример запуска с backend:
-
-```bash
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev --workspace @smart-home/web
-```
-
-Приложение откроется на `http://localhost:3000` или на следующем свободном порте.
+При отдельном запуске dev-сервера страница откроется на `http://localhost:3000` или на следующем свободном порте. Для работы запросов к backend запускайте полный стек и открывайте приложение через Nginx.
 
 ## Проверка
 

@@ -2,7 +2,9 @@ package devices
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
+	"math"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities/field"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
@@ -239,17 +241,33 @@ func (s *SensorWithIntStatus) HandleEvent(inData SensorWithIntStatusData) Sensor
 // Имеет функцию обновления последнего действия, позволяет обновлять действие до истечения таймаута, старое действие игнорируется.
 type RadiusMoveSensorWithUpdate struct {
 	BaseDevice[RadiusSensorData]
-	TurnOn  bool    `json:"turn_on"`
-	Timeout float64 `json:"timeout"`
-	X       float64 `json:"x"`
-	Y       float64 `json:"y"`
-	Radius  float64 `json:"radius"`
+	TurnOn        bool     `json:"turn_on"`
+	Timeout       float64  `json:"timeout"`
+	X             float64  `json:"x"`
+	Y             float64  `json:"y"`
+	Radius        float64  `json:"radius"`
+	ObservedKinds []string `json:"observedKinds"`
 }
 
 // RadiusSensorData - данные для RadiusMoveSensorWithUpdate и RadiusMoveSensorWithoutUpdate.
 type RadiusSensorData struct {
 	Kind   string `json:"kind"`
 	TurnOn bool   `json:"turn_on"`
+}
+
+// incidentBlockSensorData описывает incident-блок в payload датчика для проверки пересечения с радиусом.
+type incidentBlockSensorData struct {
+	X      float64      `json:"x"`
+	Y      float64      `json:"y"`
+	Size   float64      `json:"size"`
+	Points [][2]float64 `json:"points"`
+}
+
+var defaultRadiusObservedKinds = []string{"human:move", "device:move"}
+
+// isIncidentSpreadKind проверяет, относится ли kind к распространению incident, и возвращает результат.
+func isIncidentSpreadKind(kind string) bool {
+	return kind == "fire:spread" || kind == "flood:spread" || kind == "smoke:spread"
 }
 
 // NewRadiusSensorWithUpdate конструктор для RadiusMoveSensorWithUpdate.
@@ -272,30 +290,12 @@ func (s *RadiusMoveSensorWithUpdate) GetPosition() (float64, float64) {
 
 // HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithUpdate) HandleInDTO(dto []byte) error {
-	var raw struct {
-		Kind string `json:"kind"`
-		To   *struct {
-			X float64 `json:"x"`
-			Y float64 `json:"y"`
-		} `json:"to"`
-		X      *float64 `json:"x"`
-		Y      *float64 `json:"y"`
-		Radius *float64 `json:"radius"`
-	}
-	if err := json.Unmarshal(dto, &raw); err != nil {
+	kind, inRadius, err := radiusSensorInput(dto, s.X, s.Y, s.Radius)
+	if err != nil {
 		return err
 	}
 
-	var inRadius bool
-
-	switch raw.Kind {
-	case "fire:spread":
-		inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
-	default:
-		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
-	}
-
-	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
+	s.Put(RadiusSensorData{Kind: kind, TurnOn: inRadius})
 
 	return nil
 }
@@ -369,17 +369,27 @@ func (s *RadiusMoveSensorWithUpdate) HandleEvent(inData RadiusSensorData) Radius
 
 // GetObservedKinds возвращает список видов событий, которые наблюдает датчик.
 func (s *RadiusMoveSensorWithUpdate) GetObservedKinds() []string {
-	return []string{"human:move", "device:move", "fire:spread"}
+	if len(s.ObservedKinds) > 0 {
+		return s.ObservedKinds
+	}
+
+	return defaultRadiusObservedKinds
+}
+
+// SetObservedKinds задает список kind-ов, на которые подписан датчик с timeout; ничего не возвращает.
+func (s *RadiusMoveSensorWithUpdate) SetObservedKinds(kinds []string) {
+	s.ObservedKinds = kinds
 }
 
 // RadiusMoveSensorWithoutUpdate - датчик с радиусом без таймаута.
 // Просто фиксирует факт попадания в радиус без сброса по таймауту.
 type RadiusMoveSensorWithoutUpdate struct {
 	BaseDevice[RadiusSensorData]
-	TurnOn bool    `json:"turn_on"`
-	X      float64 `json:"x"`
-	Y      float64 `json:"y"`
-	Radius float64 `json:"radius"`
+	TurnOn        bool     `json:"turn_on"`
+	X             float64  `json:"x"`
+	Y             float64  `json:"y"`
+	Radius        float64  `json:"radius"`
+	ObservedKinds []string `json:"observedKinds"`
 }
 
 // NewRadiusSensorWithoutUpdate конструктор для RadiusMoveSensorWithoutUpdate.
@@ -403,32 +413,37 @@ func (s *RadiusMoveSensorWithoutUpdate) GetPosition() (float64, float64) {
 
 // HandleInDTO обрабатывает входящие данные, сохраняет их в хранилище и запускает процесс обработки.
 func (s *RadiusMoveSensorWithoutUpdate) HandleInDTO(dto []byte) error {
+	kind, inRadius, err := radiusSensorInput(dto, s.X, s.Y, s.Radius)
+	if err != nil {
+		return err
+	}
+
+	s.Put(RadiusSensorData{Kind: kind, TurnOn: inRadius})
+
+	return nil
+}
+
+// radiusSensorInput разбирает move/incident payload и возвращает kind, состояние датчика и ошибку контракта.
+func radiusSensorInput(dto []byte, x, y, radius float64) (string, bool, error) {
 	var raw struct {
 		Kind string `json:"kind"`
 		To   *struct {
 			X float64 `json:"x"`
 			Y float64 `json:"y"`
 		} `json:"to"`
-		X      *float64 `json:"x"`
-		Y      *float64 `json:"y"`
-		Radius *float64 `json:"radius"`
+		Blocks []incidentBlockSensorData `json:"blocks"`
 	}
 	if err := json.Unmarshal(dto, &raw); err != nil {
-		return err
+		return "", false, err
 	}
 
-	var inRadius bool
-
-	switch raw.Kind {
-	case "fire:spread":
-		inRadius = field.CirclesIntersect(*raw.X, *raw.Y, *raw.Radius, s.X, s.Y, s.Radius)
-	default:
-		inRadius = field.IsInRadius(s.X, s.Y, raw.To.X, raw.To.Y, s.Radius)
+	if isIncidentSpreadKind(raw.Kind) || raw.Blocks != nil {
+		return raw.Kind, incidentBlocksInRadius(raw.Blocks, x, y, radius), nil
 	}
-
-	s.Put(RadiusSensorData{Kind: raw.Kind, TurnOn: inRadius})
-
-	return nil
+	if raw.To == nil {
+		return raw.Kind, false, errors.New("radius sensor payload missing to")
+	}
+	return raw.Kind, field.IsInRadius(x, y, raw.To.X, raw.To.Y, radius), nil
 }
 
 // HandleEvent реализует бизнес-логику устройства, обновляет состояние и возвращает данные для отправки.
@@ -443,5 +458,29 @@ func (s *RadiusMoveSensorWithoutUpdate) HandleEvent(inData RadiusSensorData) Rad
 
 // GetObservedKinds возвращает список видов событий, которые наблюдает датчик.
 func (s *RadiusMoveSensorWithoutUpdate) GetObservedKinds() []string {
-	return []string{"human:move", "device:move", "fire:spread"}
+	if len(s.ObservedKinds) > 0 {
+		return s.ObservedKinds
+	}
+
+	return defaultRadiusObservedKinds
+}
+
+// SetObservedKinds задает список kind-ов, на которые подписан датчик без timeout; ничего не возвращает.
+func (s *RadiusMoveSensorWithoutUpdate) SetObservedKinds(kinds []string) {
+	s.ObservedKinds = kinds
+}
+
+// incidentBlocksInRadius проверяет пересечение incident-блоков с радиусом датчика и возвращает результат.
+func incidentBlocksInRadius(blocks []incidentBlockSensorData, x, y, radius float64) bool {
+	for _, block := range blocks {
+		if len(block.Points) >= 3 && field.PolygonIntersectsCircle(block.Points, x, y, radius) {
+			return true
+		}
+
+		if len(block.Points) < 3 && field.CirclesIntersect(block.X, block.Y, block.Size/math.Sqrt2, x, y, radius) {
+			return true
+		}
+	}
+
+	return false
 }

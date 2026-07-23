@@ -274,6 +274,9 @@ out/
 build/
 coverage/
 dist/
+test-results/
+playwright-report/
+blob-report/
 
 # Logs
 npm-debug.log*

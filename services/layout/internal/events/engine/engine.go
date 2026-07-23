@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
@@ -71,14 +70,8 @@ func (e *Engine) MakeScenarioDependencies(layout *apartment.Layout) (map[string]
 	var dependencies struct {
 		Triggers map[string]TriggerInfo
 	}
-	
-	path := "../../../../simulation/configs/dependencies.json"
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
 
-	if err := json.Unmarshal(data, &dependencies); err != nil {
+	if err := json.Unmarshal(configs.DependenciesJSON, &dependencies); err != nil {
 		return nil, err
 	}
 
@@ -148,7 +141,14 @@ func (e *Engine) CalculateLayoutPrice(layout *apartment.Layout) *PriceInfo {
 	priceInfo := &PriceInfo{}
 	for _, roomPlacements := range layout.Placements {
 		for _, placement := range roomPlacements {
-			device := devicesConfig.Devices[placement.Device.Type]
+			var device configs.Device
+
+			tp := placement.Device.Type
+			if tp == "door_sensor" || tp == "window_sensor" {
+				device = devicesConfig.Devices["door_window_sensor"]
+			} else {
+				device = devicesConfig.Devices[placement.Device.Type]
+			}
 
 			priceInfo.MinPrice += device.Price.Min
 			priceInfo.MaxPrice += device.Price.Max

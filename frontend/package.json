@@ -10,7 +10,11 @@
     "preview:sim-ui": "npm run preview --workspace @smart-home/sim-ui",
     "build": "npm run build --workspaces --if-present",
     "build:sim-ui": "npm run build --workspace @smart-home/sim-ui",
+    "test:e2e:simulation": "playwright test --config playwright.simulation.config.ts",
     "lint": "npm run lint --workspaces --if-present"
   },
-  "packageManager": "npm@10"
+  "packageManager": "npm@10",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
 }

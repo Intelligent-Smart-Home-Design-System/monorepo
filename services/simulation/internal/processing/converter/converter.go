@@ -21,6 +21,17 @@ var (
 // Если парсинг не удался, то возвращает ошибку.
 func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) (map[string]entities.Entity, error) {
 	IDToEntity := make(map[string]entities.Entity)
+	var incidentGridTemplate *actors.IncidentGridTemplate
+
+	attachIncidentGrid := func(incident *actors.Incident) error {
+		if incidentGridTemplate == nil {
+			incidentGridTemplate = actors.NewIncidentGridTemplate(engineAPI.GetFloor(), incident.CellSize)
+		} else if incident.CellSize != incidentGridTemplate.CellSize() {
+			return fmt.Errorf("incident %q uses cellSize %v, expected shared cellSize %v", incident.ID, incident.CellSize, incidentGridTemplate.CellSize())
+		}
+		incident.SetGridTemplate(incidentGridTemplate)
+		return nil
+	}
 
 	for _, entityDTO := range entitiesData {
 		entityType := normalizeEntityType(entityDTO)
@@ -67,6 +78,30 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			}
 
 			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeFireSensor:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			sensor.SetObservedKinds([]string{actors.KindFireSpread})
+
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeFloodSensor:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			sensor.SetObservedKinds([]string{actors.KindFloodSpread})
+
+			IDToEntity[entityDTO.ID] = sensor
+		case entities.TypeSmokeSensor:
+			sensor, err := devices.NewRadiusSensorWithoutUpdate(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			sensor.SetObservedKinds([]string{actors.KindSmokeSpread})
+
+			IDToEntity[entityDTO.ID] = sensor
 		case entities.TypeRadiusMoveSensorWithUpdate:
 			sensor, err := devices.NewRadiusSensorWithUpdate(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -86,8 +121,31 @@ func EntitiesFromDTO(entitiesData []api.EntityDTO, engineAPI engine.EnginePort) 
 			if err != nil {
 				return nil, err
 			}
+			if err := attachIncidentGrid(fire); err != nil {
+				return nil, err
+			}
 
 			IDToEntity[entityDTO.ID] = fire
+		case entities.TypeFlood:
+			flood, err := actors.NewFlood(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			if err := attachIncidentGrid(flood); err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = flood
+		case entities.TypeSmoke:
+			smoke, err := actors.NewSmoke(entityDTO.Info, engineAPI)
+			if err != nil {
+				return nil, err
+			}
+			if err := attachIncidentGrid(smoke); err != nil {
+				return nil, err
+			}
+
+			IDToEntity[entityDTO.ID] = smoke
 		case entities.TypeSmartDimmer:
 			dimmer, err := devices.NewSmartDimmer(entityDTO.Info, engineAPI)
 			if err != nil {
@@ -238,6 +296,12 @@ func normalizeEntityType(entityDTO api.EntityDTO) string {
 		return entities.TypeRadiusMoveSensorWithUpdate
 	case "radius_move_sensor_without_update":
 		return entities.TypeRadiusMoveSensorWithoutUpdate
+	case "fire_sensor":
+		return entities.TypeFireSensor
+	case "flood_sensor", "leak_sensor", "water_leak_sensor":
+		return entities.TypeFloodSensor
+	case "smoke_sensor":
+		return entities.TypeSmokeSensor
 	default:
 		return entityType
 	}
@@ -251,13 +315,25 @@ func ParseFloor(data []byte) (*api.Floor, error) {
 	}
 
 	floor.Adjacency = make(map[string][]api.RoomEdge)
+	roomsByDoor := make(map[string][]string)
+	for _, room := range floor.Rooms {
+		for _, doorID := range room.Doors {
+			roomsByDoor[doorID] = append(roomsByDoor[doorID], room.ID)
+		}
+	}
+
 	for i := range floor.Doors {
 		door := &floor.Doors[i]
-		if len(door.Rooms) != 2 {
+		roomIDs := uniqueNonEmptyStrings(append(append([]string{}, door.Rooms...), roomsByDoor[door.ID]...))
+		if len(roomIDs) == 1 && door.OpensTowardsRoom != "" {
+			roomIDs = append(roomIDs, door.OpensTowardsRoom)
+		}
+		roomIDs = uniqueNonEmptyStrings(roomIDs)
+		if len(roomIDs) < 2 {
 			continue
 		}
 
-		aID, bID := door.Rooms[0], door.Rooms[1]
+		aID, bID := roomIDs[0], roomIDs[1]
 		floor.Adjacency[aID] = append(floor.Adjacency[aID], api.RoomEdge{
 			NeighborRoomID: bID,
 			Door:           door,
@@ -269,6 +345,24 @@ func ParseFloor(data []byte) (*api.Floor, error) {
 	}
 
 	return &floor, nil
+}
+
+// uniqueNonEmptyStrings удаляет пустые и повторяющиеся значения, сохраняя порядок первого появления.
+func uniqueNonEmptyStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+
+	return result
 }
 
 // DependenciesFromDTO парсит данные о зависимостях

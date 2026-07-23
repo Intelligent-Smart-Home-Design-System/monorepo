@@ -71,7 +71,7 @@ func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 
 	var acWidthM float64
 	if acFilter != nil && acFilter.IndoorUnitLengthMM > 0 {
-		acWidthM = acFilter.IndoorUnitLengthMM / 1000.0
+		acWidthM = float64(acFilter.IndoorUnitLengthMM) / 1000.0
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {

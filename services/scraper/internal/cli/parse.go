@@ -244,6 +244,18 @@ func parse(ctx context.Context, logger zerolog.Logger, m *metrics.Collector, cfg
 		parseDNSCategorySnapshots(ctx, logger, m, snapshotRepo, taskRepo, cfg.Jobs, config.JobParse, false)
 	}
 
+	if shouldRunSprutDiscoveryParse(discoveryOnly, sources) {
+		job := config.JobParseDiscovery
+		savedListings := parseSprutCategorySnapshots(ctx, logger, m, snapshotRepo, taskRepo, cfg.Jobs, job, true)
+		if savedListings >= 0 {
+			logger.Info().Str("job", job).Str("source", domain.SourceSprut).Int("listings_saved", savedListings).Msg("sprut parse --discovery summary")
+		}
+	}
+
+	if shouldRun(domain.PageTypeCategory, domain.SourceSprut) && !discoveryOnly {
+		parseSprutCategorySnapshots(ctx, logger, m, snapshotRepo, taskRepo, cfg.Jobs, config.JobParse, false)
+	}
+
 	if shouldRun(domain.PageTypeCompatibility, domain.SourceYandex) {
 		compatibilityParsers := []parser.SourceParser[[]*domain.DirectCompatibilityRecord]{
 			yandex.NewCompatibilityParser(cfg.Wildberries.BrandAliases),
@@ -273,6 +285,21 @@ func shouldRunDNSDiscoveryParse(discoveryOnly bool, sources []string) bool {
 	}
 	for _, s := range sources {
 		if s == domain.SourceDns {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldRunSprutDiscoveryParse(discoveryOnly bool, sources []string) bool {
+	if !discoveryOnly {
+		return false
+	}
+	if len(sources) == 0 {
+		return true
+	}
+	for _, s := range sources {
+		if s == domain.SourceSprut {
 			return true
 		}
 	}
@@ -386,6 +413,110 @@ func parseDNSCategorySnapshots(
 		Int("listings_saved_total", savedListings).
 		Int("pagination_tasks", paginationTasks).
 		Msg("dns category parse summary")
+
+	return savedListings
+}
+
+// parseSprutCategorySnapshots extracts listing URLs from sprut category (product-grid) snapshots.
+// Same listingsOnly split as parseDNSCategorySnapshots — see its comment for the rationale.
+func parseSprutCategorySnapshots(
+	ctx context.Context,
+	logger zerolog.Logger,
+	m *metrics.Collector,
+	snapshotRepo *repository.SnapshotRepo,
+	taskRepo *repository.TrackedPageRepo,
+	jobs config.JobsConfig,
+	job string,
+	listingsOnly bool,
+) int {
+	allSnapshots, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeCategory.String(), domain.SourceSprut)
+	if err != nil {
+		logger.Error().Err(err).Str("source", domain.SourceSprut).Msg("failed to get sprut category snapshots")
+		return -1
+	}
+
+	before := len(allSnapshots)
+	m.AddParseSnapshots(ctx, domain.SourceSprut, domain.PageTypeCategory.String(), job, metrics.OutcomeMatched, metrics.FilterStageBefore, int64(before))
+	snapshots := filterSnapshots(allSnapshots, job, jobs)
+	m.AddParseSnapshots(ctx, domain.SourceSprut, domain.PageTypeCategory.String(), job, metrics.OutcomeMatched, metrics.FilterStageAfter, int64(len(snapshots)))
+	logger.Info().
+		Str("job", job).
+		Str("source", domain.SourceSprut).
+		Int("category_snapshots_total", before).
+		Int("category_snapshots_matched", len(snapshots)).
+		Msg("parse category: snapshots after job filters")
+
+	if len(snapshots) == 0 {
+		return -1
+	}
+
+	categoryParser := sprut.NewCategoryParser()
+	savedListings := 0
+	paginationTasks := 0
+
+	for _, snapshot := range snapshots {
+		if ctx.Err() != nil {
+			break
+		}
+		snapshotLog := withSource(logger, domain.SourceSprut).With().Str("page_type", domain.PageTypeCategory.String()).Logger()
+
+		files, err := parser.ExtractArchive(snapshot.WARCBundle)
+		if err != nil {
+			snapshotLog.Error().Err(err).Int("snapshot_id", snapshot.ID).Str("category_url", snapshot.PageURL).Msg("failed to extract category snapshot")
+			m.AddParseSnapshots(ctx, domain.SourceSprut, domain.PageTypeCategory.String(), job, metrics.OutcomeParseError, "", 1)
+			continue
+		}
+
+		links, parseErr := categoryParser.Parse(snapshot.ID, files)
+		if err := snapshotRepo.SetProcessed(snapshot.ID); err != nil {
+			snapshotLog.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to mark category snapshot processed")
+		}
+		if parseErr != nil {
+			snapshotLog.Error().Err(parseErr).Int("snapshot_id", snapshot.ID).Str("category_url", snapshot.PageURL).Msg("failed to parse category snapshot")
+			m.AddParseSnapshots(ctx, domain.SourceSprut, domain.PageTypeCategory.String(), job, metrics.OutcomeParseError, "", 1)
+			continue
+		}
+		m.AddParseSnapshots(ctx, domain.SourceSprut, domain.PageTypeCategory.String(), job, metrics.OutcomeParsed, "", 1)
+
+		listingCount := 0
+		paginationCount := 0
+		if links != nil {
+			listingCount = len(links.ListingURLs)
+			paginationCount = len(links.PaginationURLs)
+			for _, listingURL := range links.ListingURLs {
+				if err := taskRepo.CreateTask(domain.SourceSprut, domain.PageTypeListing.String(), listingURL); err != nil {
+					snapshotLog.Error().Err(err).Str("url", listingURL).Msg("failed to create sprut listing task")
+				} else {
+					savedListings++
+				}
+			}
+			if !listingsOnly {
+				for _, pageURL := range links.PaginationURLs {
+					if err := taskRepo.CreateTask(domain.SourceSprut, domain.PageTypeCategory.String(), pageURL); err != nil {
+						snapshotLog.Error().Err(err).Str("url", pageURL).Msg("failed to create sprut category pagination task")
+					} else {
+						paginationTasks++
+					}
+				}
+			}
+		}
+
+		snapshotLog.Info().
+			Int("snapshot_id", snapshot.ID).
+			Str("category_url", snapshot.PageURL).
+			Int("listings_found", listingCount).
+			Int("listings_saved", listingCount).
+			Int("pagination_pages", paginationCount).
+			Msg("sprut category parsed")
+	}
+
+	logger.Info().
+		Str("job", job).
+		Str("source", domain.SourceSprut).
+		Int("categories_parsed", len(snapshots)).
+		Int("listings_saved_total", savedListings).
+		Int("pagination_tasks", paginationTasks).
+		Msg("sprut category parse summary")
 
 	return savedListings
 }

@@ -59,10 +59,7 @@ func newSource(name string, cfg config.Config, log zerolog.Logger) (Source, erro
 	case domain.SourceApifyYandexMarket:
 		return newApify(cfg, log), nil
 	case domain.SourceSprut:
-		return Sprut{Base: Base{
-			name:    domain.SourceSprut,
-			scraper: newSprutScraper(cfg),
-		}}, nil
+		return newSprut(cfg, log), nil
 	default:
 		return nil, fmt.Errorf("unknown source %q", name)
 	}
@@ -101,10 +98,3 @@ func (r Registry) inOrder() []Source {
 
 // Printer is a no-op discovery source (debug).
 type Printer struct{ Base }
-
-// Sprut has no bootstrap; tasks come from DB manually.
-type Sprut struct{ Base }
-
-func newSprutScraper(cfg config.Config) scraper.Scraper {
-	return newSprutScraperImpl(cfg)
-}

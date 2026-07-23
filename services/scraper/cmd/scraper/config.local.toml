@@ -1,9 +1,10 @@
 [database]
+# Pipeline catalog DB на localhost:5432 (catalog-postgresql из docker-compose.pipeline.yaml)
 host = "localhost"
 port = 5432
 user = "catalog"
 password = "catalog"
-dbname = "catalog"
+dbname = "smart_home"
 sslmode = "disable"
 
 [scraping]
@@ -17,9 +18,10 @@ wb_session_path = "./session.json"
 wb_rps = 50
 
 [wildberries.discovery]
-discovery_text_queries = ["умная лампа яндекс"]
-max_pages = 1
-url_template = "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=model_distance_deboost_on&appType=1&curr=rub&dest=123589415&hide_vflags=4294967296&lang=ru&locale=ru&page={page}&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false"
+discovery_text_queries = ["умный дом", "zigbee датчик"]
+max_pages = 5
+url_template = "https://catalog.wb.ru/catalog/electronic15/search?appType=1&curr=rub&dest=-1257786&query={query}&page={page}"
+
 [wildberries]
 category_url = "https://www.wildberries.ru/catalog/elektronika/umnyy-dom"
 brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
@@ -27,3 +29,88 @@ smart_home_device_markers = ["Алиса", "Маруся", "Экосистема
 
 [yandex]
 supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"
+
+[dns]
+discovery_seeds = [
+  "https://www.dns-shop.ru/catalog/9bbe8fe270e7c3ae/umnaa-tehnika/",
+]
+search_queries = []
+max_pages = 1
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+# true = системный Chrome с отдельным профилем (обходит Qrator на dev). false = headless (Docker/CI).
+browser_user_mode = true
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk", "moes" = "moes" }
+smart_home_device_markers = [
+  "Алиса", "Маруся", "Zigbee", "умный дом",
+  "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн"
+]
+
+# Per-job filters by source name ([jobs.scrape_discovery.dns], …).
+# tracked_page_ids — (опционально) tracked_pages.id; для scrape и parse (все снимки страницы).
+# page_snapshot_ids — (опционально) page_snapshots.id; только parse, конкретный снимок.
+# url_contains — (опционально) подстрока в URL.
+# scraped_after / scraped_before — (опционально) когда снимок/последний scrape (см. ниже).
+# created_after / created_before — (опционально) только scrape: tracked_pages.first_seen_at.
+# limit — (опционально) макс. задач/снимков на source после фильтра; 0 = без лимита.
+# discovery_bootstrap — (опционально) только scrape --discovery: "seed" | "db".
+#
+# Все source, по 5 listing: cmd/scraper/config.local7.toml
+
+[jobs.scrape_discovery.dns]
+discovery_bootstrap = ["db"]
+
+[jobs.parse_discovery.dns]
+limit = 20
+# tracked_page_ids = [42, 99]
+url_contains = ["datchik", "zigbee", "umnyj-dom", "sensor", "gateway", "hub"]
+
+[jobs.scrape.dns]
+limit = 10
+url_contains = ["datchik", "zigbee", "sensor", "gateway", "robot-pylesos", "umnyj"]
+
+[jobs.parse.dns]
+limit = 10
+url_contains = ["datchik", "zigbee", "sensor", "gateway", "robot-pylesos", "umnyj"]
+# scraped_after = 2026-06-01T00:00:00+03:00
+# scraped_before = 2026-06-29T23:59:59+03:00
+
+# Шаблон нового source (не подключён в CLI, см. internal/parsers/example/doc.go)
+#
+# --- Pattern A1: корень каталога → BFS (как DNS discovery_seeds) ---
+# discovery_seeds = ["https://shop.example/catalog/"]
+#
+# --- Pattern A2: поиск, отдельно от BFS (как DNS search_queries; в parse пока не доведён) ---
+# search_queries = ["zigbee"]
+# search_url_template = "https://shop.example/search?q={query}&page={page}"
+#
+# --- Pattern B: текст + API-шаблон (как Wildberries) ---
+# discovery_text_queries = ["умный дом"]
+# discovery_url_template = "https://api.shop.example/search?query={query}&page={page}"
+# max_pages = 5
+#
+# --- (опционально) Без discovery: фиксированные category / listing ---
+# category_urls = ["https://shop.example/catalog/smart-home/"]  # массив; WB сейчас — одна category_url
+# listing_urls = ["https://shop.example/product/1/"]
+# brand_aliases = { "яндекс" = "yandex" }                     # (опционально) для listing parse
+#
+# [jobs.scrape_discovery.example]
+# discovery_bootstrap = ["seed", "db"]
+# limit = 0
+# tracked_page_ids = []
+# url_contains = []
+#
+# [jobs.parse_discovery.example]
+# limit = 20
+# tracked_page_ids = [42]        # опционально: страница
+# page_snapshot_ids = [9001]     # опционально: точечно снимок (если несколько scrape одной страницы)
+# url_contains = ["datchik", "zigbee"]
+#
+# [jobs.scrape.example]
+# limit = 10
+# tracked_page_ids = []
+# url_contains = ["sensor"]
+#
+# [jobs.parse.example]
+# limit = 10
+# tracked_page_ids = []
+# url_contains = ["sensor"]

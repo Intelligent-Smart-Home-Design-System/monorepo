@@ -13,8 +13,8 @@ type ArchiveFile struct {
 	Data []byte
 }
 
-// decompresses a .tar.gz blob and returns all contained files
-func extractArchive(raw []byte) ([]*ArchiveFile, error) {
+// ExtractArchive decompresses a .tar.gz snapshot blob and returns all contained files.
+func ExtractArchive(raw []byte) ([]*ArchiveFile, error) {
 	gr, err := gzip.NewReader(bytes.NewReader(raw))
 	if err != nil {
 		return nil, fmt.Errorf("gzip reader: %w", err)

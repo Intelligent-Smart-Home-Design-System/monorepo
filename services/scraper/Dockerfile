@@ -1,23 +1,32 @@
-# syntax=docker/dockerfile:1
+# Build from monorepo root:
+#   docker build -f services/scraper/Dockerfile -t scraper:latest .
 
-FROM golang:1.25
+FROM golang:1.25 AS build
+WORKDIR /src
 
-# Set destination for COPY
-WORKDIR /app
+COPY shared/telemetry/go/go.mod shared/telemetry/go/go.sum ./shared/telemetry/go/
+COPY services/scraper/go.mod services/scraper/go.sum ./services/scraper/
 
-# Download Go modules
-COPY go.mod go.sum ./
+WORKDIR /src/services/scraper
 RUN go mod download
 
-# Copy the source code. Note the slash at the end, as explained in
-# https://docs.docker.com/reference/dockerfile/#copy
-COPY cmd/ ./cmd/
-COPY internal/ ./internal/
+WORKDIR /src
+COPY shared/ ./shared/
+COPY services/scraper/ ./services/scraper/
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /scraper ./cmd/scraper/
+WORKDIR /src/services/scraper
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/scraper ./cmd/scraper/
+
+FROM golang:1.25
+WORKDIR /app
+
+COPY --from=build /out/scraper /scraper
+COPY services/scraper/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
+    chromium \
+    xvfb \
     libnss3 \
     libxss1 \
     libasound2t64 \
@@ -26,7 +35,9 @@ RUN apt-get update && \
     libgbm1 \
     ca-certificates \
     dumb-init \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# metrics (8080) and healthcheck (9090)
+ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 EXPOSE 8080 9090

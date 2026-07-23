@@ -1,0 +1,56 @@
+# Artifacts: testdata/wb-smoke-dump/step03-category.html, step05-discovery-page_1.json
+# Рабочая директория: services/scraper
+#
+# ── Порядок микрошагов ─────────────────────────────────────────────────────
+#   .\scripts\test-wb-smoke.ps1 -Step 1   # конфиг + пути
+#   .\scripts\test-wb-smoke.ps1 -Step 2   # session.json свежий
+#   go run ./cmd/wbsession -config cmd/scraper/config.wb-smoke.toml   # если шаг 2 упал
+#   .\scripts\test-wb-smoke.ps1 -Step 3   # category HTML по HTTP
+#   .\scripts\test-wb-smoke.ps1 -Step 4   # Chrome warmup
+#   .\scripts\test-wb-smoke.ps1 -Step 5   # discovery __internal API
+#   .\scripts\test-wb-smoke.ps1 -E2E      # все шаги подряд
+#
+# ── Прокси (24h mobile, Megafon) — секреты только в env ───────────────────
+#   Вставь ЛОГИН и ПАРОЛЬ из личного кабинета провайдера (НЕ буквальный USER:PASS из примеров):
+#   $env:SCRAPER_SCRAPING_PROXY = "http://iparchitect_XXXXX:YOUR_PASSWORD@188.143.169.27:30151"
+#   Проверка: go run ./cmd/proxycheck -config cmd/scraper/config.wb-smoke.toml
+#
+# ── Пути (относительно этого файла = cmd/scraper/) ────────────────────────
+#   session.json          → cmd/scraper/session.json
+#   browser-profile/      → cmd/scraper/browser-profile/  (опционально)
+#
+# Абсолютный путь тоже OK, например:
+#   wb_session_path = "C:/Users/you/monorepo/services/scraper/cmd/scraper/session.json"
+
+[scraping]
+max_retries = 2
+rate_limit_rps = 1.0
+timeout = "120s"
+wb_card_basket = "01"
+wb_rps = 1
+wb_session_path = "session.json"
+wb_session_max_age = "30m"
+proxy = ""
+
+# User-Agent для HTTP-запросов (должен совпадать с тем, под которым майнили session, если WB режет).
+# Mobile (типично для мобильного прокси / Megafon):
+user_agent = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+# Desktop Windows:
+# user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+# Desktop macOS:
+# user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+[wildberries]
+browser_user_mode = true
+# Пусто = %LOCALAPPDATA%\rod\wildberries-chrome (Windows) / ~/Library/Caches/rod/... (macOS)
+browser_profile_dir = ""
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+smart_home_device_markers = ["Алиса", "Маруся", "Zigbee", "умный дом", "Matter"]
+
+[wildberries.category]
+category_url = "https://www.wildberries.ru/catalog/elektronika/umnyy-dom"
+
+[wildberries.discovery]
+discovery_text_queries = ["умный дом"]
+max_pages = 1
+url_template = "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=model_distance_deboost_on&appType=1&curr=rub&dest=123589415&hide_vflags=4294967296&lang=ru&locale=ru&page={page}&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false"

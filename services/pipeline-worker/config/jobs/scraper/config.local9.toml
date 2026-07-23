@@ -1,0 +1,98 @@
+# Short WB + DNS run for pipeline-trigger (Docker).
+# ≤3 tasks/snapshots per job; discovery → listing only (no sprut/yandex).
+#
+# Before trigger:
+#   1) cp services/scraper/cmd/scraper/session.json services/pipeline-worker/config/jobs/scraper/session.json
+#   2) make pipeline-build && make pipeline-up   (or make pipeline-stack-up)
+#   3) make pipeline-trigger
+#
+# Temporal UI: http://localhost:8088  |  Grafana: http://localhost:3000
+#
+# Adjust day window if DB already has data from earlier today:
+#   created_after / scraped_after = midnight MSK (+03:00)
+
+[database]
+host = "catalog-postgresql"
+port = 5432
+user = "catalog"
+password = "catalog"
+dbname = "smart_home"
+sslmode = "disable"
+
+[scraping]
+max_retries = 2
+rate_limit_rps = 2.0
+timeout = "90s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+proxy = ""
+wb_card_basket = "01"
+wb_session_path = "./session.json"
+wb_rps = 2
+
+[wildberries.discovery]
+discovery_text_queries = ["умный дом"]
+max_pages = 1
+url_template = "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=model_distance_deboost_on&appType=1&curr=rub&dest=123589415&hide_vflags=4294967296&lang=ru&locale=ru&page={page}&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false"
+
+[wildberries]
+browser_user_mode = false
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+smart_home_device_markers = ["Алиса", "Маруся", "Экосистема умного дома", "Zigbee", "умный дом"]
+
+[yandex]
+supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"
+
+[dns]
+discovery_seeds = [
+  "https://www.dns-shop.ru/catalog/9bbe8fe270e7c3ae/umnaa-tehnika/",
+]
+search_queries = []
+max_pages = 1
+max_bfs_fetches = 5
+browser_user_mode = false
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk", "moes" = "moes" }
+smart_home_device_markers = [
+  "Алиса", "Маруся", "Zigbee", "умный дом",
+  "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн"
+]
+
+# --- Discovery scrape ---
+
+[jobs.scrape_discovery.wildberries]
+discovery_bootstrap = ["seed", "db"]
+created_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+[jobs.scrape_discovery.dns]
+discovery_bootstrap = ["seed"]
+created_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+# --- Discovery parse ---
+
+[jobs.parse_discovery.wildberries]
+scraped_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+[jobs.parse_discovery.dns]
+scraped_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+# --- Listing scrape / parse ---
+
+[jobs.scrape.wildberries]
+created_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+[jobs.scrape.dns]
+created_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+[jobs.parse.wildberries]
+scraped_after = 2026-07-08T00:00:00+03:00
+limit = 3
+
+[jobs.parse.dns]
+scraped_after = 2026-07-08T00:00:00+03:00
+limit = 3

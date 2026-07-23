@@ -44,7 +44,7 @@ type CameraFilter struct {
 	NightVision bool    `json:"night_vision,omitempty"`
 	Resolution  string  `json:"resolution,omitempty"`
 
-	RecommendedRangeMM float64      `json:"recommended_range_mm,omitempty"`
+	RecommendedRangeMM float64 `json:"recommended_range_mm,omitempty"`
 }
 
 type SmartSirenFilter struct {
@@ -93,7 +93,7 @@ type SmartFloorThermostatFilter struct {
 type FloorTemperatureSensorFilter struct {
 	CableLength float64 `json:"cable_length,omitempty"`
 }
-  
+
 type RobotVacuumFilter struct {
 	NoiseLevelDB          float64 `json:"noise_level_db,omitempty"`
 	SuctionPowerPA        float64 `json:"suction_power_pa,omitempty"`
@@ -165,8 +165,8 @@ func GetCertainFilter(deviceType string, filters interface{}) (DeviceFilter, err
 		filter = &SmartFloorThermostatFilter{}
 	case "floor_temperature_sensor":
 		filter = &FloorTemperatureSensorFilter{}
-    
-  // Household-устройства
+
+		// Household-устройства
 	case "robot_vacuum":
 		filter = &RobotVacuumFilter{}
 

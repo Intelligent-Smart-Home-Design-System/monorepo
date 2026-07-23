@@ -10,6 +10,7 @@ import (
 	"slices"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	"net/url"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
@@ -17,6 +18,9 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scraper"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/printer"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/apify"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/ozon"
+	dnsScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/dns"
 	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 	yandexScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/yandex"
 )
@@ -66,6 +70,18 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 	taskRepo := repository.NewTrackedPageRepo(db)
 	snapshotRepo := repository.NewSnapshotRepo(db, logger)
 
+	if len(cfg.Dns.SearchQueries) > 0 {
+    for _, query := range cfg.Dns.SearchQueries {
+        for page := 1; page <= cfg.Dns.MaxPages; page++ {
+            encodedQuery := url.QueryEscape(query)
+            searchURL := fmt.Sprintf("https://www.dns-shop.ru/search/?q=%s&page=%d", encodedQuery, page)
+            if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeDiscovery.String(), searchURL); err != nil {
+                logger.Error().Err(err).Str("query", query).Int("page", page).Msg("failed to create DNS discovery task")
+            }
+        }
+    }
+}
+
 	printerScraper := printer.NewPrinterScraper()
 	wildberriesScraper := wbScraper.NewScraper(
 		logger,
@@ -90,12 +106,34 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 		}
 	}
 
+	dnsScraperInstance := dnsScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Dns.UserAgent)
+
 	yandexScraperInstance := yandexScraper.NewScraper(cfg.Scraping.Timeout, cfg.Scraping.Proxy, cfg.Scraping.RateLimitRps)
+
+	apifyScraper := apify.NewScraper(
+		cfg.Scraping.Timeout,
+		cfg.Scraping.Proxy,
+		cfg.Apify.APIKey,
+		cfg.Apify.ActorID,
+		cfg.Apify.Region,
+		cfg.Apify.MaxItems,
+	)
+
+	ozonScraper := ozon.NewScraper(
+		cfg.Scraping.Timeout,
+		cfg.Scraping.Proxy,
+		cfg.Ozon.APIKey,
+		cfg.Ozon.MaxItems,
+	)
+
 
 	sourceToScraper := map[string]scraper.Scraper{
 		domain.SourcePrinter:     printerScraper,
 		domain.SourceWildberries: wildberriesScraper,
 		domain.SourceYandex:      yandexScraperInstance,
+		domain.SourceDns:         dnsScraperInstance,
+		domain.SourceApifyYandexMarket:    apifyScraper,
+		domain.SourceOzon:        ozonScraper,
 	}
 
 	resultsCh := make(chan domain.ScrapeResult)
@@ -146,6 +184,27 @@ func scrape(ctx context.Context, cfgFile string, sources, pageTypes []string, di
 						logger.Debug().Str("url", t.URL).Msg("deleted discovery task (no queries in config)")
 					}
 				}
+			}
+		}
+	}
+
+	if len(cfg.Apify.SearchQueries) > 0 {
+		for _, query := range cfg.Apify.SearchQueries {
+			if err := taskRepo.CreateTask(domain.SourceApifyYandexMarket, domain.PageTypeDiscovery.String(), query); err != nil {
+				logger.Error().Err(err).Str("query", query).Msg("failed to create Apify discovery task")
+			} else {
+				logger.Debug().Str("query", query).Msg("created Apify discovery task")
+			}
+		}
+	}
+
+	if len(cfg.Ozon.SearchQueries) > 0 {
+		for _, query := range cfg.Ozon.SearchQueries {
+			discoveryURL := fmt.Sprintf("ozon://discovery/%s", query)
+			if err := taskRepo.CreateTask(domain.SourceOzon, domain.PageTypeDiscovery.String(), discoveryURL); err != nil {
+				logger.Error().Err(err).Str("query", query).Msg("failed to create Ozon discovery task")
+			} else {
+				logger.Debug().Str("query", query).Msg("created Ozon discovery task")
 			}
 		}
 	}

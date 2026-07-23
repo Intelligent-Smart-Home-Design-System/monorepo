@@ -1,0 +1,47 @@
+[database]
+host = "localhost"
+port = 5432
+user = "scraper"
+password = "1234"
+dbname = "scraper_db"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 2.0
+timeout = "60s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+proxy = ""
+wb_card_basket = "01"
+wb_session_path = "./session.json"
+
+[wildberries.discovery]
+discovery_text_queries = ["умный дом", "zigbee датчик"]
+max_pages = 5
+url_template = "https://catalog.wildberries.ru/api/v5/search?q={query}&page={page}"
+
+[wildberries]
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+smart_home_device_markers = ["Алиса", "Маруся", "Экосистема умного дома", "Zigbee", "умный дом"]
+
+[yandex]
+supported_zigbee_devices_url = "https://alice.yandex.ru/support/ru/smart-home/supported-zigbee-devices"
+
+[dns]
+search_queries = ["умный дом", "zigbee"]
+max_pages = 2
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+[apify]
+api_key = ""
+actor_id = "zen-studio/yandex-market-scraper-parser"
+region = 213
+max_items = 1
+search_queries = ["умный дом"]
+
+[ozon]
+api_key = ""
+actor_id = "zen-studio/ozon-scraper-pro"
+region = 1
+max_items = 1
+search_queries = ["умный дом"]

@@ -59,7 +59,7 @@ func (w *Worker[T]) Parse(ctx context.Context) []T {
 			if ctx.Err() != nil {
 				return results
 			}
-			files, err := extractArchive(snapshot.WARCBundle)
+			files, err := ExtractArchive(snapshot.WARCBundle)
 			if err != nil {
 				w.logger.Error().Err(err).Int("snapshot_id", snapshot.ID).Msg("failed to extract archive")
 				continue

@@ -679,7 +679,7 @@ export default function SimulationPage() {
 
     return ids.map((id) => ({
       id,
-      name: externalDeviceMap.get(id)?.name,
+      name: deviceNames[id],
       type: externalDeviceMap.get(id)?.type,
       status:
         activeNodes.includes(id) ||
@@ -688,7 +688,7 @@ export default function SimulationPage() {
           ? "active"
           : "idle",
     }));
-  }, [placedDeviceIds, activeNodes, manualDeviceState, motionActiveDeviceIds, externalDeviceMap]);
+  }, [placedDeviceIds, activeNodes, manualDeviceState, motionActiveDeviceIds, externalDeviceMap, deviceNames]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1688,7 +1688,9 @@ export default function SimulationPage() {
                   <div className="device-list">
                     {devicesForPlan.map((d) => (
                       <div key={d.id} className="device-row">
-                        <div className="device-id">{d.id}</div>
+                        <div className="device-id" title={d.name ? d.id : undefined}>
+                          {d.name ?? d.id}
+                        </div>
                         <div className="device-status">{d.status}</div>
                       </div>
                     ))}
@@ -1705,7 +1707,9 @@ export default function SimulationPage() {
                     {recentEvents.map((event) => (
                       <div className="event-mini-row" key={event.id}>
                         <span>{event.ts}</span>
-                        <strong>{event.device}</strong>
+                        <strong title={deviceNames[event.device] ? event.device : undefined}>
+                          {deviceNames[event.device] ?? event.device}
+                        </strong>
                         <small>{event.message}</small>
                       </div>
                     ))}

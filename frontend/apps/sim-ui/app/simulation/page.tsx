@@ -73,6 +73,8 @@ type LayoutDeviceConfig = {
 
 const PLAN_STORAGE_KEY = "simulation-plan-layout";
 const FLOOR_STORAGE_KEYS = ["simulation-floor", "planner-floor-json", "parsed-floor", "floor-json"];
+const DEVICE_STORAGE_KEY = "simulation-devices";
+const LEGACY_DEVICE_STORAGE_KEYS = ["sim-devices", "selectedDevices", "selected-devices"];
 const HEARTBEAT_INTERVAL_MS = 25_000;
 const CONNECTION_STALE_MS = 60_000;
 const SIM_DEPENDENCIES = dependencyConfig as DependencyConfig;
@@ -225,9 +227,11 @@ function normalizeExternalDevice(raw: unknown): ExternalDevice | null {
 function loadExternalDevicesFromStorage(): ExternalDevice[] {
   if (typeof window === "undefined") return [];
 
+  const hasDevicesInUrl = new URLSearchParams(window.location.search).has("devices");
   const fromUrl = loadExternalDevicesFromUrl();
-  if (fromUrl.length) {
-    writeStorage("simulation-devices", JSON.stringify(fromUrl));
+  if (hasDevicesInUrl) {
+    writeStorage(DEVICE_STORAGE_KEY, JSON.stringify(fromUrl));
+    LEGACY_DEVICE_STORAGE_KEYS.forEach(removeStorage);
     try {
       const params = new URLSearchParams(window.location.search);
       params.delete("devices");
@@ -239,34 +243,44 @@ function loadExternalDevicesFromStorage(): ExternalDevice[] {
     return fromUrl;
   }
 
-  const keys = ["simulation-devices", "sim-devices", "selectedDevices", "selected-devices", "devices"];
-  const seen = new Set<string>();
-  const devices: ExternalDevice[] = [];
+  const canonicalDevices = readStorage(DEVICE_STORAGE_KEY);
+  if (canonicalDevices !== null) {
+    return parseStoredDevices(canonicalDevices);
+  }
 
-  keys.forEach((key) => {
-    try {
-      const raw = readStorage(key);
-      if (!raw) return;
+  for (const key of LEGACY_DEVICE_STORAGE_KEYS) {
+    const raw = readStorage(key);
+    if (!raw) continue;
 
-      const parsed = JSON.parse(raw) as unknown;
-      const list = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === "object" && Array.isArray((parsed as { devices?: unknown[] }).devices)
-        ? (parsed as { devices: unknown[] }).devices
-        : [];
+    const devices = parseStoredDevices(raw);
+    if (!devices.length) continue;
 
-      list.forEach((item) => {
-        const device = normalizeExternalDevice(item);
-        if (!device || seen.has(device.id)) return;
-        seen.add(device.id);
-        devices.push(device);
-      });
-    } catch {
-      // Ignore unrelated localStorage values from other pages.
-    }
-  });
+    writeStorage(DEVICE_STORAGE_KEY, JSON.stringify(devices));
+    return devices;
+  }
 
-  return devices;
+  return [];
+}
+
+function parseStoredDevices(raw: string): ExternalDevice[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    const list = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object" && Array.isArray((parsed as { devices?: unknown[] }).devices)
+      ? (parsed as { devices: unknown[] }).devices
+      : [];
+    const seen = new Set<string>();
+
+    return list.flatMap((item) => {
+      const device = normalizeExternalDevice(item);
+      if (!device || seen.has(device.id)) return [];
+      seen.add(device.id);
+      return [device];
+    });
+  } catch {
+    return [];
+  }
 }
 
 function loadExternalDevicesFromUrl(): ExternalDevice[] {

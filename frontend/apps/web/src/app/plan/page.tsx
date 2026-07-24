@@ -1071,25 +1071,31 @@ function simulationUrl() {
   return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
 }
 
+const SIMULATION_STORAGE_KEYS = [
+  "simulation-floor",
+  "simulation-devices",
+  "simulation-trigger-device-ids",
+  "simulation-plan-layout",
+  "simulation-plan-dependencies",
+  "sim-devices",
+  "selectedDevices",
+  "selected-devices",
+] as const;
+
+function clearPreviousSimulationState() {
+  SIMULATION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+}
+
 function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   const devices = devicesFromLayout(floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
+  clearPreviousSimulationState();
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
-  } else {
-    localStorage.removeItem("simulation-floor");
   }
-  if (devices.length) {
-    localStorage.setItem("simulation-devices", JSON.stringify(devices));
-  } else {
-    localStorage.removeItem("simulation-devices");
-  }
-  if (triggerIds.length) {
-    localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
-  } else {
-    localStorage.removeItem("simulation-trigger-device-ids");
-  }
+  localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
 
   const url = new URL(simulationUrl(), window.location.origin);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
@@ -1097,9 +1103,7 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   } else if (typeof planId === "string" && planId) {
     url.searchParams.set("workflow_id", planId);
   }
-  if (devices.length) {
-    url.searchParams.set("devices", JSON.stringify(devices));
-  }
+  url.searchParams.set("devices", JSON.stringify(devices));
   if (triggerIds.length) {
     url.searchParams.set("trigger_ids", triggerIds.join(","));
   }
@@ -1111,12 +1115,11 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown) {
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
+  clearPreviousSimulationState();
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
-  } else {
-    localStorage.removeItem("simulation-floor");
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
@@ -1310,7 +1313,11 @@ function collectSimulationFloorData(
   status: ApiPlanStatus | null,
   plan: ApiHomePlan | null
 ) {
-  const fromUpload = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
+  const fromUpload =
+    uploadedPlan?.floorJson ??
+    uploadedPlan?.parsedFloor ??
+    uploadedPlan?.floor ??
+    plan?.floor_plan;
   let floor: unknown = fromUpload ?? null;
   let zones: unknown = null;
   let layout: unknown = null;

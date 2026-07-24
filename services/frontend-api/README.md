@@ -9,6 +9,7 @@ It serves:
 - `GET /api/v1/presets`
 - `GET /api/v1/plans`
 - `POST /api/v1/plans`
+- `POST /api/v1/plans/manual`
 - `GET /api/v1/plans/{plan_id}`
 - `GET /api/v1/plans/{plan_id}/status`
 

@@ -62,9 +62,12 @@ func (s *apiServer) routes() http.Handler {
 	})
 	mux.HandleFunc("GET /api/v1/device-types", s.listDeviceTypes)
 	mux.HandleFunc("GET /api/v1/ecosystems", s.listEcosystems)
+	mux.HandleFunc("GET /api/v1/catalog/categories", s.listCatalogCategories)
+	mux.HandleFunc("GET /api/v1/catalog/products", s.listCatalogProducts)
 	mux.HandleFunc("GET /api/v1/presets", s.listPresets)
 	mux.HandleFunc("GET /api/v1/plans", s.listPlans)
 	mux.HandleFunc("POST /api/v1/plans", s.createPlan)
+	mux.HandleFunc("POST /api/v1/plans/manual", s.createManualPlan)
 	mux.HandleFunc("GET /api/v1/plans/{plan_id}", s.getPlan)
 	mux.HandleFunc("GET /api/v1/plans/{plan_id}/status", s.getPlanStatus)
 	return withCORS(mux)
@@ -228,10 +231,10 @@ func (s *apiServer) getPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var plan HomePlan
-	var requirements, bundles []byte
+	var requirements, bundles, floorPlan []byte
 	err := s.db.QueryRowContext(
 		r.Context(),
-		`SELECT id, budget, main_ecosystem_id, allowed_ecosystems, excluded_ecosystems, requirements, bundles
+		`SELECT id, budget, main_ecosystem_id, allowed_ecosystems, excluded_ecosystems, requirements, bundles, floor_plan
 		 FROM frontend_plans WHERE id = $1`,
 		planID,
 	).Scan(
@@ -242,6 +245,7 @@ func (s *apiServer) getPlan(w http.ResponseWriter, r *http.Request) {
 		pq.Array(&plan.ExcludedEcosystems),
 		&requirements,
 		&bundles,
+		&floorPlan,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "not_found", "plan not found")
@@ -258,6 +262,12 @@ func (s *apiServer) getPlan(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(bundles, &plan.Bundles); err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 		return
+	}
+	if len(floorPlan) > 0 {
+		if err := json.Unmarshal(floorPlan, &plan.FloorPlan); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, plan)
 }
@@ -764,6 +774,7 @@ type HomePlan struct {
 	ExcludedEcosystems []string      `json:"excluded_ecosystems"`
 	Requirements       []Requirement `json:"requirements"`
 	Bundles            []Bundle      `json:"bundles"`
+	FloorPlan          interface{}   `json:"floor_plan,omitempty"`
 }
 
 type Bundle struct {

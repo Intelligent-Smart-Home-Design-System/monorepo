@@ -56,7 +56,6 @@ type PipelineStatusResponse = {
   artifacts?: ApiPlanStageArtifact[] | null;
   parsed_floor_plan?: unknown;
   layout?: unknown;
-  dependencies?: Record<string, string[]> | null;
   device_selection?: unknown;
 };
 
@@ -305,13 +304,9 @@ function PlanPageContent() {
                 variant="contained"
                 onClick={() => {
                   if (selectedBundle) {
-                    openSimulation(selectedBundle, simulationFloorData, plan?.dependencies);
+                    openSimulation(selectedBundle, simulationFloorData);
                   } else {
-                    openSimulationFromPlan(
-                      hasLegacyPlanTarget ? planId : workflowId,
-                      simulationFloorData,
-                      plan?.dependencies
-                    );
+                    openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, simulationFloorData);
                   }
                 }}
                 sx={{
@@ -687,7 +682,7 @@ function PlanPageContent() {
                       <Button
                         variant="outlined"
                         disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle, simulationFloorData, plan?.dependencies)}
+                        onClick={() => openSimulation(selectedBundle, simulationFloorData)}
                         sx={{ fontWeight: 900, borderRadius: 3 }}
                       >
                         Открыть в симуляции
@@ -1076,38 +1071,31 @@ function simulationUrl() {
   return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
 }
 
-function storeSimulationDependencies(dependencies?: Record<string, string[]> | null) {
-  if (dependencies && Object.keys(dependencies).length) {
-    localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
-    return;
-  }
-  localStorage.removeItem("simulation-plan-dependencies");
+const SIMULATION_STORAGE_KEYS = [
+  "simulation-floor",
+  "simulation-devices",
+  "simulation-trigger-device-ids",
+  "simulation-plan-layout",
+  "simulation-plan-dependencies",
+  "sim-devices",
+  "selectedDevices",
+  "selected-devices",
+] as const;
+
+function clearPreviousSimulationState() {
+  SIMULATION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
 }
 
-function openSimulationFromPlan(
-  planId: number | string,
-  floor?: unknown,
-  dependencies?: Record<string, string[]> | null
-) {
+function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   const devices = devicesFromLayout(floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
+  clearPreviousSimulationState();
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
-  } else {
-    localStorage.removeItem("simulation-floor");
   }
-  if (devices.length) {
-    localStorage.setItem("simulation-devices", JSON.stringify(devices));
-  } else {
-    localStorage.removeItem("simulation-devices");
-  }
-  if (triggerIds.length) {
-    localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
-  } else {
-    localStorage.removeItem("simulation-trigger-device-ids");
-  }
-  storeSimulationDependencies(dependencies);
+  localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
 
   const url = new URL(simulationUrl(), window.location.origin);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
@@ -1115,28 +1103,30 @@ function openSimulationFromPlan(
   } else if (typeof planId === "string" && planId) {
     url.searchParams.set("workflow_id", planId);
   }
+  url.searchParams.set("devices", JSON.stringify(devices));
+  if (triggerIds.length) {
+    url.searchParams.set("trigger_ids", triggerIds.join(","));
+  }
   url.searchParams.set("returnTo", window.location.href);
   window.location.href = url.toString();
 }
 
-function openSimulation(
-  bundle: SimulationBundle,
-  floor?: unknown,
-  dependencies?: Record<string, string[]> | null
-) {
+function openSimulation(bundle: SimulationBundle, floor?: unknown) {
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
+  clearPreviousSimulationState();
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
-  storeSimulationDependencies(dependencies);
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
-  } else {
-    localStorage.removeItem("simulation-floor");
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
+  url.searchParams.set("devices", JSON.stringify(devices));
+  if (triggerIds.length) {
+    url.searchParams.set("trigger_ids", triggerIds.join(","));
+  }
   window.location.href = url.toString();
 }
 
@@ -1323,7 +1313,11 @@ function collectSimulationFloorData(
   status: ApiPlanStatus | null,
   plan: ApiHomePlan | null
 ) {
-  const fromUpload = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
+  const fromUpload =
+    uploadedPlan?.floorJson ??
+    uploadedPlan?.parsedFloor ??
+    uploadedPlan?.floor ??
+    plan?.floor_plan;
   let floor: unknown = fromUpload ?? null;
   let zones: unknown = null;
   let layout: unknown = null;
@@ -1528,7 +1522,6 @@ function pipelineResultToPlan(result: ApiPipelineResult | PipelineStatusResponse
     plan_id: 0,
     budget,
     main_ecosystem_id: "",
-    dependencies: result.dependencies ?? null,
     requirements,
     bundles: effectiveBundles,
     stages: pipelineResultToStageArtifacts(result),

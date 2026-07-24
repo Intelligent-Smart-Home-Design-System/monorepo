@@ -528,7 +528,8 @@ export default function SimulationPage() {
   const backendRunActiveRef = useRef(false);
   const shouldResumeBackendRef = useRef(false);
   const lastStartPayloadRef = useRef<ReturnType<typeof buildSimulationStartPayload> | null>(null);
-  const pendingIncidentRef = useRef<{ inputs: SimEventInput[]; onSent: () => void } | null>(null);
+  const pendingIncidentRef = useRef<{ inputs: SimEventInput[]; onQueued: () => void } | null>(null);
+  const pendingTickInputsRef = useRef<SimEventInput[]>([]);
   const wsStartAckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPongAtRef = useRef(0);
@@ -788,12 +789,22 @@ export default function SimulationPage() {
     return true;
   }
 
-  function sendSimulationTick(inputs: SimEventInput[] = []) {
+  function sendSimulationTick() {
     if (!backendRunActiveRef.current) return false;
-    wsTickRef.current += 1;
-    const sent = sendWsMessage("simulation:tick", buildTickPayload(wsTickRef.current, inputs));
+    const nextTick = wsTickRef.current + 1;
+    const sent = sendWsMessage("simulation:tick", buildTickPayload(nextTick, pendingTickInputsRef.current));
+    if (sent) {
+      wsTickRef.current = nextTick;
+      pendingTickInputsRef.current = [];
+    }
     if (sent && !pendingStepSinceRef.current) pendingStepSinceRef.current = Date.now();
     return sent;
+  }
+
+  function queueSimulationInputs(inputs: SimEventInput[]) {
+    if (!backendRunActiveRef.current) return false;
+    pendingTickInputsRef.current.push(...inputs);
+    return true;
   }
 
   function clearStartAckTimer() {
@@ -807,6 +818,7 @@ export default function SimulationPage() {
     backendRunActiveRef.current = false;
     shouldResumeBackendRef.current = false;
     pendingIncidentRef.current = null;
+    pendingTickInputsRef.current = [];
     addEvent("websocket", message, "ERROR");
     setWsError(message);
     setStatus("error");
@@ -823,7 +835,7 @@ export default function SimulationPage() {
       const connectedExecutors = planDependencies[sensorId] || [];
       const affectedDevices = [sensorId, ...connectedExecutors];
 
-      sendSimulationTick([
+      queueSimulationInputs([
         {
           kind: "human:trigger",
           entityId: "resident",
@@ -839,7 +851,7 @@ export default function SimulationPage() {
     motionTimersRef.current[sensorId] = setTimeout(() => {
       activeMotionSensorsRef.current.delete(sensorId);
       setMotionActiveDeviceIds((ids) => ids.filter((id) => id !== sensorId));
-      sendSimulationTick([
+      queueSimulationInputs([
         {
           kind: "device:trigger",
           entityId: sensorId,
@@ -858,7 +870,7 @@ export default function SimulationPage() {
     setManualDeviceState((state) => ({ ...state, [deviceId]: nextTurnOn }));
     setActiveNodes(nextTurnOn ? [deviceId] : []);
     addEvent(deviceId, nextTurnOn ? "Устройство включено вручную" : "Устройство выключено вручную", "INFO");
-    sendSimulationTick([
+    queueSimulationInputs([
       {
         kind: "human:trigger",
         entityId: "resident",
@@ -1015,7 +1027,7 @@ export default function SimulationPage() {
       addEvent("websocket", "Бэкенд запустил симуляцию", "INFO");
       const pendingIncident = pendingIncidentRef.current;
       pendingIncidentRef.current = null;
-      if (pendingIncident && sendSimulationTick(pendingIncident.inputs)) pendingIncident.onSent();
+      if (pendingIncident && queueSimulationInputs(pendingIncident.inputs)) pendingIncident.onQueued();
       return;
     }
 
@@ -1081,7 +1093,7 @@ export default function SimulationPage() {
     setFirePoint(null);
     setFireActive(false);
     setIncidentPolygons((polygons) => polygons.filter((polygon) => polygon.kind !== "fire:spread"));
-    sendSimulationTick([{ kind: "fire:spread", entityId: "fire", payload: { reset: true } }]);
+    queueSimulationInputs([{ kind: "fire:spread", entityId: "fire", payload: { reset: true } }]);
   }
 
   function resetWater() {
@@ -1089,7 +1101,7 @@ export default function SimulationPage() {
     setWaterPoint(null);
     setWaterActive(false);
     setIncidentPolygons((polygons) => polygons.filter((polygon) => polygon.kind !== "flood:spread"));
-    sendSimulationTick([{ kind: "flood:spread", entityId: "flood", payload: { reset: true } }]);
+    queueSimulationInputs([{ kind: "flood:spread", entityId: "flood", payload: { reset: true } }]);
   }
 
   function startFireAt(point: Point) {
@@ -1107,12 +1119,12 @@ export default function SimulationPage() {
       setFireActive(true);
       addEvent("fire", `Начало пожара: очаг в зоне "${room.title}"`, "WARNING");
     };
-    if (sendSimulationTick(inputs)) {
+    if (queueSimulationInputs(inputs)) {
       markFireStarted();
       return;
     }
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      pendingIncidentRef.current = { inputs, onSent: markFireStarted };
+      pendingIncidentRef.current = { inputs, onQueued: markFireStarted };
       onStart();
       return;
     }
@@ -1134,12 +1146,12 @@ export default function SimulationPage() {
       setWaterActive(true);
       addEvent("flood", `Начало потопа: вода появилась в зоне "${room.title}"`, "WARNING");
     };
-    if (sendSimulationTick(inputs)) {
+    if (queueSimulationInputs(inputs)) {
       markFloodStarted();
       return;
     }
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      pendingIncidentRef.current = { inputs, onSent: markFloodStarted };
+      pendingIncidentRef.current = { inputs, onQueued: markFloodStarted };
       onStart();
       return;
     }
@@ -1164,6 +1176,7 @@ export default function SimulationPage() {
 
     wsTickRef.current = 0;
     backendRunActiveRef.current = false;
+    pendingTickInputsRef.current = [];
     wsReqIdRef.current = `sim-ui-${Date.now()}`;
     clearStartAckTimer();
 
@@ -1201,6 +1214,7 @@ export default function SimulationPage() {
     backendRunActiveRef.current = false;
     shouldResumeBackendRef.current = false;
     pendingIncidentRef.current = null;
+    pendingTickInputsRef.current = [];
     if (shouldStopBackend) sendWsMessage("simulation:stop");
     setStatus("empty");
     setEvents([]);
@@ -1457,8 +1471,6 @@ export default function SimulationPage() {
     }, HEARTBEAT_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-    // sendWsMessage uses the current socket ref; status selects tick/step or ping/pong health checks.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   useEffect(() => {
@@ -1554,7 +1566,7 @@ export default function SimulationPage() {
                 onPlaceWater={startWaterAt}
                 onResetWater={resetWater}
                 onPersonMove={(point, devicesPayload) =>
-                  sendSimulationTick([
+                  queueSimulationInputs([
                     {
                       kind: "human:move",
                       entityId: "resident",

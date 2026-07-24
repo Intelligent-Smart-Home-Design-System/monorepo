@@ -21,6 +21,33 @@ type incidentTestBlock struct {
 	Points [][2]float64 `json:"points"`
 }
 
+// incidentBlockCount возвращает число блоков заданного incident в одном simulation:step.
+func incidentBlockCount(step api.SimulationStepPayload, entityID, kind string) (int, bool) {
+	for _, change := range step.StateChanges {
+		if change.EntityID != entityID {
+			continue
+		}
+
+		var out struct {
+			Kind      string `json:"kind"`
+			Incidents []struct {
+				Blocks []incidentTestBlock `json:"blocks"`
+			} `json:"incidents"`
+		}
+		if err := json.Unmarshal(change.Payload, &out); err != nil || out.Kind != kind {
+			continue
+		}
+
+		count := 0
+		for _, zone := range out.Incidents {
+			count += len(zone.Blocks)
+		}
+		return count, true
+	}
+
+	return 0, false
+}
+
 // dialSim устанавливает WebSocket-соединение
 func dialSim(t *testing.T, server *httptest.Server) *websocket.Conn {
 	t.Helper()
@@ -1589,6 +1616,90 @@ func TestFire_SingleRoom(t *testing.T) {
 	}
 	if !restarted {
 		t.Fatal("fire was not activated again after reset")
+	}
+}
+
+// TestFire_HumanMovementDoesNotAdvanceSpreadExtraSteps проверяет, что human:move является
+// входом текущего simulation:tick и не добавляет incident дополнительный BFS-шаг.
+func TestFire_HumanMovementDoesNotAdvanceSpreadExtraSteps(t *testing.T) {
+	server := newSimServer(t)
+	controlConn := dialSim(t, server)
+	movingConn := dialSim(t, server)
+
+	startPayload := api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorTwoRooms(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "fire_1",
+				Type: entities.TypeFire,
+				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+			},
+			{
+				ID:   "human_1",
+				Type: entities.TypeHuman,
+				Info: json.RawMessage(`{"id":"human_1","x":1.0,"y":1.0,"roomID":"room_1"}`),
+			},
+		},
+	}
+
+	const controlReqID = "sim-fire-control"
+	const movingReqID = "sim-fire-moving-human"
+	startSim(t, controlConn, controlReqID, startPayload)
+	startSim(t, movingConn, movingReqID, startPayload)
+
+	fireStartPayload, err := json.Marshal(map[string]any{
+		"kind": "fire:spread", "turn_on": true,
+		"x": 2.5, "y": 2.5, "roomID": "room_1",
+	})
+	if err != nil {
+		t.Fatalf("marshal fire input: %v", err)
+	}
+	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
+
+	for tickN := 1; tickN <= 4; tickN++ {
+		var controlInputs []api.EventDTO
+		var movingInputs []api.EventDTO
+		if tickN == 1 {
+			controlInputs = append(controlInputs, fireInput)
+			movingInputs = append(movingInputs, fireInput)
+		}
+		movingInputs = append(movingInputs, humanMoveInput(
+			t,
+			"human_1",
+			1.0+float64(tickN)*0.25,
+			1.0,
+		))
+
+		controlStep := tick(t, controlConn, controlReqID, tickN, controlInputs)
+		movingStep := tick(t, movingConn, movingReqID, tickN, movingInputs)
+
+		controlBlocks, controlFound := incidentBlockCount(controlStep, "fire_1", "fire:spread")
+		movingBlocks, movingFound := incidentBlockCount(movingStep, "fire_1", "fire:spread")
+		if !controlFound || !movingFound {
+			t.Fatalf(
+				"tick %d: missing fire snapshot (control=%t, moving=%t)",
+				tickN,
+				controlFound,
+				movingFound,
+			)
+		}
+		if movingBlocks != controlBlocks {
+			t.Fatalf(
+				"tick %d: moving human changed fire spread: got %d blocks, want %d",
+				tickN,
+				movingBlocks,
+				controlBlocks,
+			)
+		}
+		if movingStep.SimTime != controlStep.SimTime {
+			t.Fatalf(
+				"tick %d: moving human changed simulation time: got %v, want %v",
+				tickN,
+				movingStep.SimTime,
+				controlStep.SimTime,
+			)
+		}
 	}
 }
 

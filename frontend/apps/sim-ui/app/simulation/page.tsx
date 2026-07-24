@@ -415,19 +415,30 @@ function isConfigTarget(id: string, deviceTypes: Record<string, string | undefin
   return Object.values(SIM_DEPENDENCIES.triggers).some((dependency) => dependency.triggers.includes(type));
 }
 
-function buildScenarioTitle(trigger: string, target: string) {
-  const triggerKind = deviceKind(trigger);
-  const targetKind = deviceKind(target);
+function buildScenarioTitle(
+  trigger: string,
+  target: string,
+  deviceTypes: Record<string, string | undefined>,
+  deviceNames: Record<string, string>
+) {
+  const triggerKind = deviceKind(trigger, deviceTypes[trigger]);
+  const targetKind = deviceKind(target, deviceTypes[target]);
+  const triggerName = deviceNames[trigger] ?? trigger;
+  const targetName = deviceNames[target] ?? target;
 
-  if (triggerKind === "motion" && targetKind === "lamp") return `${trigger} → включить свет`;
-  if (triggerKind === "door" && targetKind === "lamp") return `${trigger} → включить свет`;
-  if (triggerKind === "door" && targetKind === "siren") return `${trigger} → тревога`;
-  if (triggerKind === "leak" && targetKind === "valve") return `${trigger} → перекрыть воду`;
-  if (triggerKind === "leak" && targetKind === "siren") return `${trigger} → аварийный сигнал`;
-  if ((triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") && targetKind === "siren") return `${trigger} → сирена`;
-  if ((triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") && targetKind === "ventilation") return `${trigger} → вентиляция`;
-  if ((triggerKind === "lux" || triggerKind === "button") && targetKind === "lamp") return `${trigger} → свет`;
-  return `${trigger} → ${target}`;
+  if (triggerKind === "motion" && targetKind === "lamp") return `${triggerName} → включить свет`;
+  if (triggerKind === "door" && targetKind === "lamp") return `${triggerName} → включить свет`;
+  if (triggerKind === "door" && targetKind === "siren") return `${triggerName} → тревога`;
+  if (triggerKind === "leak" && targetKind === "valve") return `${triggerName} → перекрыть воду`;
+  if (triggerKind === "leak" && targetKind === "siren") return `${triggerName} → аварийный сигнал`;
+  if ((triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") && targetKind === "siren") {
+    return `${triggerName} → сирена`;
+  }
+  if ((triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") && targetKind === "ventilation") {
+    return `${triggerName} → вентиляция`;
+  }
+  if ((triggerKind === "lux" || triggerKind === "button") && targetKind === "lamp") return `${triggerName} → свет`;
+  return `${triggerName} → ${targetName}`;
 }
 
 function scenarioCategoryFor(trigger: string, target: string): Scenario["category"] {
@@ -445,6 +456,7 @@ function buildPlacedScenarios(
   placedIds: string[],
   bridgeId: string | undefined,
   deviceTypes: Record<string, string | undefined>,
+  deviceNames: Record<string, string>,
   preferredTriggerIds: string[]
 ): Scenario[] {
   const placed = Array.from(new Set(placedIds));
@@ -478,7 +490,7 @@ function buildPlacedScenarios(
       const chain = bridgeId && bridgeId !== trigger && bridgeId !== target ? [trigger, bridgeId, target] : [trigger, target];
       scenarios.push({
         id: `placed_${chain.join("_to_")}`,
-        title: buildScenarioTitle(trigger, target),
+        title: buildScenarioTitle(trigger, target, deviceTypes, deviceNames),
         description: "Собрано из устройств на плане",
         chain,
         category: scenarioCategoryFor(trigger, target),
@@ -501,6 +513,13 @@ export default function SimulationPage() {
   const [externalDevices] = useState<ExternalDevice[]>(() => loadExternalDevicesFromStorage());
   const [savedPlanDevices] = useState<SavedPlanDevice[]>(() => loadSavedPlanDevices());
   const [preferredTriggerIds] = useState<string[]>(() => loadTriggerDeviceIds());
+  const currentDeviceIds = new Set([
+    ...placementMarkers.map((marker) => marker.id),
+    ...externalDevices.map((device) => device.id),
+  ]);
+  const currentSavedPlanDevices = currentDeviceIds.size
+    ? savedPlanDevices.filter((device) => currentDeviceIds.has(device.id))
+    : savedPlanDevices;
 
   const [status, setStatus] = useState<Status>("empty");
   const [speed, setSpeed] = useState<Speed>(1);
@@ -536,8 +555,11 @@ export default function SimulationPage() {
   const pendingStepSinceRef = useRef(0);
   const floorWarningsLoggedRef = useRef(false);
   const [devicePositions, setDevicePositions] = useState<DeviceMarker[]>(() => {
-    const savedMarkers = savedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
-    const knownMarkerIds = new Set([...placementMarkers.map((marker) => marker.id), ...savedPlanDevices.map((device) => device.id)]);
+    const savedMarkers = currentSavedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
+    const knownMarkerIds = new Set([
+      ...placementMarkers.map((marker) => marker.id),
+      ...currentSavedPlanDevices.map((device) => device.id),
+    ]);
     const externalMarkers = externalDevices
       .filter((device) => device.x !== undefined && device.y !== undefined && !knownMarkerIds.has(device.id))
       .map((device) => ({ id: device.id, x: device.x as number, y: device.y as number, label: device.name }));
@@ -546,7 +568,7 @@ export default function SimulationPage() {
   });
   const [placedDeviceIds, setPlacedDeviceIds] = useState<string[]>(() => {
     const placementIds = placementMarkers.map((marker) => marker.id);
-    const savedIds = savedPlanDevices.map((device) => device.id);
+    const savedIds = currentSavedPlanDevices.map((device) => device.id);
     const externalPlacedIds = externalDevices.filter((device) => device.x !== undefined && device.y !== undefined).map((device) => device.id);
     return Array.from(new Set([...placementIds, ...savedIds, ...externalPlacedIds]));
   });
@@ -608,17 +630,22 @@ export default function SimulationPage() {
   }, []);
 
   const externalDeviceMap = useMemo(() => new Map(externalDevices.map((device) => [device.id, device])), [externalDevices]);
-  const deviceNames = useMemo(
-    () => Object.fromEntries(externalDevices.flatMap((device) => (device.name ? [[device.id, device.name]] : []))),
-    [externalDevices]
-  );
+  const deviceNames = useMemo(() => {
+    const names = new Map(
+      devicePositions.flatMap((marker) => (marker.label ? [[marker.id, marker.label] as const] : []))
+    );
+    externalDevices.forEach((device) => {
+      if (device.name) names.set(device.id, device.name);
+    });
+    return Object.fromEntries(names);
+  }, [devicePositions, externalDevices]);
   const deviceTypeMap = useMemo<Record<string, string | undefined>>(() => {
     return Object.fromEntries(externalDevices.map((device) => [device.id, device.type]));
   }, [externalDevices]);
   const bridgeId = useMemo(() => placedDeviceIds.find((id) => deviceKind(id, externalDeviceMap.get(id)?.type) === "bridge"), [placedDeviceIds, externalDeviceMap]);
   const placedScenarios = useMemo(
-    () => buildPlacedScenarios(placedDeviceIds, bridgeId, deviceTypeMap, preferredTriggerIds),
-    [placedDeviceIds, bridgeId, deviceTypeMap, preferredTriggerIds]
+    () => buildPlacedScenarios(placedDeviceIds, bridgeId, deviceTypeMap, deviceNames, preferredTriggerIds),
+    [placedDeviceIds, bridgeId, deviceTypeMap, deviceNames, preferredTriggerIds]
   );
   const scenarios = useMemo<Scenario[]>(() => {
     const byId = new Map<string, Scenario>();
@@ -1497,7 +1524,9 @@ export default function SimulationPage() {
       ? "Ошибка"
       : "Готово";
   const recentEvents = events.slice(-3).reverse();
-  const activeDeviceText = activeNodes.length ? activeNodes.join(", ") : "—";
+  const activeDeviceText = activeNodes.length
+    ? activeNodes.map((deviceId) => deviceNames[deviceId] ?? deviceId).join(", ")
+    : "—";
   const wsStatusText =
     wsStatus === "connected"
       ? "Бэк подключен"
@@ -1585,7 +1614,13 @@ export default function SimulationPage() {
               />
 
               <div className="console-wrap">
-                <EventConsole title="Консоль событий" events={events} filter={filter} search={search} />
+                <EventConsole
+                  title="Консоль событий"
+                  events={events}
+                  deviceNames={deviceNames}
+                  filter={filter}
+                  search={search}
+                />
               </div>
             </div>
 
@@ -1621,7 +1656,9 @@ export default function SimulationPage() {
                 </div>
                 <div className="activity-line">
                   <span>Последнее событие</span>
-                  <strong>{lastEvent ? `${lastEvent.device}: ${lastEvent.message}` : "—"}</strong>
+                  <strong>
+                    {lastEvent ? `${deviceNames[lastEvent.device] ?? lastEvent.device}: ${lastEvent.message}` : "—"}
+                  </strong>
                 </div>
                 <div className="activity-line">
                   <span>WebSocket</span>

@@ -8,12 +8,13 @@ type Filter = "ALL" | LogLevel;
 type Props = {
   title: string;
   events: LogEvent[];
+  deviceNames?: Record<string, string>;
 
   filter?: Filter;
   search?: string;
 };
 
-export function EventConsole({ title, events, filter = "ALL", search = "" }: Props) {
+export function EventConsole({ title, events, deviceNames = {}, filter = "ALL", search = "" }: Props) {
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   const filtered = useMemo(() => {
@@ -22,9 +23,9 @@ export function EventConsole({ title, events, filter = "ALL", search = "" }: Pro
     return (events ?? []).filter((e) => {
       if (filter !== "ALL" && e.level !== filter) return false;
       if (!q) return true;
-      return `${e.device} ${e.message}`.toLowerCase().includes(q);
+      return `${deviceNames[e.device] ?? ""} ${e.device} ${e.message}`.toLowerCase().includes(q);
     });
-  }, [events, filter, search]);
+  }, [deviceNames, events, filter, search]);
 
   useEffect(() => {
     const el = boxRef.current;
@@ -48,7 +49,9 @@ export function EventConsole({ title, events, filter = "ALL", search = "" }: Pro
               <div key={e.id} className={`event-log-row event-log-${e.level.toLowerCase()}`}>
                 <span className="event-log-time">{e.ts}</span>
                 <span className="event-log-level">[{e.level}]</span>
-                <span className="event-log-device">{e.device}</span>
+                <span className="event-log-device" title={deviceNames[e.device] ? e.device : undefined}>
+                  {deviceNames[e.device] ?? e.device}
+                </span>
                 <span className="event-log-message">{e.message}</span>
               </div>
             ))}

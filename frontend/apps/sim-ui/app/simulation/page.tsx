@@ -608,6 +608,10 @@ export default function SimulationPage() {
   }, []);
 
   const externalDeviceMap = useMemo(() => new Map(externalDevices.map((device) => [device.id, device])), [externalDevices]);
+  const deviceNames = useMemo(
+    () => Object.fromEntries(externalDevices.flatMap((device) => (device.name ? [[device.id, device.name]] : []))),
+    [externalDevices]
+  );
   const deviceTypeMap = useMemo<Record<string, string | undefined>>(() => {
     return Object.fromEntries(externalDevices.map((device) => [device.id, device.type]));
   }, [externalDevices]);
@@ -1521,6 +1525,7 @@ export default function SimulationPage() {
             selectedScenarioIds={selectedScenarioIds}
             placedDeviceIds={placedDeviceIds}
             availableDeviceIds={availableDeviceIds}
+            deviceNames={deviceNames}
             onPlaceDevice={onPlaceDevice}
             runMode={runMode}
             onSetRunMode={setRunMode}

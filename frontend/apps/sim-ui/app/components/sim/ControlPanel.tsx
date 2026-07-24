@@ -35,6 +35,7 @@ type Props = {
   selectedScenarioIds: string[];
   placedDeviceIds: string[];
   availableDeviceIds: string[];
+  deviceNames: Record<string, string>;
   onPlaceDevice: (id: string) => void;
   runMode: RunMode;
   onSetRunMode: (v: RunMode) => void;
@@ -61,6 +62,7 @@ export function ControlPanel(props: Props) {
     selectedScenarioIds,
     placedDeviceIds,
     availableDeviceIds,
+    deviceNames,
     onPlaceDevice,
     runMode,
     onSetRunMode,
@@ -231,6 +233,7 @@ export function ControlPanel(props: Props) {
           <div className="device-palette no-scrollbar">
             {availableDevices.map((id) => {
               const placed = placedSet.has(id);
+              const name = deviceNames[id] || id;
               return (
                 <div
                   key={id}
@@ -252,9 +255,13 @@ export function ControlPanel(props: Props) {
                       if (!placed) onPlaceDevice(id);
                     }
                   }}
-                  title={placed ? "Устройство уже на плане" : "Перетащи на план или кликни, чтобы поставить автоматически"}
+                  title={
+                    placed
+                      ? `${name} (${id}) уже на плане`
+                      : `${name} (${id}): перетащи на план или кликни, чтобы поставить автоматически`
+                  }
                 >
-                  <span>{id}</span>
+                  <span>{name}</span>
                   <small>{placed ? "на плане" : "перетащить / клик"}</small>
                 </div>
               );

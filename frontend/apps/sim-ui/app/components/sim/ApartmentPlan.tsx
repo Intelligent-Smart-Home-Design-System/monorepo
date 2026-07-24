@@ -1139,6 +1139,7 @@ export function ApartmentPlan({
 
           {devices.map((d) => {
             const pos = positionForDevice(d.id);
+            const name = d.name || markerMap.get(d.id)?.label || d.id;
             const isLightActive = isLightDevice(d.id) && (deviceMap.get(d.id) === "active" || activeSet.has(d.id));
             return (
               <div
@@ -1147,7 +1148,7 @@ export function ApartmentPlan({
                 data-testid={`device-${d.id}`}
                 data-device-state={deviceMap.get(d.id) ?? "idle"}
                 style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
-                title={d.id}
+                title={name === d.id ? d.id : `${name} (${d.id})`}
                 onPointerDown={(e) => {
                   if (!onMoveDevice) return;
                   e.preventDefault();
@@ -1161,12 +1162,12 @@ export function ApartmentPlan({
                   onDeviceTrigger?.(d.id);
                 }}
               >
-                <span className="marker-label">{d.id}</span>
+                <span className="marker-label">{name}</span>
                 {onRemoveDevice && (
                   <button
                     type="button"
                     className="device-remove-button"
-                    aria-label={`Убрать ${d.id} с плана`}
+                    aria-label={`Убрать ${name} с плана`}
                     title="Убрать с плана"
                     onPointerDown={(e) => {
                       e.preventDefault();

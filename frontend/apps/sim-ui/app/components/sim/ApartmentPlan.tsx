@@ -113,6 +113,9 @@ export function ApartmentPlan({
   const lastDevice = lastEvent?.device ?? null;
   const roomMap = new Map(rooms.map((r) => [r.id, r]));
   const markerMap = new Map(markers.map((m) => [m.id, m]));
+  const deviceNameMap = new Map(
+    devices.map((device) => [device.id, device.name || markerMap.get(device.id)?.label || device.id])
+  );
   const chainSet = new Set(chains.flatMap((c) => c.chain));
   const activeSet = new Set(activeNodes);
   const floorViewBox = floorPlan?.walls?.viewBox ?? floorPlan?.doors?.viewBox ?? { width: 1000, height: 700 };
@@ -1189,7 +1192,11 @@ export function ApartmentPlan({
         </div>
 
         <div className="console-surface mt-4 rounded-2xl px-4 py-3 font-mono text-base text-white/80">
-          {chains.length ? chains.map((c) => c.chain.join(" → ")).join(" | ") : "—"}
+          {chains.length
+            ? chains
+                .map((chain) => chain.chain.map((deviceId) => deviceNameMap.get(deviceId) ?? deviceId).join(" → "))
+                .join(" | ")
+            : "—"}
         </div>
       </div>
     </section>

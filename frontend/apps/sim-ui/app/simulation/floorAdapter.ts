@@ -75,7 +75,15 @@ type LocalFloor = {
   furniture?: FloorPolygonLayer;
   zones?: ParserZone[];
   blockers?: WallSegment[];
-  devices?: Array<{ id: string; x: number; y: number; roomId?: string }>;
+  devices?: Array<{
+    id: string;
+    x: number;
+    y: number;
+    roomId?: string;
+    name?: string;
+    type?: string;
+    device_type?: string;
+  }>;
 };
 
 type LayoutPlacement = {
@@ -430,6 +438,7 @@ function adaptParserFloor(raw: ParserFloor, fallbackRooms: Room[]): AdaptedFloor
 function adaptLocalFloor(raw: unknown, fallbackRooms: Room[], fallbackMarkers: DeviceMarker[]): AdaptedFloor {
   const floor = asLocalFloor(raw);
   const markersFromLayout = layoutMarkers(raw);
+  const layoutMarkerMap = new Map(markersFromLayout.map((marker) => [marker.id, marker]));
   const warnings = validateScale(
     [
       ...(floor.rooms?.flatMap((room) => [
@@ -445,7 +454,12 @@ function adaptLocalFloor(raw: unknown, fallbackRooms: Room[], fallbackMarkers: D
     source: "local",
     rooms: floor.rooms?.length ? floor.rooms : fallbackRooms,
     markers: floor.devices?.length
-      ? floor.devices.map((device) => ({ id: device.id, x: device.x, y: device.y }))
+      ? floor.devices.map((device) => ({
+          id: device.id,
+          x: device.x,
+          y: device.y,
+          label: device.name || device.type || device.device_type || layoutMarkerMap.get(device.id)?.label,
+        }))
       : markersFromLayout.length
       ? markersFromLayout
       : fallbackMarkers,

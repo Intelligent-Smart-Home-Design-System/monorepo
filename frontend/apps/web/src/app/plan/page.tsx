@@ -1072,10 +1072,23 @@ function simulationUrl() {
 }
 
 function openSimulationFromPlan(planId: number | string, floor?: unknown) {
+  const devices = devicesFromLayout(floor);
+  const triggerIds = triggerDeviceIdsFromDevices(devices);
+
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   } else {
     localStorage.removeItem("simulation-floor");
+  }
+  if (devices.length) {
+    localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  } else {
+    localStorage.removeItem("simulation-devices");
+  }
+  if (triggerIds.length) {
+    localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
+  } else {
+    localStorage.removeItem("simulation-trigger-device-ids");
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
@@ -1083,6 +1096,12 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
     url.searchParams.set("plan_id", String(planId));
   } else if (typeof planId === "string" && planId) {
     url.searchParams.set("workflow_id", planId);
+  }
+  if (devices.length) {
+    url.searchParams.set("devices", JSON.stringify(devices));
+  }
+  if (triggerIds.length) {
+    url.searchParams.set("trigger_ids", triggerIds.join(","));
   }
   url.searchParams.set("returnTo", window.location.href);
   window.location.href = url.toString();

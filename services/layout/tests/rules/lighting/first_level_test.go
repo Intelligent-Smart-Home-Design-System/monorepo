@@ -75,10 +75,10 @@ func TestLightingLevel1(t *testing.T) {
 	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
 	assert.NoError(t, err)
 
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r1"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r2"))
-	assert.False(t, layout.HasDeviceInRoom("smart_bulb", "r3"))
-	assert.False(t, layout.HasDeviceInRoom("smart_bulb", "r4"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r1"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r2"))
+	assert.False(t, layout.HasDeviceInRoom("smart_lamp", "r3"))
+	assert.False(t, layout.HasDeviceInRoom("smart_lamp", "r4"))
 }
 
 func TestLightingLevel1PriceCalculation(t *testing.T) {
@@ -126,7 +126,7 @@ func TestLightingLevel1PriceCalculation(t *testing.T) {
 
 	priceInfo := e.CalculateLayoutPrice(layout)
 	devicesConfig := configs.GetGlobalDevicesConfig()
-	bulb := devicesConfig.Devices["smart_bulb"]
+	bulb := devicesConfig.Devices["smart_lamp"]
 
 	assert.Equal(t, bulb.Price.Min*2, priceInfo.MinPrice)
 	assert.Equal(t, bulb.Price.Max*2, priceInfo.MaxPrice)

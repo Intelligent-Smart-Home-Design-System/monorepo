@@ -194,7 +194,7 @@
         ]
       }
     },
-    "camera": {
+    "smart_camera": {
       "description": "Камера",
       "price_range": {
         "min": 8000,
@@ -203,7 +203,7 @@
       "tracks": [
         "security"
       ],
-      "title": "Camera",
+      "title": "SmartCamera",
       "traits": [
         "base",
         "connectivity"
@@ -211,7 +211,7 @@
       "extra_schema": {
         "properties": {
           "type": {
-            "const": "camera"
+            "const": "smart_camera"
           }
         },
         "required": [

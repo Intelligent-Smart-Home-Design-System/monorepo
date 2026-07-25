@@ -1,6 +1,7 @@
 package security
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
@@ -171,14 +172,16 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	for roomID, roomPlacement := range globalPlacement.Placements {
+	for _, roomPlacement := range globalPlacement.Placements {
 		for _, devicePlacement := range roomPlacement {
 			switch devicePlacement.Device.Type {
-			case "door_sensor":
-				if roomID == "1" {
-					assert.Equal(t, &point.Point{X: 2000, Y: 0}, devicePlacement.Position)
-				} else {
-					assert.Equal(t, &point.Point{X: 2000, Y: 0}, devicePlacement.Position)
+			case "door_window_sensor":
+				ok1 := point.Point{X: 2000, Y: 0} == *devicePlacement.Position
+				ok2 := point.Point{X: 0, Y: 1400} == *devicePlacement.Position
+				
+				if !ok1 && !ok2 {
+					fmt.Println(devicePlacement.Position)
+					t.FailNow()
 				}
 			case "window_sensor":
 				assert.Equal(t, &point.Point{X: 0, Y: 1400}, devicePlacement.Position)
@@ -210,7 +213,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
-	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor"}
+	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_window_sensor"}
 	for _, key := range correctHallRoomKeys {
 		assert.Contains(t, hallRoomKeys, key)
 	}

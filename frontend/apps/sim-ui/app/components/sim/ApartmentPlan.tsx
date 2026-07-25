@@ -1,6 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import {
+  Activity,
+  AirVent,
+  BellRing,
+  Blinds,
+  Bot,
+  Camera,
+  CircleGauge,
+  Cloud,
+  DoorOpen,
+  Droplets,
+  Fan,
+  Flame,
+  HousePlug,
+  Lightbulb,
+  LockKeyhole,
+  PlugZap,
+  Radio,
+  ShieldAlert,
+  SlidersHorizontal,
+  Speaker,
+  Thermometer,
+  ToggleLeft,
+  Tv,
+  Waves,
+  Wifi,
+  type LucideIcon,
+} from "lucide-react";
 import type { Device, DeviceMarker, LogEvent, Room } from "@/app/simulation/Mockdata";
 import type { FloorPlanView, WallSegment } from "@/app/simulation/floorAdapter";
 import type { IncidentKind } from "@/app/simulation/wsClient";
@@ -246,9 +274,38 @@ export function ApartmentPlan({
     );
   }
 
-  function isLightDevice(id: string) {
-    const key = id.toLowerCase();
-    return key.includes("lamp") || key.includes("light") || key.includes("led");
+  function iconForDevice(device: Pick<Device, "id" | "name" | "type">): LucideIcon {
+    const key = `${device.id} ${device.name ?? ""} ${device.type ?? ""}`.toLowerCase();
+
+    if (key.includes("curtain") || key.includes("blind") || key.includes("штор")) return Blinds;
+    if (key.includes("dimmer") || key.includes("диммер")) return SlidersHorizontal;
+    if (key.includes("button") || key.includes("switch") || key.includes("кноп") || key.includes("выключател")) return ToggleLeft;
+    if (key.includes("lamp") || key.includes("light") || key.includes("led") || key.includes("свет")) return Lightbulb;
+    if (key.includes("temperature") || key.includes("thermostat") || key.includes("radiator") || key.includes("heater") || key.includes("температур")) {
+      return Thermometer;
+    }
+    if (key.includes("humidity") || key.includes("humidifier") || key.includes("влажност") || key.includes("увлажнител")) return Droplets;
+    if (key.includes("leak") || key.includes("water") || key.includes("flood") || key.includes("протеч")) return Waves;
+    if (key.includes("air purifier") || key.includes("air_purifier") || key.includes("ventilation") || key.includes("conditioner")) return AirVent;
+    if (key.includes("fan") || key.includes("вентилятор")) return Fan;
+    if (key.includes("speaker") || key.includes("колонк")) return Speaker;
+    if (key.includes("tv") || key.includes("television") || key.includes("телевизор")) return Tv;
+    if (key.includes("vacuum") || key.includes("robot") || key.includes("пылесос")) return Bot;
+    if (key.includes("camera") || key.includes("камер")) return Camera;
+    if (key.includes("lock") || key.includes("замок")) return LockKeyhole;
+    if (key.includes("door") || key.includes("window") || key.includes("двер") || key.includes("окн")) return DoorOpen;
+    if (key.includes("siren") || key.includes("alarm") || key.includes("сирен")) return BellRing;
+    if (key.includes("smoke") || key.includes("fire") || key.includes("дым") || key.includes("пожар")) return Flame;
+    if (key.includes("gas") || key.includes("co2") || key.includes("co sensor") || key.includes("газ")) return Cloud;
+    if (key.includes("motion") || key.includes("presence") || key.includes("pir") || key.includes("движен")) return Activity;
+    if (key.includes("plug") || key.includes("power") || key.includes("current") || key.includes("розет")) return PlugZap;
+    if (key.includes("hub") || key.includes("gateway") || key.includes("controller") || key.includes("хаб")) return HousePlug;
+    if (key.includes("wifi") || key.includes("wireless")) return Wifi;
+    if (key.includes("radio")) return Radio;
+    if (key.includes("sensor") || key.includes("датчик")) return ShieldAlert;
+    if (key.includes("droplet")) return Droplets;
+
+    return CircleGauge;
   }
 
   function positionForDevice(id: string) {
@@ -617,16 +674,15 @@ export function ApartmentPlan({
       "inline-flex items-center justify-center",
       "transition-shadow transition-transform",
       "plan-marker",
+      "device-marker",
     ].join(" ");
 
-    const glass = "text-white";
     const ring = isLast ? "ring-2 ring-[#0071e3]/50" : "";
     const chain = isInChain ? "border-white/30" : "";
-    const active = isActive ? "scale-[1.08] shadow-[0_0_28px_rgba(0,113,227,0.42)]" : "";
+    const active = isActive || st === "active" ? "device-marker-active" : "";
 
-    if (st === "active") return `${base} px-4 py-2 text-lg font-medium ${glass} ${ring} ${chain} ${active}`;
-    if (st === "error") return `${base} px-4 py-2 text-lg font-medium bg-red-600/30 border border-red-400/20 ${ring} text-red-200 ${active}`;
-    return `${base} px-4 py-2 text-lg font-medium ${glass} ${ring} ${chain} ${active} text-white/80`;
+    if (st === "error") return `${base} device-marker-error ${ring}`;
+    return `${base} ${ring} ${chain} ${active}`;
   }
 
   useEffect(() => {
@@ -713,8 +769,8 @@ export function ApartmentPlan({
   }, [forbiddenZones, onMoveDevice]);
 
   return (
-    <section className="p-3">
-      <div className="rounded-2xl border-0 bg-transparent p-4">
+    <section className="simulation-plan-section">
+      <div className="simulation-plan-frame">
         <div className="route-toolbar" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
@@ -1143,15 +1199,20 @@ export function ApartmentPlan({
           {devices.map((d) => {
             const pos = positionForDevice(d.id);
             const name = d.name || markerMap.get(d.id)?.label || d.id;
-            const isLightActive = isLightDevice(d.id) && (deviceMap.get(d.id) === "active" || activeSet.has(d.id));
+            const DeviceIcon = iconForDevice(d);
+            const tooltipId = `device-tooltip-${d.id}`;
+            const tooltipClass = pos.x > 0.72 ? "device-tooltip device-tooltip-left" : "device-tooltip";
             return (
               <div
                 key={d.id}
-                className={`${dotClass(d.id)}${isLightActive ? " light-device-active" : ""}`}
+                className={dotClass(d.id)}
                 data-testid={`device-${d.id}`}
                 data-device-state={deviceMap.get(d.id) ?? "idle"}
                 style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
-                title={name === d.id ? d.id : `${name} (${d.id})`}
+                role="button"
+                tabIndex={0}
+                aria-label={name}
+                aria-describedby={tooltipId}
                 onPointerDown={(e) => {
                   if (!onMoveDevice) return;
                   e.preventDefault();
@@ -1164,8 +1225,17 @@ export function ApartmentPlan({
                   e.stopPropagation();
                   onDeviceTrigger?.(d.id);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDeviceTrigger?.(d.id);
+                }}
               >
-                <span className="marker-label">{name}</span>
+                <DeviceIcon className="device-marker-icon" size={22} strokeWidth={2} aria-hidden="true" />
+                <span id={tooltipId} className={tooltipClass} role="tooltip">
+                  {name}
+                </span>
                 {onRemoveDevice && (
                   <button
                     type="button"

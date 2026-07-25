@@ -1097,12 +1097,6 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   } else if (typeof planId === "string" && planId) {
     url.searchParams.set("workflow_id", planId);
   }
-  if (devices.length) {
-    url.searchParams.set("devices", JSON.stringify(devices));
-  }
-  if (triggerIds.length) {
-    url.searchParams.set("trigger_ids", triggerIds.join(","));
-  }
   url.searchParams.set("returnTo", window.location.href);
   window.location.href = url.toString();
 }
@@ -1120,10 +1114,6 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown) {
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
-  url.searchParams.set("devices", JSON.stringify(devices));
-  if (triggerIds.length) {
-    url.searchParams.set("trigger_ids", triggerIds.join(","));
-  }
   window.location.href = url.toString();
 }
 

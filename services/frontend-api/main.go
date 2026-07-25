@@ -799,6 +799,7 @@ type Listing struct {
 	ImageURL           *string                `json:"image_url"`
 	DevicesPerListing  int                    `json:"devices_per_listing"`
 	UnitsToBuy         int                    `json:"units_to_buy"`
+	DeviceQuantity     int                    `json:"device_quantity,omitempty"`
 	RequirementID      int                    `json:"requirement_id"`
 	DeviceAttributes   map[string]interface{} `json:"device_attributes"`
 	ConnectionInfo     ConnectionInfo         `json:"connection_info"`

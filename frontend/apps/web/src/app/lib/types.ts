@@ -240,6 +240,7 @@ export type ApiListing = {
     image_url?: string | null;
     devices_per_listing: number;
     units_to_buy: number;
+    device_quantity?: number;
     requirement_id: number;
     device_attributes?: Record<string, unknown>;
     connection_info: ApiConnectionInfo;

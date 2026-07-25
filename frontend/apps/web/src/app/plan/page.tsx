@@ -220,6 +220,7 @@ function PlanPageContent() {
     () => plan?.bundles.find((bundle) => bundle.id === selectedBundleId) ?? plan?.bundles[0] ?? null,
     [plan, selectedBundleId]
   );
+  const isManualPlan = plan?.main_ecosystem_id === "manual";
 
   const selectedListing = useMemo(
     () =>
@@ -304,7 +305,7 @@ function PlanPageContent() {
                 variant="contained"
                 onClick={() => {
                   if (selectedBundle) {
-                    openSimulation(selectedBundle, simulationFloorData);
+                    openSimulation(selectedBundle, simulationFloorData, isManualPlan);
                   } else {
                     openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, simulationFloorData);
                   }
@@ -442,7 +443,7 @@ function PlanPageContent() {
                       <PreviewArea
                         uploadedPlan={uploadedPlan}
                         floorData={simulationFloorData}
-                        devices={selectedSimulationDevices}
+                        devices={isManualPlan ? [] : selectedSimulationDevices}
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -593,7 +594,9 @@ function PlanPageContent() {
 
                       {selectedSimulationDevices.length > 0 && (
                         <Stack spacing={1}>
-                          <Typography sx={{ fontWeight: 800 }}>Устройства на плане</Typography>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {isManualPlan ? "Выбранные устройства" : "Устройства на плане"}
+                          </Typography>
                           {selectedSimulationDevices.slice(0, 8).map((device) => (
                             <Box
                               key={device.id}
@@ -608,8 +611,13 @@ function PlanPageContent() {
                                 {device.name}
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
-                                {device.type} · комната {device.room_id}
-                                {device.position ? ` · x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}` : ""}
+                                {isManualPlan
+                                  ? `${device.type} · размещается пользователем в симуляции`
+                                  : `${device.type} · комната ${device.room_id}${
+                                      device.position
+                                        ? ` · x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}`
+                                        : ""
+                                    }`}
                               </Typography>
                             </Box>
                           ))}
@@ -682,7 +690,7 @@ function PlanPageContent() {
                       <Button
                         variant="outlined"
                         disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle, simulationFloorData)}
+                        onClick={() => openSimulation(selectedBundle, simulationFloorData, isManualPlan)}
                         sx={{ fontWeight: 900, borderRadius: 3 }}
                       >
                         Открыть в симуляции
@@ -1111,7 +1119,7 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   window.location.href = url.toString();
 }
 
-function openSimulation(bundle: SimulationBundle, floor?: unknown) {
+function openSimulation(bundle: SimulationBundle, floor?: unknown, manualPlacement = false) {
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
@@ -1124,6 +1132,9 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown) {
 
   const url = new URL(simulationUrl(), window.location.origin);
   url.searchParams.set("devices", JSON.stringify(devices));
+  if (manualPlacement) {
+    url.searchParams.set("manual_placement", "1");
+  }
   if (triggerIds.length) {
     url.searchParams.set("trigger_ids", triggerIds.join(","));
   }
@@ -1138,7 +1149,7 @@ function simulationDevicesFromBundle(bundle: SimulationBundle, floor?: unknown):
   bundle.listings.forEach((listing, listingIndex) => {
     const type = listing.device_attributes?.device_type;
     const normalizedType = typeof type === "string" ? type : listing.name;
-    const units = Math.max(1, listing.units_to_buy || 1);
+    const units = Math.max(1, listing.device_quantity || listing.units_to_buy || 1);
 
     for (let unitIndex = 0; unitIndex < units; unitIndex += 1) {
       const matchedIndex = layoutDevices.findIndex((device, index) => {

@@ -246,12 +246,14 @@ func loadManualListing(
 	if listing.DeviceAttributes == nil {
 		listing.DeviceAttributes = map[string]interface{}{}
 	}
+	listing.DeviceAttributes["device_type"] = selection.DeviceType
 	if imageURL.Valid {
 		listing.ImageURL = &imageURL.String
 	}
 	listing.RequirementID = requirementID
 	listing.DevicesPerListing = max(devicesPerListing, 1)
 	listing.UnitsToBuy = (selection.Quantity + listing.DevicesPerListing - 1) / listing.DevicesPerListing
+	listing.DeviceQuantity = selection.Quantity
 	listing.ConnectionInfo.FinalEcosystem = listing.ConnectionInfo.DirectEcosystem
 	listing.ConnectionInfo.FinalProtocol = listing.ConnectionInfo.DirectProtocol
 	return listing, nil

@@ -525,6 +525,9 @@ export default function SimulationPage() {
   const baseDeviceMarkers = adaptedFloor.markers;
   const placementMarkers = adaptedFloor.placementMarkers;
   const [externalDevices] = useState<ExternalDevice[]>(() => loadExternalDevicesFromStorage());
+  const [manualPlacementOnly] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("manual_placement") === "1"
+  );
   const [savedPlanDevices] = useState<SavedPlanDevice[]>(() => loadSavedPlanDevices());
   const [preferredTriggerIds] = useState<string[]>(() => loadTriggerDeviceIds());
   const currentDeviceIds = new Set([
@@ -1570,6 +1573,7 @@ export default function SimulationPage() {
             availableDeviceIds={availableDeviceIds}
             deviceNames={deviceNames}
             onPlaceDevice={onPlaceDevice}
+            manualPlacementOnly={manualPlacementOnly}
             runMode={runMode}
             onSetRunMode={setRunMode}
             status={status}

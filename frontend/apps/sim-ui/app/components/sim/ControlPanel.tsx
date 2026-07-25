@@ -37,6 +37,7 @@ type Props = {
   availableDeviceIds: string[];
   deviceNames: Record<string, string>;
   onPlaceDevice: (id: string) => void;
+  manualPlacementOnly?: boolean;
   runMode: RunMode;
   onSetRunMode: (v: RunMode) => void;
 
@@ -64,6 +65,7 @@ export function ControlPanel(props: Props) {
     availableDeviceIds,
     deviceNames,
     onPlaceDevice,
+    manualPlacementOnly = false,
     runMode,
     onSetRunMode,
     status,
@@ -247,22 +249,24 @@ export function ControlPanel(props: Props) {
                     e.dataTransfer.effectAllowed = "copyMove";
                   }}
                   onClick={() => {
-                    if (!placed) onPlaceDevice(id);
+                    if (!placed && !manualPlacementOnly) onPlaceDevice(id);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      if (!placed) onPlaceDevice(id);
+                      if (!placed && !manualPlacementOnly) onPlaceDevice(id);
                     }
                   }}
                   title={
                     placed
                       ? `${name} (${id}) уже на плане`
+                      : manualPlacementOnly
+                      ? `${name} (${id}): перетащите устройство на план`
                       : `${name} (${id}): перетащи на план или кликни, чтобы поставить автоматически`
                   }
                 >
                   <span>{name}</span>
-                  <small>{placed ? "на плане" : "перетащить / клик"}</small>
+                  <small>{placed ? "на плане" : manualPlacementOnly ? "перетащить на план" : "перетащить / клик"}</small>
                 </div>
               );
             })}

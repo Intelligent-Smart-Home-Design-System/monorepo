@@ -42,7 +42,7 @@ func (ws *WindowSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceR
 }
 
 func (ws *WindowSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	deviceType := ws.Type()
+	deviceType := "door_window_sensor"
 	
 	err := ws.Transform(zonedAp, deviceRooms)
 	if err != nil {

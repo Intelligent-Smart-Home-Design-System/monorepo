@@ -494,7 +494,7 @@
         ]
       }
     },
-    "smart_bulb": {
+    "smart_lamp": {
       "description": "Умная лампа",
       "price_range": {
         "min": 700,
@@ -511,7 +511,7 @@
       "extra_schema": {
         "properties": {
           "type": {
-            "const": "smart_bulb"
+            "const": "smart_lamp"
           }
         },
         "required": [

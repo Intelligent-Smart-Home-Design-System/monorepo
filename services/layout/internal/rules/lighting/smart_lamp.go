@@ -5,21 +5,21 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 )
 
-type SmartBulbRule struct {
+type SmartLampRule struct {
 	track string
 }
 
-func NewSmartBulbRule() *SmartBulbRule {
-	return &SmartBulbRule{
+func NewSmartLampRule() *SmartLampRule {
+	return &SmartLampRule{
 		track: "lighting",
 	}
 }
 
-func (r *SmartBulbRule) Type() string {
-	return "smart_bulb"
+func (r *SmartLampRule) Type() string {
+	return "smart_lamp"
 }
 
-func (r *SmartBulbRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+func (r *SmartLampRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	ap := zonedAp.OrigAp
 	rooms, err := ap.GetRoomsByNames(deviceRooms)
 	if err != nil {

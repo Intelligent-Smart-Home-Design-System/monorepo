@@ -37,7 +37,7 @@ func (ds *DoorSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 }
 
 func (ds *DoorSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	deviceType := ds.Type()
+	deviceType := "door_window_sensor"
 
 	err := ds.Transform(zonedAp, deviceRooms)
 	if err != nil {

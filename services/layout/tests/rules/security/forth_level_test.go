@@ -227,7 +227,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
-	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor", "motion_sensor", "camera"}
+	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_window_sensor", "motion_sensor", "camera"}
 	for _, key := range correctHallRoomKeys {
 		assert.Contains(t, hallRoomKeys, key)
 	}

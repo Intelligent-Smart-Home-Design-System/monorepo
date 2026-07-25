@@ -115,7 +115,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 		"smart_siren",
 		"motion_sensor",
 		"door_window_sensor",
-		"camera",
+		"smart_camera",
 		"smart_doorbell",
 		"smart_lock",
 	}

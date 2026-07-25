@@ -39,7 +39,7 @@ func (s *Storage) LoadAllSecurityRules() {
 		security.NewDoorSensorRule(),
 		security.NewWindowSensorRule(),
 		security.NewMotionSensorRule(),
-		security.NewCameraRule(),
+		security.NewSmartCameraRule(),
 		security.NewSmartSirenRule(),
 	}
 

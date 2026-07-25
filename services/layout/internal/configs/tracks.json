@@ -212,7 +212,7 @@
             "door_sensor",
             "window_sensor",
             "motion_sensor",
-            "camera"
+            "smart_camera"
           ],
           "device_rooms": {
             "water_leak_sensor": [
@@ -246,7 +246,7 @@
               "hall",
               "hallway"
             ],
-            "camera": [
+            "smart_camera": [
               "livingroom",
               "hall",
               "hallway"
@@ -260,7 +260,7 @@
             "door_sensor": 2,
             "window_sensor": 4,
             "motion_sensor": 1,
-            "camera": 2
+            "smart_camera": 2
           },
           "device_filters": {
             "water_leak_sensor": {
@@ -296,7 +296,7 @@
               "detection_angle_deg": 130,
               "detection_range_m": 8000
             },
-            "camera": {
+            "smart_camera": {
               "field_of_view_deg": 110,
               "detection_range_m": 10000,
               "has_night_vision": true,
@@ -319,7 +319,7 @@
             "door_sensor",
             "window_sensor",
             "motion_sensor",
-            "camera",
+            "smart_camera",
             "smart_siren"
           ],
           "device_rooms": {
@@ -354,7 +354,7 @@
               "hall",
               "hallway"
             ],
-            "camera": [
+            "smart_camera": [
               "livingroom",
               "hall",
               "hallway"
@@ -373,7 +373,7 @@
             "door_sensor": 2,
             "window_sensor": 4,
             "motion_sensor": 2,
-            "camera": 2,
+            "smart_camera": 2,
             "smart_siren": 2
           },
           "device_filters": {
@@ -411,7 +411,7 @@
               "detection_angle_deg": 150,
               "detection_range_m": 10000
             },
-            "camera": {
+            "smart_camera": {
               "field_of_view_deg": 110,
               "detection_range_m": 12000,
               "has_night_vision": true,

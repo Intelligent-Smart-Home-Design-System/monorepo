@@ -50,7 +50,7 @@ func (s *Storage) LoadAllSecurityRules() {
 
 func (s *Storage) LoadAllLightingRules() {
 	storageRules := []rules.Rule{
-		lighting.NewSmartBulbRule(),
+		lighting.NewSmartLampRule(),
 		lighting.NewMotionSensorRule(),
 		lighting.NewIlluminationSensorRule(),
 		lighting.NewCurtainsRule(),

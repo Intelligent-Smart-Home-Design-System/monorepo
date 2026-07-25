@@ -114,7 +114,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 	correctHallRoomKeys := []string{
 		"smart_siren",
 		"motion_sensor",
-		"door_sensor",
+		"door_window_sensor",
 		"camera",
 		"smart_doorbell",
 		"smart_lock",

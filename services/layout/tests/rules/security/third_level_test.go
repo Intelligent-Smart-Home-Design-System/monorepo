@@ -198,7 +198,7 @@ func TestThirdLevelSimpleScript(t *testing.T) {
 		livingRoomKeys = append(livingRoomKeys, placement.Device.Type)
 	}
 
-	correctLivingRoomKeys := []string{"window_sensor", "motion_sensor"}
+	correctLivingRoomKeys := []string{"door_window_sensor", "motion_sensor"}
 	for _, key := range correctLivingRoomKeys {
 		assert.Contains(t, livingRoomKeys, key)
 	}

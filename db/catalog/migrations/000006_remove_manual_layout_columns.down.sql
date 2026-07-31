@@ -1,3 +1,0 @@
-ALTER TABLE frontend_plans
-    ADD COLUMN IF NOT EXISTS layout JSONB,
-    ADD COLUMN IF NOT EXISTS dependencies JSONB;

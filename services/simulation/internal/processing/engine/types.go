@@ -32,7 +32,7 @@ type Engine interface {
 
 	// Step продвигает симуляционное время на dtSim вперёд.
 	// Вызывается из Simulations.Tick после отправки всех входящих событий.
-	Step()
+	Step() error
 
 	// CollectStep собирает результаты текущего тика и возвращает их клиенту.
 	CollectStep(tick int) *api.SimulationStepPayload
@@ -40,8 +40,8 @@ type Engine interface {
 	// Stop завершает симуляцию, закрывая канал входящих событий.
 	Stop()
 
-	// HandleEvent обрабатывает event по его entityID
-	HandleEvent(event api.EventDTO)
+	// HandleEvent обрабатывает event по его entityID или возвращает ошибку контракта.
+	HandleEvent(event api.EventDTO) error
 }
 
 // EnginePort определяет интерфейс для взаимодействия сущностей с движком
@@ -63,6 +63,9 @@ type EnginePort interface {
 
 	// NotifyObservers отправляет уведомление всем наблюдателям за roomID с указанным kind и payload.
 	NotifyObservers(roomID string, kind string, payload []byte)
+
+	// TriggerReceivers передаёт payload постоянным получателям sourceID и фиксирует сработавшие связи.
+	TriggerReceivers(sourceID string, payload []byte)
 
 	// DrainInChan читает события из входного канала.
 	DrainInChan()

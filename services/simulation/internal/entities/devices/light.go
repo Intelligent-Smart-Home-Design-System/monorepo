@@ -59,13 +59,15 @@ func (l *Lamp) HandleEvent(inData LampData) LampData {
 // SmartLamp (управление светом — используется для акцентного освещения и сцен)
 type SmartLamp struct {
 	BaseDevice[SmartLampData]
-	Percents int `json:"percents"`
+	TurnOn   bool `json:"turn_on"`
+	Percents int  `json:"percents"`
 }
 
 // SmartLampData - входные и выходные данные для SmartLamp.
 type SmartLampData struct {
 	Kind     string `json:"kind"`
-	Percents int    `json:"percents"`
+	TurnOn   *bool  `json:"turn_on,omitempty"`
+	Percents *int   `json:"percents,omitempty"`
 }
 
 // NewSmartLamp - конструктор для создания новой SmartLamp из JSON-данных.
@@ -97,11 +99,17 @@ func (s *SmartLamp) HandleInDTO(dto []byte) error {
 // HandleEvent реализует бизнес-логику устройства.
 // Возвращает обработанные данные.
 func (s *SmartLamp) HandleEvent(inData SmartLampData) SmartLampData {
-	s.Percents = inData.Percents
+	if inData.TurnOn != nil {
+		s.TurnOn = *inData.TurnOn
+	}
+	if inData.Percents != nil {
+		s.Percents = clampPercent(*inData.Percents)
+	}
 
 	return SmartLampData{
 		Kind:     inData.Kind,
-		Percents: s.Percents,
+		TurnOn:   &s.TurnOn,
+		Percents: &s.Percents,
 	}
 }
 
@@ -109,13 +117,15 @@ func (s *SmartLamp) HandleEvent(inData SmartLampData) SmartLampData {
 // реализует интерфейс entities.EntityWithProcess.
 type SmartDimmer struct {
 	BaseDevice[DimmerData]
-	Percents int `json:"percents"` // 0-100
+	TurnOn   bool `json:"turn_on"`
+	Percents int  `json:"percents"` // 0-100
 }
 
 // DimmerData - входные и выходные данные для SmartDimmer.
 type DimmerData struct {
 	Kind     string `json:"kind"`
-	Percents int    `json:"percents"`
+	TurnOn   *bool  `json:"turn_on,omitempty"`
+	Percents *int   `json:"percents,omitempty"`
 }
 
 // NewSmartDimmer - конструктор для создания новой SmartDimmer из JSON-данных.
@@ -148,22 +158,28 @@ func (d *SmartDimmer) HandleInDTO(dto []byte) error {
 
 // HandleEvent реализует бизнес-логику диммера.
 func (d *SmartDimmer) HandleEvent(inData DimmerData) DimmerData {
-	percents := inData.Percents
-
-	if percents < 0 {
-		percents = 0
+	if inData.TurnOn != nil {
+		d.TurnOn = *inData.TurnOn
 	}
-
-	if percents > 100 {
-		percents = 100
+	if inData.Percents != nil {
+		d.Percents = clampPercent(*inData.Percents)
 	}
-
-	d.Percents = percents
 
 	out := DimmerData{
 		Kind:     inData.Kind,
-		Percents: d.Percents,
+		TurnOn:   &d.TurnOn,
+		Percents: &d.Percents,
 	}
 
 	return out
+}
+
+func clampPercent(value int) int {
+	if value < 0 {
+		return 0
+	}
+	if value > 100 {
+		return 100
+	}
+	return value
 }

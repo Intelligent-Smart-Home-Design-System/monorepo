@@ -227,22 +227,6 @@ function normalizeExternalDevice(raw: unknown): ExternalDevice | null {
 function loadExternalDevicesFromStorage(): ExternalDevice[] {
   if (typeof window === "undefined") return [];
 
-  const hasDevicesInUrl = new URLSearchParams(window.location.search).has("devices");
-  const fromUrl = loadExternalDevicesFromUrl();
-  if (hasDevicesInUrl) {
-    writeStorage(DEVICE_STORAGE_KEY, JSON.stringify(fromUrl));
-    LEGACY_DEVICE_STORAGE_KEYS.forEach(removeStorage);
-    try {
-      const params = new URLSearchParams(window.location.search);
-      params.delete("devices");
-      const nextQuery = params.toString();
-      window.history.replaceState(null, "", nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname);
-    } catch {
-      // URL cleanup is nice to have, not required for the simulation.
-    }
-    return fromUrl;
-  }
-
   const canonicalDevices = readStorage(DEVICE_STORAGE_KEY);
   if (canonicalDevices !== null) {
     return parseStoredDevices(canonicalDevices);
@@ -272,32 +256,6 @@ function parseStoredDevices(raw: string): ExternalDevice[] {
       : [];
     const seen = new Set<string>();
 
-    return list.flatMap((item) => {
-      const device = normalizeExternalDevice(item);
-      if (!device || seen.has(device.id)) return [];
-      seen.add(device.id);
-      return [device];
-    });
-  } catch {
-    return [];
-  }
-}
-
-function loadExternalDevicesFromUrl(): ExternalDevice[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = new URLSearchParams(window.location.search).get("devices");
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw) as unknown;
-    const list = Array.isArray(parsed)
-      ? parsed
-      : parsed && typeof parsed === "object" && Array.isArray((parsed as { devices?: unknown[] }).devices)
-      ? (parsed as { devices: unknown[] }).devices
-      : [];
-
-    const seen = new Set<string>();
     return list.flatMap((item) => {
       const device = normalizeExternalDevice(item);
       if (!device || seen.has(device.id)) return [];
@@ -339,17 +297,6 @@ function loadTriggerDeviceIds(): string[] {
   if (typeof window === "undefined") return [];
 
   const ids = new Set<string>();
-  try {
-    const rawQuery = new URLSearchParams(window.location.search).get("trigger_ids");
-    rawQuery
-      ?.split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((id) => ids.add(id));
-  } catch {
-    // Query parsing is best-effort.
-  }
-
   try {
     const raw = readStorage("simulation-trigger-device-ids");
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];

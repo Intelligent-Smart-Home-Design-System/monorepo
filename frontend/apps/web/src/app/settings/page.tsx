@@ -379,13 +379,12 @@ export default function SettingsPage() {
         selections: manualItems.map((item) => ({
           device_id: item.deviceId,
           listing_id: item.listingId,
-          device_type: item.categoryId,
           quantity: item.quantity,
         })),
       });
 
-      localStorage.setItem("planner-uploaded-plan", JSON.stringify(planPreviewState));
       localStorage.setItem("planner-last-budget", budget);
+      localStorage.removeItem("planner-uploaded-plan");
       saveManualSelection([]);
       localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
       router.push(`/plan?id=${created.plan_id}`);

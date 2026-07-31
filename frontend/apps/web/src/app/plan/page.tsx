@@ -65,7 +65,7 @@ type SimulationDevice = {
   name: string;
   type: string;
   device_type: string;
-  room_id: string;
+  room_id?: string;
   position?: {
     x: number;
     y: number;
@@ -1111,10 +1111,6 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   } else if (typeof planId === "string" && planId) {
     url.searchParams.set("workflow_id", planId);
   }
-  url.searchParams.set("devices", JSON.stringify(devices));
-  if (triggerIds.length) {
-    url.searchParams.set("trigger_ids", triggerIds.join(","));
-  }
   url.searchParams.set("returnTo", window.location.href);
   window.location.href = url.toString();
 }
@@ -1131,12 +1127,8 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown, manualPlaceme
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
-  url.searchParams.set("devices", JSON.stringify(devices));
   if (manualPlacement) {
     url.searchParams.set("manual_placement", "1");
-  }
-  if (triggerIds.length) {
-    url.searchParams.set("trigger_ids", triggerIds.join(","));
   }
   window.location.href = url.toString();
 }
@@ -1166,7 +1158,7 @@ function simulationDevicesFromBundle(bundle: SimulationBundle, floor?: unknown):
         name: listing.name,
         type: matched?.type ?? normalizedType,
         device_type: matched?.device_type ?? normalizedType,
-        room_id: matched?.room_id ?? roomIdForDevice(normalizedType, listingIndex + unitIndex),
+        room_id: matched?.room_id,
         position: matched?.position,
         direction: matched?.direction,
         track: matched?.track,
@@ -1310,25 +1302,16 @@ function isTriggerDeviceType(value: string) {
   );
 }
 
-function roomIdForDevice(type: string, index: number) {
-  const key = type.toLowerCase();
-  if (key.includes("leak") || key.includes("water")) return "bath";
-  if (key.includes("gas") || key.includes("smoke")) return "kitchen";
-  if (key.includes("door") || key.includes("motion") || key.includes("presence")) return "hall";
-  if (key.includes("temperature") || key.includes("climate")) return "living";
-  return ["living", "hall", "kitchen", "bath"][index % 4];
-}
-
 function collectSimulationFloorData(
   uploadedPlan: UploadedPlanState | null,
   status: ApiPlanStatus | null,
   plan: ApiHomePlan | null
 ) {
   const fromUpload =
+    plan?.floor_plan ??
     uploadedPlan?.floorJson ??
     uploadedPlan?.parsedFloor ??
-    uploadedPlan?.floor ??
-    plan?.floor_plan;
+    uploadedPlan?.floor;
   let floor: unknown = fromUpload ?? null;
   let zones: unknown = null;
   let layout: unknown = null;

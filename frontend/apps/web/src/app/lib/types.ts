@@ -119,7 +119,6 @@ export type ApiCatalogProductsQuery = {
 export type ApiCreateManualPlanSelection = {
     device_id: number;
     listing_id: number;
-    device_type: string;
     quantity: number;
 };
 

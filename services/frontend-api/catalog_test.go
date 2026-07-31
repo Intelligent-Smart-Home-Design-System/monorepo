@@ -12,7 +12,7 @@ func TestValidateCreateManualPlan(t *testing.T) {
 		Budget:    10_000,
 		FloorPlan: json.RawMessage(`{"rooms":[],"walls":[]}`),
 		Selections: []ManualSelectionRequest{
-			{DeviceID: 1, ListingID: 10, DeviceType: "smart_lamp", Quantity: 2},
+			{DeviceID: 1, ListingID: 10, Quantity: 2},
 		},
 	}
 	if err := validateCreateManualPlan(valid); err != nil {
@@ -28,16 +28,7 @@ func TestValidateCreateManualPlan(t *testing.T) {
 		{name: "selections", mutate: func(req *CreateManualPlanRequest) { req.Selections = nil }},
 		{name: "device id", mutate: func(req *CreateManualPlanRequest) { req.Selections[0].DeviceID = 0 }},
 		{name: "listing id", mutate: func(req *CreateManualPlanRequest) { req.Selections[0].ListingID = 0 }},
-		{name: "device type", mutate: func(req *CreateManualPlanRequest) { req.Selections[0].DeviceType = "" }},
 		{name: "quantity", mutate: func(req *CreateManualPlanRequest) { req.Selections[0].Quantity = 0 }},
-		{
-			name: "duplicate device type",
-			mutate: func(req *CreateManualPlanRequest) {
-				req.Selections = append(req.Selections, ManualSelectionRequest{
-					DeviceID: 2, ListingID: 20, DeviceType: "smart_lamp", Quantity: 1,
-				})
-			},
-		},
 	}
 
 	for _, test := range tests {

@@ -333,6 +333,12 @@ function roomFromParser(room: ParserRoom, index: number, normalize: (point: RawP
       y: room.y,
       w: Math.max(room.w, 0.04),
       h: Math.max(room.h, 0.04),
+      area: [
+        { x: room.x, y: room.y },
+        { x: room.x + room.w, y: room.y },
+        { x: room.x + room.w, y: room.y + room.h },
+        { x: room.x, y: room.y + room.h },
+      ],
       labelX: room.x + room.w / 2,
       labelY: room.y + room.h / 2,
     };
@@ -357,6 +363,7 @@ function roomFromParser(room: ParserRoom, index: number, normalize: (point: RawP
     y: minY,
     w: Math.max(maxX - minX, 0.04),
     h: Math.max(maxY - minY, 0.04),
+    area,
     labelX: center.x,
     labelY: center.y,
   };

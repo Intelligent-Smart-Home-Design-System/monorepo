@@ -8,7 +8,7 @@
     "preview": "next build --webpack && next start",
     "start": "next start",
     "lint": "eslint .",
-    "test:ws": "node scripts/ws-smoke.mjs"
+    "test:ws": "node --experimental-websocket scripts/ws-smoke.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.26.0",

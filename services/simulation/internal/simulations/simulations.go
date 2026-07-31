@@ -3,23 +3,31 @@ package simulations
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/api"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/entities"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/converter"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/simulation/internal/processing/engine"
 )
 
 // Simulations - структура, которая усправляет всеми движками.
 type Simulations struct {
-	mu         sync.RWMutex
-	IDToEngine map[string]engine.Engine // engineID <-> engine
+	mu       sync.RWMutex
+	sessions map[string]*simulationSession
+}
+
+type simulationSession struct {
+	mu      sync.Mutex
+	engine  engine.Engine
+	stopped bool
 }
 
 // NewSimulation создает Simulations
 func NewSimulation() *Simulations {
 	return &Simulations{
-		IDToEngine: make(map[string]engine.Engine),
+		sessions: make(map[string]*simulationSession),
 	}
 }
 
@@ -41,6 +49,9 @@ func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) er
 	}
 
 	dependencies := converter.DependenciesFromDTO(payload.Scenarios)
+	if err := validateDependencies(entities, dependencies); err != nil {
+		return err
+	}
 	eng.InitEntities(entities, dependencies)
 
 	if eng.CheckCircleDependencies() {
@@ -52,9 +63,31 @@ func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) er
 	eng.InitStep()
 
 	s.mu.Lock()
-	s.IDToEngine[reqID] = eng
+	if _, exists := s.sessions[reqID]; exists {
+		s.mu.Unlock()
+		eng.Stop()
+		return fmt.Errorf("simulation %q already exists", reqID)
+	}
+	s.sessions[reqID] = &simulationSession{engine: eng}
 	s.mu.Unlock()
 
+	return nil
+}
+
+func validateDependencies(
+	entitiesByID map[string]entities.Entity,
+	dependencies map[string][]api.EdgeDTO,
+) error {
+	for sourceID, edges := range dependencies {
+		if _, ok := entitiesByID[sourceID]; !ok {
+			return fmt.Errorf("scenario source entity %q does not exist", sourceID)
+		}
+		for _, edge := range edges {
+			if _, ok := entitiesByID[edge.ToID]; !ok {
+				return fmt.Errorf("scenario target entity %q does not exist", edge.ToID)
+			}
+		}
+	}
 	return nil
 }
 
@@ -62,20 +95,29 @@ func (s *Simulations) Start(reqID string, payload api.SimulationStartPayload) er
 // Вызывается при получении simulation:tick от клиента.
 func (s *Simulations) Tick(reqID string, payload api.SimulationTickPayload) (*api.SimulationStepPayload, error) {
 	s.mu.RLock()
-	eng, ok := s.IDToEngine[reqID]
+	session, ok := s.sessions[reqID]
 	s.mu.RUnlock()
-
 	if !ok {
 		return nil, errors.New("simulation not found")
 	}
 
-	for _, input := range payload.Inputs {
-		eng.GetInChan() <- normalizeInput(input)
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.stopped {
+		return nil, errors.New("simulation not found")
 	}
 
-	eng.Step()
+	for index, input := range payload.Inputs {
+		if err := session.engine.HandleEvent(normalizeInput(input)); err != nil {
+			return nil, fmt.Errorf("input %d: %w", index, err)
+		}
+	}
 
-	return eng.CollectStep(payload.Tick), nil
+	if err := session.engine.Step(); err != nil {
+		return nil, err
+	}
+
+	return session.engine.CollectStep(payload.Tick), nil
 }
 
 func normalizeInput(input api.EventDTO) api.EventDTO {
@@ -102,15 +144,21 @@ func normalizeInput(input api.EventDTO) api.EventDTO {
 // Вызывается при получении simulation:stop от клиента или разрыве соединения.
 func (s *Simulations) Stop(reqID string) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	eng, ok := s.IDToEngine[reqID]
+	session, ok := s.sessions[reqID]
 	if !ok {
+		s.mu.Unlock()
 		return errors.New("simulation not found")
 	}
+	delete(s.sessions, reqID)
+	s.mu.Unlock()
 
-	eng.Stop()
-	delete(s.IDToEngine, reqID)
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.stopped {
+		return errors.New("simulation not found")
+	}
+	session.stopped = true
+	session.engine.Stop()
 
 	return nil
 }

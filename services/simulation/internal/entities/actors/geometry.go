@@ -12,6 +12,64 @@ type segment struct {
 	x1, y1, x2, y2 float64
 }
 
+const (
+	movementParamEpsilon      = 1e-7
+	movementBoundaryInsetRate = 1e-4
+	doorBoundaryToleranceRate = 0.2
+)
+
+// roomBoundaryIntersection возвращает ближайшее пересечение движения с полигоном комнаты.
+func roomBoundaryIntersection(move segment, room *api.Room) (float64, [2]float64, bool) {
+	if room == nil || len(room.Area) < 3 {
+		return 0, [2]float64{}, false
+	}
+
+	closestT := math.Inf(1)
+	for index, point := range room.Area {
+		next := room.Area[(index+1)%len(room.Area)]
+		boundary := segment{point[0], point[1], next[0], next[1]}
+		t, intersects := intersectSegments(move, boundary)
+		if !intersects || t <= movementParamEpsilon || t >= closestT {
+			continue
+		}
+		closestT = t
+	}
+
+	if math.IsInf(closestT, 1) {
+		return 0, [2]float64{}, false
+	}
+
+	return closestT, [2]float64{
+		move.x1 + (move.x2-move.x1)*closestT,
+		move.y1 + (move.y2-move.y1)*closestT,
+	}, true
+}
+
+// connectedRoomAtDoorPoint возвращает соседнюю комнату, если point находится в дверном проёме текущей комнаты.
+func connectedRoomAtDoorPoint(floor *api.Floor, roomID string, point [2]float64) (string, bool) {
+	for _, edge := range floor.Adjacency[roomID] {
+		if edge.Door == nil {
+			continue
+		}
+
+		door := segment{
+			edge.Door.Points[0][0], edge.Door.Points[0][1],
+			edge.Door.Points[1][0], edge.Door.Points[1][1],
+		}
+		doorLength := math.Hypot(door.x2-door.x1, door.y2-door.y1)
+		// Контур room.area строится по внутренней границе стены, а линия двери
+		// хранится около её оси. Поэтому они могут быть смещены друг от друга
+		// на толщину стены, хотя описывают один и тот же проём.
+		doorSize := math.Max(doorLength, edge.Door.Width)
+		tolerance := math.Max(movementParamEpsilon, doorSize*doorBoundaryToleranceRate)
+		if pointToSegmentDistance(point, door) <= tolerance {
+			return edge.NeighborRoomID, true
+		}
+	}
+
+	return "", false
+}
+
 // splitWallByDoors разбивает стену на части без дверных проемов и возвращает сегменты стены.
 func splitWallByDoors(wall *api.Wall, doors []*api.Door) []segment {
 	wallStart := wall.Points[0]

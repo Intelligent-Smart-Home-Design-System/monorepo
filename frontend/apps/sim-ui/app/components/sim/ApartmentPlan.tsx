@@ -8,6 +8,8 @@ import {
   Blinds,
   Bot,
   Camera,
+  ChevronDown,
+  ChevronUp,
   CircleGauge,
   Cloud,
   DoorOpen,
@@ -30,8 +32,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { Device, DeviceMarker, LogEvent, Room } from "@/app/simulation/Mockdata";
-import type { FloorPlanView, WallSegment } from "@/app/simulation/floorAdapter";
-import type { IncidentKind } from "@/app/simulation/wsClient";
+import type { FloorPlanView } from "@/app/simulation/floorAdapter";
+import type { DeviceValueControl, IncidentKind } from "@/app/simulation/wsClient";
 
 type Point = { x: number; y: number };
 export type IncidentPolygon = {
@@ -46,18 +48,20 @@ type Props = {
   markers: DeviceMarker[];
   devices: Device[];
   chains: { id: string; chain: string[]; color: string }[];
-  activeNodes: string[];
+  highlightedEdges: Array<[string, string]>;
   activeEdges: Array<[string, string]>;
   lastEvent: LogEvent | null;
   onMoveDevice?: (id: string, x: number, y: number) => void;
   onDropDevice?: (id: string, x: number, y: number) => void;
   onRemoveDevice?: (id: string) => void;
+  devicesLocked?: boolean;
   fireMode?: boolean;
   firePoint?: Point | null;
   fireActive?: boolean;
   onToggleFireMode?: () => void;
   onPlaceFire?: (point: Point) => void;
   onResetFire?: () => void;
+  fireResetPending?: boolean;
   waterMode?: boolean;
   waterPoint?: Point | null;
   waterActive?: boolean;
@@ -65,9 +69,26 @@ type Props = {
   onToggleWaterMode?: () => void;
   onPlaceWater?: (point: Point) => void;
   onResetWater?: () => void;
-  onPersonMove?: (point: Point, devicesPayload: string[]) => void;
-  onMotionSensorTrigger?: (sensorId: string, point: Point) => void;
+  waterResetPending?: boolean;
+  smokeMode?: boolean;
+  smokePoint?: Point | null;
+  smokeActive?: boolean;
+  onToggleSmokeMode?: () => void;
+  onPlaceSmoke?: (point: Point) => void;
+  onResetSmoke?: () => void;
+  smokeResetPending?: boolean;
+  personPosition: Point;
+  personMovementEnabled?: boolean;
+  onPersonMove?: (point: Point) => boolean;
+  personRouteStatus?: string;
+  onPersonRoute?: (points: Point[], speed: number) => boolean;
+  onPersonRouteControl?: (action: "pause" | "resume" | "stop") => boolean;
   onDeviceTrigger?: (deviceId: string) => void;
+  devicePercentLevels?: Record<string, number>;
+  deviceValueControls?: Record<string, DeviceValueControl>;
+  deviceLevelArcs?: Record<string, number>;
+  onDevicePercentChange?: (deviceId: string, value: number) => void;
+  onDeviceValueChange?: (deviceId: string, value: number) => void;
 };
 
 type DeviceType =
@@ -104,8 +125,7 @@ type ForbiddenZone = {
 };
 
 const PERSON_STEP_MS = 340;
-const ROUTE_STEP_GAP_MS = 35;
-const PERSON_ROUTE_STEP = 0.035;
+const PERSON_MOVE_STEP = 0.015;
 const MOTION_SENSOR_RADIUS = 0.13;
 
 export function ApartmentPlan({
@@ -114,18 +134,20 @@ export function ApartmentPlan({
   markers,
   devices,
   chains,
-  activeNodes,
+  highlightedEdges,
   activeEdges,
   lastEvent,
   onMoveDevice,
   onDropDevice,
   onRemoveDevice,
+  devicesLocked = false,
   fireMode = false,
   firePoint = null,
   fireActive = false,
   onToggleFireMode,
   onPlaceFire,
   onResetFire,
+  fireResetPending = false,
   waterMode = false,
   waterPoint = null,
   waterActive = false,
@@ -133,42 +155,53 @@ export function ApartmentPlan({
   onToggleWaterMode,
   onPlaceWater,
   onResetWater,
+  waterResetPending = false,
+  smokeMode = false,
+  smokePoint = null,
+  smokeActive = false,
+  onToggleSmokeMode,
+  onPlaceSmoke,
+  onResetSmoke,
+  smokeResetPending = false,
+  personPosition,
+  personMovementEnabled = false,
   onPersonMove,
-  onMotionSensorTrigger,
+  personRouteStatus = "idle",
+  onPersonRoute,
+  onPersonRouteControl,
   onDeviceTrigger,
+  devicePercentLevels = {},
+  deviceValueControls = {},
+  deviceLevelArcs = {},
+  onDevicePercentChange,
+  onDeviceValueChange,
 }: Props) {
   const deviceMap = new Map(devices.map((d) => [d.id, d.status]));
   const lastDevice = lastEvent?.device ?? null;
   const roomMap = new Map(rooms.map((r) => [r.id, r]));
   const markerMap = new Map(markers.map((m) => [m.id, m]));
-  const deviceNameMap = new Map(
-    devices.map((device) => [device.id, device.name || markerMap.get(device.id)?.label || device.id])
-  );
   const chainSet = new Set(chains.flatMap((c) => c.chain));
-  const activeSet = new Set(activeNodes);
   const floorViewBox = floorPlan?.walls?.viewBox ?? floorPlan?.doors?.viewBox ?? { width: 1000, height: 700 };
   const surfaceRef = useRef<HTMLDivElement | null>(null);
-  const personMarkerRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
   const personDragRef = useRef(false);
+  const pendingPersonDragRef = useRef<Point | null>(null);
+  const confirmedPersonPositionRef = useRef(personPosition);
   const lastValidRef = useRef<Record<string, { x: number; y: number }>>({});
   const walkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const routeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const routePathRef = useRef<Point[]>([]);
-  const routeIndexRef = useRef(0);
-  const pausedRouteRef = useRef<Point[]>([]);
-  const triggeredMotionSensorsRef = useRef<Set<string>>(new Set());
   const [draggingType, setDraggingType] = useState<DeviceType | null>(null);
-  const [personPos, setPersonPos] = useState({ x: 0.48, y: 0.72 });
   const [personWalking, setPersonWalking] = useState(false);
   const [personDragging, setPersonDragging] = useState(false);
   const [walkCycle, setWalkCycle] = useState(0);
   const [routeMode, setRouteMode] = useState(false);
-  const [routeWalking, setRouteWalking] = useState(false);
-  const [routePaused, setRoutePaused] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [routePoints, setRoutePoints] = useState<Point[]>([]);
   const [routeSpeed, setRouteSpeed] = useState(1);
+  const routeWalking = personRouteStatus === "running";
+  const routePaused = personRouteStatus === "paused";
+  const routeStatusError = personRouteStatus === "blocked" ? "Маршрут заблокирован стеной" : null;
+  const personPos = personPosition;
   const layoutMap = (() => {
     const byRoom = new Map<string, string[]>();
     devices.forEach((d) => {
@@ -325,27 +358,13 @@ export function ApartmentPlan({
     };
   }
 
-  function handlePersonPosition(next: Point) {
-    const activeMotionSensorIds = new Set<string>();
-    devices.forEach((device) => {
-      if (!isMotionSensor(device)) return;
-      const pos = positionForDevice(device.id);
-      const inZone = Math.hypot(next.x - pos.x, next.y - pos.y) <= MOTION_SENSOR_RADIUS;
-      if (!inZone) return;
-      if (hasWallBetween(next, pos)) return;
-
-      activeMotionSensorIds.add(device.id);
-      if (!triggeredMotionSensorsRef.current.has(device.id)) {
-        triggeredMotionSensorsRef.current.add(device.id);
-        onMotionSensorTrigger?.(device.id, next);
-      }
-    });
-
-    for (const id of triggeredMotionSensorsRef.current) {
-      if (!activeMotionSensorIds.has(id)) triggeredMotionSensorsRef.current.delete(id);
-    }
-
-    onPersonMove?.(next, Array.from(activeMotionSensorIds));
+  function requestPersonPosition(next: Point) {
+    if (!personMovementEnabled || !onPersonMove) return false;
+    const clamped = {
+      x: Math.min(0.955, Math.max(0.045, next.x)),
+      y: Math.min(0.94, Math.max(0.06, next.y)),
+    };
+    return onPersonMove(clamped);
   }
 
   function pointFromPointer(clientX: number, clientY: number) {
@@ -398,122 +417,22 @@ export function ApartmentPlan({
     return zones;
   })();
 
-  const fallbackBlockingWalls: WallSegment[] = [
-    { kind: "vertical", x: 0.35, y1: 0.057, y2: 0.286 },
-    { kind: "vertical", x: 0.35, y1: 0.357, y2: 0.5 },
-    { kind: "vertical", x: 0.35, y1: 0.557, y2: 0.671 },
-    { kind: "horizontal", y: 0.429, x1: 0.04, x2: 0.35 },
-    { kind: "vertical", x: 0.7, y1: 0.057, y2: 0.286 },
-    { kind: "vertical", x: 0.7, y1: 0.529, y2: 0.786 },
-    { kind: "vertical", x: 0.7, y1: 0.829, y2: 0.943 },
-    { kind: "horizontal", y: 0.6, x1: 0.7, x2: 0.96 },
-    { kind: "horizontal", y: 0.671, x1: 0.04, x2: 0.45 },
-    { kind: "horizontal", y: 0.671, x1: 0.6, x2: 0.7 },
-  ];
-  const blockingWalls = floorPlan?.blockers?.length ? floorPlan.blockers : fallbackBlockingWalls;
   const fireIncidentPolygons = incidentPolygons.filter((polygon) => polygon.kind === "fire:spread");
   const floodIncidentPolygons = incidentPolygons.filter((polygon) => polygon.kind === "flood:spread");
   const smokeIncidentPolygons = incidentPolygons.filter((polygon) => polygon.kind === "smoke:spread");
 
-  function crossesWall(from: { x: number; y: number }, to: { x: number; y: number }, wall: WallSegment) {
-    const eps = 0.0001;
-
-    if (wall.kind === "segment") {
-      return segmentsIntersect(from, to, wall.from, wall.to);
-    }
-
-    if (wall.kind === "vertical") {
-      if (Math.abs(to.x - from.x) < eps) return false;
-      const crossesX = (from.x < wall.x && to.x >= wall.x) || (from.x > wall.x && to.x <= wall.x);
-      if (!crossesX) return false;
-      const t = (wall.x - from.x) / (to.x - from.x);
-      if (t < 0 || t > 1) return false;
-      const yAtWall = from.y + (to.y - from.y) * t;
-      return yAtWall >= wall.y1 && yAtWall <= wall.y2;
-    }
-
-    if (Math.abs(to.y - from.y) < eps) return false;
-    const crossesY = (from.y < wall.y && to.y >= wall.y) || (from.y > wall.y && to.y <= wall.y);
-    if (!crossesY) return false;
-    const t = (wall.y - from.y) / (to.y - from.y);
-    if (t < 0 || t > 1) return false;
-    const xAtWall = from.x + (to.x - from.x) * t;
-    return xAtWall >= wall.x1 && xAtWall <= wall.x2;
-  }
-
-  function segmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
-    const eps = 0.0001;
-
-    function orientation(p: Point, q: Point, r: Point) {
-      const value = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-      if (Math.abs(value) < eps) return 0;
-      return value > 0 ? 1 : 2;
-    }
-
-    function onSegment(p: Point, q: Point, r: Point) {
-      return (
-        q.x <= Math.max(p.x, r.x) + eps &&
-        q.x + eps >= Math.min(p.x, r.x) &&
-        q.y <= Math.max(p.y, r.y) + eps &&
-        q.y + eps >= Math.min(p.y, r.y)
-      );
-    }
-
-    const o1 = orientation(a, b, c);
-    const o2 = orientation(a, b, d);
-    const o3 = orientation(c, d, a);
-    const o4 = orientation(c, d, b);
-
-    if (o1 !== o2 && o3 !== o4) return true;
-    if (o1 === 0 && onSegment(a, c, b)) return true;
-    if (o2 === 0 && onSegment(a, d, b)) return true;
-    if (o3 === 0 && onSegment(c, a, d)) return true;
-    if (o4 === 0 && onSegment(c, b, d)) return true;
-    return false;
-  }
-
   function movePerson(dx: number, dy: number) {
-    if (routeWalking) return;
-    setPersonPos((current) => {
-      const next = {
-        x: Math.min(0.955, Math.max(0.045, current.x + dx)),
-        y: Math.min(0.94, Math.max(0.06, current.y + dy)),
-      };
-
-      if (blockingWalls.some((wall) => crossesWall(current, next, wall))) return current;
-      setPersonWalking(true);
-      setWalkCycle((cycle) => cycle + 1);
-      if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
-      walkTimerRef.current = setTimeout(() => setPersonWalking(false), stepDurationMs());
-      handlePersonPosition(next);
-      return next;
-    });
+    if (routeWalking || routePaused || !personMovementEnabled) return;
+    const current = confirmedPersonPositionRef.current;
+    requestPersonPosition({ x: current.x + dx, y: current.y + dy });
   }
 
   function stepDurationMs(speed = routeSpeed) {
     return PERSON_STEP_MS / speed;
   }
 
-  function stepGapMs(speed = routeSpeed) {
-    return ROUTE_STEP_GAP_MS / speed;
-  }
-
-  function hasWallBetween(from: Point, to: Point) {
-    return blockingWalls.some((wall) => crossesWall(from, to, wall));
-  }
-
   function svgPolygonPoints(points: Point[]) {
     return points.map((point) => `${point.x * 100},${point.y * 100}`).join(" ");
-  }
-
-  function currentVisualPersonPosition() {
-    if (!surfaceRef.current || !personMarkerRef.current) return personPos;
-    const surfaceRect = surfaceRef.current.getBoundingClientRect();
-    const markerRect = personMarkerRef.current.getBoundingClientRect();
-    return {
-      x: Math.min(0.955, Math.max(0.045, (markerRect.left + markerRect.width / 2 - surfaceRect.left) / surfaceRect.width)),
-      y: Math.min(0.94, Math.max(0.06, (markerRect.top + markerRect.height / 2 - surfaceRect.top) / surfaceRect.height)),
-    };
   }
 
   function showRouteError(message: string) {
@@ -523,6 +442,16 @@ export function ApartmentPlan({
   }
 
   function handlePlanClick(e: MouseEvent<HTMLDivElement>) {
+    if (smokeMode) {
+      if (!surfaceRef.current || routeWalking) return;
+      const rect = surfaceRef.current.getBoundingClientRect();
+      onPlaceSmoke?.({
+        x: Math.min(0.955, Math.max(0.045, (e.clientX - rect.left) / rect.width)),
+        y: Math.min(0.94, Math.max(0.06, (e.clientY - rect.top) / rect.height)),
+      });
+      return;
+    }
+
     if (waterMode) {
       if (!surfaceRef.current || routeWalking) return;
       const rect = surfaceRef.current.getBoundingClientRect();
@@ -550,123 +479,36 @@ export function ApartmentPlan({
       x: Math.min(0.955, Math.max(0.045, (e.clientX - rect.left) / rect.width)),
       y: Math.min(0.94, Math.max(0.06, (e.clientY - rect.top) / rect.height)),
     };
-    const from = routePoints.length ? routePoints[routePoints.length - 1] : personPos;
-
-    if (hasWallBetween(from, next)) {
-      showRouteError("Точка за стеной");
-      return;
-    }
-
     setRouteError(null);
     setRoutePoints((points) => [...points, next]);
   }
 
   function clearRoute() {
-    if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
-    if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
-    routePathRef.current = [];
-    routeIndexRef.current = 0;
-    pausedRouteRef.current = [];
-    setRouteWalking(false);
-    setRoutePaused(false);
-    setPersonWalking(false);
+    if ((routeWalking || routePaused) && !onPersonRouteControl?.("stop")) return;
     setRouteError(null);
     setRoutePoints([]);
   }
 
-  function stopRoute() {
-    if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
-    if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
-
-    const current = currentVisualPersonPosition();
-    pausedRouteRef.current = routePathRef.current.slice(routeIndexRef.current);
-    setPersonPos(current);
-
-    setRouteWalking(false);
-    setRoutePaused(true);
-    setPersonWalking(false);
+  function pauseRoute() {
+    if (!onPersonRouteControl?.("pause")) return;
   }
 
   function resumeRoute() {
-    const remaining = pausedRouteRef.current.length ? pausedRouteRef.current : buildWalkingPath(routePoints);
-    if (!remaining.length || routeWalking) return;
-    if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
-    setRoutePaused(false);
-    setRouteWalking(true);
-    routePathRef.current = remaining;
-    routeIndexRef.current = 0;
-    walkRoute(remaining, routeSpeed);
-  }
-
-  function walkRoute(points: Point[], speed: number, index = 0) {
-    const next = points[index];
-    if (!next) {
-      routePathRef.current = [];
-      routeIndexRef.current = 0;
-      pausedRouteRef.current = [];
-      setRouteWalking(false);
-      setRoutePaused(false);
-      setPersonWalking(false);
-      return;
-    }
-
-    routePathRef.current = points;
-    routeIndexRef.current = index;
-    setPersonWalking(true);
-    setWalkCycle((cycle) => cycle + 1);
-    setPersonPos(next);
-    handlePersonPosition(next);
-    routeTimerRef.current = setTimeout(() => {
-      walkRoute(points, speed, index + 1);
-    }, stepDurationMs(speed) + stepGapMs(speed));
-  }
-
-  function buildWalkingPath(points: Point[]) {
-    const path: Point[] = [];
-    let from = personPos;
-
-    points.forEach((to) => {
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
-      const distance = Math.hypot(dx, dy);
-      const steps = Math.max(1, Math.ceil(distance / PERSON_ROUTE_STEP));
-
-      for (let step = 1; step <= steps; step += 1) {
-        path.push({
-          x: from.x + (dx * step) / steps,
-          y: from.y + (dy * step) / steps,
-        });
-      }
-
-      from = to;
-    });
-
-    return path;
+    if (!onPersonRouteControl?.("resume")) return;
   }
 
   function startRoute() {
-    if (!routePoints.length || routeWalking || routePaused) return;
-    if (hasWallBetween(personPos, routePoints[0])) {
-      showRouteError("Первый шаг упирается в стену");
+    if (!routePoints.length || routeWalking || routePaused || !personMovementEnabled || !onPersonRoute) return;
+    if (!onPersonRoute(routePoints, routeSpeed)) {
+      showRouteError("Маршрут не отправлен");
       return;
     }
-
-    if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
-    pausedRouteRef.current = [];
-    routePathRef.current = [];
-    routeIndexRef.current = 0;
-    setRouteWalking(true);
-    setRoutePaused(false);
     setRouteMode(false);
-    const path = buildWalkingPath(routePoints);
-    routePathRef.current = path;
-    walkRoute(path, routeSpeed);
   }
 
-  function dotClass(id: string) {
+  function dotClass(id: string, hasLevelArc: boolean) {
     const st = deviceMap.get(id) ?? "idle";
     const isInChain = chainSet.has(id);
-    const isActive = activeSet.has(id);
     const isLast = lastDevice === id;
     const base = [
       "absolute -translate-x-1/2 -translate-y-1/2",
@@ -679,10 +521,11 @@ export function ApartmentPlan({
 
     const ring = isLast ? "ring-2 ring-[#0071e3]/50" : "";
     const chain = isInChain ? "border-white/30" : "";
-    const active = isActive || st === "active" ? "device-marker-active" : "";
+    const active = st === "active" && !hasLevelArc ? "device-marker-active" : "";
+    const level = hasLevelArc ? "device-marker-level" : "";
 
     if (st === "error") return `${base} device-marker-error ${ring}`;
-    return `${base} ${ring} ${chain} ${active}`;
+    return `${base} ${ring} ${chain} ${active} ${level}`;
   }
 
   useEffect(() => {
@@ -693,19 +536,64 @@ export function ApartmentPlan({
   }, []);
 
   useEffect(() => {
+    const previous = confirmedPersonPositionRef.current;
+    confirmedPersonPositionRef.current = personPosition;
+    if (previous.x === personPosition.x && previous.y === personPosition.y) return;
+
+    setPersonWalking(true);
+    setWalkCycle((cycle) => cycle + 1);
+    if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
+    walkTimerRef.current = setTimeout(() => setPersonWalking(false), stepDurationMs());
+    // stepDurationMs depends only on the current route speed used for the visual animation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personPosition.x, personPosition.y]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!personMovementEnabled || routeWalking || routePaused || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const deltas: Record<string, Point> = {
+        ArrowUp: { x: 0, y: -PERSON_MOVE_STEP },
+        ArrowDown: { x: 0, y: PERSON_MOVE_STEP },
+        ArrowLeft: { x: -PERSON_MOVE_STEP, y: 0 },
+        ArrowRight: { x: PERSON_MOVE_STEP, y: 0 },
+      };
+      const delta = deltas[event.key];
+      if (!delta) return;
+      event.preventDefault();
+      movePerson(delta.x, delta.y);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // movePerson reads the ref containing the latest backend-confirmed position.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personMovementEnabled, routeWalking, routePaused, onPersonMove]);
+
+  useEffect(() => {
     function onMove(e: PointerEvent) {
-      if (!personDragRef.current || routeWalking) return;
+      if (!personDragRef.current || routeWalking || routePaused || !personMovementEnabled) return;
       const next = pointFromPointer(e.clientX, e.clientY);
       if (!next) return;
-      setPersonWalking(false);
-      setPersonPos(next);
-      handlePersonPosition(next);
+      pendingPersonDragRef.current = next;
     }
 
     function onUp() {
       if (!personDragRef.current) return;
       personDragRef.current = false;
       setPersonDragging(false);
+      const next = pendingPersonDragRef.current;
+      pendingPersonDragRef.current = null;
+      if (next) requestPersonPosition(next);
     }
 
     window.addEventListener("pointermove", onMove);
@@ -714,12 +602,12 @@ export function ApartmentPlan({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-    // handlePersonPosition is intentionally kept as the current render helper for this pointer subscription.
+    // requestPersonPosition reads the latest callback and confirmed position from the current render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeWalking, devices, markers, onPersonMove, onMotionSensorTrigger]);
+  }, [routeWalking, routePaused, personMovementEnabled, onPersonMove]);
 
   useEffect(() => {
-    if (!onMoveDevice) return;
+    if (!onMoveDevice || devicesLocked) return;
     const moveDevice = onMoveDevice;
 
     function isForbidden(type: DeviceType, x: number, y: number) {
@@ -766,7 +654,7 @@ export function ApartmentPlan({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [forbiddenZones, onMoveDevice]);
+  }, [devicesLocked, forbiddenZones, onMoveDevice]);
 
   return (
     <section className="simulation-plan-section">
@@ -775,19 +663,24 @@ export function ApartmentPlan({
           <button
             type="button"
             className={`route-button${routeMode ? " route-button-active" : ""}`}
-            disabled={routeWalking || routePaused}
+            disabled={!personMovementEnabled || routeWalking || routePaused}
             onClick={() => setRouteMode((value) => !value)}
           >
-            {routeMode ? "Ставь точки" : "Выбрать маршрут"}
+            {routeMode ? "Ставь точки" : "Выбрать маршрут для человека"}
           </button>
-          <button type="button" className="route-button" disabled={!routePoints.length || routeWalking || routePaused} onClick={startRoute}>
+          <button
+            type="button"
+            className="route-button"
+            disabled={!personMovementEnabled || !routePoints.length || routeWalking || routePaused}
+            onClick={startRoute}
+          >
             Старт
           </button>
           <button
             type="button"
             className={`route-button ${routePaused ? "route-button-resume" : "route-button-stop"}`}
             disabled={!routeWalking && !routePaused}
-            onClick={routePaused ? resumeRoute : stopRoute}
+            onClick={routePaused ? resumeRoute : pauseRoute}
           >
             {routePaused ? "Продолжить" : "Стоп"}
           </button>
@@ -808,49 +701,77 @@ export function ApartmentPlan({
           </label>
         </div>
 
-        <div className="fire-toolbar" onClick={(e) => e.stopPropagation()}>
-          <span className="tool-group-label">Пожар</span>
-          <button
-            type="button"
-            className={`route-button fire-button${fireMode ? " fire-button-active" : ""}`}
-            disabled={fireActive}
-            onClick={onToggleFireMode}
-            data-testid="fire-start"
-          >
-            {fireMode ? "Укажи очаг" : "Начать пожар"}
-          </button>
-          <button type="button" className="route-button" disabled={!firePoint && !fireActive} onClick={onResetFire} data-testid="fire-reset">
-            Сброс пожара
-          </button>
+        <div className="incident-toolbar">
+          <div className="fire-toolbar" onClick={(e) => e.stopPropagation()}>
+            <span className="tool-group-label">Пожар</span>
+            <button
+              type="button"
+              className={`route-button fire-button${fireMode ? " fire-button-active" : ""}`}
+              disabled={fireActive}
+              onClick={onToggleFireMode}
+              data-testid="fire-start"
+            >
+              {fireMode ? "Укажи очаг" : "Начать пожар"}
+            </button>
+            <button
+              type="button"
+              className="route-button"
+              disabled={(!firePoint && !fireActive) || fireResetPending}
+              onClick={onResetFire}
+              data-testid="fire-reset"
+            >
+              {fireResetPending ? "Сбрасываем..." : "Сброс пожара"}
+            </button>
+          </div>
+
+          <div className="water-toolbar" onClick={(e) => e.stopPropagation()}>
+            <span className="tool-group-label">Потоп</span>
+            <button
+              type="button"
+              className={`route-button water-button${waterMode ? " water-button-active" : ""}`}
+              disabled={waterActive}
+              onClick={onToggleWaterMode}
+            >
+              {waterMode ? "Укажи место" : "Начать потоп"}
+            </button>
+            <button
+              type="button"
+              className="route-button"
+              disabled={(!waterPoint && !waterActive) || waterResetPending}
+              onClick={onResetWater}
+            >
+              {waterResetPending ? "Сбрасываем..." : "Сброс потопа"}
+            </button>
+          </div>
+
+          <div className="smoke-toolbar" onClick={(e) => e.stopPropagation()}>
+            <span className="tool-group-label">Дым</span>
+            <button
+              type="button"
+              className={`route-button smoke-button${smokeMode ? " smoke-button-active" : ""}`}
+              disabled={smokeActive}
+              onClick={onToggleSmokeMode}
+              data-testid="smoke-start"
+            >
+              {smokeMode ? "Укажи очаг" : "Начать дым"}
+            </button>
+            <button
+              type="button"
+              className="route-button"
+              disabled={(!smokePoint && !smokeActive) || smokeResetPending}
+              onClick={onResetSmoke}
+              data-testid="smoke-reset"
+            >
+              {smokeResetPending ? "Сбрасываем..." : "Сброс дыма"}
+            </button>
+          </div>
         </div>
 
-        <div className="water-toolbar" onClick={(e) => e.stopPropagation()}>
-          <span className="tool-group-label">Потоп</span>
-          <button
-            type="button"
-            className={`route-button water-button${waterMode ? " water-button-active" : ""}`}
-            disabled={waterActive}
-            onClick={onToggleWaterMode}
-          >
-            {waterMode ? "Укажи место" : "Начать потоп"}
-          </button>
-          <button type="button" className="route-button" disabled={!waterPoint && !waterActive} onClick={onResetWater}>
-            Сброс потопа
-          </button>
-        </div>
-
-        {(routeMode || routePoints.length > 0 || routeError || fireMode || fireActive || waterMode || waterActive) && (
-          <div className={`route-hint${routeError ? " route-hint-error" : ""}`}>
+        {(routeMode || routePoints.length > 0 || routeError || routeStatusError) && (
+          <div className={`route-hint${routeError || routeStatusError ? " route-hint-error" : ""}`}>
             {routeError ??
-              (waterMode
-                ? "Кликни по плану, чтобы выбрать место протечки"
-                : waterActive
-                ? "Идет симуляция потопа"
-                : fireMode
-                ? "Кликни по плану, чтобы выбрать место возгорания"
-                : fireActive
-                ? "Идет симуляция пожара"
-                : routePaused
+              routeStatusError ??
+              (routePaused
                 ? "Маршрут на паузе"
                 : routeMode
                 ? "Кликни по плану, чтобы поставить точку"
@@ -864,12 +785,12 @@ export function ApartmentPlan({
           data-testid="plan-surface"
           onClick={handlePlanClick}
           onDragOver={(e) => {
-            if (!onDropDevice) return;
+            if (!onDropDevice || devicesLocked) return;
             e.preventDefault();
             e.dataTransfer.dropEffect = "copy";
           }}
           onDrop={(e) => {
-            if (!onDropDevice) return;
+            if (!onDropDevice || devicesLocked) return;
             const id = e.dataTransfer.getData("application/x-sim-device-id") || e.dataTransfer.getData("text/plain");
             if (!id || !surfaceRef.current) return;
             e.preventDefault();
@@ -884,7 +805,10 @@ export function ApartmentPlan({
             border: "1px solid rgba(255,255,255,0.18)",
             background: "linear-gradient(180deg, #f5f5f7, #e8e8ed)",
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.82), 0 18px 44px rgba(0,0,0,0.20)",
-            cursor: (routeMode && !routeWalking && !routePaused) || fireMode || waterMode ? "crosshair" : "default",
+            cursor:
+              (routeMode && !routeWalking && !routePaused) || fireMode || waterMode || smokeMode
+                ? "crosshair"
+                : "default",
           }}
         >
           <svg
@@ -985,6 +909,24 @@ export function ApartmentPlan({
               })
             )}
 
+            {highlightedEdges.map(([from, to], i) => {
+              const a = positionForDevice(from);
+              const b = positionForDevice(to);
+              return (
+                <line
+                  key={`highlighted-${from}-${to}-${i}`}
+                  x1={a.x * 100}
+                  y1={a.y * 100}
+                  x2={b.x * 100}
+                  y2={b.y * 100}
+                  stroke="#30d158"
+                  strokeOpacity={1}
+                  strokeWidth={1.1}
+                  style={{ filter: "drop-shadow(0 0 1.5px rgba(48, 209, 88, 0.9))" }}
+                />
+              );
+            })}
+
             {activeEdges.map(([from, to], i) => {
               const a = positionForDevice(from);
               const b = positionForDevice(to);
@@ -1033,7 +975,7 @@ export function ApartmentPlan({
               .filter((device) => isMotionSensor(device))
               .map((device) => {
                 const pos = positionForDevice(device.id);
-                const isActive = activeSet.has(device.id) || deviceMap.get(device.id) === "active";
+                const isActive = deviceMap.get(device.id) === "active";
                 return (
                   <div
                     key={`motion-zone-${device.id}`}
@@ -1150,7 +1092,6 @@ export function ApartmentPlan({
               ))}
 
           <div
-            ref={personMarkerRef}
             className={`person-marker${personWalking ? " person-marker-walking" : ""}${personDragging ? " person-marker-dragging" : ""}`}
             style={
               {
@@ -1161,16 +1102,13 @@ export function ApartmentPlan({
             }
             title="Житель"
             onPointerDown={(e) => {
-              if (routeWalking || e.target instanceof HTMLButtonElement) return;
+              if (!personMovementEnabled || routeWalking || routePaused || e.target instanceof HTMLButtonElement) return;
               e.preventDefault();
               e.stopPropagation();
               personDragRef.current = true;
               setPersonDragging(true);
               const next = pointFromPointer(e.clientX, e.clientY);
-              if (next) {
-                setPersonPos(next);
-                handlePersonPosition(next);
-              }
+              pendingPersonDragRef.current = next;
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1182,16 +1120,40 @@ export function ApartmentPlan({
               <path className="person-leg person-leg-left" d="M16 27 L11 39" />
               <path className="person-leg person-leg-right" d="M16 27 L21 39" />
             </svg>
-            <button type="button" className="person-arrow person-arrow-up" aria-label="Вверх" disabled={routeWalking} onClick={() => movePerson(0, -0.045)}>
+            <button
+              type="button"
+              className="person-arrow person-arrow-up"
+              aria-label="Вверх"
+              disabled={!personMovementEnabled || routeWalking || routePaused}
+              onClick={() => movePerson(0, -PERSON_MOVE_STEP)}
+            >
               ↑
             </button>
-            <button type="button" className="person-arrow person-arrow-left" aria-label="Влево" disabled={routeWalking} onClick={() => movePerson(-0.045, 0)}>
+            <button
+              type="button"
+              className="person-arrow person-arrow-left"
+              aria-label="Влево"
+              disabled={!personMovementEnabled || routeWalking || routePaused}
+              onClick={() => movePerson(-PERSON_MOVE_STEP, 0)}
+            >
               ←
             </button>
-            <button type="button" className="person-arrow person-arrow-right" aria-label="Вправо" disabled={routeWalking} onClick={() => movePerson(0.045, 0)}>
+            <button
+              type="button"
+              className="person-arrow person-arrow-right"
+              aria-label="Вправо"
+              disabled={!personMovementEnabled || routeWalking || routePaused}
+              onClick={() => movePerson(PERSON_MOVE_STEP, 0)}
+            >
               →
             </button>
-            <button type="button" className="person-arrow person-arrow-down" aria-label="Вниз" disabled={routeWalking} onClick={() => movePerson(0, 0.045)}>
+            <button
+              type="button"
+              className="person-arrow person-arrow-down"
+              aria-label="Вниз"
+              disabled={!personMovementEnabled || routeWalking || routePaused}
+              onClick={() => movePerson(0, PERSON_MOVE_STEP)}
+            >
               ↓
             </button>
           </div>
@@ -1202,19 +1164,29 @@ export function ApartmentPlan({
             const DeviceIcon = iconForDevice(d);
             const tooltipId = `device-tooltip-${d.id}`;
             const tooltipClass = pos.x > 0.72 ? "device-tooltip device-tooltip-left" : "device-tooltip";
+            const hasPercentControl = Object.prototype.hasOwnProperty.call(devicePercentLevels, d.id);
+            const percentLevel = devicePercentLevels[d.id] ?? 0;
+            const valueControl = deviceValueControls[d.id];
+            const hasValueControl = valueControl !== undefined;
+            const numericControl = hasPercentControl
+              ? { value: percentLevel, min: 0, max: 100, step: 1, unit: "%", label: "Уровень" }
+              : valueControl;
+            const hasLevelArc = Object.prototype.hasOwnProperty.call(deviceLevelArcs, d.id);
+            const levelArc = Math.min(100, Math.max(0, deviceLevelArcs[d.id] ?? 0));
             return (
               <div
                 key={d.id}
-                className={dotClass(d.id)}
+                className={dotClass(d.id, hasLevelArc)}
                 data-testid={`device-${d.id}`}
                 data-device-state={deviceMap.get(d.id) ?? "idle"}
+                data-device-level={hasLevelArc ? levelArc : undefined}
                 style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
                 role="button"
                 tabIndex={0}
                 aria-label={name}
                 aria-describedby={tooltipId}
                 onPointerDown={(e) => {
-                  if (!onMoveDevice) return;
+                  if (!onMoveDevice || devicesLocked) return;
                   e.preventDefault();
                   dragRef.current = { id: d.id };
                   const p = positionForDevice(d.id);
@@ -1232,11 +1204,97 @@ export function ApartmentPlan({
                   onDeviceTrigger?.(d.id);
                 }}
               >
+                {hasLevelArc && (
+                  <svg
+                    className={`device-level-ring${levelArc <= 0 ? " device-level-ring-empty" : ""}`}
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="21"
+                      pathLength="100"
+                      style={{ strokeDashoffset: 100 - levelArc } as CSSProperties}
+                    />
+                  </svg>
+                )}
                 <DeviceIcon className="device-marker-icon" size={22} strokeWidth={2} aria-hidden="true" />
-                <span id={tooltipId} className={tooltipClass} role="tooltip">
-                  {name}
-                </span>
-                {onRemoveDevice && (
+                {numericControl ? (
+                  <form
+                    id={tooltipId}
+                    className={`${tooltipClass} device-percent-control`}
+                    aria-label={`${numericControl.label} устройства ${name}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const form = new FormData(e.currentTarget);
+                      const value = Number(form.get("value"));
+                      if (!Number.isFinite(value)) return;
+                      if (hasPercentControl) {
+                        onDevicePercentChange?.(d.id, value);
+                      } else if (hasValueControl) {
+                        onDeviceValueChange?.(d.id, value);
+                      }
+                    }}
+                  >
+                    <span className="device-percent-name">{name}</span>
+                    <div className="device-percent-row">
+                      <div className="device-percent-input-wrap">
+                        <input
+                          className="device-percent-input"
+                          type="number"
+                          name="value"
+                          min={numericControl.min}
+                          max={numericControl.max}
+                          step={numericControl.step}
+                          defaultValue={numericControl.value}
+                          key={numericControl.value}
+                          aria-label={`${numericControl.label} устройства ${name}`}
+                        />
+                        <div className="device-percent-stepper">
+                          <button
+                            type="button"
+                            className="device-percent-step"
+                            aria-label={`Увеличить значение ${name}`}
+                            onClick={(event) => {
+                              const input = event.currentTarget
+                                .closest(".device-percent-input-wrap")
+                                ?.querySelector<HTMLInputElement>(".device-percent-input");
+                              input?.stepUp();
+                            }}
+                          >
+                            <ChevronUp size={14} strokeWidth={2.5} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="device-percent-step"
+                            aria-label={`Уменьшить значение ${name}`}
+                            onClick={(event) => {
+                              const input = event.currentTarget
+                                .closest(".device-percent-input-wrap")
+                                ?.querySelector<HTMLInputElement>(".device-percent-input");
+                              input?.stepDown();
+                            }}
+                          >
+                            <ChevronDown size={14} strokeWidth={2.5} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                      <span className="device-percent-unit">{numericControl.unit}</span>
+                      <button className="device-percent-submit" type="submit">
+                        ОК
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <span id={tooltipId} className={tooltipClass} role="tooltip">
+                    {name}
+                  </span>
+                )}
+                {onRemoveDevice && !devicesLocked && (
                   <button
                     type="button"
                     className="device-remove-button"
@@ -1259,14 +1317,6 @@ export function ApartmentPlan({
             );
           })}
 
-        </div>
-
-        <div className="console-surface mt-4 rounded-2xl px-4 py-3 font-mono text-base text-white/80">
-          {chains.length
-            ? chains
-                .map((chain) => chain.chain.map((deviceId) => deviceNameMap.get(deviceId) ?? deviceId).join(" → "))
-                .join(" | ")
-            : "—"}
         </div>
       </div>
     </section>

@@ -43,6 +43,10 @@ func (s *stubEnginePort) NotifyObservers(roomID string, kind string, payload []b
 	return
 }
 
+func (s *stubEnginePort) TriggerReceivers(sourceID string, payload []byte) {
+	return
+}
+
 func (s *stubEnginePort) DrainInChan() {
 	return
 }
@@ -209,6 +213,11 @@ func TestEntitiesFromDTO_IncidentSensorsObservedKinds(t *testing.T) {
 			Info: []byte(`{"id":"smoke_sensor_1","x":1,"y":1,"radius":1}`),
 		},
 		{
+			ID:   "gas_sensor_1",
+			Type: "gas_leak_sensor",
+			Info: []byte(`{"id":"gas_sensor_1","x":1,"y":1,"radius":1}`),
+		},
+		{
 			ID:   "custom_sensor_1",
 			Type: entities.TypeRadiusMoveSensorWithoutUpdate,
 			Info: []byte(`{"id":"custom_sensor_1","x":1,"y":1,"radius":1,"observedKinds":["smoke:spread"]}`),
@@ -224,6 +233,7 @@ func TestEntitiesFromDTO_IncidentSensorsObservedKinds(t *testing.T) {
 	assertObservedKinds(t, entitiesMap["fire_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindFireSpread})
 	assertObservedKinds(t, entitiesMap["flood_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindFloodSpread})
 	assertObservedKinds(t, entitiesMap["smoke_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindSmokeSpread})
+	assertObservedKinds(t, entitiesMap["gas_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindSmokeSpread})
 	assertObservedKinds(t, entitiesMap["custom_sensor_1"].(*devices.RadiusMoveSensorWithoutUpdate).GetObservedKinds(), []string{actors.KindSmokeSpread})
 }
 

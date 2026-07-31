@@ -846,7 +846,7 @@ func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "sensorWithIntStatus_1", Type: "illumination_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
+			{ID: "sensorWithIntStatus_1", Type: "illumination_sensor", Info: json.RawMessage(`{"id":"sensorWithIntStatus_1","delay":0.0}`)},
 			{ID: "smartCurtains_1", Type: "curtains", Info: json.RawMessage(`{"id":"smartCurtains_1","delay":0.0,"percents":0}`)},
 		},
 		Scenarios: []api.ScenarioDTO{

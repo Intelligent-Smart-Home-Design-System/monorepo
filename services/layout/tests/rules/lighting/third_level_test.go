@@ -85,10 +85,10 @@ func TestLightingLevel3(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, layout.Placements)
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r1"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r2"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r3"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r4"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r1"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r2"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r3"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r4"))
 
 	assert.True(t, layout.HasDeviceInRoom("illumination_sensor", "r1"))
 	assert.True(t, layout.HasDeviceInRoom("illumination_sensor", "r2"))
@@ -246,12 +246,12 @@ func TestLightingLevel3PriceCalculation(t *testing.T) {
 	devicesConfig := configs.GetGlobalDevicesConfig()
 
 	expectedMin :=
-		devicesConfig.Devices["smart_bulb"].Price.Min*4 +
+		devicesConfig.Devices["smart_lamp"].Price.Min*4 +
 			devicesConfig.Devices["motion_sensor"].Price.Min*3 +
 			devicesConfig.Devices["illumination_sensor"].Price.Min*2
 
 	expectedMax :=
-		devicesConfig.Devices["smart_bulb"].Price.Max*4 +
+		devicesConfig.Devices["smart_lamp"].Price.Max*4 +
 			devicesConfig.Devices["motion_sensor"].Price.Max*3 +
 			devicesConfig.Devices["illumination_sensor"].Price.Max*2
 

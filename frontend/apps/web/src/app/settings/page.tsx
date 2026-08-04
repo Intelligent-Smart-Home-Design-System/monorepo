@@ -5,8 +5,14 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import DevicesOtherRoundedIcon from "@mui/icons-material/DevicesOtherRounded";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
+import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
 import {
   Alert,
   Box,
@@ -17,8 +23,11 @@ import {
   CircularProgress,
   Collapse,
   Divider,
+  FormControl,
   IconButton,
+  InputLabel,
   MenuItem,
+  OutlinedInput,
   Select,
   Stack,
   TextField,
@@ -26,8 +35,16 @@ import {
 } from "@mui/material";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import {
+  loadManualSelection,
+  MANUAL_MODE_STORAGE_KEY,
+  manualSelectionCost,
+  saveManualSelection,
+  type ManualSelectionItem,
+} from "../lib/manual-selection";
 import tracksConfig from "../../../../../../services/layout/internal/configs/tracks.json";
 import type {
+  ApiCatalogCategory,
   ApiDeviceType,
   ApiEcosystem,
   ApiFilterOperation,
@@ -41,6 +58,8 @@ type RequirementDraft = {
   quantity: number;
   filters: ApiRequirementFilter[];
 };
+
+type SelectionMode = "auto" | "manual" | null;
 
 type UploadedPlanState = {
   fileName?: string;
@@ -74,7 +93,14 @@ export default function SettingsPage() {
   const auth = useAuth();
   const router = useRouter();
 
-  const [budget, setBudget] = useState("500000");
+  const [budget, setBudget] = useState("");
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
+  const [manualItems, setManualItems] = useState<ManualSelectionItem[]>([]);
+  const [manualSelectionLoaded, setManualSelectionLoaded] = useState(false);
+  const [catalogCategories, setCatalogCategories] = useState<ApiCatalogCategory[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState("");
+  const [catalogReloadKey, setCatalogReloadKey] = useState(0);
   const [ecosystems, setEcosystems] = useState<ApiEcosystem[]>([]);
   const [deviceTypes, setDeviceTypes] = useState<ApiDeviceType[]>([]);
   const [mainEcosystemId, setMainEcosystemId] = useState("");
@@ -130,6 +156,62 @@ export default function SettingsPage() {
     };
   }, [auth.isAuthenticated, auth.loading]);
 
+  useEffect(() => {
+    const savedItems = loadManualSelection();
+    setManualItems(savedItems);
+
+    if (localStorage.getItem(MANUAL_MODE_STORAGE_KEY) === "manual" || savedItems.length > 0) {
+      setSelectionMode("manual");
+      setBudget(localStorage.getItem("planner-last-budget") ?? "");
+
+      try {
+        const rawPlan = localStorage.getItem("planner-uploaded-plan");
+        const savedPlan = rawPlan ? (JSON.parse(rawPlan) as UploadedPlanState) : null;
+        if (savedPlan) {
+          setFileName(savedPlan.fileName ?? "");
+          setPlanDataUrl(savedPlan.planDataUrl ?? "");
+          setPlanFileType(savedPlan.planFileType ?? "");
+          setParsedFloor(savedPlan.parsedFloor ?? savedPlan.floorJson ?? null);
+        }
+      } catch {
+        // A broken draft must not prevent opening the settings page.
+      }
+    }
+
+    setManualSelectionLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (selectionMode !== "manual" || !auth.isAuthenticated || catalogCategories.length > 0) {
+      return;
+    }
+
+    let active = true;
+    setCatalogLoading(true);
+    setCatalogError("");
+
+    api
+      .listCatalogCategories()
+      .then((categories) => {
+        if (active) setCatalogCategories(categories);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setCatalogError(err instanceof Error ? err.message : "Не удалось загрузить категории устройств.");
+      })
+      .finally(() => {
+        if (active) setCatalogLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [auth.isAuthenticated, catalogCategories.length, catalogReloadKey, selectionMode]);
+
+  useEffect(() => {
+    if (manualSelectionLoaded) saveManualSelection(manualItems);
+  }, [manualItems, manualSelectionLoaded]);
+
   const selectedTrackSelections = useMemo(
     () =>
       trackOptions
@@ -149,17 +231,50 @@ export default function SettingsPage() {
     [requirementsByTrack, selectedTrackSelections]
   );
 
-  const canSubmit =
-    Number(budget) > 0 &&
+  const budgetMissing = budget.trim().length === 0;
+  const budgetValue = Number(budget);
+  const budgetIsValid = !budgetMissing && Number.isFinite(budgetValue) && budgetValue > 0;
+  const manualTotal = manualItems.reduce((total, item) => total + manualSelectionCost(item), 0);
+  const manualBudgetRemaining = budgetIsValid ? budgetValue - manualTotal : null;
+
+  const canSubmitAuto =
+    budgetIsValid &&
     mainEcosystemId.length > 0 &&
     !parsingFloor &&
     Boolean(parsedFloor) &&
     selectedRequirements.some((item) => item.device_type && item.quantity > 0);
+  const canSubmitManual =
+    budgetIsValid &&
+    !parsingFloor &&
+    Boolean(parsedFloor) &&
+    manualItems.length > 0 &&
+    manualItems.every((item) => item.quantity > 0) &&
+    manualTotal <= budgetValue;
 
   const planPreviewState: UploadedPlanState = useMemo(
     () => ({ fileName, planDataUrl, planFileType, floorJson: parsedFloor ?? undefined, parsedFloor: parsedFloor ?? undefined }),
     [fileName, parsedFloor, planDataUrl, planFileType]
   );
+
+  const openManualCategory = (categoryId: string) => {
+    saveManualSelection(manualItems);
+    localStorage.setItem(MANUAL_MODE_STORAGE_KEY, "manual");
+    localStorage.setItem("planner-last-budget", budget);
+    localStorage.setItem("planner-uploaded-plan", JSON.stringify(planPreviewState));
+    router.push(`/settings/manual/${encodeURIComponent(categoryId)}`);
+  };
+
+  const updateManualItemQuantity = (categoryId: string, quantity: number) => {
+    setManualItems((items) =>
+      items.map((item) =>
+        item.categoryId === categoryId ? { ...item, quantity: Math.max(1, quantity || 1) } : item
+      )
+    );
+  };
+
+  const removeManualItem = (categoryId: string) => {
+    setManualItems((items) => items.filter((item) => item.categoryId !== categoryId));
+  };
 
   const applyLevel = (trackId: string, levelId: string) => {
     const track = trackOptions.find((item) => item.id === trackId);
@@ -252,6 +367,34 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCreateManualPlan = async () => {
+    if (!canSubmitManual || !parsedFloor || typeof parsedFloor !== "object") return;
+
+    setSubmitting(true);
+    setError("");
+    try {
+      const created = await api.createManualPlan({
+        budget: budgetValue,
+        floor_plan: parsedFloor as Record<string, unknown>,
+        selections: manualItems.map((item) => ({
+          device_id: item.deviceId,
+          listing_id: item.listingId,
+          quantity: item.quantity,
+        })),
+      });
+
+      localStorage.setItem("planner-last-budget", budget);
+      localStorage.removeItem("planner-uploaded-plan");
+      saveManualSelection([]);
+      localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
+      router.push(`/plan?id=${created.plan_id}`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Не удалось создать ручной план.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleFloorFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -293,7 +436,7 @@ export default function SettingsPage() {
                 Ввод настроек
               </Typography>
               <Typography color="text.secondary">
-                Выберите бюджет, основную экосистему и уровень подбора для будущего плана.
+                Укажите бюджет, выберите способ подбора и добавьте план квартиры.
               </Typography>
             </Box>
 
@@ -318,12 +461,61 @@ export default function SettingsPage() {
 
                 <TextField
                   label="Бюджет (₽)"
+                  placeholder="введите стоимость в рублях"
                   value={budget}
                   onChange={(event) => setBudget(event.target.value.replace(/[^\d]/g, ""))}
                   inputMode="numeric"
+                  required
+                  error={!budgetIsValid}
+                  helperText={budgetMissing ? "обязательное поле" : !budgetIsValid ? "Введите стоимость больше 0 ₽" : " "}
+                  slotProps={{ inputLabel: { shrink: true } }}
                   fullWidth
                 />
 
+                <Box component="section" aria-labelledby="selection-mode-title">
+                  <Typography id="selection-mode-title" sx={{ fontWeight: 700, mb: 1.2 }}>
+                    Способ подбора
+                  </Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+                    <Button
+                      variant={selectionMode === "auto" ? "contained" : "outlined"}
+                      startIcon={<AutoAwesomeRoundedIcon />}
+                      aria-pressed={selectionMode === "auto"}
+                      onClick={() => {
+                        localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
+                        setSelectionMode("auto");
+                      }}
+                      sx={{
+                        flex: 1,
+                        minHeight: 52,
+                        borderRadius: 3,
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      Автоподбор
+                    </Button>
+                    <Button
+                      variant={selectionMode === "manual" ? "contained" : "outlined"}
+                      startIcon={<TouchAppRoundedIcon />}
+                      aria-pressed={selectionMode === "manual"}
+                      onClick={() => {
+                        localStorage.setItem(MANUAL_MODE_STORAGE_KEY, "manual");
+                        setSelectionMode("manual");
+                      }}
+                      sx={{
+                        flex: 1,
+                        minHeight: 52,
+                        borderRadius: 3,
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      Ручной подбор
+                    </Button>
+                  </Stack>
+                </Box>
+
+                <Collapse in={selectionMode === "auto"} timeout="auto" unmountOnExit>
+                  <Stack spacing={3}>
                 <Box>
                   <Typography sx={{ fontWeight: 700, mb: 1.2 }}>Выбор основной экосистемы</Typography>
                   <Stack spacing={1.2}>
@@ -688,6 +880,237 @@ export default function SettingsPage() {
                     </Alert>
                   )}
                 </Box>
+                  </Stack>
+                </Collapse>
+
+                {selectionMode === "manual" && (
+                  <Box
+                    component="section"
+                    aria-labelledby="manual-selection-title"
+                    sx={{
+                      py: { xs: 1, sm: 1.5 },
+                    }}
+                  >
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      alignItems={{ xs: "stretch", sm: "flex-end" }}
+                      spacing={1}
+                      sx={{ mb: 2 }}
+                    >
+                      <Box>
+                        <Typography id="manual-selection-title" sx={{ fontWeight: 800, mb: 0.5 }}>
+                          Устройства
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Выберите модель для каждого необходимого типа устройства.
+                        </Typography>
+                      </Box>
+                      <Chip
+                        icon={<DevicesOtherRoundedIcon />}
+                        label={`Выбрано: ${manualItems.length}`}
+                        variant="outlined"
+                        sx={{ alignSelf: { xs: "flex-start", sm: "auto" } }}
+                      />
+                    </Stack>
+
+                    {catalogError && (
+                      <Alert
+                        severity="error"
+                        sx={{ mb: 2 }}
+                        action={
+                          <Button
+                            color="inherit"
+                            size="small"
+                            onClick={() => {
+                              setCatalogCategories([]);
+                              setCatalogError("");
+                              setCatalogReloadKey((value) => value + 1);
+                            }}
+                          >
+                            Повторить
+                          </Button>
+                        }
+                      >
+                        {catalogError}
+                      </Alert>
+                    )}
+
+                    {catalogLoading ? (
+                      <Box sx={{ minHeight: 180, display: "grid", placeItems: "center" }}>
+                        <CircularProgress size={32} />
+                      </Box>
+                    ) : catalogCategories.length > 0 ? (
+                      <Box
+                        sx={{
+                          border: "1px solid rgba(148,163,184,0.32)",
+                          borderRadius: 2,
+                          overflow: "hidden",
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        {catalogCategories.map((category, index) => {
+                          const selectedItem = manualItems.find((item) => item.categoryId === category.id);
+                          return (
+                            <Box
+                              key={category.id}
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: {
+                                  xs: "minmax(0, 1fr)",
+                                  md: "minmax(190px, 0.8fr) minmax(0, 1.4fr) auto",
+                                },
+                                gap: { xs: 1.5, md: 2 },
+                                alignItems: "center",
+                                p: { xs: 2, sm: 2.25 },
+                                borderTop: index === 0 ? "none" : "1px solid rgba(148,163,184,0.24)",
+                                backgroundColor: selectedItem ? "rgba(22,163,74,0.04)" : "#fff",
+                              }}
+                            >
+                              <Box sx={{ minWidth: 0 }}>
+                                <Typography sx={{ fontWeight: 800 }}>{category.name}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {category.product_count} {productCountLabel(category.product_count)}
+                                  {category.min_price > 0 ? ` · от ${formatPrice(category.min_price)} ₽` : ""}
+                                </Typography>
+                              </Box>
+
+                              {selectedItem ? (
+                                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+                                  <Box
+                                    sx={{
+                                      width: 52,
+                                      height: 52,
+                                      flex: "0 0 52px",
+                                      borderRadius: 2,
+                                      display: "grid",
+                                      placeItems: "center",
+                                      overflow: "hidden",
+                                      backgroundColor: "rgba(15,23,42,0.05)",
+                                    }}
+                                  >
+                                    {selectedItem.imageUrl ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={selectedItem.imageUrl}
+                                        alt=""
+                                        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                      />
+                                    ) : (
+                                      <DevicesOtherRoundedIcon color="action" />
+                                    )}
+                                  </Box>
+                                  <Box sx={{ minWidth: 0 }}>
+                                    <Typography noWrap sx={{ fontWeight: 750 }} title={selectedItem.name}>
+                                      {selectedItem.name}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" noWrap>
+                                      {[selectedItem.brand, selectedItem.model].filter(Boolean).join(" · ")}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                      {formatPrice(selectedItem.unitPrice)} ₽
+                                    </Typography>
+                                  </Box>
+                                </Stack>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">
+                                  Модель не выбрана
+                                </Typography>
+                              )}
+
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                                justifyContent={{ xs: "space-between", md: "flex-end" }}
+                                sx={{ minWidth: 0 }}
+                              >
+                                {selectedItem && (
+                                  <QuantityStepper
+                                    id={`manual-device-quantity-${category.id}`}
+                                    size="small"
+                                    value={selectedItem.quantity}
+                                    onChange={(quantity) =>
+                                      updateManualItemQuantity(category.id, quantity)
+                                    }
+                                  />
+                                )}
+                                <Button
+                                  variant={selectedItem ? "outlined" : "contained"}
+                                  endIcon={<ArrowForwardRoundedIcon />}
+                                  onClick={() => openManualCategory(category.id)}
+                                  sx={{
+                                    minHeight: 40,
+                                    whiteSpace: "nowrap",
+                                    flex: { xs: selectedItem ? 1 : "0 1 auto", md: "0 0 auto" },
+                                  }}
+                                >
+                                  {selectedItem ? "Заменить" : "Выбрать"}
+                                </Button>
+                                {selectedItem && (
+                                  <IconButton
+                                    aria-label={`Удалить ${selectedItem.name}`}
+                                    title="Удалить устройство"
+                                    color="error"
+                                    onClick={() => removeManualItem(category.id)}
+                                  >
+                                    <DeleteOutlineRoundedIcon />
+                                  </IconButton>
+                                )}
+                              </Stack>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    ) : !catalogError ? (
+                      <Alert severity="info">В каталоге пока нет доступных устройств.</Alert>
+                    ) : null}
+
+                    <Box
+                      sx={{
+                        mt: 2,
+                        py: 2,
+                        borderTop: "1px solid rgba(148,163,184,0.28)",
+                        borderBottom: "1px solid rgba(148,163,184,0.28)",
+                      }}
+                    >
+                      <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={{ xs: 1, sm: 3 }}
+                        justifyContent="space-between"
+                      >
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Стоимость выбранных устройств
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 850 }}>
+                            {formatPrice(manualTotal)} ₽
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: { xs: "left", sm: "right" } }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {manualBudgetRemaining !== null && manualBudgetRemaining < 0
+                              ? "Превышение бюджета"
+                              : "Остаток бюджета"}
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            color={
+                              manualBudgetRemaining !== null && manualBudgetRemaining < 0
+                                ? "error"
+                                : "text.primary"
+                            }
+                            sx={{ fontWeight: 850 }}
+                          >
+                            {manualBudgetRemaining === null
+                              ? "—"
+                              : `${formatPrice(Math.abs(manualBudgetRemaining))} ₽`}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  </Box>
+                )}
 
                 <Box>
                   <Typography sx={{ fontWeight: 700, mb: 1 }}>План квартиры</Typography>
@@ -717,26 +1140,64 @@ export default function SettingsPage() {
                   )}
                 </Box>
 
-                <Divider />
+                {selectionMode && <Divider />}
 
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  disabled={!canSubmit || submitting}
-                  onClick={handleCreatePlan}
-                >
-                  {submitting ? "Создаём план..." : "Запустить подбор"}
-                </Button>
-                {selectedTrackSelections.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" textAlign="center">
-                    Кнопка активируется после выбора уровня и распознавания DXF-плана.
-                  </Typography>
+                {selectionMode === "auto" && (
+                  <>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      size="large"
+                      disabled={!canSubmitAuto || submitting}
+                      onClick={handleCreatePlan}
+                    >
+                      {submitting ? "Создаём план..." : "Запустить подбор"}
+                    </Button>
+                    {selectedTrackSelections.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Кнопка активируется после выбора уровня и распознавания DXF-плана.
+                      </Typography>
+                    )}
+                    {selectedTrackSelections.length > 0 && !parsedFloor && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Загрузите DXF-файл, чтобы передать план квартиры в pipeline.
+                      </Typography>
+                    )}
+                  </>
                 )}
-                {selectedTrackSelections.length > 0 && !parsedFloor && (
-                  <Typography variant="body2" color="text.secondary" textAlign="center">
-                    Загрузите DXF-файл, чтобы передать план квартиры в pipeline.
-                  </Typography>
+
+                {selectionMode === "manual" && (
+                  <>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      size="large"
+                      disabled={!canSubmitManual || submitting}
+                      onClick={handleCreateManualPlan}
+                    >
+                      {submitting ? "Создаём план..." : "Создать"}
+                    </Button>
+                    {!budgetIsValid && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Укажите бюджет, чтобы продолжить ручной подбор.
+                      </Typography>
+                    )}
+                    {budgetIsValid && manualItems.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Добавьте хотя бы одно устройство.
+                      </Typography>
+                    )}
+                    {budgetIsValid && manualItems.length > 0 && !parsedFloor && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Загрузите и распознайте DXF-план.
+                      </Typography>
+                    )}
+                    {budgetIsValid && manualTotal > budgetValue && (
+                      <Typography variant="body2" color="error" textAlign="center">
+                        Стоимость выбранных устройств превышает бюджет.
+                      </Typography>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -744,6 +1205,95 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
     </Box>
+  );
+}
+
+function productCountLabel(count: number) {
+  const value = Math.abs(count) % 100;
+  const lastDigit = value % 10;
+  if (value > 10 && value < 20) return "моделей";
+  if (lastDigit === 1) return "модель";
+  if (lastDigit > 1 && lastDigit < 5) return "модели";
+  return "моделей";
+}
+
+function QuantityStepper(props: {
+  id: string;
+  value: number;
+  onChange: (value: number) => void;
+  size?: "small" | "medium";
+}) {
+  const setValue = (value: number) => props.onChange(Math.min(99, Math.max(1, value || 1)));
+
+  return (
+    <FormControl size={props.size} sx={{ width: 112, flex: "0 0 112px" }}>
+      <InputLabel shrink htmlFor={props.id}>
+        Кол-во
+      </InputLabel>
+      <OutlinedInput
+        id={props.id}
+        label="Кол-во"
+        value={props.value}
+        onChange={(event) => setValue(Number(event.target.value.replace(/[^\d]/g, "")))}
+        inputProps={{
+          inputMode: "numeric",
+          min: 1,
+          max: 99,
+          "aria-label": "Количество устройств",
+        }}
+        endAdornment={
+          <Box
+            sx={{
+              alignSelf: "stretch",
+              width: 36,
+              display: "grid",
+              gridTemplateRows: "1fr 1fr",
+              borderLeft: "1px solid rgba(15,23,42,0.22)",
+              backgroundColor: "rgba(15,23,42,0.04)",
+            }}
+          >
+            <IconButton
+              aria-label="Увеличить количество"
+              disabled={props.value >= 99}
+              onClick={() => setValue(props.value + 1)}
+              sx={{
+                width: 36,
+                minHeight: 0,
+                p: 0,
+                borderRadius: 0,
+                color: "#2563eb",
+                borderBottom: "1px solid rgba(15,23,42,0.18)",
+              }}
+            >
+              <KeyboardArrowUpRoundedIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              aria-label="Уменьшить количество"
+              disabled={props.value <= 1}
+              onClick={() => setValue(props.value - 1)}
+              sx={{
+                width: 36,
+                minHeight: 0,
+                p: 0,
+                borderRadius: 0,
+                color: "#2563eb",
+              }}
+            >
+              <KeyboardArrowDownRoundedIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        }
+        sx={{
+          height: 56,
+          pr: 0,
+          overflow: "hidden",
+          backgroundColor: "#fff",
+          "& .MuiOutlinedInput-input": {
+            py: 1.5,
+          },
+        }}
+      />
+    </FormControl>
   );
 }
 
@@ -763,7 +1313,7 @@ function getTrackLevels(track: TrackConfig & { id: string }) {
 }
 
 function trackLevelToRequirementDrafts(level: TrackLevel): RequirementDraft[] {
-  return level.devices.map((deviceType, index) => ({
+  return level.devices.map((deviceType) => ({
     localId: crypto.randomUUID(),
     device_type: deviceType,
     quantity: level.max_device_counts?.[deviceType] ?? 1,

@@ -13,21 +13,21 @@ const (
 	minRequiredCoverage = 0.3
 )
 
-type CameraRule struct {
+type SmartCameraRule struct {
 	track string
 }
 
-func NewCameraRule() *CameraRule {
-	return &CameraRule{
+func NewSmartCameraRule() *SmartCameraRule {
+	return &SmartCameraRule{
 		track: "security",
 	}
 }
 
-func (c *CameraRule) Type() string {
-	return "camera"
+func (c *SmartCameraRule) Type() string {
+	return "smart_camera"
 }
 
-func (c *CameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
+func (c *SmartCameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []string) error {
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {
 		roomsSet[name] = struct{}{}
@@ -43,7 +43,7 @@ func (c *CameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRooms []
 	return nil
 }
 
-func (c *CameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
+func (c *SmartCameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
 	deviceType := c.Type()
 
 	err := c.Transform(zonedAp, deviceRooms)

@@ -215,7 +215,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 		livingRoomKeys = append(livingRoomKeys, placement.Device.Type)
 	}
 
-	correctLivingRoomKeys := []string{"motion_sensor", "camera"}
+	correctLivingRoomKeys := []string{"motion_sensor", "smart_camera"}
 	for _, key := range correctLivingRoomKeys {
 		assert.Contains(t, livingRoomKeys, key)
 	}
@@ -227,7 +227,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 		hallRoomKeys = append(hallRoomKeys, placement.Device.Type)
 	}
 
-	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_sensor", "motion_sensor", "camera"}
+	correctHallRoomKeys := []string{"smart_lock", "smart_doorbell", "door_window_sensor", "motion_sensor", "smart_camera"}
 	for _, key := range correctHallRoomKeys {
 		assert.Contains(t, hallRoomKeys, key)
 	}

@@ -11,10 +11,10 @@ func TestLightingLevel4(t *testing.T) {
 	layout, _, err := placeLightingLevel(apartmentStruct, "4")
 	assert.NoError(t, err)
 
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r1"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r2"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r3"))
-	assert.True(t, layout.HasDeviceInRoom("smart_bulb", "r4"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r1"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r2"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r3"))
+	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r4"))
 
 	assert.True(t, layout.HasDeviceInRoom("illumination_sensor", "r1"))
 	assert.True(t, layout.HasDeviceInRoom("illumination_sensor", "r2"))

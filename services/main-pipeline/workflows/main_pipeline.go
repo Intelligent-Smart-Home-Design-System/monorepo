@@ -66,6 +66,7 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 		RequestID:       input.RequestID,
 		ParsedFloorPlan: input.FloorPlan,
 		Layout:          placed.Layout,
+		Dependencies:    placed.Dependencies,
 		DeviceSelection: deviceSelectionResult,
 	}, nil
 }

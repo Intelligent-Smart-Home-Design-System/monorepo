@@ -15,6 +15,11 @@ import (
 const (
 	ActionMove        string = "human:move"
 	ActionInteraction string = "human:interaction"
+	ActionRoute       string = "human:route"
+
+	defaultRouteIntervalTicks = 7
+	minRouteSpeed             = 0.5
+	maxRouteSpeed             = 5.0
 )
 
 // HumanActionResult интерфейс для результатов действий человека.
@@ -32,6 +37,13 @@ type Human struct {
 	Y         float64  `json:"y"`
 	RoomID    string   `json:"roomID"`
 	Receivers []string `json:"receivers"`
+	RouteStep float64  `json:"routeStep"`
+
+	route       [][2]float64
+	routeIndex  int
+	routeSpeed  float64
+	routeTicks  int
+	routePaused bool
 }
 
 // HumanInData описывает входные данные для действий человека. В зависимости от поля Kind, структура может содержать данные для перемещения или взаимодействия.
@@ -43,6 +55,12 @@ type HumanInData struct {
 	} `json:"to"`
 	DeviceID      string          `json:"device_id"`
 	DevicePayload json.RawMessage `json:"device_payload"`
+	Route         []struct {
+		X float64 `json:"x"`
+		Y float64 `json:"y"`
+	} `json:"route"`
+	Action string  `json:"action"`
+	Speed  float64 `json:"speed"`
 }
 
 // HumanMoveOutData описывает результат попытки перемещения человека. Содержит конечные координаты, ID комнаты и статус операции.
@@ -68,6 +86,17 @@ type HumanInteractionOutData struct {
 	Status   string `json:"status"`
 }
 
+// HumanRouteOutData сообщает frontend состояние маршрута, рассчитанного backend.
+type HumanRouteOutData struct {
+	Kind   string `json:"kind"`
+	Status string `json:"status"`
+}
+
+// GetStatus возвращает текущее состояние выполнения маршрута.
+func (r HumanRouteOutData) GetStatus() string {
+	return r.Status
+}
+
 // GetStatus возвращает статус результата взаимодействия.
 func (r HumanInteractionOutData) GetStatus() string {
 	return r.Status
@@ -84,12 +113,10 @@ func NewHuman(data []byte, engineAPI engine.EnginePort) (*Human, error) {
 	human.inStore = *simgo.NewStore[HumanInData](engineAPI.GetSimulation())
 
 	floor := engineAPI.GetFloor()
-	if _, ok := floor.Adjacency[human.RoomID]; !ok {
-		return nil, fmt.Errorf("human %s has invalid initial room_id %s", human.ID, human.RoomID)
-	}
-
+	roomFound := false
 	for _, room := range floor.Rooms {
 		if room.ID == human.RoomID {
+			roomFound = true
 			if !field.PointInRoom(human.X, human.Y, room) {
 				return nil, fmt.Errorf("human %s is not inside room %s", human.ID, human.RoomID)
 			}
@@ -97,6 +124,13 @@ func NewHuman(data []byte, engineAPI engine.EnginePort) (*Human, error) {
 			break
 		}
 	}
+	if !roomFound {
+		return nil, fmt.Errorf("human %s has invalid initial room_id %s", human.ID, human.RoomID)
+	}
+	if human.RouteStep <= 0 {
+		human.RouteStep = defaultHumanRouteStep(floor)
+	}
+	human.routeSpeed = 1
 
 	return &human, nil
 }
@@ -121,6 +155,10 @@ func (h *Human) HandleOutDTO(dto []byte) {
 	}
 	h.enginePort.GetOutChan() <- outData
 
+	var move HumanMoveOutData
+	if err := json.Unmarshal(dto, &move); err != nil || move.Kind != ActionMove {
+		return
+	}
 	movePayload, _ := json.Marshal(map[string]any{
 		"kind": "human:move",
 		"to":   map[string]float64{"x": h.X, "y": h.Y},
@@ -141,6 +179,9 @@ func (h *Human) Process(process simgo.Process) {
 
 		inData := storeElement.Item
 		outData := h.HandleEvent(inData)
+		if outData == nil {
+			continue
+		}
 
 		dto, err := json.Marshal(outData)
 		if err != nil {
@@ -161,6 +202,8 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 		return h.handleMove(inData)
 	case ActionInteraction:
 		return h.HandleInteraction(inData)
+	case ActionRoute:
+		return h.handleRoute(inData)
 	default:
 		slog.Warn("unknown human action type",
 			"action_type", inData.Kind,
@@ -171,6 +214,124 @@ func (h *Human) HandleEvent(inData HumanInData) HumanActionResult {
 			Status: "unknown action type",
 		}
 	}
+}
+
+// handleRoute обрабатывает команды управления маршрутом: запуск, паузу,
+// продолжение и остановку. Возвращает новое состояние маршрута для frontend.
+func (h *Human) handleRoute(inData HumanInData) HumanActionResult {
+	switch inData.Action {
+	case "pause":
+		if len(h.route) == 0 {
+			return HumanRouteOutData{Kind: ActionRoute, Status: "idle"}
+		}
+		h.routePaused = true
+		return HumanRouteOutData{Kind: ActionRoute, Status: "paused"}
+	case "resume":
+		if len(h.route) == 0 {
+			return HumanRouteOutData{Kind: ActionRoute, Status: "idle"}
+		}
+		h.routePaused = false
+		return HumanRouteOutData{Kind: ActionRoute, Status: "running"}
+	case "stop":
+		h.clearRoute()
+		return HumanRouteOutData{Kind: ActionRoute, Status: "stopped"}
+	case "", "start":
+		if len(inData.Route) == 0 {
+			return HumanRouteOutData{Kind: ActionRoute, Status: "empty route"}
+		}
+		h.route = make([][2]float64, 0, len(inData.Route))
+		for _, point := range inData.Route {
+			h.route = append(h.route, [2]float64{point.X, point.Y})
+		}
+		h.routeIndex = 0
+		h.routeTicks = 0
+		h.routePaused = false
+		h.routeSpeed = math.Min(maxRouteSpeed, math.Max(minRouteSpeed, inData.Speed))
+		if inData.Speed == 0 {
+			h.routeSpeed = 1
+		}
+		return HumanRouteOutData{Kind: ActionRoute, Status: "running"}
+	default:
+		return HumanRouteOutData{Kind: ActionRoute, Status: "unknown route action"}
+	}
+}
+
+// advanceRoute продвигает человека к следующей точке активного маршрута с
+// заданной скоростью. Возвращает перемещение или итоговый статус маршрута.
+func (h *Human) advanceRoute() HumanActionResult {
+	if len(h.route) == 0 || h.routePaused {
+		return nil
+	}
+
+	h.routeTicks++
+	interval := int(math.Round(defaultRouteIntervalTicks / h.routeSpeed))
+	if interval < 1 {
+		interval = 1
+	}
+	if h.routeTicks < interval {
+		return nil
+	}
+	h.routeTicks = 0
+
+	target := h.route[h.routeIndex]
+	dx := target[0] - h.X
+	dy := target[1] - h.Y
+	distance := math.Hypot(dx, dy)
+	if distance <= movementParamEpsilon {
+		h.routeIndex++
+		if h.routeIndex >= len(h.route) {
+			h.clearRoute()
+			return HumanRouteOutData{Kind: ActionRoute, Status: "completed"}
+		}
+		return nil
+	}
+
+	step := math.Min(h.RouteStep, distance)
+	input := HumanInData{Kind: ActionMove}
+	input.To.TargetX = h.X + dx/distance*step
+	input.To.TargetY = h.Y + dy/distance*step
+	beforeX, beforeY := h.X, h.Y
+	result := h.handleMove(input)
+	if math.Hypot(h.X-beforeX, h.Y-beforeY) <= movementParamEpsilon {
+		h.clearRoute()
+		return HumanRouteOutData{Kind: ActionRoute, Status: "blocked"}
+	}
+
+	if math.Hypot(target[0]-h.X, target[1]-h.Y) <= movementParamEpsilon {
+		h.routeIndex++
+		if h.routeIndex >= len(h.route) {
+			h.clearRoute()
+			result.Status = "route completed"
+		}
+	}
+	return result
+}
+
+// clearRoute удаляет текущий маршрут и сбрасывает связанное с ним состояние.
+func (h *Human) clearRoute() {
+	h.route = nil
+	h.routeIndex = 0
+	h.routeTicks = 0
+	h.routePaused = false
+}
+
+// defaultHumanRouteStep рассчитывает длину шага маршрута относительно
+// меньшей стороны плана и возвращает безопасный минимум для вырожденного плана.
+func defaultHumanRouteStep(floor *api.Floor) float64 {
+	minX, minY := math.Inf(1), math.Inf(1)
+	maxX, maxY := math.Inf(-1), math.Inf(-1)
+	for _, room := range floor.Rooms {
+		for _, point := range room.Area {
+			minX = math.Min(minX, point[0])
+			maxX = math.Max(maxX, point[0])
+			minY = math.Min(minY, point[1])
+			maxY = math.Max(maxY, point[1])
+		}
+	}
+	if math.IsInf(minX, 1) {
+		return 0.015
+	}
+	return math.Max(math.Min(maxX-minX, maxY-minY)*0.015, movementParamEpsilon*10)
 }
 
 // HandleInteraction обрабатывает взаимодействие человека с устройством. Отправляет событие в движок и возвращает результат взаимодействия.
@@ -216,6 +377,7 @@ func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 	h.RoomID = newRoomID
 
 	return HumanMoveOutData{
+		Kind: inData.Kind,
 		To: struct {
 			TargetX float64 `json:"x"`
 			TargetY float64 `json:"y"`
@@ -227,70 +389,60 @@ func (h *Human) handleMove(inData HumanInData) HumanMoveOutData {
 
 // resolveMovement находит конечную позицию с учётом стен и дверей.
 func (h *Human) resolveMovement(move segment, floor *api.Floor) (float64, float64, string) {
-	currentRoom := findRoomByID(floor, h.RoomID)
-	if currentRoom == nil {
-		return h.X, h.Y, h.RoomID
+	currentX, currentY := move.x1, move.y1
+	currentRoomID := h.RoomID
+
+	for transitions := 0; transitions <= len(floor.Rooms); transitions++ {
+		currentRoom := findRoomByID(floor, currentRoomID)
+		if currentRoom == nil {
+			return currentX, currentY, currentRoomID
+		}
+
+		if field.PointInRoom(move.x2, move.y2, *currentRoom) {
+			return move.x2, move.y2, currentRoomID
+		}
+
+		remainingMove := segment{currentX, currentY, move.x2, move.y2}
+		hitT, hitPoint, intersects := roomBoundaryIntersection(remainingMove, currentRoom)
+		if !intersects {
+			return currentX, currentY, currentRoomID
+		}
+
+		nextRoomID, throughDoor := connectedRoomAtDoorPoint(floor, currentRoomID, hitPoint)
+		if !throughDoor {
+			stopT := math.Max(0, hitT-movementBoundaryInsetRate)
+			return currentX + (move.x2-currentX)*stopT,
+				currentY + (move.y2-currentY)*stopT,
+				currentRoomID
+		}
+
+		nextRoom := findRoomByID(floor, nextRoomID)
+		if nextRoom == nil {
+			return currentX, currentY, currentRoomID
+		}
+		if field.PointInRoom(move.x2, move.y2, *nextRoom) {
+			return move.x2, move.y2, nextRoomID
+		}
+
+		// Соседние room.area могут быть разделены полосой толщины стены.
+		// Не меняем RoomID, пока движение фактически не достигло полигона
+		// соседней комнаты, иначе человек останется между двумя комнатами.
+		doorToTarget := segment{hitPoint[0], hitPoint[1], move.x2, move.y2}
+		entryT, _, entersNextRoom := roomBoundaryIntersection(doorToTarget, nextRoom)
+		if !entersNextRoom {
+			stopT := math.Max(0, hitT-movementBoundaryInsetRate)
+			return currentX + (move.x2-currentX)*stopT,
+				currentY + (move.y2-currentY)*stopT,
+				currentRoomID
+		}
+
+		advanceT := math.Min(1, entryT+movementBoundaryInsetRate)
+		currentX = hitPoint[0] + (move.x2-hitPoint[0])*advanceT
+		currentY = hitPoint[1] + (move.y2-hitPoint[1])*advanceT
+		currentRoomID = nextRoomID
 	}
 
-	closestT := 1.0
-	hitWall := false
-	newRoomID := h.RoomID
-
-	var roomDoors []*api.Door
-	for _, edge := range floor.Adjacency[h.RoomID] {
-		if edge.Door != nil {
-			roomDoors = append(roomDoors, edge.Door)
-		}
-	}
-
-	for _, wallID := range currentRoom.Walls {
-		wall := findWallByID(floor, wallID)
-		if wall == nil {
-			continue
-		}
-
-		parts := splitWallByDoors(wall, roomDoors)
-
-		for _, part := range parts {
-			t, intersects := intersectSegments(move, part)
-			if intersects && t < closestT {
-				closestT = t
-				hitWall = true
-			}
-		}
-	}
-
-	// проверяем двери текущей комнаты через граф смежности
-	for _, edge := range floor.Adjacency[h.RoomID] {
-		if edge.Door == nil {
-			continue
-		}
-
-		door := edge.Door
-		doorSeg := segment{
-			door.Points[0][0], door.Points[0][1],
-			door.Points[1][0], door.Points[1][1],
-		}
-
-		t, intersects := intersectSegments(move, doorSeg)
-		if intersects && t <= closestT {
-			closestT = 1.0
-			newRoomID = edge.NeighborRoomID
-			hitWall = false
-		}
-	}
-
-	if hitWall {
-		stopT := math.Max(0, closestT-0.001)
-
-		return h.X + (move.x2-h.X)*stopT,
-			h.Y + (move.y2-h.Y)*stopT,
-			h.RoomID
-	}
-
-	return h.X + (move.x2-h.X)*closestT,
-		h.Y + (move.y2-h.Y)*closestT,
-		newRoomID
+	return currentX, currentY, currentRoomID
 }
 
 // GetID возвращает ID человека.
@@ -311,4 +463,18 @@ func (h *Human) SetReceivers(actions []api.EdgeDTO) {
 	}
 
 	h.Receivers = receivers
+}
+
+// OnTick продвигает активный маршрут ровно один раз за плановый tick движка.
+func (h *Human) OnTick() {
+	outData := h.advanceRoute()
+	if outData == nil {
+		return
+	}
+	dto, err := json.Marshal(outData)
+	if err != nil {
+		slog.Warn("error marshaling human route tick", "error", err, "entity_id", h.ID)
+		return
+	}
+	h.HandleOutDTO(dto)
 }

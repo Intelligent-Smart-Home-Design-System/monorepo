@@ -3,6 +3,7 @@ package simulations
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,6 +20,33 @@ import (
 // incidentTestBlock описывает минимальный DTO incident-блока, нужный e2e-тестам.
 type incidentTestBlock struct {
 	Points [][2]float64 `json:"points"`
+}
+
+// incidentBlockCount возвращает число блоков заданного incident в одном simulation:step.
+func incidentBlockCount(step api.SimulationStepPayload, entityID, kind string) (int, bool) {
+	for _, change := range step.StateChanges {
+		if change.EntityID != entityID {
+			continue
+		}
+
+		var out struct {
+			Kind      string `json:"kind"`
+			Incidents []struct {
+				Blocks []incidentTestBlock `json:"blocks"`
+			} `json:"incidents"`
+		}
+		if err := json.Unmarshal(change.Payload, &out); err != nil || out.Kind != kind {
+			continue
+		}
+
+		count := 0
+		for _, zone := range out.Incidents {
+			count += len(zone.Blocks)
+		}
+		return count, true
+	}
+
+	return 0, false
 }
 
 // dialSim устанавливает WebSocket-соединение
@@ -199,6 +227,151 @@ func TestHeartbeat(t *testing.T) {
 	}
 }
 
+// TestHelloAckPreservesReqID проверяет, что hello:ack относится к той же клиентской сессии.
+func TestHelloAckPreservesReqID(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	reqID := "hello-contract-test"
+	payload, _ := json.Marshal(api.HelloPayload{Client: "sim-ui", Version: "0.1.0"})
+
+	sendMsg(t, conn, api.Message{Type: "hello", Ts: time.Now(), ReqID: reqID, Payload: payload})
+	msg := recvMsg(t, conn)
+
+	if msg.Type != "hello:ack" {
+		t.Fatalf("expected hello:ack, got %q", msg.Type)
+	}
+	if msg.ReqID != reqID {
+		t.Fatalf("expected reqID %q, got %q", reqID, msg.ReqID)
+	}
+}
+
+// TestWebSocketDisconnectRemovesBackendSession проверяет немедленное удаление
+// движка после закрытия владеющего им WebSocket.
+func TestWebSocketDisconnectRemovesBackendSession(t *testing.T) {
+	simService := NewSimulation()
+	manager := ws.NewManager(simService)
+	server := httptest.NewServer(http.HandlerFunc(manager.ServeWS))
+	t.Cleanup(server.Close)
+	conn := dialSim(t, server)
+	const reqID = "disconnect-cleanup-test"
+	startSim(t, conn, reqID, validStartPayload())
+	if err := conn.Close(); err != nil {
+		t.Fatalf("close websocket: %v", err)
+	}
+
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		simService.mu.RLock()
+		_, exists := simService.sessions[reqID]
+		simService.mu.RUnlock()
+		if !exists {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("backend session still exists after websocket disconnect")
+}
+
+// TestInvalidJSONDoesNotCloseConnection проверяет, что ошибочное сообщение не разрывает WebSocket.
+func TestInvalidJSONDoesNotCloseConnection(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(`{"type":`)); err != nil {
+		t.Fatalf("write invalid message: %v", err)
+	}
+	msg := recvMsg(t, conn)
+	if msg.Type != "error" {
+		t.Fatalf("expected error, got %q", msg.Type)
+	}
+
+	sendMsg(t, conn, api.Message{Type: "ping", Ts: time.Now(), ReqID: "after-invalid-json"})
+	msg = recvMsg(t, conn)
+	if msg.Type != "pong" {
+		t.Fatalf("expected pong after invalid JSON, got %q", msg.Type)
+	}
+}
+
+// TestSimulationCommandsValidateContractFields проверяет обязательный reqId и положительные dtSim/tick.
+func TestSimulationCommandsValidateContractFields(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	startPayload := validStartPayload()
+
+	raw, _ := json.Marshal(startPayload)
+	sendMsg(t, conn, api.Message{Type: "simulation:start", Ts: time.Now(), Payload: raw})
+	assertErrorCode(t, recvMsg(t, conn), "MISSING_REQ_ID")
+
+	startPayload.DtSim = 0
+	raw, _ = json.Marshal(startPayload)
+	sendMsg(t, conn, api.Message{Type: "simulation:start", Ts: time.Now(), ReqID: "invalid-dt", Payload: raw})
+	assertErrorCode(t, recvMsg(t, conn), "INVALID_PAYLOAD")
+
+	startSim(t, conn, "invalid-tick", validStartPayload())
+	raw, _ = json.Marshal(api.SimulationTickPayload{Tick: 0})
+	sendMsg(t, conn, api.Message{Type: "simulation:tick", Ts: time.Now(), ReqID: "invalid-tick", Payload: raw})
+	assertErrorCode(t, recvMsg(t, conn), "INVALID_PAYLOAD")
+}
+
+// TestInvalidTickInputStopsSession проверяет явную ошибку неизвестной сущности и остановку неконсистентной сессии.
+func TestInvalidTickInputStopsSession(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "invalid-tick-input"
+
+	startSim(t, conn, reqID, validStartPayload())
+
+	raw, err := json.Marshal(api.SimulationTickPayload{
+		Tick:   1,
+		Inputs: []api.EventDTO{{EntityID: "missing", Payload: json.RawMessage(`{"turn_on":true}`)}},
+	})
+	if err != nil {
+		t.Fatalf("marshal invalid tick: %v", err)
+	}
+	sendMsg(t, conn, api.Message{Type: "simulation:tick", Ts: time.Now(), ReqID: reqID, Payload: raw})
+	assertErrorCode(t, recvMsg(t, conn), "TICK_FAILED")
+
+	raw, _ = json.Marshal(api.SimulationTickPayload{Tick: 2})
+	sendMsg(t, conn, api.Message{Type: "simulation:tick", Ts: time.Now(), ReqID: reqID, Payload: raw})
+	assertErrorCode(t, recvMsg(t, conn), "SESSION_NOT_ATTACHED")
+}
+
+// TestSimulationStepUsesEmptyCollections проверяет, что массивы контракта кодируются как [], а не null.
+func TestSimulationStepUsesEmptyCollections(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "empty-step-collections"
+
+	startSim(t, conn, reqID, validStartPayload())
+	step := tick(t, conn, reqID, 1, nil)
+
+	if step.StateChanges == nil {
+		t.Fatal("stateChanges must be an empty array, got nil")
+	}
+	if step.TriggeredEdges == nil {
+		t.Fatal("triggeredEdges must be an empty array, got nil")
+	}
+	if step.Humans == nil {
+		t.Fatal("humans must be an empty array, got nil")
+	}
+}
+
+// assertErrorCode проверяет тип сообщения error и его машинный код.
+func assertErrorCode(t *testing.T, msg api.Message, expected string) {
+	t.Helper()
+	if msg.Type != "error" {
+		t.Fatalf("expected error, got %q", msg.Type)
+	}
+
+	var payload api.ErrorPayload
+	if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+		t.Fatalf("unmarshal error payload: %v", err)
+	}
+	if payload.Code != expected {
+		t.Fatalf("expected error code %q, got %q", expected, payload.Code)
+	}
+}
+
 // tick отправляет команду "simulation:tick" с заданным reqID
 func tick(t *testing.T, conn *websocket.Conn, reqID string, tickN int, inputs []api.EventDTO) api.SimulationStepPayload {
 	t.Helper()
@@ -333,6 +506,56 @@ func TestSimulation_Default(t *testing.T) {
 
 	if total != 7 {
 		t.Fatalf("expected 7 total state changes, got %d", total)
+	}
+}
+
+// TestSimulation_ReturnsTriggeredScenarioChain проверяет возврат всех постоянных связей, реально сработавших за tick.
+func TestSimulation_ReturnsTriggeredScenarioChain(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-triggered-chain"
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockApartmentRaw(t),
+		Devices: []api.EntityDTO{
+			{ID: "switcher_1", Type: "switcher", Info: json.RawMessage(`{"id":"switcher_1","delay":0.0}`)},
+			{ID: "lamp_1", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_1","delay":0.0}`)},
+			{ID: "lamp_2", Type: "lamp", Info: json.RawMessage(`{"id":"lamp_2","delay":0.0}`)},
+		},
+		Scenarios: []api.ScenarioDTO{
+			{
+				EntityID: "switcher_1",
+				Edges: []api.EdgeDTO{
+					{ToID: "lamp_1", Action: "trigger", Data: []interface{}{"first"}},
+				},
+			},
+			{
+				EntityID: "lamp_1",
+				Edges:    []api.EdgeDTO{{ToID: "lamp_2", Action: "trigger"}},
+			},
+		},
+	})
+
+	step := tick(t, conn, reqID, 1, []api.EventDTO{inputEvent(t, "switcher_1", true)})
+	if len(step.TriggeredEdges) != 2 {
+		t.Fatalf("expected two triggered edges, got %+v", step.TriggeredEdges)
+	}
+
+	first, second := step.TriggeredEdges[0], step.TriggeredEdges[1]
+	if first.FromID != "switcher_1" || first.ToID != "lamp_1" || first.Action != "trigger" {
+		t.Fatalf("unexpected first triggered edge: %+v", first)
+	}
+	if len(first.Data) != 1 || first.Data[0] != "first" {
+		t.Fatalf("first edge data was not preserved: %+v", first.Data)
+	}
+	if second.FromID != "lamp_1" || second.ToID != "lamp_2" || second.Action != "trigger" {
+		t.Fatalf("unexpected second triggered edge: %+v", second)
+	}
+
+	emptyStep := tick(t, conn, reqID, 2, nil)
+	if len(emptyStep.TriggeredEdges) != 0 {
+		t.Fatalf("triggered edges leaked into the next tick: %+v", emptyStep.TriggeredEdges)
 	}
 }
 
@@ -623,7 +846,7 @@ func TestDevice_SensorWithIntStatus_TriggersCurtains(t *testing.T) {
 		DtSim:     1.0,
 		Apartment: mockApartmentRaw(t),
 		Devices: []api.EntityDTO{
-			{ID: "sensorWithIntStatus_1", Type: "illumination_sensor", Info: json.RawMessage(`{"id":"sensorWithoutUpdate_1","delay":0.0}`)},
+			{ID: "sensorWithIntStatus_1", Type: "illumination_sensor", Info: json.RawMessage(`{"id":"sensorWithIntStatus_1","delay":0.0}`)},
 			{ID: "smartCurtains_1", Type: "curtains", Info: json.RawMessage(`{"id":"smartCurtains_1","delay":0.0,"percents":0}`)},
 		},
 		Scenarios: []api.ScenarioDTO{
@@ -928,6 +1151,37 @@ func TestDevice_ChainTrigger(t *testing.T) {
 
 // ===== Floor helpers =====
 
+// mockFloorOneRoom создаёт изолированную комнату без дверей.
+func mockFloorOneRoom(t *testing.T) json.RawMessage {
+	t.Helper()
+
+	floor := api.Floor{
+		Meta: struct {
+			Units string `json:"units"`
+		}{Units: "meters"},
+		Walls: []api.Wall{
+			{ID: "w_bottom", Points: [2][2]float64{{0, 0}, {4, 0}}, Width: 0.1},
+			{ID: "w_right", Points: [2][2]float64{{4, 0}, {4, 4}}, Width: 0.1},
+			{ID: "w_top", Points: [2][2]float64{{4, 4}, {0, 4}}, Width: 0.1},
+			{ID: "w_left", Points: [2][2]float64{{0, 4}, {0, 0}}, Width: 0.1},
+		},
+		Rooms: []api.Room{
+			{
+				ID:    "room_1",
+				Name:  "Isolated Room",
+				Area:  [][2]float64{{0, 0}, {4, 0}, {4, 4}, {0, 4}},
+				Walls: []string{"w_bottom", "w_right", "w_top", "w_left"},
+			},
+		},
+	}
+
+	raw, err := json.Marshal(floor)
+	if err != nil {
+		t.Fatalf("mockFloorOneRoom: %v", err)
+	}
+	return raw
+}
+
 // mockFloorTwoRooms создаёт план с двумя комнатами соединёнными дверью.
 func mockFloorTwoRooms(t *testing.T) json.RawMessage {
 	t.Helper()
@@ -978,6 +1232,62 @@ func mockFloorTwoRooms(t *testing.T) json.RawMessage {
 		t.Fatalf("mockFloorTwoRooms: %v", err)
 	}
 
+	return raw
+}
+
+// mockFloorTwoRoomsWithoutRoomWallRefs возвращает тот же план без room.walls, сохраняя геометрию room.area.
+func mockFloorTwoRoomsWithoutRoomWallRefs(t *testing.T) json.RawMessage {
+	t.Helper()
+
+	var floor api.Floor
+	if err := json.Unmarshal(mockFloorTwoRooms(t), &floor); err != nil {
+		t.Fatalf("unmarshal floor without room wall refs: %v", err)
+	}
+	for index := range floor.Rooms {
+		floor.Rooms[index].Walls = nil
+	}
+
+	raw, err := json.Marshal(floor)
+	if err != nil {
+		t.Fatalf("marshal floor without room wall refs: %v", err)
+	}
+	return raw
+}
+
+// mockFloorTwoRoomsWithOffsetDoor возвращает план, где линия двери смещена
+// относительно room.area на толщину стены, как в планах floor-parser.
+func mockFloorTwoRoomsWithOffsetDoor(t *testing.T) json.RawMessage {
+	t.Helper()
+
+	var floor api.Floor
+	if err := json.Unmarshal(mockFloorTwoRooms(t), &floor); err != nil {
+		t.Fatalf("unmarshal floor with offset door: %v", err)
+	}
+	floor.Doors[0].Points = [2][2]float64{{4.85, 2}, {4.85, 3}}
+
+	raw, err := json.Marshal(floor)
+	if err != nil {
+		t.Fatalf("marshal floor with offset door: %v", err)
+	}
+	return raw
+}
+
+// mockFloorTwoRoomsWithDoorGap возвращает план, где room.area разделены
+// полосой стены, а дверь расположена между ними.
+func mockFloorTwoRoomsWithDoorGap(t *testing.T) json.RawMessage {
+	t.Helper()
+
+	var floor api.Floor
+	if err := json.Unmarshal(mockFloorTwoRooms(t), &floor); err != nil {
+		t.Fatalf("unmarshal floor with door gap: %v", err)
+	}
+	floor.Rooms[0].Area = [][2]float64{{0, 0}, {4.9, 0}, {4.9, 5}, {0, 5}}
+	floor.Rooms[1].Area = [][2]float64{{5.1, 0}, {10, 0}, {10, 5}, {5.1, 5}}
+
+	raw, err := json.Marshal(floor)
+	if err != nil {
+		t.Fatalf("marshal floor with door gap: %v", err)
+	}
 	return raw
 }
 
@@ -1038,17 +1348,17 @@ func humanPositionFrom(steps []api.SimulationStepPayload, humanID string) (x, y 
 			}
 
 			var out struct {
-				To struct {
+				Kind string `json:"kind"`
+				To   struct {
 					X float64 `json:"x"`
 					Y float64 `json:"y"`
 				} `json:"to"`
-				Status string `json:"status"`
 			}
 			if err := json.Unmarshal(change.Payload, &out); err != nil {
 				continue
 			}
 
-			if out.Status == "moved" {
+			if out.Kind == "human:move" {
 				return out.To.X, out.To.Y, true
 			}
 		}
@@ -1088,6 +1398,51 @@ func humanRoomFrom(steps []api.SimulationStepPayload, humanID string) (roomID st
 
 // ===== Тесты для человека =====
 
+// TestHuman_StartsInRoomWithoutDoors проверяет запуск и движение человека в комнате без дверей.
+func TestHuman_StartsInRoomWithoutDoors(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-human-isolated-room"
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorOneRoom(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "human_1",
+				Type: "human",
+				Info: json.RawMessage(`{"id":"human_1","x":1.0,"y":1.0,"roomID":"room_1"}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	step := tick(t, conn, reqID, 1, []api.EventDTO{
+		humanMoveInput(t, "human_1", 2.0, 2.0),
+	})
+	x, y, found := humanPositionFrom([]api.SimulationStepPayload{step}, "human_1")
+	if !found || x != 2.0 || y != 2.0 {
+		t.Fatalf("human should move inside isolated room, got position (%.2f, %.2f), found=%v", x, y, found)
+	}
+
+	for _, change := range step.StateChanges {
+		if change.EntityID != "human_1" {
+			continue
+		}
+		var output struct {
+			Kind string `json:"kind"`
+		}
+		if err := json.Unmarshal(change.Payload, &output); err != nil {
+			t.Fatalf("unmarshal human state: %v", err)
+		}
+		if output.Kind != "human:move" {
+			t.Fatalf("expected human:move state kind, got %q", output.Kind)
+		}
+		return
+	}
+	t.Fatal("human state change not found")
+}
+
 // TestHuman_NormalMove проверяет нормальное движение внутри комнаты.
 func TestHuman_NormalMove(t *testing.T) {
 	server := newSimServer(t)
@@ -1124,7 +1479,49 @@ func TestHuman_NormalMove(t *testing.T) {
 	}
 }
 
-// TestHuman_BlockedByWall проверяет что человек не проходит через стену.
+// TestHuman_RouteAdvancesOnBackendTicks проверяет, что frontend передает только
+// точки маршрута, а промежуточные шаги рассчитывает backend-процесс человека.
+func TestHuman_RouteAdvancesOnBackendTicks(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+	const reqID = "sim-human-route"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorOneRoom(t),
+		Devices: []api.EntityDTO{{
+			ID:   "human_1",
+			Type: "human",
+			Info: json.RawMessage(`{"id":"human_1","x":1.0,"y":1.0,"roomID":"room_1","routeStep":0.5}`),
+		}},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	routePayload, err := json.Marshal(map[string]any{
+		"kind":   "human:route",
+		"action": "start",
+		"speed":  5,
+		"route":  []map[string]float64{{"x": 2, "y": 1}, {"x": 3, "y": 1}},
+	})
+	if err != nil {
+		t.Fatalf("marshal route: %v", err)
+	}
+
+	steps := []api.SimulationStepPayload{
+		tick(t, conn, reqID, 1, []api.EventDTO{{EntityID: "human_1", Payload: routePayload}}),
+		tick(t, conn, reqID, 2, nil),
+		tick(t, conn, reqID, 3, nil),
+		tick(t, conn, reqID, 4, nil),
+		tick(t, conn, reqID, 5, nil),
+		tick(t, conn, reqID, 6, nil),
+	}
+	x, y, found := humanPositionFrom(steps, "human_1")
+	if !found || math.Abs(x-3) > 1e-9 || math.Abs(y-1) > 1e-9 {
+		t.Fatalf("backend route ended at (%.2f, %.2f), found=%v; want (3, 1)", x, y, found)
+	}
+}
+
+// TestHuman_BlockedByWall проверяет стену по room.area без room.walls и немедленный отход от неё.
 func TestHuman_BlockedByWall(t *testing.T) {
 	server := newSimServer(t)
 	conn := dialSim(t, server)
@@ -1133,7 +1530,7 @@ func TestHuman_BlockedByWall(t *testing.T) {
 
 	startSim(t, conn, reqID, api.SimulationStartPayload{
 		DtSim:     1.0,
-		Apartment: mockFloorTwoRooms(t),
+		Apartment: mockFloorTwoRoomsWithoutRoomWallRefs(t),
 		Devices: []api.EntityDTO{
 			{
 				ID:   "human_1",
@@ -1144,15 +1541,12 @@ func TestHuman_BlockedByWall(t *testing.T) {
 		Scenarios: []api.ScenarioDTO{},
 	})
 
-	var steps []api.SimulationStepPayload
-
 	// пытаемся пройти через стену x=5
-	steps = append(steps, tick(t, conn, reqID, 1, []api.EventDTO{
+	blockedStep := tick(t, conn, reqID, 1, []api.EventDTO{
 		humanMoveInput(t, "human_1", 7.5, 4.0),
-	}))
-	steps = append(steps, tick(t, conn, reqID, 2, nil))
+	})
 
-	x, _, found := humanPositionFrom(steps, "human_1")
+	x, _, found := humanPositionFrom([]api.SimulationStepPayload{blockedStep}, "human_1")
 	if !found {
 		t.Fatal("no position found for human_1")
 	}
@@ -1163,9 +1557,28 @@ func TestHuman_BlockedByWall(t *testing.T) {
 	}
 
 	// комната не должна измениться
-	roomID, roomFound := humanRoomFrom(steps, "human_1")
+	roomID, roomFound := humanRoomFrom([]api.SimulationStepPayload{blockedStep}, "human_1")
 	if roomFound && roomID != "room_1" {
 		t.Fatalf("human should stay in room_1, got %s", roomID)
+	}
+
+	retreatStep := tick(t, conn, reqID, 2, []api.EventDTO{
+		humanMoveInput(t, "human_1", x-0.5, 4.0),
+	})
+	retreatX, _, retreatFound := humanPositionFrom([]api.SimulationStepPayload{retreatStep}, "human_1")
+	if !retreatFound {
+		t.Fatal("no retreat position found for human_1")
+	}
+	if retreatX >= x {
+		t.Fatalf("human should move away from wall in one command: blocked x=%.6f, retreat x=%.6f", x, retreatX)
+	}
+
+	alongWallStep := tick(t, conn, reqID, 3, []api.EventDTO{
+		humanMoveInput(t, "human_1", retreatX, 1.0),
+	})
+	alongX, alongY, alongFound := humanPositionFrom([]api.SimulationStepPayload{alongWallStep}, "human_1")
+	if !alongFound || math.Abs(alongX-retreatX) > 1e-9 || math.Abs(alongY-1.0) > 1e-9 {
+		t.Fatalf("human should move along wall, got (%.6f, %.6f), found=%v", alongX, alongY, alongFound)
 	}
 }
 
@@ -1216,6 +1629,94 @@ func TestHuman_MoveThroughDoor(t *testing.T) {
 	}
 }
 
+// TestHuman_MoveThroughOffsetDoor проверяет проход через дверь, линия которой
+// не совпадает с room.area из-за толщины стены.
+func TestHuman_MoveThroughOffsetDoor(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-human-offset-door"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorTwoRoomsWithOffsetDoor(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "human_1",
+				Type: "human",
+				Info: json.RawMessage(`{"id":"human_1","x":4.5,"y":2.5,"roomID":"room_1"}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	step := tick(t, conn, reqID, 1, []api.EventDTO{
+		humanMoveInput(t, "human_1", 5.5, 2.5),
+	})
+
+	x, _, found := humanPositionFrom([]api.SimulationStepPayload{step}, "human_1")
+	if !found || x <= 5 {
+		t.Fatalf("human should pass through offset door, got x=%.2f, found=%v", x, found)
+	}
+
+	roomID, roomFound := humanRoomFrom([]api.SimulationStepPayload{step}, "human_1")
+	if !roomFound || roomID != "room_2" {
+		t.Fatalf("expected room_2 after offset door crossing, got %q, found=%v", roomID, roomFound)
+	}
+}
+
+// TestHuman_DoorGapDoesNotTrapMovement проверяет, что короткий шаг в полосу
+// стены не меняет комнату и не блокирует последующий отход или проход.
+func TestHuman_DoorGapDoesNotTrapMovement(t *testing.T) {
+	server := newSimServer(t)
+	conn := dialSim(t, server)
+
+	const reqID = "sim-human-door-gap"
+
+	startSim(t, conn, reqID, api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorTwoRoomsWithDoorGap(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "human_1",
+				Type: "human",
+				Info: json.RawMessage(`{"id":"human_1","x":4.8,"y":2.5,"roomID":"room_1"}`),
+			},
+		},
+		Scenarios: []api.ScenarioDTO{},
+	})
+
+	gapStep := tick(t, conn, reqID, 1, []api.EventDTO{
+		humanMoveInput(t, "human_1", 5.0, 2.5),
+	})
+	gapX, _, found := humanPositionFrom([]api.SimulationStepPayload{gapStep}, "human_1")
+	if !found || gapX >= 4.9 {
+		t.Fatalf("human should remain inside room_1 before the gap, got x=%.6f, found=%v", gapX, found)
+	}
+	if roomID, roomFound := humanRoomFrom([]api.SimulationStepPayload{gapStep}, "human_1"); !roomFound || roomID != "room_1" {
+		t.Fatalf("human room changed inside door gap: room=%q, found=%v", roomID, roomFound)
+	}
+
+	retreatStep := tick(t, conn, reqID, 2, []api.EventDTO{
+		humanMoveInput(t, "human_1", 4.7, 2.5),
+	})
+	retreatX, _, found := humanPositionFrom([]api.SimulationStepPayload{retreatStep}, "human_1")
+	if !found || math.Abs(retreatX-4.7) > 1e-9 {
+		t.Fatalf("human should retreat from door gap immediately, got x=%.6f, found=%v", retreatX, found)
+	}
+
+	crossStep := tick(t, conn, reqID, 3, []api.EventDTO{
+		humanMoveInput(t, "human_1", 5.3, 2.5),
+	})
+	crossX, _, found := humanPositionFrom([]api.SimulationStepPayload{crossStep}, "human_1")
+	if !found || math.Abs(crossX-5.3) > 1e-9 {
+		t.Fatalf("human should cross the complete doorway, got x=%.6f, found=%v", crossX, found)
+	}
+	if roomID, roomFound := humanRoomFrom([]api.SimulationStepPayload{crossStep}, "human_1"); !roomFound || roomID != "room_2" {
+		t.Fatalf("expected room_2 after crossing door gap, got %q, found=%v", roomID, roomFound)
+	}
+}
+
 // TestHuman_InteractionWithLamp проверяет взаимодействия человека с лампой
 func TestHuman_InteractionWithLamp(t *testing.T) {
 	server := newSimServer(t)
@@ -1257,6 +1758,9 @@ func TestHuman_InteractionWithLamp(t *testing.T) {
 
 	if !lampState {
 		t.Fatal("lamp_1 should be ON after human interaction")
+	}
+	if len(steps[0].TriggeredEdges) != 0 {
+		t.Fatalf("temporary human interaction must not create triggered edges: %+v", steps[0].TriggeredEdges)
 	}
 }
 
@@ -1498,7 +2002,8 @@ func TestFire_SingleRoom(t *testing.T) {
 	corners := [][2]float64{{0, 0}, {5, 0}, {5, 5}, {0, 5}}
 	allCornersReached := false
 
-	for i := 1; i <= 12; i++ {
+	const finalSpreadTick = 120
+	for i := 1; i <= finalSpreadTick; i++ {
 		var inputs []api.EventDTO
 		if i == 1 {
 			inputs = []api.EventDTO{fireInput}
@@ -1541,7 +2046,7 @@ func TestFire_SingleRoom(t *testing.T) {
 				if reached {
 					allCornersReached = true
 
-					if i < 10 {
+					if i < 90 {
 						t.Fatalf("fire reached all corners too early at tick %d", i)
 					}
 				}
@@ -1554,7 +2059,7 @@ func TestFire_SingleRoom(t *testing.T) {
 	}
 
 	resetPayload, _ := json.Marshal(map[string]any{"kind": "fire:spread", "reset": true})
-	resetStep := tick(t, conn, reqID, 13, []api.EventDTO{{EntityID: "fire_1", Payload: resetPayload}})
+	resetStep := tick(t, conn, reqID, finalSpreadTick+1, []api.EventDTO{{EntityID: "fire_1", Payload: resetPayload}})
 	resetObserved := false
 	for _, change := range resetStep.StateChanges {
 		var out struct {
@@ -1576,7 +2081,7 @@ func TestFire_SingleRoom(t *testing.T) {
 		"kind": "fire:spread", "turn_on": true,
 		"x": 1.5, "y": 1.5, "roomID": "room_1",
 	})
-	restartStep := tick(t, conn, reqID, 14, []api.EventDTO{{EntityID: "fire_1", Payload: restartPayload}})
+	restartStep := tick(t, conn, reqID, finalSpreadTick+2, []api.EventDTO{{EntityID: "fire_1", Payload: restartPayload}})
 	restarted := false
 	for _, change := range restartStep.StateChanges {
 		var out struct {
@@ -1589,6 +2094,96 @@ func TestFire_SingleRoom(t *testing.T) {
 	}
 	if !restarted {
 		t.Fatal("fire was not activated again after reset")
+	}
+}
+
+// TestFire_HumanMovementDoesNotAdvanceSpreadExtraSteps проверяет, что human:move является
+// входом текущего simulation:tick и не добавляет incident дополнительный BFS-шаг.
+func TestFire_HumanMovementDoesNotAdvanceSpreadExtraSteps(t *testing.T) {
+	server := newSimServer(t)
+	controlConn := dialSim(t, server)
+	movingConn := dialSim(t, server)
+
+	startPayload := api.SimulationStartPayload{
+		DtSim:     1.0,
+		Apartment: mockFloorTwoRooms(t),
+		Devices: []api.EntityDTO{
+			{
+				ID:   "fire_1",
+				Type: entities.TypeFire,
+				Info: json.RawMessage(`{"id":"fire_1","x":2.5,"y":2.5,"roomID":"room_1"}`),
+			},
+			{
+				ID:   "human_1",
+				Type: entities.TypeHuman,
+				Info: json.RawMessage(`{"id":"human_1","x":1.0,"y":1.0,"roomID":"room_1"}`),
+			},
+		},
+	}
+
+	const controlReqID = "sim-fire-control"
+	const movingReqID = "sim-fire-moving-human"
+	startSim(t, controlConn, controlReqID, startPayload)
+	startSim(t, movingConn, movingReqID, startPayload)
+
+	fireStartPayload, err := json.Marshal(map[string]any{
+		"kind": "fire:spread", "turn_on": true,
+		"x": 2.5, "y": 2.5, "roomID": "room_1",
+	})
+	if err != nil {
+		t.Fatalf("marshal fire input: %v", err)
+	}
+	fireInput := api.EventDTO{EntityID: "fire_1", Payload: fireStartPayload}
+
+	controlBlocks := 0
+	movingBlocks := 0
+	for tickN := 1; tickN <= 25; tickN++ {
+		var controlInputs []api.EventDTO
+		var movingInputs []api.EventDTO
+		if tickN == 1 {
+			controlInputs = append(controlInputs, fireInput)
+			movingInputs = append(movingInputs, fireInput)
+		}
+		movingInputs = append(movingInputs, humanMoveInput(
+			t,
+			"human_1",
+			1.0+float64(tickN)*0.25,
+			1.0,
+		))
+
+		controlStep := tick(t, controlConn, controlReqID, tickN, controlInputs)
+		movingStep := tick(t, movingConn, movingReqID, tickN, movingInputs)
+
+		nextControlBlocks, controlFound := incidentBlockCount(controlStep, "fire_1", "fire:spread")
+		nextMovingBlocks, movingFound := incidentBlockCount(movingStep, "fire_1", "fire:spread")
+		if controlFound != movingFound {
+			t.Fatalf(
+				"tick %d: fire snapshot schedule differs (control=%t, moving=%t)",
+				tickN,
+				controlFound,
+				movingFound,
+			)
+		}
+		if controlFound {
+			controlBlocks = nextControlBlocks
+			movingBlocks = nextMovingBlocks
+		}
+		if movingBlocks != controlBlocks {
+			t.Fatalf(
+				"tick %d: moving human changed fire spread: got %d blocks, want %d",
+				tickN,
+				movingBlocks,
+				controlBlocks,
+			)
+		}
+		if movingStep.SimTime != controlStep.SimTime {
+			t.Fatalf(
+				"tick %d: moving human changed simulation time: got %v, want %v",
+				tickN,
+				movingStep.SimTime,
+				controlStep.SimTime,
+			)
+		}
 	}
 }
 
@@ -1626,7 +2221,7 @@ func TestFire_SpreadsThroughDoor(t *testing.T) {
 	sensorTriggeredAt := -1
 
 	var allSteps []api.SimulationStepPayload
-	for i := 1; i <= 15; i++ {
+	for i := 1; i <= 160; i++ {
 		var inputs []api.EventDTO
 		if i == 1 {
 			inputs = []api.EventDTO{fireInput}

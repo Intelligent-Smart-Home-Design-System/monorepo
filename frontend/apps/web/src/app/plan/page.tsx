@@ -56,6 +56,7 @@ type PipelineStatusResponse = {
   artifacts?: ApiPlanStageArtifact[] | null;
   parsed_floor_plan?: unknown;
   layout?: unknown;
+  dependencies?: Record<string, string[]> | null;
   device_selection?: unknown;
 };
 
@@ -304,9 +305,13 @@ function PlanPageContent() {
                 variant="contained"
                 onClick={() => {
                   if (selectedBundle) {
-                    openSimulation(selectedBundle, simulationFloorData);
+                    openSimulation(selectedBundle, simulationFloorData, plan?.dependencies);
                   } else {
-                    openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, simulationFloorData);
+                    openSimulationFromPlan(
+                      hasLegacyPlanTarget ? planId : workflowId,
+                      simulationFloorData,
+                      plan?.dependencies
+                    );
                   }
                 }}
                 sx={{
@@ -682,7 +687,7 @@ function PlanPageContent() {
                       <Button
                         variant="outlined"
                         disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle, simulationFloorData)}
+                        onClick={() => openSimulation(selectedBundle, simulationFloorData, plan?.dependencies)}
                         sx={{ fontWeight: 900, borderRadius: 3 }}
                       >
                         Открыть в симуляции
@@ -1071,12 +1076,38 @@ function simulationUrl() {
   return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
 }
 
-function openSimulationFromPlan(planId: number | string, floor?: unknown) {
+function storeSimulationDependencies(dependencies?: Record<string, string[]> | null) {
+  if (dependencies && Object.keys(dependencies).length) {
+    localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
+    return;
+  }
+  localStorage.removeItem("simulation-plan-dependencies");
+}
+
+function openSimulationFromPlan(
+  planId: number | string,
+  floor?: unknown,
+  dependencies?: Record<string, string[]> | null
+) {
+  const devices = devicesFromLayout(floor);
+  const triggerIds = triggerDeviceIdsFromDevices(devices);
+
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   } else {
     localStorage.removeItem("simulation-floor");
   }
+  if (devices.length) {
+    localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  } else {
+    localStorage.removeItem("simulation-devices");
+  }
+  if (triggerIds.length) {
+    localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
+  } else {
+    localStorage.removeItem("simulation-trigger-device-ids");
+  }
+  storeSimulationDependencies(dependencies);
 
   const url = new URL(simulationUrl(), window.location.origin);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
@@ -1088,12 +1119,17 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   window.location.href = url.toString();
 }
 
-function openSimulation(bundle: SimulationBundle, floor?: unknown) {
+function openSimulation(
+  bundle: SimulationBundle,
+  floor?: unknown,
+  dependencies?: Record<string, string[]> | null
+) {
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
+  storeSimulationDependencies(dependencies);
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   } else {
@@ -1101,10 +1137,6 @@ function openSimulation(bundle: SimulationBundle, floor?: unknown) {
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
-  url.searchParams.set("devices", JSON.stringify(devices));
-  if (triggerIds.length) {
-    url.searchParams.set("trigger_ids", triggerIds.join(","));
-  }
   window.location.href = url.toString();
 }
 
@@ -1496,6 +1528,7 @@ function pipelineResultToPlan(result: ApiPipelineResult | PipelineStatusResponse
     plan_id: 0,
     budget,
     main_ecosystem_id: "",
+    dependencies: result.dependencies ?? null,
     requirements,
     bundles: effectiveBundles,
     stages: pipelineResultToStageArtifacts(result),

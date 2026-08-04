@@ -40,6 +40,9 @@ func (e *incidentTestEnginePort) GetRoomObservers(roomID string) []string {
 // NotifyObservers ничего не делает, потому что в этих тестах уведомления не проверяются.
 func (e *incidentTestEnginePort) NotifyObservers(roomID string, kind string, payload []byte) {}
 
+// TriggerReceivers ничего не делает, потому что constructor-тесты не проверяют сценарные связи.
+func (e *incidentTestEnginePort) TriggerReceivers(sourceID string, payload []byte) {}
+
 // DrainInChan ничего не делает, потому что тестовый engine port не обрабатывает очередь событий.
 func (e *incidentTestEnginePort) DrainInChan() {}
 
@@ -60,6 +63,9 @@ func TestNewIncidents_HaveSpreadKinds(t *testing.T) {
 	if fire.eventKind != KindFireSpread {
 		t.Fatalf("unexpected fire kind: %q", fire.eventKind)
 	}
+	if fire.spreadEveryTicks != incidentSpreadEveryTicks {
+		t.Fatalf("unexpected fire spread interval: %d", fire.spreadEveryTicks)
+	}
 
 	flood, err := NewFlood(data, enginePort)
 	if err != nil {
@@ -68,6 +74,9 @@ func TestNewIncidents_HaveSpreadKinds(t *testing.T) {
 	if flood.eventKind != KindFloodSpread {
 		t.Fatalf("unexpected flood kind: %q", flood.eventKind)
 	}
+	if flood.spreadEveryTicks != incidentSpreadEveryTicks {
+		t.Fatalf("unexpected flood spread interval: %d", flood.spreadEveryTicks)
+	}
 
 	smoke, err := NewSmoke(data, enginePort)
 	if err != nil {
@@ -75,6 +84,41 @@ func TestNewIncidents_HaveSpreadKinds(t *testing.T) {
 	}
 	if smoke.eventKind != KindSmokeSpread {
 		t.Fatalf("unexpected smoke kind: %q", smoke.eventKind)
+	}
+	if smoke.spreadEveryTicks != incidentSpreadEveryTicks {
+		t.Fatalf("unexpected smoke spread interval: %d", smoke.spreadEveryTicks)
+	}
+}
+
+// TestIncidentShouldSpreadOnTick_ThrottlesFire проверяет один BFS-шаг пожара на десять общих тиков.
+func TestIncidentShouldSpreadOnTick_ThrottlesFire(t *testing.T) {
+	incident := &Incident{spreadEveryTicks: incidentSpreadEveryTicks}
+
+	for tick := 1; tick < incidentSpreadEveryTicks; tick++ {
+		if incident.shouldSpreadOnTick() {
+			t.Fatalf("fire spread was allowed too early on tick %d", tick)
+		}
+	}
+	if !incident.shouldSpreadOnTick() {
+		t.Fatalf("fire spread was not allowed on tick %d", incidentSpreadEveryTicks)
+	}
+	if incident.shouldSpreadOnTick() {
+		t.Fatal("fire spread counter was not reset after an allowed step")
+	}
+}
+
+// TestIncidentShouldSpreadOnTick_ThrottlesFloodAndSmoke проверяет общий интервал для потопа и дыма.
+func TestIncidentShouldSpreadOnTick_ThrottlesFloodAndSmoke(t *testing.T) {
+	for _, kind := range []string{KindFloodSpread, KindSmokeSpread} {
+		incident := &Incident{eventKind: kind, spreadEveryTicks: incidentSpreadEveryTicks}
+		for tick := 1; tick < incidentSpreadEveryTicks; tick++ {
+			if incident.shouldSpreadOnTick() {
+				t.Fatalf("%s spread was allowed too early on tick %d", kind, tick)
+			}
+		}
+		if !incident.shouldSpreadOnTick() {
+			t.Fatalf("%s spread was not allowed on tick %d", kind, incidentSpreadEveryTicks)
+		}
 	}
 }
 

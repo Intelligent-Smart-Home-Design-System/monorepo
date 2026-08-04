@@ -300,7 +300,7 @@ func normalizeEntityType(entityDTO api.EntityDTO) string {
 		return entities.TypeFireSensor
 	case "flood_sensor", "leak_sensor", "water_leak_sensor":
 		return entities.TypeFloodSensor
-	case "smoke_sensor":
+	case "smoke_sensor", "gas_leak_sensor":
 		return entities.TypeSmokeSensor
 	default:
 		return entityType
@@ -374,6 +374,7 @@ func DependenciesFromDTO(scenarios []api.ScenarioDTO) map[string][]api.EdgeDTO {
 			IDToDependencies[scenario.EntityID] = append(IDToDependencies[scenario.EntityID], api.EdgeDTO{
 				ToID:   edge.ToID,
 				Action: edge.Action,
+				Data:   edge.Data,
 			})
 		}
 	}

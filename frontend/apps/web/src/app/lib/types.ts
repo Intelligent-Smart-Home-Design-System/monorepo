@@ -182,6 +182,7 @@ export type ApiHomePlan = {
     plan_id: number;
     budget: number;
     main_ecosystem_id: string;
+    dependencies?: Record<string, string[]> | null;
     allowed_ecosystems?: string[] | null;
     excluded_ecosystems?: string[] | null;
     requirements: ApiRequirement[];

@@ -213,13 +213,15 @@ func (d *SmartDoorbell) HandleEvent(inData DoorbellData) DoorbellData {
 // Управляет положением штор: 0 = закрыты, 100 = открыты.
 type SmartCurtains struct {
 	BaseDevice[CurtainsData]
-	Percents int `json:"percents"`
+	TurnOn   bool `json:"turn_on"`
+	Percents int  `json:"percents"`
 }
 
 // CurtainsData - данные для управления шторами.
 type CurtainsData struct {
 	Kind     string `json:"kind"`
-	Percents int    `json:"percents"`
+	TurnOn   *bool  `json:"turn_on,omitempty"`
+	Percents *int   `json:"percents,omitempty"`
 }
 
 // NewSmartCurtains - конструктор штор. Парсит JSON-конфигурацию и инициализирует устройство.
@@ -252,21 +254,17 @@ func (c *SmartCurtains) HandleInDTO(dto []byte) error {
 
 // HandleEvent - бизнес-логика штор.
 func (c *SmartCurtains) HandleEvent(inData CurtainsData) CurtainsData {
-	pos := inData.Percents
-
-	if pos < 0 {
-		pos = 0
+	if inData.TurnOn != nil {
+		c.TurnOn = *inData.TurnOn
 	}
-
-	if pos > 100 {
-		pos = 100
+	if inData.Percents != nil {
+		c.Percents = clampPercent(*inData.Percents)
 	}
-
-	c.Percents = pos
 
 	return CurtainsData{
 		Kind:     inData.Kind,
-		Percents: c.Percents,
+		TurnOn:   &c.TurnOn,
+		Percents: &c.Percents,
 	}
 }
 

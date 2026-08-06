@@ -42,6 +42,7 @@ import {
   saveManualSelection,
   type ManualSelectionItem,
 } from "../lib/manual-selection";
+import { clearSimulationStorage } from "../lib/simulation-storage";
 import tracksConfig from "../../../../../../services/layout/internal/configs/tracks.json";
 import type {
   ApiCatalogCategory,
@@ -325,6 +326,8 @@ export default function SettingsPage() {
         return;
       }
 
+      clearSimulationStorage();
+
       const selectedLevels = Object.fromEntries(
         Object.entries(selectedLevelByTrack).filter(([, levelId]) => levelId)
       );
@@ -351,6 +354,8 @@ export default function SettingsPage() {
 
       const started = await api.startPipeline(payload);
 
+      saveManualSelection([]);
+      localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
       localStorage.setItem(
         "planner-uploaded-plan",
         JSON.stringify(planPreviewState)
@@ -370,6 +375,7 @@ export default function SettingsPage() {
   const handleCreateManualPlan = async () => {
     if (!canSubmitManual || !parsedFloor || typeof parsedFloor !== "object") return;
 
+    clearSimulationStorage();
     setSubmitting(true);
     setError("");
     try {

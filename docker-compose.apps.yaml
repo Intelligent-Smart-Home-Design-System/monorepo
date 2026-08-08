@@ -70,9 +70,9 @@ services:
         condition: service_completed_successfully
     environment:
       PGPASSWORD: ${CATALOG_DB_PASSWORD:-catalog}
-    command: ["psql", "-h", "catalog-postgresql", "-U", "${CATALOG_DB_USER:-catalog}", "-d", "${CATALOG_DB_NAME:-smart_home}", "-f", "/seed/seed_catalog.sql"]
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-h", "catalog-postgresql", "-U", "${CATALOG_DB_USER:-catalog}", "-d", "${CATALOG_DB_NAME:-smart_home}", "-f", "/seed/test.sql"]
     volumes:
-      - ./services/main-pipeline/config/seed_catalog.sql:/seed/seed_catalog.sql:ro
+      - ./services/frontend-api/test.sql:/seed/test.sql:ro
     restart: "no"
 
   main-pipeline:

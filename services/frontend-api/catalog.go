@@ -67,6 +67,7 @@ WITH products AS (
 	LEFT JOIN page_snapshots pgs ON pgs.id = best.page_snapshot_id
 	LEFT JOIN tracked_pages tp ON tp.id = pgs.tracked_page
 	WHERE d.category = $1
+	  AND d.taxonomy_version = 'test'
 )
 `
 
@@ -143,6 +144,7 @@ func (s *apiServer) listCatalogCategories(w http.ResponseWriter, r *http.Request
 		LEFT JOIN frontend_device_types fdt ON fdt.id = d.category
 		WHERE ps.extracted_in_stock = TRUE
 		  AND ps.extracted_price IS NOT NULL
+		  AND d.taxonomy_version = 'test'
 		GROUP BY d.category, fdt.name
 		ORDER BY name
 	`)

@@ -214,6 +214,7 @@ func loadManualListing(
 			) dc ON TRUE
 			WHERE d.id = $1
 			  AND l.id = $2
+			  AND d.taxonomy_version = 'test'
 			  AND ps.extracted_in_stock = TRUE
 			  AND ps.extracted_price IS NOT NULL
 		`,

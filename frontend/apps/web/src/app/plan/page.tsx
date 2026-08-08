@@ -1188,7 +1188,7 @@ function simulationDevicesFromBundle(bundle: SimulationBundle, floor?: unknown):
         position: matched?.position,
         direction: matched?.direction,
         track: matched?.track,
-        filters: matched?.filters,
+        filters: matched?.filters ?? listing.device_attributes,
         listing_id: listing.id,
         requirement_id: listing.requirement_id,
       });

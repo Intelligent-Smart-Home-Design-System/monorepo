@@ -28,6 +28,7 @@ import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
+import { dependencyCycleMessage, findDependencyCycle } from "../lib/dependency-cycle";
 import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
 type UploadedPlanState = {
@@ -57,6 +58,11 @@ type PipelineStatusResponse = {
   parsed_floor_plan?: unknown;
   layout?: unknown;
   device_selection?: unknown;
+  error?: {
+    code?: string;
+    message?: string;
+    cycle?: string[];
+  } | null;
 };
 
 type SimulationDevice = {
@@ -158,7 +164,11 @@ function PlanPageContent() {
             setPlan(pipelineResultToPlan(currentResult, Number(budgetFromStorage()) || 0));
             setLoading(false);
             if (normalizedStatus === "failed") {
-              setError("Pipeline завершился с ошибкой. Подробности статуса показаны в промежуточных этапах.");
+              setError(
+                dependencyCycleMessage(currentResult.error?.cycle ?? []) ||
+                  currentResult.error?.message ||
+                  "Pipeline завершился с ошибкой. Подробности статуса показаны в промежуточных этапах."
+              );
               return;
             }
             timer = setTimeout(loadStatus, 4000);
@@ -221,6 +231,8 @@ function PlanPageContent() {
     [plan, selectedBundleId]
   );
   const isManualPlan = plan?.main_ecosystem_id === "manual";
+  const dependencyCycle = useMemo(() => findDependencyCycle(plan?.dependencies), [plan?.dependencies]);
+  const dependencyError = dependencyCycleMessage(dependencyCycle);
 
   const selectedListing = useMemo(
     () =>
@@ -303,6 +315,7 @@ function PlanPageContent() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
               <Button
                 variant="contained"
+                disabled={dependencyCycle.length > 0 || status?.status !== "completed"}
                 onClick={() => {
                   if (selectedBundle) {
                     openSimulation(selectedBundle, simulationFloorData, isManualPlan);
@@ -359,6 +372,7 @@ function PlanPageContent() {
         ) : (
           <Stack spacing={2.5}>
             {error && <Alert severity="error">{error}</Alert>}
+            {dependencyError && <Alert severity="error">{dependencyError}</Alert>}
 
             <Card sx={surfaceCardSx}>
               <CardContent>

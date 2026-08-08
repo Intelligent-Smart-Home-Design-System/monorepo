@@ -12,6 +12,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/rules/storage"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
 )
 
 type PlaceDevicesInput struct {
@@ -75,6 +76,15 @@ func (a *Activities) PlaceDevices(ctx context.Context, input PlaceDevicesInput) 
 	if err != nil {
 		logger.Error("failed to generate scenario dependencies", "request_id", input.RequestID, "error", err)
 		return PlaceDevicesOutput{}, err
+	}
+	if cycle := engine.FindDependencyCycle(dependencies); len(cycle) > 0 {
+		logger.Error("cyclic device dependencies detected", "request_id", input.RequestID, "cycle", cycle)
+		return PlaceDevicesOutput{}, temporal.NewNonRetryableApplicationError(
+			"Обнаружена циклическая зависимость между устройствами",
+			"cyclic_dependencies",
+			nil,
+			cycle,
+		)
 	}
 
 	devicesPlaced := countPlacements(layout)

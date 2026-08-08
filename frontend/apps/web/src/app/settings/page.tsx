@@ -43,6 +43,12 @@ import {
   type ManualSelectionItem,
 } from "../lib/manual-selection";
 import tracksConfig from "../../../../../../services/layout/internal/configs/tracks.json";
+import dependenciesConfig from "../../../../../../services/layout/internal/configs/dependencies.json";
+import {
+  dependencyCycleMessage,
+  dependencyGraphForDeviceTypes,
+  findDependencyCycle,
+} from "../lib/dependency-cycle";
 import type {
   ApiCatalogCategory,
   ApiDeviceType,
@@ -230,6 +236,16 @@ export default function SettingsPage() {
     () => selectedTrackSelections.flatMap(({ track }) => requirementsByTrack[track.id] ?? []),
     [requirementsByTrack, selectedTrackSelections]
   );
+  const dependencyCycle = useMemo(() => {
+    if (selectionMode !== "auto") return [];
+    const selectedDeviceTypes = selectedTrackSelections.flatMap(({ level }) => level.devices);
+    return findDependencyCycle(dependencyGraphForDeviceTypes(selectedDeviceTypes, dependenciesConfig));
+  }, [selectedTrackSelections, selectionMode]);
+  const dependencyTypeNames = useMemo(
+    () => Object.fromEntries(deviceTypes.map((deviceType) => [deviceType.id, deviceType.name])),
+    [deviceTypes]
+  );
+  const dependencyError = dependencyCycleMessage(dependencyCycle, dependencyTypeNames);
 
   const budgetMissing = budget.trim().length === 0;
   const budgetValue = Number(budget);
@@ -242,6 +258,7 @@ export default function SettingsPage() {
     mainEcosystemId.length > 0 &&
     !parsingFloor &&
     Boolean(parsedFloor) &&
+    dependencyCycle.length === 0 &&
     selectedRequirements.some((item) => item.device_type && item.quantity > 0);
   const canSubmitManual =
     budgetIsValid &&
@@ -458,6 +475,7 @@ export default function SettingsPage() {
             ) : (
               <>
                 {error && <Alert severity="error">{error}</Alert>}
+                {dependencyError && <Alert severity="error">{dependencyError}</Alert>}
 
                 <TextField
                   label="Бюджет (₽)"

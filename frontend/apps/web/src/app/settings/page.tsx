@@ -42,7 +42,13 @@ import {
   saveManualSelection,
   type ManualSelectionItem,
 } from "../lib/manual-selection";
+import {
+  dependencyCycleMessage,
+  dependencyGraphForDeviceTypes,
+  findDependencyCycle,
+} from "../lib/dependency-cycle";
 import tracksConfig from "../../../../../../services/layout/internal/configs/tracks.json";
+import dependenciesConfig from "../../../../../../services/layout/internal/configs/dependencies.json";
 import type {
   ApiCatalogCategory,
   ApiDeviceType,
@@ -231,6 +237,17 @@ export default function SettingsPage() {
     [requirementsByTrack, selectedTrackSelections]
   );
 
+  const dependencyCycle = useMemo(() => {
+    if (selectionMode !== "auto") return [];
+    const selectedDeviceTypes = selectedRequirements.map((requirement) => requirement.device_type);
+    return findDependencyCycle(dependencyGraphForDeviceTypes(selectedDeviceTypes, dependenciesConfig));
+  }, [selectedRequirements, selectionMode]);
+  const dependencyTypeNames = useMemo(
+    () => Object.fromEntries(deviceTypes.map((deviceType) => [deviceType.id, deviceType.name])),
+    [deviceTypes]
+  );
+  const dependencyError = dependencyCycleMessage(dependencyCycle, dependencyTypeNames);
+
   const budgetMissing = budget.trim().length === 0;
   const budgetValue = Number(budget);
   const budgetIsValid = !budgetMissing && Number.isFinite(budgetValue) && budgetValue > 0;
@@ -240,6 +257,7 @@ export default function SettingsPage() {
   const canSubmitAuto =
     budgetIsValid &&
     mainEcosystemId.length > 0 &&
+    dependencyCycle.length === 0 &&
     !parsingFloor &&
     Boolean(parsedFloor) &&
     selectedRequirements.some((item) => item.device_type && item.quantity > 0);
@@ -1144,6 +1162,7 @@ export default function SettingsPage() {
 
                 {selectionMode === "auto" && (
                   <>
+                    {dependencyError && <Alert severity="error">{dependencyError}</Alert>}
                     <Button
                       variant="contained"
                       fullWidth

@@ -30,7 +30,7 @@ func (sd *SmartDoorBellRule) Transform(zonedAp *apartment.ZonedApartment, device
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok && zr.OrigRoom.Type == apartment.RoomHall {
 			zr.EntryDoorZone = collectEntryDoorZone(zonedAp.OrigAp, zr.OrigRoom)
 		}
 	}
@@ -58,7 +58,7 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if zr.EntryDoorZone != nil && zr.OrigRoom.Name == apartment.RoomHall {
+		if zr.EntryDoorZone != nil && zr.OrigRoom.Type == apartment.RoomHall {
 			zoneCenter := zr.EntryDoorZone.Points[0]
 
 			// Записать направление

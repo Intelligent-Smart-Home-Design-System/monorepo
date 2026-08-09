@@ -34,7 +34,7 @@ func (ms *MotionSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceR
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			zr.HighTrafficZones = collectHighTrafficZones(zonedAp.OrigAp, zr.OrigRoom)
 		}
 	}
@@ -71,7 +71,7 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok || deviceCnt >= maxCount {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok || deviceCnt >= maxCount {
 			continue
 		}
 

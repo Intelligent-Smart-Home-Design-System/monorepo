@@ -32,7 +32,7 @@ func (wl *WaterLeakSensorRule) Transform(zonedAp *apartment.ZonedApartment, devi
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			zr.WetZones = collectWetZones(zr.GetFurniture())
 		}
 	}
@@ -66,7 +66,7 @@ func (wl *WaterLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

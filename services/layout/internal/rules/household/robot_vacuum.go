@@ -73,7 +73,7 @@ func (r *RobotVacuumRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

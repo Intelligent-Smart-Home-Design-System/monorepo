@@ -50,7 +50,7 @@ func (sw *SubwooferRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok || deviceCnt >= maxCount {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok || deviceCnt >= maxCount {
 			continue
 		}
 

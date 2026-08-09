@@ -24,7 +24,7 @@ func (r *AirPurifierRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			zr.PollutionZones = collectPollutionZones(zonedAp.OrigAp, zr.OrigRoom)
 		}
 	}

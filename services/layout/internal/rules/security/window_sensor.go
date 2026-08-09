@@ -28,7 +28,7 @@ func (ws *WindowSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceR
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			windowZones, err := collectWindowZones(zonedAp.OrigAp, zr.OrigRoom)
 			if err != nil {
 				return err

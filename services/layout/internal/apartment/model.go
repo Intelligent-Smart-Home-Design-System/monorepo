@@ -64,14 +64,15 @@ type Furniture struct {
 // }
 
 type Room struct {
-	ID         string        `json:"id"`
-	Name       string        `json:"name"`
-	Area       []point.Point `json:"area"`
-	AreaM2     float64       `json:"area_m2"`
-	Windows    []string      `json:"windows"`    // ID окон
-	Doors      []string      `json:"doors"`      // ID дверей
-	Walls      []string      `json:"walls"`      // ID стен
-	Furniture  []string      `json:"furniture"`  // ID мебели
+	ID        string        `json:"id"`
+	Name      string        `json:"name"`
+	Type      string        `json:"-"`
+	Area      []point.Point `json:"area"`
+	AreaM2    float64       `json:"area_m2"`
+	Windows   []string      `json:"windows"`   // ID окон
+	Doors     []string      `json:"doors"`     // ID дверей
+	Walls     []string      `json:"walls"`     // ID стен
+	Furniture []string      `json:"furniture"` // ID мебели
 	// Plumbing   []string      `json:"plumbing"`   // ID сантехники (унитаз, раковина, ванна, душ)
 	// Appliances []string      `json:"appliances"` // ID бытовой техники (стиральная машина, посудомоечная машина)
 

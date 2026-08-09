@@ -30,7 +30,7 @@ func (gl *GasLeakSensorRule) Transform(zonedAp *apartment.ZonedApartment, device
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			zr.GasZones = collectGasZones(zr.GetFurniture())
 		}
 	}
@@ -64,7 +64,7 @@ func (gl *GasLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

@@ -29,7 +29,7 @@ func (r *PresenceSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	for _, room := range rooms {
 		roomID := room.ID
 
-		if room.Name == apartment.RoomPassage {
+		if room.Type == apartment.RoomPassage {
 			p1, p2, err := corridorEndPoints(*room)
 			if err != nil {
 				return err

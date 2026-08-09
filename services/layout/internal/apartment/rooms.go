@@ -1,14 +1,87 @@
 package apartment
 
+import "strings"
+
 const (
-	RoomLiving   = "livingroom"
-	RoomBedroom  = "bedroom"
-	RoomKitchen  = "kitchen"
-	RoomPassage  = "passage"
-	RoomBathroom = "bathroom"
-	RoomCabinet  = "cabinet"
-	RoomHall     = "hallway"
+	RoomLiving       string = "livingroom"
+	RoomBedroom      string = "bedroom"
+	RoomKitchen      string = "kitchen"
+	RoomPassage      string = "passage"
+	RoomBathroom     string = "bathroom"
+	RoomCabinet      string = "cabinet"
+	RoomHall         string = "hallway"
+	RoomCloset       string = "closet"
+	RoomPorch        string = "porch"
+	RoomPantry       string = "pantry"
+	RoomUtility      string = "utility"
+	RoomMultiPurpose string = "multipurpose"
+	RoomUnknown      string = "unknown"
 )
+
+func ParseRoomType(rawName string) string {
+	switch rawName {
+	case "passage":
+		return "passage"
+	case "livingroom", "living":
+		return "livingroom"
+	case "bedroom":
+		return "bedroom"
+	case "kitchen":
+		return "kitchen"
+	case "bathroom", "bath":
+		return "bathroom"
+	case "cabinet":
+		return "cabinet"
+	case "hallway", "hall":
+		return "hallway"
+	case "closet":
+		return "closet"
+	case "pantry":
+		return "pantry"
+	case "utility":
+		return "utility"
+	case "porch":
+		return "porch"
+	}
+
+	switch {
+	case strings.Contains(rawName, "bedroom"), strings.Contains(rawName, "bdrm"):
+		return "bedroom"
+
+	case strings.Contains(rawName, "bath"), strings.Contains(rawName, "toil"), strings.Contains(rawName, "restroom"), strings.Contains(rawName, "wc"):
+		return "bathroom"
+
+	case strings.Contains(rawName, "w.i.c."), strings.Contains(rawName, "closet"), strings.Contains(rawName, "clo."):
+		return "closet"
+
+	case strings.Contains(rawName, "kitchen"), strings.Contains(rawName, "dining"):
+		return "kitchen"
+
+	case strings.Contains(rawName, "living"), strings.Contains(rawName, "great room"):
+		return "livingroom"
+
+	case strings.Contains(rawName, "pantry"):
+		return "pantry"
+
+	case strings.Contains(rawName, "util"), strings.Contains(rawName, "boiler"):
+		return "utility"
+
+	case strings.Contains(rawName, "porch"), strings.Contains(rawName, "balcony"), strings.Contains(rawName, "terrace"):
+		return "porch"
+
+	case strings.Contains(rawName, "passage"):
+		return "passage"
+
+	case strings.Contains(rawName, "hall"), strings.Contains(rawName, "entry"), strings.Contains(rawName, "foyer"):
+		return "hallway"
+
+	case strings.Contains(rawName, "cabinet"), strings.Contains(rawName, "office"), strings.Contains(rawName, "study"):
+		return "cabinet"
+
+	default:
+		return "unknown"
+	}
+}
 
 // GetFurniture возвращает объекты мебели комнаты, разрешая ID через индекс квартиры.
 func (r *Room) GetFurniture() []*Furniture {
@@ -97,4 +170,4 @@ func (r *Room) GetEntryDoor(ap *Apartment) *Door {
 	}
 
 	return nil
-} 
+}

@@ -21,20 +21,19 @@ type Wildberries struct {
 }
 
 func newWildberries(cfg config.Config, log zerolog.Logger) Source {
-	s := wbScraper.NewScraper(
-		log,
-		cfg.Scraping.Timeout,
-		cfg.Scraping.Proxy,
-		cfg.Scraping.WBCardBasket,
-		cfg.Scraping.WBRPS,
-		cfg.Scraping.WBSessionPath,
-		cfg.Wildberries.Discovery.URLTemplate,
-		cfg.Wildberries.Discovery.MaxPages,
-	)
-	return Wildberries{
-		Base: Base{name: domain.SourceWildberries, scraper: s},
-		log:  log.With().Str("source", domain.SourceWildberries).Logger(),
-	}
+    s := wbScraper.NewScraper(
+        cfg.Scraping.Timeout,
+        cfg.Scraping.Proxy,
+        cfg.Scraping.WBCardBasket,
+        cfg.Scraping.WBRPS,
+        cfg.Scraping.WBSessionPath,
+        cfg.Wildberries.Discovery.URLTemplate,
+        cfg.Wildberries.Discovery.MaxPages,
+    )
+    return Wildberries{
+        Base: Base{name: domain.SourceWildberries, scraper: s},
+        log:  log.With().Str("source", domain.SourceWildberries).Logger(),
+    }
 }
 
 // BootstrapDiscovery — step A: discovery_text_queries → wildberries://discovery/{query}.

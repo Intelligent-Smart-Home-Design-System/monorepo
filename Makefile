@@ -111,7 +111,7 @@ down: ## Остановить всё: app + pipeline (.env.shift) + монито
 # ─── Тест (мониторинг + app --profile test) ─────────────────────────
 
 up-test: monitoring-up ## Поднять мониторинг + main-pipeline (--profile test)
-	$(COMPOSE_APP) --profile test up -d --build
+	CATALOG_DB_HOST_PORT=$${CATALOG_DB_HOST_PORT:-5433} $(COMPOSE_APP) --profile test up -d --build
 
 down-test: ## Остановить main-pipeline (test) + мониторинг
 	$(COMPOSE_APP) --profile test down

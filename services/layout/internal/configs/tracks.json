@@ -212,7 +212,7 @@
             "door_sensor",
             "window_sensor",
             "motion_sensor",
-            "camera"
+            "smart_camera"
           ],
           "device_rooms": {
             "water_leak_sensor": [
@@ -246,7 +246,7 @@
               "hall",
               "hallway"
             ],
-            "camera": [
+            "smart_camera": [
               "livingroom",
               "hall",
               "hallway"
@@ -260,7 +260,7 @@
             "door_sensor": 2,
             "window_sensor": 4,
             "motion_sensor": 1,
-            "camera": 2
+            "smart_camera": 2
           },
           "device_filters": {
             "water_leak_sensor": {
@@ -296,7 +296,7 @@
               "detection_angle_deg": 130,
               "detection_range_m": 8000
             },
-            "camera": {
+            "smart_camera": {
               "field_of_view_deg": 110,
               "detection_range_m": 10000,
               "has_night_vision": true,
@@ -319,7 +319,7 @@
             "door_sensor",
             "window_sensor",
             "motion_sensor",
-            "camera",
+            "smart_camera",
             "smart_siren"
           ],
           "device_rooms": {
@@ -354,7 +354,7 @@
               "hall",
               "hallway"
             ],
-            "camera": [
+            "smart_camera": [
               "livingroom",
               "hall",
               "hallway"
@@ -373,7 +373,7 @@
             "door_sensor": 2,
             "window_sensor": 4,
             "motion_sensor": 2,
-            "camera": 2,
+            "smart_camera": 2,
             "smart_siren": 2
           },
           "device_filters": {
@@ -411,7 +411,7 @@
               "detection_angle_deg": 150,
               "detection_range_m": 10000
             },
-            "camera": {
+            "smart_camera": {
               "field_of_view_deg": 110,
               "detection_range_m": 12000,
               "has_night_vision": true,
@@ -429,39 +429,39 @@
       "levels": {
         "1": {
           "name": "Первый уровень",
-          "description": "Основной свет в жилых комнатах и кухне (smart_bulb или inwall_relay_module)",
+          "description": "Основной свет в жилых комнатах и кухне (smart_lamp или inwall_relay_module)",
           "price_range": {
             "min": 2000,
             "max": 6000
           },
           "devices": [
-            "smart_bulb"
+            "smart_lamp"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen"
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 3
+            "smart_lamp": 3
           },
           "device_filters": {
-            "smart_bulb": {}
+            "smart_lamp": {}
           }
         },
         "2": {
           "name": "Второй уровень",
-          "description": "Основной свет в проходных и санузлах (smart_bulb или inwall_relay_module)",
+          "description": "Основной свет в проходных и санузлах (smart_lamp или inwall_relay_module)",
           "price_range": {
             "min": 3500,
             "max": 10000
           },
           "devices": [
-            "smart_bulb"
+            "smart_lamp"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen",
               "passage",
@@ -469,10 +469,10 @@
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 5
+            "smart_lamp": 5
           },
           "device_filters": {
-            "smart_bulb": {}
+            "smart_lamp": {}
           }
         },
         "3": {
@@ -483,12 +483,12 @@
             "max": 20000
           },
           "devices": [
-            "smart_bulb",
+            "smart_lamp",
             "motion_sensor",
             "illumination_sensor"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen",
               "passage",
@@ -504,12 +504,12 @@
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
+            "smart_lamp": 5,
             "motion_sensor": 2,
             "illumination_sensor": 2
           },
           "device_filters": {
-            "smart_bulb": {},
+            "smart_lamp": {},
             "motion_sensor": {},
             "illumination_sensor": {}
           }
@@ -522,13 +522,13 @@
             "max": 55000
           },
           "devices": [
-            "smart_bulb",
+            "smart_lamp",
             "motion_sensor",
             "illumination_sensor",
             "curtains"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen",
               "passage",
@@ -547,13 +547,13 @@
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
+            "smart_lamp": 5,
             "motion_sensor": 2,
             "illumination_sensor": 2,
             "curtains": 3
           },
           "device_filters": {
-            "smart_bulb": {},
+            "smart_lamp": {},
             "motion_sensor": {},
             "illumination_sensor": {},
             "curtains": {}
@@ -567,7 +567,7 @@
             "max": 70000
           },
           "devices": [
-            "smart_bulb",
+            "smart_lamp",
             "motion_sensor",
             "illumination_sensor",
             "curtains",
@@ -575,7 +575,7 @@
             "smart_dimmer"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen",
               "passage",
@@ -603,7 +603,7 @@
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
+            "smart_lamp": 5,
             "motion_sensor": 2,
             "illumination_sensor": 2,
             "curtains": 3,
@@ -611,7 +611,7 @@
             "smart_dimmer": 2
           },
           "device_filters": {
-            "smart_bulb": {},
+            "smart_lamp": {},
             "motion_sensor": {},
             "illumination_sensor": {},
             "curtains": {},
@@ -627,7 +627,7 @@
             "max": 85000
           },
           "devices": [
-            "smart_bulb",
+            "smart_lamp",
             "presence_sensor",
             "illumination_sensor",
             "curtains",
@@ -636,7 +636,7 @@
             "built_in_backlight"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen",
               "passage",
@@ -669,7 +669,7 @@
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
+            "smart_lamp": 5,
             "presence_sensor": 3,
             "illumination_sensor": 2,
             "curtains": 3,
@@ -678,7 +678,7 @@
             "built_in_backlight": 2
           },
           "device_filters": {
-            "smart_bulb": {},
+            "smart_lamp": {},
             "presence_sensor": {},
             "illumination_sensor": {},
             "curtains": {},
@@ -695,7 +695,7 @@
             "max": 100000
           },
           "devices": [
-            "smart_bulb",
+            "smart_lamp",
             "presence_sensor",
             "illumination_sensor",
             "curtains",
@@ -705,7 +705,7 @@
             "decorative_luminaire"
           ],
           "device_rooms": {
-            "smart_bulb": [
+            "smart_lamp": [
               "livingroom",
               "kitchen",
               "passage",
@@ -743,7 +743,7 @@
             ]
           },
           "max_device_counts": {
-            "smart_bulb": 5,
+            "smart_lamp": 5,
             "presence_sensor": 3,
             "illumination_sensor": 2,
             "curtains": 3,
@@ -753,7 +753,7 @@
             "decorative_luminaire": 2
           },
           "device_filters": {
-            "smart_bulb": {},
+            "smart_lamp": {},
             "presence_sensor": {},
             "illumination_sensor": {},
             "curtains": {},

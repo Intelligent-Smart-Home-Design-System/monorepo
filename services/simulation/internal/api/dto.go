@@ -27,6 +27,7 @@ type ScenarioDTO struct {
 
 // EdgeDTO структура для связи между устройствами в сценарии
 type EdgeDTO struct {
+	FromID string        `json:"from,omitempty"`
 	ToID   string        `json:"to"`
 	Action string        `json:"action"`
 	Data   []interface{} `json:"data,omitempty"` // доп параметры

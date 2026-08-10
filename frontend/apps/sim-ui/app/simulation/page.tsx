@@ -1,22 +1,37 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import { ControlPanel } from "@/app/components/sim/ControlPanel";
 import { ApartmentPlan } from "@/app/components/sim/ApartmentPlan";
 import type { IncidentPolygon } from "@/app/components/sim/ApartmentPlan";
 import { EventConsole } from "@/app/components/sim/EventConsole";
+import { ScenarioPanel } from "@/app/components/sim/ScenarioPanel";
 import { Card } from "@/app/components/ui";
 import floorPlanData from "@/app/simulation/floor.json";
-import dependencyConfig from "../../../../../services/simulation/configs/dependencies.json";
-import entityConfig from "../../../../../services/simulation/configs/entities.json";
 import layoutDeviceConfig from "../../../../../services/layout/internal/configs/devices.json";
 import { adaptFloorData, type FloorPlanView } from "@/app/simulation/floorAdapter";
 import {
   buildIncidentActivation,
+  buildDevicePercentInput,
+  buildDeviceToggleInput,
+  buildDeviceValueInput,
+  buildHumanMoveInput,
+  buildHumanRouteControlInput,
+  buildHumanRouteInput,
   buildSimulationStartPayload,
   buildTickPayload,
   normalizeLogLevel,
+  readDeviceActiveState,
+  readDeviceLevelState,
+  readDevicePercentState,
+  readDeviceValueState,
+  readHumanMoveState,
+  readHumanRouteState,
   resolveSimulationWsUrl,
+  deviceUsesPercentControl,
+  deviceValueControl,
+  SIMULATION_TICK_INTERVAL_MS,
   type IncidentKind,
   type IncidentStatePayload,
   type SimEventInput,
@@ -27,7 +42,6 @@ import {
 } from "@/app/simulation/wsClient";
 
 import {
-  scenarios as MOCK_SCENARIOS,
   deviceMarkers,
   rooms as MOCK_ROOMS,
   type Scenario,
@@ -35,6 +49,7 @@ import {
   type DeviceMarker,
   type LogEvent,
   type LogLevel,
+  type Room,
 } from "@/app/simulation/Mockdata";
 
 interface PlacedDevice {
@@ -45,7 +60,6 @@ interface PlacedDevice {
 type Status = "empty" | "loading" | "running" | "paused" | "error";
 type Speed = number;
 type Filter = "ALL" | LogLevel;
-type RunMode = "parallel" | "sequence";
 type Point = { x: number; y: number };
 type RawPoint = [number, number];
 type ExternalDevice = {
@@ -60,12 +74,6 @@ type SavedPlanDevice = {
   x: number;
   y: number;
 };
-type DependencyConfig = {
-  triggers: Record<string, { description?: string; triggers: string[] }>;
-};
-type EntityConfig = {
-  entities: Record<string, { description?: string }>;
-};
 type LayoutDeviceConfig = {
   types: Record<string, { description?: string; name?: string; tracks?: string[] }>;
   traits?: Record<string, unknown>;
@@ -73,11 +81,65 @@ type LayoutDeviceConfig = {
 
 const PLAN_STORAGE_KEY = "simulation-plan-layout";
 const FLOOR_STORAGE_KEYS = ["simulation-floor", "planner-floor-json", "parsed-floor", "floor-json"];
+const DEVICE_STORAGE_KEY = "simulation-devices";
+const LEGACY_DEVICE_STORAGE_KEYS = ["sim-devices", "selectedDevices", "selected-devices"];
 const HEARTBEAT_INTERVAL_MS = 25_000;
 const CONNECTION_STALE_MS = 60_000;
-const SIM_DEPENDENCIES = dependencyConfig as DependencyConfig;
-const SIM_ENTITIES = entityConfig as EntityConfig;
 const LAYOUT_DEVICES = layoutDeviceConfig as LayoutDeviceConfig;
+const HUMAN_ID = "resident";
+
+function pointInRoom(point: Point, room: Room) {
+  const polygon = room.area;
+  if (!polygon || polygon.length < 3) {
+    return point.x >= room.x && point.x <= room.x + room.w && point.y >= room.y && point.y <= room.y + room.h;
+  }
+
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index, index += 1) {
+    const currentPoint = polygon[index];
+    const previousPoint = polygon[previous];
+    const crossesRay =
+      currentPoint.y > point.y !== previousPoint.y > point.y &&
+      point.x <
+        ((previousPoint.x - currentPoint.x) * (point.y - currentPoint.y)) /
+          (previousPoint.y - currentPoint.y) +
+          currentPoint.x;
+    if (crossesRay) inside = !inside;
+  }
+  return inside;
+}
+
+function interiorPoint(room: Room): Point | null {
+  const candidates: Point[] = [
+    { x: room.labelX ?? room.x + room.w / 2, y: room.labelY ?? room.y + room.h / 2 },
+    { x: room.x + room.w / 2, y: room.y + room.h / 2 },
+  ];
+
+  for (let row = 1; row < 10; row += 1) {
+    for (let column = 1; column < 10; column += 1) {
+      candidates.push({
+        x: room.x + (room.w * column) / 10,
+        y: room.y + (room.h * row) / 10,
+      });
+    }
+  }
+  return candidates.find((point) => pointInRoom(point, room)) ?? null;
+}
+
+function initialHumanPosition(rooms: Room[]): Point {
+  const preferred = { x: 0.48, y: 0.72 };
+  const preferredRoom = rooms.find((room) => pointInRoom(preferred, room));
+  if (preferredRoom) return preferred;
+
+  return rooms.map(interiorPoint).find((point): point is Point => point !== null) ?? preferred;
+}
+
+function newSimulationReqId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `sim-ui-${crypto.randomUUID()}`;
+  }
+  return `sim-ui-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 function readStorage(key: string) {
   if (typeof window === "undefined") return null;
@@ -104,6 +166,35 @@ function removeStorage(key: string) {
   } catch {
     // Storage can be unavailable in some browser privacy modes.
   }
+}
+
+function normalizePlanDependencies(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const dependencies: Record<string, string[]> = {};
+  Object.entries(value).forEach(([triggerID, targets]) => {
+    if (!triggerID || !Array.isArray(targets)) return;
+    dependencies[triggerID] = targets.filter(
+      (targetID): targetID is string => typeof targetID === "string" && targetID.length > 0
+    );
+  });
+  return dependencies;
+}
+
+function userFacingSimulationError(code?: string, message?: string) {
+  const technicalMessage = `${code ?? ""} ${message ?? ""}`.toLocaleLowerCase("ru");
+
+  if (technicalMessage.includes("circle dependencies")) {
+    return "В сценариях обнаружена замкнутая цепочка: устройства запускают друг друга по кругу. Измените связи между устройствами и попробуйте снова.";
+  }
+  if (code === "START_FAILED") {
+    return "Не удалось запустить симуляцию. Проверьте выбранные устройства и сценарии, затем попробуйте снова.";
+  }
+  if (code === "TICK_FAILED") {
+    return "Backend отклонил одно из действий, поэтому симуляция остановлена. Проверьте журнал событий и запустите её повторно.";
+  }
+  if (message?.trim()) return message.trim();
+  return "Во время работы симуляции произошла ошибка. Попробуйте запустить её повторно.";
 }
 
 function getStateChangeEntityId(change: SimStateChange) {
@@ -142,7 +233,7 @@ const WATER_DEVICE_MARKERS: DeviceMarker[] = [
 ];
 function speedToDelay(speed: Speed) {
   const s = Math.max(Number(speed) || 1, 0.1);
-  return Math.round(700 / s);
+  return Math.round(SIMULATION_TICK_INTERVAL_MS / s);
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -225,57 +316,27 @@ function normalizeExternalDevice(raw: unknown): ExternalDevice | null {
 function loadExternalDevicesFromStorage(): ExternalDevice[] {
   if (typeof window === "undefined") return [];
 
-  const fromUrl = loadExternalDevicesFromUrl();
-  if (fromUrl.length) {
-    writeStorage("simulation-devices", JSON.stringify(fromUrl));
-    try {
-      const params = new URLSearchParams(window.location.search);
-      params.delete("devices");
-      const nextQuery = params.toString();
-      window.history.replaceState(null, "", nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname);
-    } catch {
-      // URL cleanup is nice to have, not required for the simulation.
-    }
-    return fromUrl;
+  const canonicalDevices = readStorage(DEVICE_STORAGE_KEY);
+  if (canonicalDevices !== null) {
+    return parseStoredDevices(canonicalDevices);
   }
 
-  const keys = ["simulation-devices", "sim-devices", "selectedDevices", "selected-devices", "devices"];
-  const seen = new Set<string>();
-  const devices: ExternalDevice[] = [];
+  for (const key of LEGACY_DEVICE_STORAGE_KEYS) {
+    const raw = readStorage(key);
+    if (!raw) continue;
 
-  keys.forEach((key) => {
-    try {
-      const raw = readStorage(key);
-      if (!raw) return;
+    const devices = parseStoredDevices(raw);
+    if (!devices.length) continue;
 
-      const parsed = JSON.parse(raw) as unknown;
-      const list = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === "object" && Array.isArray((parsed as { devices?: unknown[] }).devices)
-        ? (parsed as { devices: unknown[] }).devices
-        : [];
+    writeStorage(DEVICE_STORAGE_KEY, JSON.stringify(devices));
+    return devices;
+  }
 
-      list.forEach((item) => {
-        const device = normalizeExternalDevice(item);
-        if (!device || seen.has(device.id)) return;
-        seen.add(device.id);
-        devices.push(device);
-      });
-    } catch {
-      // Ignore unrelated localStorage values from other pages.
-    }
-  });
-
-  return devices;
+  return [];
 }
 
-function loadExternalDevicesFromUrl(): ExternalDevice[] {
-  if (typeof window === "undefined") return [];
-
+function parseStoredDevices(raw: string): ExternalDevice[] {
   try {
-    const raw = new URLSearchParams(window.location.search).get("devices");
-    if (!raw) return [];
-
     const parsed = JSON.parse(raw) as unknown;
     const list = Array.isArray(parsed)
       ? parsed
@@ -321,176 +382,7 @@ function loadSavedPlanDevices(): SavedPlanDevice[] {
   }
 }
 
-function loadTriggerDeviceIds(): string[] {
-  if (typeof window === "undefined") return [];
-
-  const ids = new Set<string>();
-  try {
-    const rawQuery = new URLSearchParams(window.location.search).get("trigger_ids");
-    rawQuery
-      ?.split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((id) => ids.add(id));
-  } catch {
-    // Query parsing is best-effort.
-  }
-
-  try {
-    const raw = readStorage("simulation-trigger-device-ids");
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    if (Array.isArray(parsed)) {
-      parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0).forEach((id) => ids.add(id));
-    }
-  } catch {
-    // Ignore stale localStorage values.
-  }
-
-  return Array.from(ids);
-}
-
-function deviceKind(id: string, type?: string) {
-  const key = `${id} ${type ?? ""}`.toLowerCase();
-  if (key.includes("motion") || key.includes("presence") || key.includes("pir") || key.includes("mmwave")) return "motion";
-  if (key.includes("door") || key.includes("window") || key.includes("open")) return "door";
-  if (key.includes("leak") || key.includes("water_flow")) return "leak";
-  if (key.includes("smoke")) return "smoke";
-  if (key.includes("co2")) return "air";
-  if (key.includes("co") || key.includes("gas")) return "gas";
-  if (key.includes("lux") || key.includes("light_sensor")) return "lux";
-  if (key.includes("button") || key.includes("switch")) return "button";
-  if (key.includes("lamp") || key.includes("light")) return "lamp";
-  if (key.includes("siren")) return "siren";
-  if (key.includes("ventilation") || key.includes("fan")) return "ventilation";
-  if (key.includes("valve")) return "valve";
-  if (key.includes("heater") || key.includes("ac") || key.includes("curtains") || key.includes("plug")) return "actuator";
-  if (key.includes("hub") || key.includes("gateway") || key.includes("controller")) return "bridge";
-  if (key.includes("notification")) return "notification";
-  return "other";
-}
-
-function canonicalEntityType(id: string, type?: string) {
-  const key = `${id} ${type ?? ""}`.toLowerCase();
-
-  if (key.includes("motion") || key.includes("pir") || key.includes("mmwave")) return "motion_sensor";
-  if (key.includes("presence")) return "presence_sensor";
-  if (key.includes("lux") || key.includes("illumination") || key.includes("light_sensor")) return "illumination_sensor";
-  if (key.includes("leak") || key.includes("water_leak")) return "water_leak_sensor";
-  if (key.includes("gas")) return "gas_leak_sensor";
-  if (key.includes("doorbell")) return "smart_doorbell";
-  if (key.includes("door")) return "door_sensor";
-  if (key.includes("window")) return "window_sensor";
-  if (key.includes("button") || key.includes("switch") || key.includes("scene")) return "wireless_button_switch";
-  if (key.includes("lock")) return "smart_lock";
-  if (key.includes("camera")) return "camera";
-  if (key.includes("dimmer")) return "smart_dimmer";
-  if (key.includes("curtain")) return "curtains";
-  if (key.includes("backlight")) return "built_in_backlight";
-  if (key.includes("decorative") || key.includes("luminaire")) return "decorative_luminaire";
-  if (key.includes("lamp") || key.includes("bulb") || key.includes("light")) return "smart_bulb";
-  if (key.includes("siren")) return "smart_siren";
-
-  return SIM_ENTITIES.entities[type ?? ""] ? type : undefined;
-}
-
-function isConfigCompatible(trigger: string, target: string, deviceTypes: Record<string, string | undefined>) {
-  const triggerType = canonicalEntityType(trigger, deviceTypes[trigger]);
-  const targetType = canonicalEntityType(target, deviceTypes[target]);
-  if (!triggerType || !targetType) return undefined;
-
-  const dependency = SIM_DEPENDENCIES.triggers[triggerType];
-  if (!dependency) return undefined;
-
-  return dependency.triggers.includes(targetType);
-}
-
-function isConfigTrigger(id: string, deviceTypes: Record<string, string | undefined>) {
-  const type = canonicalEntityType(id, deviceTypes[id]);
-  return Boolean(type && SIM_DEPENDENCIES.triggers[type]?.triggers.length);
-}
-
-function isConfigTarget(id: string, deviceTypes: Record<string, string | undefined>) {
-  const type = canonicalEntityType(id, deviceTypes[id]);
-  if (!type) return false;
-  return Object.values(SIM_DEPENDENCIES.triggers).some((dependency) => dependency.triggers.includes(type));
-}
-
-function buildScenarioTitle(trigger: string, target: string) {
-  const triggerKind = deviceKind(trigger);
-  const targetKind = deviceKind(target);
-
-  if (triggerKind === "motion" && targetKind === "lamp") return `${trigger} → включить свет`;
-  if (triggerKind === "door" && targetKind === "lamp") return `${trigger} → включить свет`;
-  if (triggerKind === "door" && targetKind === "siren") return `${trigger} → тревога`;
-  if (triggerKind === "leak" && targetKind === "valve") return `${trigger} → перекрыть воду`;
-  if (triggerKind === "leak" && targetKind === "siren") return `${trigger} → аварийный сигнал`;
-  if ((triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") && targetKind === "siren") return `${trigger} → сирена`;
-  if ((triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") && targetKind === "ventilation") return `${trigger} → вентиляция`;
-  if ((triggerKind === "lux" || triggerKind === "button") && targetKind === "lamp") return `${trigger} → свет`;
-  return `${trigger} → ${target}`;
-}
-
-function scenarioCategoryFor(trigger: string, target: string): Scenario["category"] {
-  const triggerKind = deviceKind(trigger);
-  const targetKind = deviceKind(target);
-
-  if (triggerKind === "smoke" || triggerKind === "gas" || triggerKind === "air") return "fire_gas";
-  if (triggerKind === "leak" || targetKind === "valve") return "water";
-  if (triggerKind === "door" && targetKind === "siren") return "security";
-  if (targetKind === "lamp" || triggerKind === "motion" || triggerKind === "lux" || triggerKind === "button") return "lighting";
-  return "service";
-}
-
-function buildPlacedScenarios(
-  placedIds: string[],
-  bridgeId: string | undefined,
-  deviceTypes: Record<string, string | undefined>,
-  preferredTriggerIds: string[]
-): Scenario[] {
-  const placed = Array.from(new Set(placedIds));
-  const preferredTriggers = new Set(preferredTriggerIds);
-  const triggers = placed.filter((id) => {
-    const kind = deviceKind(id, deviceTypes[id]);
-    return preferredTriggers.has(id) || isConfigTrigger(id, deviceTypes) || ["motion", "door", "leak", "smoke", "gas", "air", "lux", "button"].includes(kind);
-  });
-  const targets = placed.filter((id) => {
-    const kind = deviceKind(id, deviceTypes[id]);
-    return isConfigTarget(id, deviceTypes) || ["lamp", "siren", "ventilation", "valve", "actuator", "notification"].includes(kind);
-  });
-  const scenarios: Scenario[] = [];
-
-  triggers.forEach((trigger) => {
-    targets.forEach((target) => {
-      if (trigger === target) return;
-      const triggerKind = deviceKind(trigger, deviceTypes[trigger]);
-      const targetKind = deviceKind(target, deviceTypes[target]);
-      const configCompatible = isConfigCompatible(trigger, target, deviceTypes);
-      const compatible =
-        configCompatible ??
-        ((triggerKind === "motion" && targetKind === "lamp") ||
-          (triggerKind === "door" && ["lamp", "siren", "notification"].includes(targetKind)) ||
-          (triggerKind === "leak" && ["valve", "siren", "notification"].includes(targetKind)) ||
-          (["smoke", "gas", "air"].includes(triggerKind) && ["siren", "ventilation", "notification"].includes(targetKind)) ||
-          (["lux", "button"].includes(triggerKind) && ["lamp", "actuator"].includes(targetKind)));
-
-      if (!compatible) return;
-
-      const chain = bridgeId && bridgeId !== trigger && bridgeId !== target ? [trigger, bridgeId, target] : [trigger, target];
-      scenarios.push({
-        id: `placed_${chain.join("_to_")}`,
-        title: buildScenarioTitle(trigger, target),
-        description: "Собрано из устройств на плане",
-        chain,
-        category: scenarioCategoryFor(trigger, target),
-      });
-    });
-  });
-
-  return scenarios.slice(0, 40);
-}
-
 export default function SimulationPage() {
-  const baseScenarios = useMemo<Scenario[]>(() => MOCK_SCENARIOS, []);
   const [floorSource] = useState<unknown>(() => loadFloorSourceFromStorage());
   const adaptedFloor = useMemo(() => adaptFloorData(floorSource, MOCK_ROOMS, deviceMarkers), [floorSource]);
   const normalizeIncidentPoint = useMemo(() => makeIncidentPointNormalizer(floorSource), [floorSource]);
@@ -499,53 +391,77 @@ export default function SimulationPage() {
   const baseDeviceMarkers = adaptedFloor.markers;
   const placementMarkers = adaptedFloor.placementMarkers;
   const [externalDevices] = useState<ExternalDevice[]>(() => loadExternalDevicesFromStorage());
+  const [manualPlacementOnly] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("manual_placement") === "1"
+  );
   const [savedPlanDevices] = useState<SavedPlanDevice[]>(() => loadSavedPlanDevices());
-  const [preferredTriggerIds] = useState<string[]>(() => loadTriggerDeviceIds());
+  const currentDeviceIds = new Set([
+    ...placementMarkers.map((marker) => marker.id),
+    ...externalDevices.map((device) => device.id),
+  ]);
+  const currentSavedPlanDevices = currentDeviceIds.size
+    ? savedPlanDevices.filter((device) => currentDeviceIds.has(device.id))
+    : savedPlanDevices;
 
   const [status, setStatus] = useState<Status>("empty");
   const [speed, setSpeed] = useState<Speed>(1);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
 
-  const [runMode, setRunMode] = useState<RunMode>("parallel");
+  const [humanPosition, setHumanPosition] = useState<Point>(() => initialHumanPosition(roomsForPlan));
 
   const [events, setEvents] = useState<LogEvent[]>([]);
   const [activeNodes, setActiveNodes] = useState<string[]>([]);
   const [activeEdges, setActiveEdges] = useState<Array<[string, string]>>([]);
-  const [manualDeviceState, setManualDeviceState] = useState<Record<string, boolean>>({});
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
+  const [backendDeviceState, setBackendDeviceState] = useState<Record<string, boolean>>({});
+  const [backendDevicePercent, setBackendDevicePercent] = useState<Record<string, number>>({});
+  const [backendDeviceValue, setBackendDeviceValue] = useState<Record<string, number>>({});
+  const [backendDeviceLevelArc, setBackendDeviceLevelArc] = useState<Record<string, number>>({});
   const [lastEvent, setLastEvent] = useState<LogEvent | null>(null);
-  const [runScenarios, setRunScenarios] = useState<Scenario[]>([]);
-  const runStepRef = useRef(-1);
-  const runSeqIndexRef = useRef(0);
-  const runSeqStepRef = useRef(-1);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const motionTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const motionScenarioTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
-  const activeMotionSensorsRef = useRef<Set<string>>(new Set());
+  const activeEdgesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const wsReqIdRef = useRef("sim-ui");
+  const wsReqIdRef = useRef(newSimulationReqId());
   const wsTickRef = useRef(0);
+  const wsLastAppliedTickRef = useRef(0);
   const backendRunActiveRef = useRef(false);
-  const shouldResumeBackendRef = useRef(false);
-  const lastStartPayloadRef = useRef<ReturnType<typeof buildSimulationStartPayload> | null>(null);
-  const pendingIncidentRef = useRef<{ inputs: SimEventInput[]; onSent: () => void } | null>(null);
+  const pendingIncidentRef = useRef<{ inputs: SimEventInput[]; onQueued: () => void } | null>(null);
+  const pendingTickInputsRef = useRef<SimEventInput[]>([]);
+  const pendingDeviceStateRef = useRef<Record<string, boolean>>({});
+  const pendingHumanMoveRef = useRef(false);
+  const [humanRouteStatus, setHumanRouteStatus] = useState("idle");
+  const [incidentResetPending, setIncidentResetPending] = useState<Record<IncidentKind, boolean>>({
+    "fire:spread": false,
+    "flood:spread": false,
+    "smoke:spread": false,
+  });
   const wsStartAckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPongAtRef = useRef(0);
   const pendingStepSinceRef = useRef(0);
   const floorWarningsLoggedRef = useRef(false);
+  const devicesLocked = status === "loading" || status === "running" || status === "paused";
+
   const [devicePositions, setDevicePositions] = useState<DeviceMarker[]>(() => {
-    const savedMarkers = savedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
-    const knownMarkerIds = new Set([...placementMarkers.map((marker) => marker.id), ...savedPlanDevices.map((device) => device.id)]);
+    const savedMarkers = currentSavedPlanDevices.map((device) => ({ id: device.id, x: device.x, y: device.y }));
+    const knownMarkerIds = new Set([
+      ...placementMarkers.map((marker) => marker.id),
+      ...currentSavedPlanDevices.map((device) => device.id),
+    ]);
     const externalMarkers = externalDevices
       .filter((device) => device.x !== undefined && device.y !== undefined && !knownMarkerIds.has(device.id))
       .map((device) => ({ id: device.id, x: device.x as number, y: device.y as number, label: device.name }));
 
-    return [...baseDeviceMarkers, ...FIRE_DEVICE_MARKERS, ...WATER_DEVICE_MARKERS, ...externalMarkers, ...savedMarkers];
+    const markersByID = new Map<string, DeviceMarker>();
+    [...baseDeviceMarkers, ...FIRE_DEVICE_MARKERS, ...WATER_DEVICE_MARKERS, ...externalMarkers, ...savedMarkers].forEach(
+      (marker) => markersByID.set(marker.id, marker)
+    );
+    return Array.from(markersByID.values());
   });
   const [placedDeviceIds, setPlacedDeviceIds] = useState<string[]>(() => {
     const placementIds = placementMarkers.map((marker) => marker.id);
-    const savedIds = savedPlanDevices.map((device) => device.id);
+    const savedIds = currentSavedPlanDevices.map((device) => device.id);
     const externalPlacedIds = externalDevices.filter((device) => device.x !== undefined && device.y !== undefined).map((device) => device.id);
     return Array.from(new Set([...placementIds, ...savedIds, ...externalPlacedIds]));
   });
@@ -555,8 +471,10 @@ export default function SimulationPage() {
   const [waterMode, setWaterMode] = useState(false);
   const [waterPoint, setWaterPoint] = useState<Point | null>(null);
   const [waterActive, setWaterActive] = useState(false);
+  const [smokeMode, setSmokeMode] = useState(false);
+  const [smokePoint, setSmokePoint] = useState<Point | null>(null);
+  const [smokeActive, setSmokeActive] = useState(false);
   const [incidentPolygons, setIncidentPolygons] = useState<IncidentPolygon[]>([]);
-  const [motionActiveDeviceIds, setMotionActiveDeviceIds] = useState<string[]>([]);
   const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
   const [wsError, setWsError] = useState<string | null>(null);
 
@@ -564,7 +482,7 @@ export default function SimulationPage() {
     if (typeof window === "undefined") return {};
     try {
       const raw = window.localStorage.getItem("simulation-plan-dependencies");
-      return raw ? JSON.parse(raw) : {};
+      return raw ? normalizePlanDependencies(JSON.parse(raw)) : {};
     } catch {
       return {};
     }
@@ -579,12 +497,13 @@ export default function SimulationPage() {
 
       if (configRaw) {
         const { layout, dependencies } = JSON.parse(decodeURIComponent(configRaw));
+        const normalizedDependencies = normalizePlanDependencies(dependencies);
 
         window.localStorage.setItem("simulation-plan-layout", JSON.stringify(layout));
-        window.localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
+        window.localStorage.setItem("simulation-plan-dependencies", JSON.stringify(normalizedDependencies));
 
         setTimeout(() => {
-          setPlanDependencies(dependencies);
+          setPlanDependencies(normalizedDependencies);
 
           const list: PlacedDevice[] = layout?.devices || [];
           if (list.length) {
@@ -607,25 +526,32 @@ export default function SimulationPage() {
   }, []);
 
   const externalDeviceMap = useMemo(() => new Map(externalDevices.map((device) => [device.id, device])), [externalDevices]);
-  const deviceTypeMap = useMemo<Record<string, string | undefined>>(() => {
-    return Object.fromEntries(externalDevices.map((device) => [device.id, device.type]));
-  }, [externalDevices]);
-  const bridgeId = useMemo(() => placedDeviceIds.find((id) => deviceKind(id, externalDeviceMap.get(id)?.type) === "bridge"), [placedDeviceIds, externalDeviceMap]);
-  const placedScenarios = useMemo(
-    () => buildPlacedScenarios(placedDeviceIds, bridgeId, deviceTypeMap, preferredTriggerIds),
-    [placedDeviceIds, bridgeId, deviceTypeMap, preferredTriggerIds]
-  );
-  const scenarios = useMemo<Scenario[]>(() => {
-    const byId = new Map<string, Scenario>();
-    const placedSet = new Set(placedDeviceIds);
-    placedScenarios.forEach((scenario) => byId.set(scenario.id, scenario));
-    baseScenarios
-      .filter((scenario) => scenario.chain.every((id) => placedSet.has(id)))
-      .forEach((scenario) => byId.set(scenario.id, scenario));
-    return Array.from(byId.values());
-  }, [baseScenarios, placedDeviceIds, placedScenarios]);
-  const selectedScenarioIds = useMemo(() => scenarios.map((scenario) => scenario.id), [scenarios]);
-  const selectedScenarios = scenarios;
+  const deviceNames = useMemo(() => {
+    const names = new Map(
+      devicePositions.flatMap((marker) => (marker.label ? [[marker.id, marker.label] as const] : []))
+    );
+    externalDevices.forEach((device) => {
+      if (device.name) names.set(device.id, device.name);
+    });
+    return Object.fromEntries(names);
+  }, [devicePositions, externalDevices]);
+  const selectedScenarios = useMemo<Scenario[]>(() => {
+    return Object.entries(planDependencies).flatMap(([triggerID, targetIDs]) =>
+      targetIDs.map((targetID, index) => ({
+        id: `layout_${triggerID}_to_${targetID}_${index}`,
+        title: `${deviceNames[triggerID] ?? triggerID} → ${deviceNames[targetID] ?? targetID}`,
+        description: "Получено от модуля расстановки",
+        chain: [triggerID, targetID],
+        category: "service",
+      }))
+    );
+  }, [deviceNames, planDependencies]);
+  const highlightedEdges = useMemo<Array<[string, string]>>(() => {
+    const scenario = selectedScenarios.find((item) => item.id === selectedScenarioId);
+    if (!scenario) return [];
+
+    return scenario.chain.slice(0, -1).map((deviceID, index) => [deviceID, scenario.chain[index + 1]]);
+  }, [selectedScenarioId, selectedScenarios]);
   const availableDeviceIds = useMemo(() => {
     const ids = new Set<string>();
 
@@ -636,27 +562,50 @@ export default function SimulationPage() {
     }
 
     Object.keys(LAYOUT_DEVICES.types ?? {}).forEach((id) => ids.add(id));
-    baseScenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
-    scenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
+    selectedScenarios.forEach((scenario) => scenario.chain.forEach((id) => ids.add(id)));
     return Array.from(ids);
-  }, [baseScenarios, externalDevices, placedDeviceIds, scenarios]);
+  }, [externalDevices, placedDeviceIds, selectedScenarios]);
 
   const devicesForPlan = useMemo<Device[]>(() => {
-    const activeSelectedIds = motionActiveDeviceIds.filter((id) => placedDeviceIds.includes(id));
-    const ids = Array.from(new Set([...placedDeviceIds, ...activeSelectedIds]));
-
-    return ids.map((id) => ({
+    return placedDeviceIds.map((id) => ({
       id,
-      name: externalDeviceMap.get(id)?.name,
+      name: deviceNames[id],
       type: externalDeviceMap.get(id)?.type,
-      status:
-        activeNodes.includes(id) ||
-        manualDeviceState[id] ||
-        motionActiveDeviceIds.includes(id)
-          ? "active"
-          : "idle",
+      status: backendDeviceState[id] ? "active" : "idle",
     }));
-  }, [placedDeviceIds, activeNodes, manualDeviceState, motionActiveDeviceIds, externalDeviceMap]);
+  }, [placedDeviceIds, externalDeviceMap, deviceNames, backendDeviceState]);
+
+  const devicePercentLevels = useMemo<Record<string, number>>(() => {
+    const levels: Record<string, number> = {};
+    placedDeviceIds.forEach((id) => {
+      if (!deviceUsesPercentControl(id, externalDeviceMap.get(id)?.type)) return;
+      levels[id] = backendDevicePercent[id] ?? 0;
+    });
+    return levels;
+  }, [placedDeviceIds, externalDeviceMap, backendDevicePercent]);
+
+  const deviceValueControls = useMemo(() => {
+    const controls: Record<string, NonNullable<ReturnType<typeof deviceValueControl>> & { value: number }> = {};
+    placedDeviceIds.forEach((id) => {
+      const control = deviceValueControl(id, externalDeviceMap.get(id)?.type);
+      if (!control) return;
+      controls[id] = {
+        ...control,
+        value: backendDeviceValue[id] ?? control.defaultValue,
+      };
+    });
+    return controls;
+  }, [placedDeviceIds, externalDeviceMap, backendDeviceValue]);
+
+  const displayedDeviceLevelArcs = useMemo<Record<string, number>>(() => {
+    const arcs: Record<string, number> = {};
+    Object.entries(backendDeviceLevelArc).forEach(([id, level]) => {
+      if (deviceUsesPercentControl(id, externalDeviceMap.get(id)?.type)) return;
+      if (deviceValueControl(id, externalDeviceMap.get(id)?.type)) return;
+      arcs[id] = level;
+    });
+    return arcs;
+  }, [backendDeviceLevelArc, externalDeviceMap]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -677,13 +626,17 @@ export default function SimulationPage() {
   }, [devicePositions, placedDeviceIds]);
 
   function onMoveDevice(id: string, x: number, y: number) {
+    if (devicesLocked) return;
     setPlacedDeviceIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
     setDevicePositions((prev) => {
-      const idx = prev.findIndex((m) => m.id === id);
-      if (idx === -1) return [...prev, { id, x, y }];
-      const copy = prev.slice();
-      copy[idx] = { ...copy[idx], x, y };
-      return copy;
+      let updated = false;
+      const next = prev.flatMap((marker) => {
+        if (marker.id !== id) return [marker];
+        if (updated) return [];
+        updated = true;
+        return [{ ...marker, x, y }];
+      });
+      return updated ? next : [...next, { id, x, y }];
     });
   }
 
@@ -712,27 +665,38 @@ export default function SimulationPage() {
   }
 
   function onPlaceDevice(id: string) {
+    if (devicesLocked) return;
     const marker = markerFor(id);
     const point = marker ?? suggestedDevicePosition(id);
     onDropDevice(id, point.x, point.y);
   }
 
   function onRemoveDevice(id: string) {
+    if (devicesLocked) return;
     setPlacedDeviceIds((ids) => ids.filter((deviceId) => deviceId !== id));
     setActiveNodes((ids) => ids.filter((deviceId) => deviceId !== id));
     setActiveEdges((edges) => edges.filter(([from, to]) => from !== id && to !== id));
-    setManualDeviceState((state) => {
+    setBackendDeviceState((state) => {
       const next = { ...state };
       delete next[id];
       return next;
     });
-    setMotionActiveDeviceIds((ids) => ids.filter((deviceId) => deviceId !== id));
-    activeMotionSensorsRef.current.delete(id);
-    if (motionTimersRef.current[id]) {
-      clearTimeout(motionTimersRef.current[id]);
-      delete motionTimersRef.current[id];
-    }
-    clearMotionScenarioTimers();
+    setBackendDevicePercent((state) => {
+      const next = { ...state };
+      delete next[id];
+      return next;
+    });
+    setBackendDeviceValue((state) => {
+      const next = { ...state };
+      delete next[id];
+      return next;
+    });
+    setBackendDeviceLevelArc((state) => {
+      const next = { ...state };
+      delete next[id];
+      return next;
+    });
+    delete pendingDeviceStateRef.current[id];
     addEvent(id, "Устройство убрано с плана", "INFO");
   }
 
@@ -788,12 +752,22 @@ export default function SimulationPage() {
     return true;
   }
 
-  function sendSimulationTick(inputs: SimEventInput[] = []) {
-    if (!backendRunActiveRef.current) return false;
-    wsTickRef.current += 1;
-    const sent = sendWsMessage("simulation:tick", buildTickPayload(wsTickRef.current, inputs));
+  function sendSimulationTick() {
+    if (!backendRunActiveRef.current || pendingStepSinceRef.current) return false;
+    const nextTick = wsTickRef.current + 1;
+    const sent = sendWsMessage("simulation:tick", buildTickPayload(nextTick, pendingTickInputsRef.current));
+    if (sent) {
+      wsTickRef.current = nextTick;
+      pendingTickInputsRef.current = [];
+    }
     if (sent && !pendingStepSinceRef.current) pendingStepSinceRef.current = Date.now();
     return sent;
+  }
+
+  function queueSimulationInputs(inputs: SimEventInput[]) {
+    if (!backendRunActiveRef.current) return false;
+    pendingTickInputsRef.current.push(...inputs);
+    return true;
   }
 
   function clearStartAckTimer() {
@@ -805,104 +779,123 @@ export default function SimulationPage() {
   function failSimulationStart(message: string) {
     clearStartAckTimer();
     backendRunActiveRef.current = false;
-    shouldResumeBackendRef.current = false;
     pendingIncidentRef.current = null;
+    pendingTickInputsRef.current = [];
+    pendingDeviceStateRef.current = {};
+    pendingHumanMoveRef.current = false;
+    setIncidentResetPending({
+      "fire:spread": false,
+      "flood:spread": false,
+      "smoke:spread": false,
+    });
     addEvent("websocket", message, "ERROR");
     setWsError(message);
     setStatus("error");
   }
 
-  function triggerMotionSensor(sensorId: string, point: Point) {
-    const wasActive = activeMotionSensorsRef.current.has(sensorId);
-    activeMotionSensorsRef.current.add(sensorId);
-    setMotionActiveDeviceIds((ids) => Array.from(new Set([...ids, sensorId])));
-
-    if (!wasActive) {
-      addEvent(sensorId, "Датчик движения обнаружил жителя", "INFO");
-
-      const connectedExecutors = planDependencies[sensorId] || [];
-      const affectedDevices = [sensorId, ...connectedExecutors];
-
-      sendSimulationTick([
-        {
-          kind: "human:trigger",
-          entityId: "resident",
-          trigger: sensorId,
-          devicesPayload: affectedDevices,
-          payload: { turn_on: true, to: { x: point.x, y: point.y }, x: point.x, y: point.y },
-        },
-      ]);
-      runMotionTriggeredScenarios(sensorId);
+  function triggerDeviceFromPlan(deviceId: string) {
+    const currentState = pendingDeviceStateRef.current[deviceId] ?? backendDeviceState[deviceId] ?? false;
+    const nextState = !currentState;
+    const input = buildDeviceToggleInput(deviceId, externalDeviceMap.get(deviceId)?.type, nextState);
+    if (!input) {
+      addEvent(deviceId, "Состояние устройства определяется событиями симуляции и не переключается вручную", "WARNING");
+      return;
+    }
+    if (!queueSimulationInputs([input])) {
+      addEvent(deviceId, "Симуляция не запущена, команда не отправлена", "ERROR");
+      return;
     }
 
-    if (motionTimersRef.current[sensorId]) clearTimeout(motionTimersRef.current[sensorId]);
-    motionTimersRef.current[sensorId] = setTimeout(() => {
-      activeMotionSensorsRef.current.delete(sensorId);
-      setMotionActiveDeviceIds((ids) => ids.filter((id) => id !== sensorId));
-      sendSimulationTick([
-        {
-          kind: "device:trigger",
-          entityId: sensorId,
-          trigger: sensorId,
-          devicesPayload: [sensorId],
-          payload: { turn_on: false, to: { x: point.x, y: point.y }, x: point.x, y: point.y },
-        },
-      ]);
-      delete motionTimersRef.current[sensorId];
-    }, 1800);
+    pendingDeviceStateRef.current[deviceId] = nextState;
+    addEvent(deviceId, nextState ? "Команда включения поставлена в очередь" : "Команда выключения поставлена в очередь", "INFO");
   }
 
-  function triggerDeviceFromPlan(deviceId: string) {
-    const nextTurnOn = !manualDeviceState[deviceId];
+  function setDevicePercentFromPlan(deviceId: string, value: number) {
+    const input = buildDevicePercentInput(deviceId, externalDeviceMap.get(deviceId)?.type, value);
+    if (!input) {
+      addEvent(deviceId, "Устройство не поддерживает процентное управление", "WARNING");
+      return;
+    }
+    if (!queueSimulationInputs([input])) {
+      addEvent(deviceId, "Симуляция не запущена, команда не отправлена", "ERROR");
+      return;
+    }
 
-    setManualDeviceState((state) => ({ ...state, [deviceId]: nextTurnOn }));
-    setActiveNodes(nextTurnOn ? [deviceId] : []);
-    addEvent(deviceId, nextTurnOn ? "Устройство включено вручную" : "Устройство выключено вручную", "INFO");
-    sendSimulationTick([
-      {
-        kind: "human:trigger",
-        entityId: "resident",
-        trigger: deviceId,
-        devicesPayload: [deviceId],
-        payload: { turn_on: nextTurnOn },
-      },
-    ]);
+    const percents = input.payload.percents as number;
+    addEvent(deviceId, `Команда установки уровня ${percents}% поставлена в очередь`, "INFO");
   }
 
-  function clearMotionScenarioTimers() {
-    motionScenarioTimersRef.current.forEach((timer) => clearTimeout(timer));
-    motionScenarioTimersRef.current = [];
+  function setDeviceValueFromPlan(deviceId: string, value: number) {
+    const input = buildDeviceValueInput(deviceId, externalDeviceMap.get(deviceId)?.type, value);
+    if (!input) {
+      addEvent(deviceId, "Устройство не поддерживает числовую настройку", "WARNING");
+      return;
+    }
+    if (!queueSimulationInputs([input])) {
+      addEvent(deviceId, "Симуляция не запущена, команда не отправлена", "ERROR");
+      return;
+    }
+
+    addEvent(deviceId, "Команда изменения настройки поставлена в очередь", "INFO");
   }
 
-  function runMotionTriggeredScenarios(sensorId: string) {
-    const scenariosToRun = selectedScenarios.filter((scenario) => scenario.chain[0] === sensorId);
-    if (!scenariosToRun.length) return;
+  function requestHumanMove(point: Point) {
+    if (pendingHumanMoveRef.current) return false;
+    if (!queueSimulationInputs([buildHumanMoveInput(floorSource, HUMAN_ID, point)])) {
+      addEvent(HUMAN_ID, "Симуляция не запущена, перемещение не отправлено", "ERROR");
+      return false;
+    }
+    pendingHumanMoveRef.current = true;
+    return true;
+  }
 
-    clearMotionScenarioTimers();
+  function requestHumanRoute(points: Point[], speed: number) {
+    if (!queueSimulationInputs([buildHumanRouteInput(floorSource, HUMAN_ID, points, speed)])) {
+      addEvent(HUMAN_ID, "Симуляция не запущена, маршрут не отправлен", "ERROR");
+      return false;
+    }
+    return true;
+  }
 
-    scenariosToRun.forEach((scenario) => {
-      scenario.chain.forEach((deviceId, index) => {
-        const timer = setTimeout(() => {
-          const edge = index > 0 ? ([scenario.chain[index - 1], deviceId] as [string, string]) : null;
-          setActiveNodes([deviceId]);
-          setActiveEdges(edge ? [edge] : []);
-
-          if (index > 0) {
-            addEvent(deviceId, index === scenario.chain.length - 1 ? "Устройство сработало по датчику движения" : "Передан сигнал от датчика", "INFO");
-          }
-        }, index * 520);
-        motionScenarioTimersRef.current.push(timer);
-      });
-
-      const clearEdgeTimer = setTimeout(() => {
-        setActiveEdges([]);
-      }, scenario.chain.length * 520 + 900);
-      motionScenarioTimersRef.current.push(clearEdgeTimer);
-    });
+  function requestHumanRouteControl(action: "pause" | "resume" | "stop") {
+    if (!queueSimulationInputs([buildHumanRouteControlInput(HUMAN_ID, action)])) {
+      addEvent(HUMAN_ID, "Симуляция не запущена, команда маршрута не отправлена", "ERROR");
+      return false;
+    }
+    return true;
   }
 
   function applyBackendStep(payload: SimStepPayload) {
     const changes = payload.stateChanges ?? [];
+    const triggeredEdges = (payload.triggeredEdges ?? [])
+      .filter((edge) => typeof edge.from === "string" && edge.from && typeof edge.to === "string" && edge.to)
+      .map((edge) => [edge.from, edge.to] as [string, string]);
+    if (triggeredEdges.length) {
+      if (activeEdgesTimerRef.current) clearTimeout(activeEdgesTimerRef.current);
+      setActiveEdges(triggeredEdges);
+      activeEdgesTimerRef.current = setTimeout(() => {
+        setActiveEdges([]);
+        activeEdgesTimerRef.current = null;
+      }, 500);
+    }
+    const latestHumanMove = [...changes]
+      .reverse()
+      .find((change) => getStateChangeEntityId(change) === HUMAN_ID && readHumanMoveState(change.payload, floorSource));
+    if (latestHumanMove) {
+      pendingHumanMoveRef.current = false;
+      const humanState = readHumanMoveState(latestHumanMove.payload, floorSource);
+      if (humanState) setHumanPosition(humanState.position);
+    }
+    const latestHumanRoute = [...changes]
+      .reverse()
+      .map((change) => (getStateChangeEntityId(change) === HUMAN_ID ? readHumanRouteState(change.payload) : null))
+      .find((state) => state !== null);
+    if (latestHumanRoute) setHumanRouteStatus(latestHumanRoute.status);
+    if (latestHumanMove) {
+      const humanState = readHumanMoveState(latestHumanMove.payload, floorSource);
+      if (humanState?.status === "route completed") setHumanRouteStatus("completed");
+    }
+
     const incidentSnapshot = incidentPolygonsFromChanges(changes);
     if (incidentSnapshot.kinds.size) {
       setIncidentPolygons((current) => [
@@ -913,11 +906,19 @@ export default function SimulationPage() {
         const active = incidentSnapshot.polygons.some((polygon) => polygon.kind === "fire:spread");
         setFireActive(active);
         if (!active) setFirePoint(null);
+        setIncidentResetPending((pending) => ({ ...pending, "fire:spread": false }));
       }
       if (incidentSnapshot.kinds.has("flood:spread")) {
         const active = incidentSnapshot.polygons.some((polygon) => polygon.kind === "flood:spread");
         setWaterActive(active);
         if (!active) setWaterPoint(null);
+        setIncidentResetPending((pending) => ({ ...pending, "flood:spread": false }));
+      }
+      if (incidentSnapshot.kinds.has("smoke:spread")) {
+        const active = incidentSnapshot.polygons.some((polygon) => polygon.kind === "smoke:spread");
+        setSmokeActive(active);
+        if (!active) setSmokePoint(null);
+        setIncidentResetPending((pending) => ({ ...pending, "smoke:spread": false }));
       }
     }
 
@@ -925,20 +926,52 @@ export default function SimulationPage() {
       const next = new Set(current);
       changes.forEach((change) => {
         const entityId = getStateChangeEntityId(change);
-        const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
-        if (!entityId || !("turn_on" in rawPayload)) return;
-        if (Boolean((rawPayload as { turn_on?: boolean }).turn_on)) next.add(entityId);
+        const state = readDeviceActiveState(change.payload);
+        if (!entityId || state === undefined) return;
+        if (state) next.add(entityId);
         else next.delete(entityId);
       });
       return Array.from(next);
     });
-    setManualDeviceState((state) => {
+    setBackendDeviceState((state) => {
       const next = { ...state };
       changes.forEach((change) => {
         const entityId = getStateChangeEntityId(change);
         if (!entityId) return;
-        const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
-        if ("turn_on" in rawPayload) next[entityId] = Boolean((rawPayload as { turn_on?: boolean }).turn_on);
+        const active = readDeviceActiveState(change.payload);
+        if (active === undefined) return;
+        next[entityId] = active;
+        delete pendingDeviceStateRef.current[entityId];
+      });
+      return next;
+    });
+    setBackendDevicePercent((state) => {
+      const next = { ...state };
+      changes.forEach((change) => {
+        const entityId = getStateChangeEntityId(change);
+        if (!entityId) return;
+        const value = readDevicePercentState(change.payload);
+        if (value !== undefined) next[entityId] = value;
+      });
+      return next;
+    });
+    setBackendDeviceValue((state) => {
+      const next = { ...state };
+      changes.forEach((change) => {
+        const entityId = getStateChangeEntityId(change);
+        if (!entityId) return;
+        const value = readDeviceValueState(change.payload, entityId, externalDeviceMap.get(entityId)?.type);
+        if (value !== undefined) next[entityId] = value;
+      });
+      return next;
+    });
+    setBackendDeviceLevelArc((state) => {
+      const next = { ...state };
+      changes.forEach((change) => {
+        const entityId = getStateChangeEntityId(change);
+        if (!entityId) return;
+        const level = readDeviceLevelState(change.payload, entityId, externalDeviceMap.get(entityId)?.type);
+        if (level !== undefined) next[entityId] = level.percent;
       });
       return next;
     });
@@ -946,8 +979,18 @@ export default function SimulationPage() {
     changes.forEach((change) => {
       const entityId = getStateChangeEntityId(change);
       if (!entityId) return;
-      const rawPayload = typeof change.payload === "object" && change.payload !== null ? change.payload : {};
-      const state = "turn_on" in rawPayload ? (rawPayload as { turn_on?: boolean }).turn_on : undefined;
+      const humanState = entityId === HUMAN_ID ? readHumanMoveState(change.payload, floorSource) : null;
+      if (humanState) {
+        addEvent(
+          entityId,
+          humanState.status === "No move"
+            ? "Положение не изменилось"
+            : `Перемещение подтверждено${humanState.roomID ? `, комната: ${humanState.roomID}` : ""}`,
+          "INFO"
+        );
+        return;
+      }
+      const state = readDeviceActiveState(change.payload);
       addEvent(entityId, state === undefined ? "Состояние обновлено бэкендом" : `Состояние: ${state ? "включено" : "выключено"}`, "INFO");
     });
   }
@@ -985,20 +1028,34 @@ export default function SimulationPage() {
   }
 
   function handleWsMessage(raw: string) {
-    let message: WsEnvelope;
+    let decoded: unknown;
     try {
-      message = JSON.parse(raw) as WsEnvelope;
+      decoded = JSON.parse(raw) as unknown;
     } catch {
       addEvent("websocket", "Бэк прислал некорректный JSON", "ERROR");
       return;
     }
+    if (!decoded || typeof decoded !== "object" || Array.isArray(decoded) || typeof (decoded as { type?: unknown }).type !== "string") {
+      addEvent("websocket", "Бэк прислал сообщение без корректного type", "ERROR");
+      return;
+    }
+    const message = decoded as WsEnvelope;
+
+    const sessionMessageTypes = new Set([
+      "pong",
+      "simulation:started",
+      "simulation:step",
+      "simulation:stopped",
+      "error",
+    ]);
+    if (sessionMessageTypes.has(message.type) && message.reqId !== wsReqIdRef.current) {
+      addEvent("websocket", `Ответ для другой сессии проигнорирован: ${message.type}`, "WARNING");
+      return;
+    }
 
     if (message.type === "hello:ack") {
+      if (message.reqId && message.reqId !== wsReqIdRef.current) return;
       addEvent("websocket", "Соединение с симулятором установлено", "INFO");
-      if (shouldResumeBackendRef.current && lastStartPayloadRef.current) {
-        sendWsMessage("simulation:start", lastStartPayloadRef.current);
-        addEvent("websocket", "Восстанавливаем симуляцию после переподключения", "INFO");
-      }
       return;
     }
 
@@ -1010,20 +1067,21 @@ export default function SimulationPage() {
     if (message.type === "simulation:started") {
       clearStartAckTimer();
       backendRunActiveRef.current = true;
-      shouldResumeBackendRef.current = true;
       setStatus("running");
       addEvent("websocket", "Бэкенд запустил симуляцию", "INFO");
       const pendingIncident = pendingIncidentRef.current;
       pendingIncidentRef.current = null;
-      if (pendingIncident && sendSimulationTick(pendingIncident.inputs)) pendingIncident.onSent();
+      if (pendingIncident && queueSimulationInputs(pendingIncident.inputs)) pendingIncident.onQueued();
       return;
     }
 
     if (message.type === "simulation:stopped") {
+      clearStartAckTimer();
       backendRunActiveRef.current = false;
-      shouldResumeBackendRef.current = false;
+      pendingDeviceStateRef.current = {};
+      pendingHumanMoveRef.current = false;
+      clearStoppedSimulationState();
       addEvent("websocket", "Бэкенд остановил симуляцию", "INFO");
-      setStatus("empty");
       return;
     }
 
@@ -1036,8 +1094,14 @@ export default function SimulationPage() {
     }
 
     if (message.type === "simulation:step") {
-      pendingStepSinceRef.current = 0;
-      applyBackendStep((message.payload ?? {}) as SimStepPayload);
+      const payload = (message.payload ?? {}) as SimStepPayload;
+      if (!Number.isInteger(payload.tick) || payload.tick <= wsLastAppliedTickRef.current || payload.tick > wsTickRef.current) {
+        addEvent("websocket", `Некорректный или устаревший simulation:step с tick=${String(payload.tick)}`, "WARNING");
+        return;
+      }
+      wsLastAppliedTickRef.current = payload.tick;
+      if (payload.tick === wsTickRef.current) pendingStepSinceRef.current = 0;
+      applyBackendStep(payload);
       return;
     }
 
@@ -1045,8 +1109,14 @@ export default function SimulationPage() {
       const payload = (message.payload ?? {}) as { id?: string; state?: string; turn_on?: boolean };
       if (!payload.id) return;
       const turnOn = typeof payload.turn_on === "boolean" ? payload.turn_on : payload.state === "active" || payload.state === "on";
-      setManualDeviceState((state) => ({ ...state, [payload.id as string]: turnOn }));
-      setActiveNodes(turnOn ? [payload.id] : []);
+      setBackendDeviceState((state) => ({ ...state, [payload.id as string]: turnOn }));
+      delete pendingDeviceStateRef.current[payload.id];
+      setActiveNodes((current) => {
+        const next = new Set(current);
+        if (turnOn) next.add(payload.id as string);
+        else next.delete(payload.id as string);
+        return Array.from(next);
+      });
       addEvent(payload.id, turnOn ? "Устройство включено бэкендом" : "Устройство выключено бэкендом", "INFO");
       return;
     }
@@ -1060,10 +1130,17 @@ export default function SimulationPage() {
     if (message.type === "error") {
       clearStartAckTimer();
       backendRunActiveRef.current = false;
+      pendingDeviceStateRef.current = {};
+      pendingHumanMoveRef.current = false;
       const payload = (message.payload ?? {}) as { code?: string; message?: string };
-      const errorMessage = `${payload.code ?? "ERROR"}: ${payload.message ?? "Ошибка симуляции"}`;
-      addEvent("backend", errorMessage, "ERROR");
-      setWsError(errorMessage);
+      setIncidentResetPending({
+        "fire:spread": false,
+        "flood:spread": false,
+        "smoke:spread": false,
+      });
+      const technicalError = `${payload.code ?? "ERROR"}: ${payload.message ?? "Ошибка симуляции"}`;
+      addEvent("backend", technicalError, "ERROR");
+      setWsError(userFacingSimulationError(payload.code, payload.message));
       setStatus("error");
     }
   }
@@ -1073,23 +1150,34 @@ export default function SimulationPage() {
   }
 
   function roomForPoint(point: Point) {
-    return roomsForPlan.find((room) => point.x >= room.x && point.x <= room.x + room.w && point.y >= room.y && point.y <= room.y + room.h);
+    return roomsForPlan.find((room) => pointInRoom(point, room));
   }
 
   function resetFire() {
     setFireMode(false);
-    setFirePoint(null);
-    setFireActive(false);
-    setIncidentPolygons((polygons) => polygons.filter((polygon) => polygon.kind !== "fire:spread"));
-    sendSimulationTick([{ kind: "fire:spread", entityId: "fire", payload: { reset: true } }]);
+    if (incidentResetPending["fire:spread"]) return;
+    if (queueSimulationInputs([{ kind: "fire:spread", entityId: "fire", payload: { reset: true } }])) {
+      setIncidentResetPending((pending) => ({ ...pending, "fire:spread": true }));
+      addEvent("fire", "Запрос на сброс пожара поставлен в очередь", "INFO");
+    }
   }
 
   function resetWater() {
     setWaterMode(false);
-    setWaterPoint(null);
-    setWaterActive(false);
-    setIncidentPolygons((polygons) => polygons.filter((polygon) => polygon.kind !== "flood:spread"));
-    sendSimulationTick([{ kind: "flood:spread", entityId: "flood", payload: { reset: true } }]);
+    if (incidentResetPending["flood:spread"]) return;
+    if (queueSimulationInputs([{ kind: "flood:spread", entityId: "flood", payload: { reset: true } }])) {
+      setIncidentResetPending((pending) => ({ ...pending, "flood:spread": true }));
+      addEvent("flood", "Запрос на сброс потопа поставлен в очередь", "INFO");
+    }
+  }
+
+  function resetSmoke() {
+    setSmokeMode(false);
+    if (incidentResetPending["smoke:spread"]) return;
+    if (queueSimulationInputs([{ kind: "smoke:spread", entityId: "smoke", payload: { reset: true } }])) {
+      setIncidentResetPending((pending) => ({ ...pending, "smoke:spread": true }));
+      addEvent("smoke", "Запрос на сброс дыма поставлен в очередь", "INFO");
+    }
   }
 
   function startFireAt(point: Point) {
@@ -1107,12 +1195,12 @@ export default function SimulationPage() {
       setFireActive(true);
       addEvent("fire", `Начало пожара: очаг в зоне "${room.title}"`, "WARNING");
     };
-    if (sendSimulationTick(inputs)) {
+    if (queueSimulationInputs(inputs)) {
       markFireStarted();
       return;
     }
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      pendingIncidentRef.current = { inputs, onSent: markFireStarted };
+      pendingIncidentRef.current = { inputs, onQueued: markFireStarted };
       onStart();
       return;
     }
@@ -1134,50 +1222,92 @@ export default function SimulationPage() {
       setWaterActive(true);
       addEvent("flood", `Начало потопа: вода появилась в зоне "${room.title}"`, "WARNING");
     };
-    if (sendSimulationTick(inputs)) {
+    if (queueSimulationInputs(inputs)) {
       markFloodStarted();
       return;
     }
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      pendingIncidentRef.current = { inputs, onSent: markFloodStarted };
+      pendingIncidentRef.current = { inputs, onQueued: markFloodStarted };
       onStart();
       return;
     }
     addEvent("flood", "Нет соединения с backend, очаг не создан", "ERROR");
   }
 
+  function startSmokeAt(point: Point) {
+    setSmokeMode(false);
+    const room = roomForPoint(point);
+    if (!room) {
+      addEvent("smoke", "Не удалось определить комнату для источника задымления", "ERROR");
+      return;
+    }
+
+    const activation = buildIncidentActivation(floorSource, point, room.id);
+    const inputs: SimEventInput[] = [{ kind: "smoke:spread", entityId: "smoke", payload: activation }];
+    const markSmokeStarted = () => {
+      setSmokePoint(point);
+      setSmokeActive(true);
+      addEvent("smoke", `Начало задымления в зоне "${room.title}"`, "WARNING");
+    };
+    if (queueSimulationInputs(inputs)) {
+      markSmokeStarted();
+      return;
+    }
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      pendingIncidentRef.current = { inputs, onQueued: markSmokeStarted };
+      onStart();
+      return;
+    }
+    addEvent("smoke", "Нет соединения с backend, источник дыма не создан", "ERROR");
+  }
+
   function onStart() {
+    const humanRoom = roomForPoint(humanPosition) ?? roomsForPlan[0];
+    if (!humanRoom) {
+      failSimulationStart("На плане нет комнаты для начальной позиции жителя");
+      return;
+    }
+
     setStatus("loading");
     setEvents([]);
     setLastEvent(null);
     setActiveNodes([]);
-    setMotionActiveDeviceIds([]);
-    activeMotionSensorsRef.current.clear();
-    Object.values(motionTimersRef.current).forEach((timer) => clearTimeout(timer));
-    motionTimersRef.current = {};
-    clearMotionScenarioTimers();
+    setBackendDeviceState({});
+    setBackendDevicePercent({});
+    setBackendDeviceValue({});
+    setBackendDeviceLevelArc({});
+    setIncidentResetPending({
+      "fire:spread": false,
+      "flood:spread": false,
+      "smoke:spread": false,
+    });
     setActiveEdges([]);
-    setRunScenarios(selectedScenarios);
-    runStepRef.current = -1;
-    runSeqIndexRef.current = 0;
-    runSeqStepRef.current = -1;
+    if (activeEdgesTimerRef.current) clearTimeout(activeEdgesTimerRef.current);
+    activeEdgesTimerRef.current = null;
 
     wsTickRef.current = 0;
+    wsLastAppliedTickRef.current = 0;
     backendRunActiveRef.current = false;
-    wsReqIdRef.current = `sim-ui-${Date.now()}`;
+    pendingTickInputsRef.current = [];
+    pendingDeviceStateRef.current = {};
+    pendingHumanMoveRef.current = false;
+    wsReqIdRef.current = newSimulationReqId();
     clearStartAckTimer();
 
     const startPayload = buildSimulationStartPayload({
-        floorSource,
-        rooms: roomsForPlan,
-        markers: devicePositions,
-        scenarios: selectedScenarios,
-        deviceIds: placedDeviceIds,
-        deviceTypes: Object.fromEntries(devicesForPlan.map((device) => [device.id, device.type])),
-        speed,
-        dependencies: planDependencies
-      });
-    lastStartPayloadRef.current = startPayload;
+      floorSource,
+      rooms: roomsForPlan,
+      markers: devicePositions,
+      scenarios: selectedScenarios,
+      deviceIds: placedDeviceIds,
+      deviceTypes: Object.fromEntries(devicesForPlan.map((device) => [device.id, device.type])),
+      human: {
+        id: HUMAN_ID,
+        position: humanPosition,
+        roomID: humanRoom.id,
+      },
+      dependencies: planDependencies,
+    });
     const sentToBackend = sendWsMessage("simulation:start", startPayload);
 
     if (!sentToBackend) {
@@ -1192,62 +1322,104 @@ export default function SimulationPage() {
   }
 
   function onPause() {
-    setStatus((s) => (s === "running" ? "paused" : s));
+    if (status !== "running") return;
+    setStatus("paused");
+    addEvent("simulation", "Симуляция поставлена на паузу", "INFO");
   }
 
-  function onStop() {
-    const shouldStopBackend = backendRunActiveRef.current;
-    clearStartAckTimer();
-    backendRunActiveRef.current = false;
-    shouldResumeBackendRef.current = false;
-    pendingIncidentRef.current = null;
-    if (shouldStopBackend) sendWsMessage("simulation:stop");
+  function onResume() {
+    if (status !== "paused") return;
+    const ws = wsRef.current;
+    if (!backendRunActiveRef.current || !ws || ws.readyState !== WebSocket.OPEN) {
+      const message = "Не удалось продолжить симуляцию: соединение с backend потеряно.";
+      addEvent("websocket", message, "ERROR");
+      setWsError(message);
+      return;
+    }
+
+    pendingStepSinceRef.current = 0;
+    setWsError(null);
+    setStatus("running");
+    addEvent("simulation", "Симуляция продолжена", "INFO");
+  }
+
+  function clearStoppedSimulationState() {
+    wsTickRef.current = 0;
+    wsLastAppliedTickRef.current = 0;
+    pendingStepSinceRef.current = 0;
     setStatus("empty");
     setEvents([]);
     setLastEvent(null);
     setActiveNodes([]);
     setActiveEdges([]);
-    setManualDeviceState({});
+    setBackendDeviceState({});
+    setBackendDevicePercent({});
+    setBackendDeviceValue({});
+    setBackendDeviceLevelArc({});
     setIncidentPolygons([]);
     setFirePoint(null);
     setFireActive(false);
     setWaterPoint(null);
     setWaterActive(false);
-    setMotionActiveDeviceIds([]);
-    activeMotionSensorsRef.current.clear();
-    Object.values(motionTimersRef.current).forEach((timer) => clearTimeout(timer));
-    motionTimersRef.current = {};
-    clearMotionScenarioTimers();
-    setRunScenarios([]);
-    runStepRef.current = -1;
-    runSeqIndexRef.current = 0;
-    runSeqStepRef.current = -1;
+    setSmokePoint(null);
+    setSmokeActive(false);
+    setSmokeMode(false);
+    setHumanRouteStatus("idle");
+    setIncidentResetPending({
+      "fire:spread": false,
+      "flood:spread": false,
+      "smoke:spread": false,
+    });
+    if (activeEdgesTimerRef.current) clearTimeout(activeEdgesTimerRef.current);
+    activeEdgesTimerRef.current = null;
+  }
+
+  function onStop() {
+    if (!backendRunActiveRef.current) {
+      const message = "Нельзя остановить симуляцию: нет активной backend-сессии.";
+      addEvent("websocket", message, "ERROR");
+      setWsError(message);
+      return;
+    }
+    clearStartAckTimer();
+    backendRunActiveRef.current = false;
+    pendingIncidentRef.current = null;
+    pendingTickInputsRef.current = [];
+    pendingDeviceStateRef.current = {};
+    pendingHumanMoveRef.current = false;
+    pendingStepSinceRef.current = 0;
+    if (!sendWsMessage("simulation:stop")) {
+      backendRunActiveRef.current = true;
+      const message = "Не удалось отправить backend команду остановки.";
+      addEvent("websocket", message, "ERROR");
+      setWsError(message);
+      return;
+    }
+    setStatus("loading");
+    addEvent("simulation", "Ожидаем подтверждение остановки от backend", "INFO");
+    wsStartAckTimerRef.current = setTimeout(() => {
+      failSimulationStart("Backend не подтвердил остановку симуляции за 2 секунды");
+    }, 2000);
   }
 
   function onClear() {
     setEvents([]);
     setLastEvent(null);
-    setActiveNodes([]);
-    setActiveEdges([]);
-    setManualDeviceState({});
-    setMotionActiveDeviceIds([]);
-    activeMotionSensorsRef.current.clear();
-    Object.values(motionTimersRef.current).forEach((timer) => clearTimeout(timer));
-    motionTimersRef.current = {};
-    clearMotionScenarioTimers();
   }
 
   function onClearDevices() {
     removeStorage(PLAN_STORAGE_KEY);
     setPlacedDeviceIds([]);
+    setSelectedScenarioId(null);
     setActiveNodes([]);
     setActiveEdges([]);
-    setManualDeviceState({});
-    setMotionActiveDeviceIds([]);
-    activeMotionSensorsRef.current.clear();
-    Object.values(motionTimersRef.current).forEach((timer) => clearTimeout(timer));
-    motionTimersRef.current = {};
-    clearMotionScenarioTimers();
+    if (activeEdgesTimerRef.current) clearTimeout(activeEdgesTimerRef.current);
+    activeEdgesTimerRef.current = null;
+    setBackendDeviceState({});
+    setBackendDevicePercent({});
+    setBackendDeviceValue({});
+    setBackendDeviceLevelArc({});
+    pendingDeviceStateRef.current = {};
     addEvent("plan", "Все устройства убраны с плана", "INFO");
   }
 
@@ -1261,90 +1433,6 @@ export default function SimulationPage() {
     const delay = speedToDelay(speed);
 
     timerRef.current = setInterval(() => {
-      if (runScenarios.length === 0) {
-        sendSimulationTick();
-        return;
-      }
-
-      if (runMode === "parallel") {
-        const maxLen = Math.max(...runScenarios.map((s) => s.chain.length), 0);
-        const next = runStepRef.current + 1;
-        if (next >= maxLen) {
-          sendSimulationTick();
-          return;
-        }
-        runStepRef.current = next;
-
-        const nodes = runScenarios.map((s) => s.chain[next]).filter(Boolean);
-        const edges = runScenarios
-          .map((s) => (next > 0 ? [s.chain[next - 1], s.chain[next]] : null))
-          .filter((e): e is [string, string] => !!e && !!e[0] && !!e[1])
-          .map((e) => [e[0], e[1]] as [string, string]);
-
-        setActiveNodes(nodes);
-        setActiveEdges(edges);
-
-        setEvents((prev: LogEvent[]) => {
-          const appended = runScenarios.flatMap((s) =>
-            s.chain[next]
-              ? [
-                  {
-                    id: `${s.id}-${next}-${Date.now()}`,
-                    ts: nowTs(),
-                    level: "INFO" as const,
-                    device: s.chain[next],
-                    message: `Шаг ${next + 1}`,
-                  } satisfies LogEvent,
-                ]
-              : []
-          );
-          const nextEvents = [...prev, ...appended];
-          setLastEvent(appended[appended.length - 1] ?? prev[prev.length - 1] ?? null);
-          return nextEvents;
-        });
-      } else {
-        const currentScenario = runScenarios[runSeqIndexRef.current];
-        if (!currentScenario) {
-          sendSimulationTick();
-          return;
-        }
-
-        let nextStep = runSeqStepRef.current + 1;
-        let nextScenarioIndex = runSeqIndexRef.current;
-
-        if (nextStep >= currentScenario.chain.length) {
-          nextScenarioIndex += 1;
-          const nextScenario = runScenarios[nextScenarioIndex];
-          if (!nextScenario) {
-            sendSimulationTick();
-            return;
-          }
-          nextStep = 0;
-        }
-
-        const scenario = runScenarios[nextScenarioIndex];
-        runSeqIndexRef.current = nextScenarioIndex;
-        runSeqStepRef.current = nextStep;
-
-        const node = scenario.chain[nextStep];
-        const edge = nextStep > 0 ? [scenario.chain[nextStep - 1], scenario.chain[nextStep]] : null;
-
-        setActiveNodes(node ? [node] : []);
-        setActiveEdges(edge && edge[0] && edge[1] ? [[edge[0], edge[1]]] : []);
-
-        if (node) {
-          const ev: LogEvent = {
-            id: `${scenario.id}-${nextStep}-${Date.now()}`,
-            ts: nowTs(),
-            level: "INFO",
-            device: node,
-            message: `Шаг ${nextStep + 1} • ${scenario.title}`,
-          };
-          setEvents((prev) => [...prev, ev]);
-          setLastEvent(ev);
-        }
-      }
-
       sendSimulationTick();
     }, delay);
 
@@ -1354,7 +1442,7 @@ export default function SimulationPage() {
     };
     // sendSimulationTick reads the current WebSocket ref and tick ref, so it is safe for this interval.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, speed, runMode, runScenarios]);
+  }, [status, speed]);
 
   useEffect(() => {
     const url = resolveSimulationWsUrl();
@@ -1405,10 +1493,20 @@ export default function SimulationPage() {
 
       ws.addEventListener("close", () => {
         if (wsRef.current === ws) {
+          const simulationWasActive = backendRunActiveRef.current || wsStartAckTimerRef.current !== null;
+          clearStartAckTimer();
           wsRef.current = null;
           backendRunActiveRef.current = false;
+          pendingHumanMoveRef.current = false;
+          pendingTickInputsRef.current = [];
+          pendingDeviceStateRef.current = {};
           setWsStatus("disconnected");
-          setWsError("Соединение с backend симуляции разорвано. Выполняется переподключение.");
+          setWsError(
+            simulationWasActive
+              ? "Соединение с backend разорвано. Симуляция остановлена; после подключения запустите её заново."
+              : "Соединение с backend симуляции разорвано. Выполняется переподключение."
+          );
+          if (simulationWasActive) setStatus("error");
           scheduleReconnect();
         }
       });
@@ -1457,16 +1555,13 @@ export default function SimulationPage() {
     }, HEARTBEAT_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-    // sendWsMessage uses the current socket ref; status selects tick/step or ping/pong health checks.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   useEffect(() => {
     return () => {
       clearStartAckTimer();
       if (wsReconnectTimerRef.current) clearTimeout(wsReconnectTimerRef.current);
-      Object.values(motionTimersRef.current).forEach((timer) => clearTimeout(timer));
-      clearMotionScenarioTimers();
+      if (activeEdgesTimerRef.current) clearTimeout(activeEdgesTimerRef.current);
     };
   }, []);
 
@@ -1481,7 +1576,10 @@ export default function SimulationPage() {
       ? "Ошибка"
       : "Готово";
   const recentEvents = events.slice(-3).reverse();
-  const activeDeviceText = activeNodes.length ? activeNodes.join(", ") : "—";
+  const activeDeviceIds = activeNodes.filter((deviceId) => placedDeviceIds.includes(deviceId));
+  const activeDeviceText = activeDeviceIds.length
+    ? activeDeviceIds.map((deviceId) => deviceNames[deviceId] ?? deviceId).join(", ")
+    : "—";
   const wsStatusText =
     wsStatus === "connected"
       ? "Бэк подключен"
@@ -1501,29 +1599,26 @@ export default function SimulationPage() {
         <Card className="sim-card">
           {wsError && (
             <div className="simulation-error-banner" role="alert" data-testid="simulation-error">
-              {wsError}
+              <CircleAlert size={22} strokeWidth={2.2} aria-hidden="true" />
+              <span>{wsError}</span>
             </div>
           )}
           <ControlPanel
-            scenarios={scenarios}
-            selectedScenarioIds={selectedScenarioIds}
+            scenarios={selectedScenarios}
             placedDeviceIds={placedDeviceIds}
             availableDeviceIds={availableDeviceIds}
+            deviceNames={deviceNames}
             onPlaceDevice={onPlaceDevice}
-            runMode={runMode}
-            onSetRunMode={setRunMode}
+            manualPlacementOnly={manualPlacementOnly}
             status={status}
             speed={speed}
-            filter={filter}
-            search={search}
             onStart={onStart}
             onPause={onPause}
+            onResume={onResume}
             onStop={onStop}
-            onClear={onClear}
             onClearDevices={onClearDevices}
+            devicesLocked={devicesLocked}
             onSetSpeed={setSpeed}
-            onSetFilter={setFilter}
-            onSetSearch={setSearch}
           />
 
           <div className="sim-workspace">
@@ -1534,41 +1629,81 @@ export default function SimulationPage() {
                 markers={devicePositions}
                 devices={devicesForPlan}
                 chains={chainGroups}
-                activeNodes={activeNodes}
+                highlightedEdges={highlightedEdges}
                 activeEdges={activeEdges}
                 lastEvent={lastEvent}
                 onMoveDevice={onMoveDevice}
                 onDropDevice={onDropDevice}
                 onRemoveDevice={onRemoveDevice}
+                devicesLocked={devicesLocked}
                 fireMode={fireMode}
                 firePoint={firePoint}
                 fireActive={fireActive}
-                onToggleFireMode={() => setFireMode((value) => !value)}
+                onToggleFireMode={() => {
+                  setFireMode((value) => !value);
+                  setWaterMode(false);
+                  setSmokeMode(false);
+                }}
                 onPlaceFire={startFireAt}
                 onResetFire={resetFire}
+                fireResetPending={incidentResetPending["fire:spread"]}
                 waterMode={waterMode}
                 waterPoint={waterPoint}
                 waterActive={waterActive}
                 incidentPolygons={incidentPolygons}
-                onToggleWaterMode={() => setWaterMode((value) => !value)}
+                onToggleWaterMode={() => {
+                  setWaterMode((value) => !value);
+                  setFireMode(false);
+                  setSmokeMode(false);
+                }}
                 onPlaceWater={startWaterAt}
                 onResetWater={resetWater}
-                onPersonMove={(point, devicesPayload) =>
-                  sendSimulationTick([
-                    {
-                      kind: "human:move",
-                      entityId: "resident",
-                      devicesPayload,
-                      payload: { to: { x: point.x, y: point.y }, x: point.x, y: point.y },
-                    },
-                  ])
-                }
-                onMotionSensorTrigger={triggerMotionSensor}
+                waterResetPending={incidentResetPending["flood:spread"]}
+                smokeMode={smokeMode}
+                smokePoint={smokePoint}
+                smokeActive={smokeActive}
+                onToggleSmokeMode={() => {
+                  setSmokeMode((value) => !value);
+                  setFireMode(false);
+                  setWaterMode(false);
+                }}
+                onPlaceSmoke={startSmokeAt}
+                onResetSmoke={resetSmoke}
+                smokeResetPending={incidentResetPending["smoke:spread"]}
+                personPosition={humanPosition}
+                personMovementEnabled={status === "running"}
+                onPersonMove={requestHumanMove}
+                personRouteStatus={humanRouteStatus}
+                onPersonRoute={requestHumanRoute}
+                onPersonRouteControl={requestHumanRouteControl}
                 onDeviceTrigger={triggerDeviceFromPlan}
+                devicePercentLevels={devicePercentLevels}
+                deviceValueControls={deviceValueControls}
+                deviceLevelArcs={displayedDeviceLevelArcs}
+                onDevicePercentChange={setDevicePercentFromPlan}
+                onDeviceValueChange={setDeviceValueFromPlan}
+              />
+
+              <ScenarioPanel
+                scenarios={selectedScenarios}
+                deviceNames={deviceNames}
+                selectedScenarioId={selectedScenarioId}
+                onSelectScenario={(scenarioId) =>
+                  setSelectedScenarioId((current) => (current === scenarioId ? null : scenarioId))
+                }
               />
 
               <div className="console-wrap">
-                <EventConsole title="Консоль событий" events={events} filter={filter} search={search} />
+                <EventConsole
+                  title="Консоль событий"
+                  events={events}
+                  deviceNames={deviceNames}
+                  filter={filter}
+                  search={search}
+                  onClear={onClear}
+                  onSetFilter={setFilter}
+                  onSetSearch={setSearch}
+                />
               </div>
             </div>
 
@@ -1604,7 +1739,9 @@ export default function SimulationPage() {
                 </div>
                 <div className="activity-line">
                   <span>Последнее событие</span>
-                  <strong>{lastEvent ? `${lastEvent.device}: ${lastEvent.message}` : "—"}</strong>
+                  <strong>
+                    {lastEvent ? `${deviceNames[lastEvent.device] ?? lastEvent.device}: ${lastEvent.message}` : "—"}
+                  </strong>
                 </div>
                 <div className="activity-line">
                   <span>WebSocket</span>
@@ -1613,28 +1750,14 @@ export default function SimulationPage() {
               </section>
 
               <section className="rail-card">
-                <div className="panel-title">Выбранные сценарии</div>
-                {selectedScenarios.length ? (
-                  <div className="scenario-list">
-                    {selectedScenarios.map((s, index) => (
-                      <div className="scenario-row" key={s.id}>
-                        <span>{index + 1}</span>
-                        <strong>{s.title}</strong>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rail-empty">Сценарии пока не выбраны</div>
-                )}
-              </section>
-
-              <section className="rail-card">
                 <div className="panel-title">Устройства</div>
                 {devicesForPlan.length ? (
                   <div className="device-list">
                     {devicesForPlan.map((d) => (
                       <div key={d.id} className="device-row">
-                        <div className="device-id">{d.id}</div>
+                        <div className="device-id" title={d.name ? d.id : undefined}>
+                          {d.name ?? d.id}
+                        </div>
                         <div className="device-status">{d.status}</div>
                       </div>
                     ))}
@@ -1651,7 +1774,9 @@ export default function SimulationPage() {
                     {recentEvents.map((event) => (
                       <div className="event-mini-row" key={event.id}>
                         <span>{event.ts}</span>
-                        <strong>{event.device}</strong>
+                        <strong title={deviceNames[event.device] ? event.device : undefined}>
+                          {deviceNames[event.device] ?? event.device}
+                        </strong>
                         <small>{event.message}</small>
                       </div>
                     ))}

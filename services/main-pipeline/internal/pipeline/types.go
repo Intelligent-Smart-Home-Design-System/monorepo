@@ -25,7 +25,8 @@ type LayoutInput struct {
 }
 
 type LayoutOutput struct {
-	Layout map[string]interface{} `json:"layout"`
+	Layout       map[string]interface{} `json:"layout"`
+	Dependencies map[string][]string    `json:"dependencies"`
 }
 
 type DeviceSelectionInput struct {
@@ -40,6 +41,7 @@ type PipelineResult struct {
 	RequestID       string                 `json:"request_id,omitempty"`
 	ParsedFloorPlan map[string]interface{} `json:"parsed_floor_plan"`
 	Layout          map[string]interface{} `json:"layout"`
+	Dependencies    map[string][]string    `json:"dependencies"`
 	DeviceSelection map[string]interface{} `json:"device_selection"`
 }
 

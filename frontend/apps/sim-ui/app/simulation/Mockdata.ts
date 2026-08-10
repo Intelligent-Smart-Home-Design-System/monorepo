@@ -32,6 +32,7 @@ export type Room = {
   y: number;
   w: number;
   h: number;
+  area?: Array<{ x: number; y: number }>;
   labelX?: number;
   labelY?: number;
 };

@@ -55,13 +55,18 @@ func (m *Manager) addClient(client *Client) {
 	m.clients[client] = true
 }
 
-// removeClient удаляет клиента из списка активных клиентов и закрывает его соединение, обеспечивая безопасность доступа с помощью мьютекса.
+// removeClient удаляет клиента, закрывает соединение и немедленно останавливает его backend-сессию.
 func (m *Manager) removeClient(client *Client) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	reqID := client.takeSession()
 
+	m.mu.Lock()
 	if _, exists := m.clients[client]; exists {
 		client.connection.Close()
 		delete(m.clients, client)
+	}
+	m.mu.Unlock()
+
+	if reqID != "" {
+		_ = m.simService.Stop(reqID)
 	}
 }

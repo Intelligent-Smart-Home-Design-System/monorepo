@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	KindFireSpread          = "fire:spread"
-	KindFloodSpread         = "flood:spread"
-	KindSmokeSpread         = "smoke:spread"
-	defaultIncidentCellSize = 0.5
-	blockEpsilon            = 1e-9
+	KindFireSpread           = "fire:spread"
+	KindFloodSpread          = "flood:spread"
+	KindSmokeSpread          = "smoke:spread"
+	defaultIncidentCellSize  = 0.5
+	incidentSpreadEveryTicks = 10
+	blockEpsilon             = 1e-9
 )
 
 // Fire обозначает incident-сущность пожара с kind fire:spread.
@@ -32,9 +33,11 @@ type Smoke = Incident
 
 // Incident хранит общую runtime-модель распространяющегося инцидента.
 type Incident struct {
-	enginePort engine.EnginePort
-	inStore    simgo.Store[IncidentInData]
-	eventKind  string
+	enginePort       engine.EnginePort
+	inStore          simgo.Store[IncidentInData]
+	eventKind        string
+	spreadEveryTicks int
+	ticksSinceSpread int
 
 	ID        string   `json:"id"`
 	X         float64  `json:"x"`
@@ -137,6 +140,7 @@ func newIncident(data []byte, engineAPI engine.EnginePort, eventKind string) (*I
 	incident.enginePort = engineAPI
 	incident.inStore = *simgo.NewStore[IncidentInData](engineAPI.GetSimulation())
 	incident.eventKind = eventKind
+	incident.spreadEveryTicks = incidentSpreadEveryTicks
 	if incident.CellSize <= 0 {
 		incident.CellSize = defaultIncidentCellSize
 	}
@@ -163,12 +167,7 @@ func (i *Incident) HandleOutDTO(dto []byte) {
 		Payload:  dto,
 	}
 
-	for _, r := range i.Receivers {
-		i.enginePort.GetInChan() <- api.EventDTO{
-			EntityID: r,
-			Payload:  dto,
-		}
-	}
+	i.enginePort.TriggerReceivers(i.ID, dto)
 }
 
 // GetProcessFunc возвращает функцию simgo-процесса incident-сущности.
@@ -176,7 +175,7 @@ func (i *Incident) GetProcessFunc() func(simgo.Process) {
 	return i.Process
 }
 
-// Process ждет активации incident, затем на каждый тик распространяет сетку и отправляет события; ничего не возвращает.
+// Process ждет активации incident, затем по заданному интервалу тиков распространяет сетку и отправляет события.
 func (i *Incident) Process(process simgo.Process) {
 	for {
 		for {
@@ -204,7 +203,7 @@ func (i *Incident) Process(process simgo.Process) {
 				continue
 			}
 
-			if i.grid.Step() {
+			if i.shouldSpreadOnTick() && i.grid.Step() {
 				i.emitZones(i.grid.Zones())
 			}
 		}
@@ -214,6 +213,7 @@ func (i *Incident) Process(process simgo.Process) {
 // start очищает состояние incident в общей BFS-сетке и активирует клетку в координатах события.
 func (i *Incident) start(input IncidentInData) {
 	i.applyActivation(input)
+	i.ticksSinceSpread = 0
 	if i.grid == nil {
 		i.grid = NewIncidentGrid(i.enginePort.GetFloor(), i.CellSize)
 	} else {
@@ -224,6 +224,7 @@ func (i *Incident) start(input IncidentInData) {
 
 // reset очищает incident, выключает затронутые датчики и отправляет пустой snapshot.
 func (i *Incident) reset() {
+	i.ticksSinceSpread = 0
 	if i.grid != nil {
 		zones := i.grid.Zones()
 		for _, zone := range zones {
@@ -235,6 +236,22 @@ func (i *Incident) reset() {
 		i.grid.Reset()
 	}
 	i.emitZones([]*IncidentZoneData{})
+}
+
+// shouldSpreadOnTick учитывает частоту конкретного incident и разрешает очередной BFS-шаг.
+func (i *Incident) shouldSpreadOnTick() bool {
+	interval := i.spreadEveryTicks
+	if interval <= 0 {
+		interval = incidentSpreadEveryTicks
+	}
+
+	i.ticksSinceSpread++
+	if i.ticksSinceSpread < interval {
+		return false
+	}
+
+	i.ticksSinceSpread = 0
+	return true
 }
 
 // SetGridTemplate подключает incident к общей расчетной сетке и создает его независимое BFS-состояние.
@@ -312,8 +329,10 @@ func (i *Incident) SetReceivers(actions []api.EdgeDTO) {
 	}
 }
 
-// OnTick помечает incident как tickable-сущность; дополнительной логики не выполняет.
-func (i *Incident) OnTick() {}
+// OnTick добавляет в simgo-store один плановый tick распространения incident.
+func (i *Incident) OnTick() {
+	i.inStore.Put(IncidentInData{})
+}
 
 // NewIncidentGridTemplate один раз строит общую расчетную BFS-сетку по floor.
 func NewIncidentGridTemplate(floor *api.Floor, cellSize float64) *IncidentGridTemplate {

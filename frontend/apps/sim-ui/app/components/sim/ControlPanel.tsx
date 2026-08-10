@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { LogLevel, Scenario } from "@/app/simulation/Mockdata";
-
-type Filter = "ALL" | LogLevel;
+import type { Scenario } from "@/app/simulation/Mockdata";
 type Speed = number;
-type RunMode = "parallel" | "sequence";
 type DeviceType =
   | "pir"
   | "mmwave"
@@ -32,56 +29,48 @@ type DeviceType =
 
 type Props = {
   scenarios: Scenario[];
-  selectedScenarioIds: string[];
   placedDeviceIds: string[];
   availableDeviceIds: string[];
+  deviceNames: Record<string, string>;
   onPlaceDevice: (id: string) => void;
-  runMode: RunMode;
-  onSetRunMode: (v: RunMode) => void;
+  manualPlacementOnly?: boolean;
 
   status: "empty" | "loading" | "running" | "paused" | "error";
   speed: Speed;
-  filter: Filter;
-  search: string;
 
   onStart: () => void;
   onPause: () => void;
+  onResume: () => void;
   onStop: () => void;
-  onClear: () => void;
   onClearDevices: () => void;
+  devicesLocked: boolean;
 
   onSetSpeed: (v: Speed) => void;
-  onSetFilter: (v: Filter) => void;
-  onSetSearch: (v: string) => void;
 };
 
 export function ControlPanel(props: Props) {
   const {
     scenarios,
-    selectedScenarioIds,
     placedDeviceIds,
     availableDeviceIds,
+    deviceNames,
     onPlaceDevice,
-    runMode,
-    onSetRunMode,
+    manualPlacementOnly = false,
     status,
     speed,
-    filter,
-    search,
     onStart,
     onPause,
+    onResume,
     onStop,
-    onClear,
     onClearDevices,
+    devicesLocked,
     onSetSpeed,
-    onSetFilter,
-    onSetSearch,
   } = props;
 
-  const [scenarioQuery, setScenarioQuery] = useState("");
   const [selectedDeviceTypes, setSelectedDeviceTypes] = useState<DeviceType[]>([]);
 
-  const canStart = status === "empty" || status === "paused" || status === "error";
+  const canStart = status === "empty" || status === "error";
+  const canResume = status === "paused";
   const canPause = status === "running";
   const canStop = status === "running" || status === "paused" || status === "loading";
   const isBusy = status === "loading";
@@ -145,18 +134,6 @@ export function ControlPanel(props: Props) {
     return "other";
   }
 
-  const filteredScenarios = (() => {
-    const q = scenarioQuery.trim().toLowerCase();
-    const placedSet = new Set(placedDeviceIds);
-    const byTypes =
-      selectedDeviceTypes.length === 0
-        ? scenarios
-        : scenarios.filter((s) => s.chain.some((id) => selectedDeviceTypes.includes(deviceTypeForId(id))));
-    const byPlaced = placedDeviceIds.length === 0 ? byTypes : byTypes.filter((s) => s.chain.every((id) => placedSet.has(id)));
-    if (!q) return byPlaced.slice(0, 50);
-    return byPlaced.filter((s) => s.title.toLowerCase().includes(q)).slice(0, 50);
-  })();
-
   const availableDeviceTypes = (() => {
     const set = new Set<DeviceType>();
     scenarios.forEach((s) => s.chain.forEach((id) => set.add(deviceTypeForId(id))));
@@ -204,7 +181,12 @@ export function ControlPanel(props: Props) {
         <div className="control-section control-section-wide device-palette-section">
           <div className="section-title-row">
             <div className="section-label">Устройства</div>
-            <button type="button" className="bubble apple-pill clear-devices-button" disabled={!placedDeviceIds.length} onClick={onClearDevices}>
+            <button
+              type="button"
+              className="bubble apple-pill clear-devices-button"
+              disabled={!placedDeviceIds.length || devicesLocked}
+              onClick={onClearDevices}
+            >
               Очистить план
             </button>
           </div>
@@ -228,84 +210,63 @@ export function ControlPanel(props: Props) {
               </button>
             ))}
           </div>
-          <div className="device-palette no-scrollbar">
+          <div className="device-palette">
             {availableDevices.map((id) => {
               const placed = placedSet.has(id);
+              const name = deviceNames[id] || id;
               return (
                 <div
                   key={id}
                   role="button"
                   tabIndex={0}
-                  draggable
-                  className={`device-palette-item${placed ? " device-palette-item-placed" : ""}`}
+                  draggable={!devicesLocked}
+                  aria-disabled={devicesLocked}
+                  className={`device-palette-item${placed ? " device-palette-item-placed" : ""}${devicesLocked ? " device-palette-item-locked" : ""}`}
                   onDragStart={(e) => {
+                    if (devicesLocked) {
+                      e.preventDefault();
+                      return;
+                    }
                     e.dataTransfer.setData("application/x-sim-device-id", id);
                     e.dataTransfer.setData("text/plain", id);
                     e.dataTransfer.effectAllowed = "copyMove";
                   }}
                   onClick={() => {
-                    if (!placed) onPlaceDevice(id);
+                    if (!devicesLocked && !placed && !manualPlacementOnly) onPlaceDevice(id);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      if (!placed) onPlaceDevice(id);
+                      if (!devicesLocked && !placed && !manualPlacementOnly) onPlaceDevice(id);
                     }
                   }}
-                  title={placed ? "Устройство уже на плане" : "Перетащи на план или кликни, чтобы поставить автоматически"}
+                  title={
+                    placed
+                      ? `${name} (${id}) уже на плане`
+                      : manualPlacementOnly
+                      ? `${name} (${id}): перетащите устройство на план`
+                      : `${name} (${id}): перетащи на план или кликни, чтобы поставить автоматически`
+                  }
                 >
-                  <span>{id}</span>
-                  <small>{placed ? "на плане" : "перетащить / клик"}</small>
+                  <span>{name}</span>
+                  <small>{placed ? "на плане" : manualPlacementOnly ? "перетащить на план" : "перетащить / клик"}</small>
                 </div>
               );
             })}
           </div>
         </div>
-
-        <div className="control-section control-section-wide">
-          <div className="section-label">Активные сценарии по устройствам на плане</div>
-          <div className="scenario-search-row scenario-search-row-single">
-            <input
-              type="text"
-              value={scenarioQuery}
-              onChange={(e) => setScenarioQuery(e.target.value)}
-              placeholder="Поиск сценария"
-              className="bubble-input"
-            />
-          </div>
-          <div className="control-scroll scenario-scroll no-scrollbar">
-            {filteredScenarios.length ? (
-              filteredScenarios.map((s) => (
-                <button
-                  type="button"
-                  key={s.id}
-                  className={pillClass(selectedScenarioIds.includes(s.id))}
-                  disabled
-                >
-                  {s.title}
-                  {selectedScenarioIds.includes(s.id) ? " · активно" : ""}
-                </button>
-              ))
-            ) : (
-              <div className="scenario-empty">Сценарии появятся автоматически, когда на плане будут совместимые устройства</div>
-            )}
-          </div>
-        </div>
       </div>
 
       <div className="control-toolbar">
-        <div className="segmented-control">
-          <button type="button" className={pillClass(runMode === "parallel")} onClick={() => onSetRunMode("parallel")}>
-            Параллельно
-          </button>
-          <button type="button" className={pillClass(runMode === "sequence")} onClick={() => onSetRunMode("sequence")}>
-            По очереди
-          </button>
-        </div>
-
         <div className="action-cluster">
-          <button type="button" className={btnClass(canStart)} disabled={!canStart || isBusy} onClick={onStart} data-testid="simulation-start">
-            Запуск
+          <button
+            type="button"
+            className={btnClass(canStart || canResume)}
+            disabled={(!canStart && !canResume) || isBusy}
+            onClick={canResume ? onResume : onStart}
+            data-testid={canResume ? "simulation-resume" : "simulation-start"}
+          >
+            {canResume ? "Продолжить" : "Запуск"}
           </button>
           <button type="button" className={btnClass(false)} disabled={!canPause || isBusy} onClick={onPause}>
             Пауза
@@ -326,27 +287,6 @@ export function ControlPanel(props: Props) {
             className="small-range"
           />
           <span>{Number(speed).toFixed(1)}x</span>
-        </div>
-
-        <div className="log-tools">
-          <button type="button" className={btnClass(false)} onClick={onClear}>
-            Очистить
-          </button>
-          <span className="select-wrap compact-input">
-            <select value={filter} onChange={(e) => onSetFilter(e.target.value as Filter)} className="bubble-input">
-              <option value="ALL">Все логи</option>
-              <option value="INFO">INFO</option>
-              <option value="WARNING">WARNING</option>
-              <option value="ERROR">ERROR</option>
-            </select>
-          </span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSetSearch(e.target.value)}
-            placeholder="Поиск по событиям"
-            className="bubble-input compact-search"
-          />
         </div>
       </div>
     </section>

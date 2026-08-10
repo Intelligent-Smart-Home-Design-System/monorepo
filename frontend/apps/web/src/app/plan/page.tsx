@@ -27,6 +27,7 @@ import {
 import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { clearSimulationStorage } from "../lib/simulation-storage";
 import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
 import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
@@ -1086,21 +1087,6 @@ function simulationUrl() {
   return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
 }
 
-const SIMULATION_STORAGE_KEYS = [
-  "simulation-floor",
-  "simulation-devices",
-  "simulation-trigger-device-ids",
-  "simulation-plan-layout",
-  "simulation-plan-dependencies",
-  "sim-devices",
-  "selectedDevices",
-  "selected-devices",
-] as const;
-
-function clearPreviousSimulationState() {
-  SIMULATION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
-}
-
 function storeSimulationDependencies(dependencies?: Record<string, string[]> | null) {
   if (dependencies && Object.keys(dependencies).length) {
     localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
@@ -1117,7 +1103,7 @@ function openSimulationFromPlan(
   const devices = devicesFromLayout(floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
-  clearPreviousSimulationState();
+  clearSimulationStorage();
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
@@ -1144,7 +1130,7 @@ function openSimulation(
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
-  clearPreviousSimulationState();
+  clearSimulationStorage();
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
   storeSimulationDependencies(dependencies);

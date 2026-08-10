@@ -30,23 +30,10 @@ func newWildberries(cfg config.Config, log zerolog.Logger) Source {
 		cfg.Scraping.WBSessionPath,
 		cfg.Wildberries.Discovery.URLTemplate,
 		cfg.Wildberries.Discovery.MaxPages,
-		cfg.Wildberries.BrowserUserMode,
-		cfg.Wildberries.BrowserProfileDir,
 	)
 	return Wildberries{
 		Base: Base{name: domain.SourceWildberries, scraper: s},
 		log:  log.With().Str("source", domain.SourceWildberries).Logger(),
-	}
-}
-
-func (s Wildberries) Warmup(ctx context.Context) error {
-	return s.Scraper().(*wbScraper.Scraper).Warmup(ctx)
-}
-
-// Close releases the dedicated Chrome profile (required between isolated WB smoke steps).
-func (s Wildberries) Close() {
-	if wb, ok := s.Scraper().(*wbScraper.Scraper); ok {
-		wb.Close()
 	}
 }
 

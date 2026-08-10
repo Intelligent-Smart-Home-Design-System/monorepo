@@ -11,10 +11,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,7 +25,6 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/netproxy"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parser"
 	wbParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/wildberries"
-	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 )
 
 func TestWBStep01_Config(t *testing.T) {
@@ -61,22 +62,6 @@ func TestWBStep03_CategoryHTTP(t *testing.T) {
 	src := newWBSource(t, cfg)
 	defer closeWBSource(t, src)
 	runWBCategoryStep(t, cfg, src)
-}
-
-func TestWBStep04_BrowserWarmup(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipped in -short mode")
-	}
-	cfg, _ := loadWBSmokeConfig(t)
-	requireSessionFile(t, cfg)
-	src := newWBSource(t, cfg)
-	defer closeWBSource(t, src)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
-	require.NoError(t, src.Warmup(ctx))
-	saveWBArtifact(t, "step04-warmup-ok.txt", []byte("browser warmup OK\n"))
-	t.Log("browser warmup OK")
 }
 
 func TestWBStep05_DiscoveryAPI(t *testing.T) {
@@ -178,18 +163,39 @@ func logWBConfig(t *testing.T, cfg config.Config, path string) {
 	t.Helper()
 	t.Logf("config file: %s", path)
 	t.Logf("wb_session_path: %s", cfg.Scraping.WBSessionPath)
-	t.Logf("browser_profile: %s", wbBrowserProfileLabel(cfg))
 	t.Logf("proxy: %s", netproxy.RedactURL(cfg.Scraping.Proxy))
 	t.Logf("user_agent: %s", cfg.Scraping.UserAgent)
 	t.Logf("category_url: %s", cfg.Wildberries.Category.CategoryURL)
 	t.Logf("dump dir: %s", wbSmokeDumpDir())
 }
 
+const wbSmokeDefaultSessionMaxAge = 30 * time.Minute
+
+// loadWBSmokeConfig reads a TOML config (with SCRAPER_* env overrides) and resolves
+// scraping.wb_session_path relative to the config file's directory, not the process cwd.
 func loadWBSmokeConfig(t *testing.T) (config.Config, string) {
 	t.Helper()
 	path := wbSmokeConfigPath()
-	cfg, err := config.LoadFile(path)
-	require.NoError(t, err, "load config %s", path)
+
+	var cfg config.Config
+	absConfig, err := filepath.Abs(path)
+	require.NoError(t, err, "config path %s", path)
+
+	v := viper.New()
+	v.SetConfigFile(absConfig)
+	v.SetEnvPrefix("SCRAPER")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+	require.NoError(t, v.ReadInConfig(), "read config %s", absConfig)
+	require.NoError(t, v.Unmarshal(&cfg), "unmarshal config")
+
+	if cfg.Scraping.WBSessionPath != "" && !filepath.IsAbs(cfg.Scraping.WBSessionPath) {
+		cfg.Scraping.WBSessionPath = filepath.Clean(filepath.Join(filepath.Dir(absConfig), cfg.Scraping.WBSessionPath))
+	}
+	if cfg.Scraping.WBSessionMaxAge <= 0 {
+		cfg.Scraping.WBSessionMaxAge = wbSmokeDefaultSessionMaxAge
+	}
+
 	if cfg.Scraping.Proxy == "" {
 		t.Skip("scraping.proxy empty — set SCRAPER_SCRAPING_PROXY")
 	}
@@ -238,13 +244,6 @@ func closeWBSource(t *testing.T, src Source) {
 	if c, ok := src.(interface{ Close() }); ok {
 		c.Close()
 	}
-}
-
-func wbBrowserProfileLabel(cfg config.Config) string {
-	if cfg.Wildberries.BrowserProfileDir != "" {
-		return cfg.Wildberries.BrowserProfileDir
-	}
-	return wbScraper.BrowserProfileDir()
 }
 
 type wbSessionMeta struct {

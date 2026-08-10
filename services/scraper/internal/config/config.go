@@ -59,8 +59,6 @@ type WildberriesConfig struct {
 	Category               WildberriesCategoryConfig  `mapstructure:"category"`
 	BrandAliases           map[string]string          `mapstructure:"brand_aliases"`
 	SmartHomeDeviceMarkers []string                   `mapstructure:"smart_home_device_markers"`
-	BrowserUserMode        *bool                      `mapstructure:"browser_user_mode"`   // nil = auto (true on Windows/macOS)
-	BrowserProfileDir      string                     `mapstructure:"browser_profile_dir"` // empty = %LOCALAPPDATA%/rod/wildberries-chrome
 }
 
 type WildberriesCategoryConfig struct {

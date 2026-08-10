@@ -10,7 +10,6 @@ import (
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/config"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
-	wbScraper "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/scrapers/wildberries"
 )
 
 const testWBDiscoveryTemplate = "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?appType=1&page={page}&query={query}&resultset=catalog"
@@ -46,13 +45,6 @@ func TestWildberries_BootstrapDiscovery_ExplicitTemplateAndQueries(t *testing.T)
 		{Source: domain.SourceWildberries, PageType: domain.PageTypeDiscovery, URL: "wildberries://discovery/умная лампа"},
 		{Source: domain.SourceWildberries, PageType: domain.PageTypeDiscovery, URL: "wildberries://discovery/zigbee датчик"},
 	}, seeds)
-
-	apiURL := wbScraper.BuildDiscoverySearchURL(testWBDiscoveryTemplate, "умная лампа", 1)
-	assert.Equal(
-		t,
-		"https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?appType=1&page=1&query=%D1%83%D0%BC%D0%BD%D0%B0%D1%8F+%D0%BB%D0%B0%D0%BC%D0%BF%D0%B0&resultset=catalog",
-		apiURL,
-	)
 }
 
 func TestWildberries_BootstrapDiscovery_SeedDisabled(t *testing.T) {

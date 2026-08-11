@@ -27,6 +27,7 @@ import {
 import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { clearSimulationStorage } from "../lib/simulation-storage";
 import { dependencyCycleMessage, findDependencyCycle } from "../lib/dependency-cycle";
 import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
 import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
@@ -376,7 +377,6 @@ function PlanPageContent() {
         ) : (
           <Stack spacing={2.5}>
             {error && <Alert severity="error">{error}</Alert>}
-            {dependencyError && <Alert severity="error">{dependencyError}</Alert>}
 
             <Card sx={surfaceCardSx}>
               <CardContent>
@@ -707,7 +707,7 @@ function PlanPageContent() {
 
                       <Button
                         variant="outlined"
-                        disabled={!selectedBundle.listings.length || dependencyCycle.length > 0 || status?.status !== "completed"}
+                        disabled={!selectedBundle.listings.length}
                         onClick={() =>
                           openSimulation(selectedBundle, simulationFloorData, plan?.dependencies, isManualPlan)
                         }
@@ -1130,7 +1130,7 @@ function openSimulationFromPlan(
   const devices = devicesFromLayout(floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
-  clearPreviousSimulationState();
+  clearSimulationStorage();
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
   }
@@ -1157,7 +1157,7 @@ function openSimulation(
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
-  clearPreviousSimulationState();
+  clearSimulationStorage();
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
   storeSimulationDependencies(dependencies);

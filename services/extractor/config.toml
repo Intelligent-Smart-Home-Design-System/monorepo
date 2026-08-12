@@ -1,5 +1,6 @@
 [taxonomy]
-path = "taxonomy_schema.json"
+#path = "taxonomy_schema.json"TODO удалить строку
+path = "../../shared/schemas/devices/device_types.json"
 
 [extraction]
 

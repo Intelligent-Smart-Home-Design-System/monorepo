@@ -51,7 +51,7 @@ func TestClimateLevel1(t *testing.T) {
 	assert.NoError(t, configs.LoadDevicesConfig(rules.GetDevicesPath()))
 
 	e := engine.NewEngine(st)
-	globalPlacement, err := e.PlaceDevices(apartmentStruct, map[string]string{"climate": "1"})
+	globalPlacement, err := e.PlaceDevices(apartmentStruct, map[string]string{"climate": "1"}, nil)
 	assert.NoError(t, err)
 
 	for _, roomID := range []string{"r1", "r2", "r3", "r4"} {

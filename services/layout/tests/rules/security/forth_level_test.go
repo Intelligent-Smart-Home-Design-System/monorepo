@@ -188,7 +188,7 @@ func TestForthLevelSimpleScript(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels, nil)
 
 	assert.NoError(t, err)
 
@@ -356,7 +356,7 @@ func TestForthLevelPriceCalculation(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels, nil)
 
 	assert.NoError(t, err)
 

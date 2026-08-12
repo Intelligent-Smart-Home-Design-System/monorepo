@@ -3,6 +3,7 @@ package configs
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
@@ -91,4 +92,35 @@ func (t *Tracks) GetDeviceFilter(trackName, levelNum, deviceType string) (filter
 
 	filter, _ := level.DeviceFilters[deviceType]
 	return filter, nil
+}
+
+func GetDeviceRoomsMinimax(deviceType string, tracksConfig *Tracks) []string {
+	var overallMinRooms []string
+	overallMinLevel := math.MaxInt
+
+	for _, track := range tracksConfig.Tracks {
+		maxLevelInTrack := -1
+		var maxRoomsInTrack []string
+
+		for levelNumStr, levelInfo := range track.Levels {
+			var levelNum int
+			if _, err := fmt.Sscanf(levelNumStr, "%d", &levelNum); err != nil {
+				continue
+			}
+
+			if rooms, ok := levelInfo.DeviceRooms[deviceType]; ok {
+				if levelNum > maxLevelInTrack {
+					maxLevelInTrack = levelNum
+					maxRoomsInTrack = rooms
+				}
+			}
+		}
+
+		if maxLevelInTrack != -1 && maxLevelInTrack < overallMinLevel {
+			overallMinLevel = maxLevelInTrack
+			overallMinRooms = maxRoomsInTrack
+		}
+	}
+
+	return overallMinRooms
 }

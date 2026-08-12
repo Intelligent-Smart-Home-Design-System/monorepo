@@ -54,7 +54,7 @@ func TestSecondLevelSimpleScript(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(apartmentStruct, selectedLevels, nil)
 
 	assert.NoError(t, err)
 
@@ -170,7 +170,7 @@ func TestSecondLevelPriceCalculation(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels, nil)
 
 	assert.NoError(t, err)
 

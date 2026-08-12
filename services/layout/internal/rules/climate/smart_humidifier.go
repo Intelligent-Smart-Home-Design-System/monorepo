@@ -41,17 +41,19 @@ func (r *SmartHumidifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum 
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartHumidifierFilters *filters.SmartHumidifierFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartHumidifierFilter)
+			if ok {
+				smartHumidifierFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartHumidifierFilter{}
-	}
-
-	smartHumidifierFilters, ok := configFilters.(*filters.SmartHumidifierFilter)
-	if !ok {
+	if smartHumidifierFilters == nil {
 		smartHumidifierFilters = &filters.SmartHumidifierFilter{}
 	}
 

@@ -162,6 +162,11 @@ export type ApiPlanSummary = {
     status: "queued" | "generating" | "completed" | "failed";
 };
 
+export type ApiCustomDevice = {
+    device: string;
+    count: number;
+};
+
 export type ApiStartPipelineRequirement = {
     requirement_id: number;
     device_type: string;
@@ -173,7 +178,8 @@ export type ApiStartPipelineRequirement = {
 export type ApiStartPipelineRequest = {
     request_id?: string;
     floor_plan: Record<string, unknown>;
-    selected_levels: Record<string, string>;
+    selected_levels?: Record<string, string>;
+    custom_devices?: ApiCustomDevice[];
     device_selection: {
         main_ecosystem: string;
         budget: number;

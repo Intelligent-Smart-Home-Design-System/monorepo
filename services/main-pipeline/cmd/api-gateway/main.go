@@ -357,12 +357,13 @@ func validate(req pipeline.PipelineRequest) error {
 	if req.FloorPlan == nil {
 		return errors.New("floor_plan is required")
 	}
-	if req.SelectedLevels == nil || len(req.SelectedLevels) == 0 {
-		return errors.New("selected_levels is required")
-	}
-	if req.DeviceSelection == nil {
-		return errors.New("device_selection is required")
-	}
+	hasLevels := len(req.SelectedLevels) > 0
+    hasCustomDevices := len(req.CustomDevices) > 0
+
+    if !hasLevels && !hasCustomDevices {
+        return errors.New("either selected_levels or custom_devices must be provided")
+    }
+
 	return nil
 }
 

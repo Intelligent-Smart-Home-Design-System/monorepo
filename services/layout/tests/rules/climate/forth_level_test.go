@@ -51,7 +51,7 @@ func TestClimateLevel4(t *testing.T) {
 	assert.NoError(t, configs.LoadDevicesConfig(rules.GetDevicesPath()))
 
 	e := engine.NewEngine(st)
-	globalPlacement, err := e.PlaceDevices(apartmentStruct, map[string]string{"climate": "4"})
+	globalPlacement, err := e.PlaceDevices(apartmentStruct, map[string]string{"climate": "4"}, nil)
 	assert.NoError(t, err)
 
 	assert.True(t, globalPlacement.HasDeviceInRoom("smart_floor_thermostat", "r3"))

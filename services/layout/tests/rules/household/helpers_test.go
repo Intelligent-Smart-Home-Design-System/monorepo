@@ -26,7 +26,7 @@ func placeRobotVacuumOnLevel(t *testing.T, level string) (*device.Placement, *fi
 	e := engine.NewEngine(st)
 	layout, err := e.PlaceDevices(testApartment(), map[string]string{
 		"household": level,
-	})
+	}, nil)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, countRobotVacuumPlacements(layout))

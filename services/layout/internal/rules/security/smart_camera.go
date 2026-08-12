@@ -52,18 +52,24 @@ func (c *SmartCameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(c.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var cameraFilters *filters.CameraFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(c.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.CameraFilter)
+			if ok {
+				cameraFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.CameraFilter{
+	if cameraFilters == nil {
+		cameraFilters = &filters.CameraFilter{
 			FieldOfViewDeg: defaultCameraAngle,
 			DetectionRangeMM: defaultCameraRange,
 		}
 	}
-	cameraFilters := configFilters.(*filters.CameraFilter)
 
 	cameraRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
 	if err != nil {

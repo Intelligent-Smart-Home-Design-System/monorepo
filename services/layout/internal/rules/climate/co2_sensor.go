@@ -21,17 +21,19 @@ func (r *CO2SensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 	deviceType := r.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var co2SensorFilters *filters.CO2SensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.CO2SensorFilter)
+			if ok {
+				co2SensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.CO2SensorFilter{}
-	}
-
-	co2SensorFilters, ok := configFilters.(*filters.CO2SensorFilter)
-	if !ok {
+	if co2SensorFilters == nil {
 		co2SensorFilters = &filters.CO2SensorFilter{}
 	}
 

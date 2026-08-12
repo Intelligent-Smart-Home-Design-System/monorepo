@@ -45,15 +45,21 @@ func (ds *DoorSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(ds.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var doorSensorFilters *filters.DoorSensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(ds.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.DoorSensorFilter)
+			if ok {
+				doorSensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.DoorSensorFilter{}
+	if doorSensorFilters == nil {
+		doorSensorFilters = &filters.DoorSensorFilter{}
 	}
-	doorSensorFilters := configFilters.(*filters.DoorSensorFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

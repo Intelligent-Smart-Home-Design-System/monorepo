@@ -50,15 +50,21 @@ func (ws *WindowSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(ws.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var windowSensorFilters *filters.WindowSensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(ws.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.WindowSensorFilter)
+			if ok {
+				windowSensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.WindowSensorFilter{}
+	if windowSensorFilters == nil {
+		windowSensorFilters = &filters.WindowSensorFilter{}
 	}
-	windowSensorFilters := configFilters.(*filters.WindowSensorFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

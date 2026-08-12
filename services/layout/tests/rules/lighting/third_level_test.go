@@ -81,7 +81,7 @@ func TestLightingLevel3(t *testing.T) {
 	assert.NoError(t, err2)
 
 	e := engine.NewEngine(st)
-	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
+	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels, nil)
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, layout.Placements)
@@ -158,7 +158,7 @@ func TestLightingLevel3MotionSensorCount(t *testing.T) {
 	assert.NoError(t, err2)
 
 	e := engine.NewEngine(st)
-	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
+	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels, nil)
 	assert.NoError(t, err)
 
 	passageCount := 0
@@ -239,7 +239,7 @@ func TestLightingLevel3PriceCalculation(t *testing.T) {
 	assert.NoError(t, err2)
 
 	e := engine.NewEngine(st)
-	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
+	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels, nil)
 	assert.NoError(t, err)
 
 	priceInfo := e.CalculateLayoutPrice(layout)

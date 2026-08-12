@@ -72,7 +72,7 @@ func TestLightingLevel2(t *testing.T) {
 	assert.NoError(t, err2)
 
 	e := engine.NewEngine(st)
-	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
+	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels, nil)
 	assert.NoError(t, err)
 
 	assert.True(t, layout.HasDeviceInRoom("smart_lamp", "r1"))
@@ -141,7 +141,7 @@ func TestLightingLevel2PriceCalculation(t *testing.T) {
 	assert.NoError(t, err2)
 
 	e := engine.NewEngine(st)
-	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
+	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels, nil)
 	assert.NoError(t, err)
 
 	priceInfo := e.CalculateLayoutPrice(layout)

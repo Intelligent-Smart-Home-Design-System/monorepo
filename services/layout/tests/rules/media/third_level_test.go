@@ -94,7 +94,7 @@ func TestSimpleThirdLevelScript(t *testing.T) {
 	storage.LoadAllMediaRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels, nil)
 
 	assert.NoError(t, err)
 

@@ -18,6 +18,7 @@ type PlaceDevicesInput struct {
 	RequestID      string                 `json:"request_id,omitempty"`
 	FloorPlan      map[string]interface{} `json:"floor_plan"`
 	SelectedLevels map[string]string      `json:"selected_levels"`
+	CustomDevices  []engine.CustomDeviceInput    `json:"custom_devices,omitempty"`
 }
 
 type PlaceDevicesOutput struct {
@@ -48,6 +49,7 @@ func (a *Activities) PlaceDevices(ctx context.Context, input PlaceDevicesInput) 
 		"request_id", input.RequestID,
 		"selected_levels", input.SelectedLevels,
 		"tracks", len(input.SelectedLevels),
+		"custom_devices_count", len(input.CustomDevices),
 	)
 
 	apartmentModel, err := toApartment(input.FloorPlan)
@@ -65,7 +67,7 @@ func (a *Activities) PlaceDevices(ctx context.Context, input PlaceDevicesInput) 
 		"windows", len(apartmentModel.Windows),
 	)
 
-	layout, err := a.engine.PlaceDevices(apartmentModel, input.SelectedLevels)
+	layout, err := a.engine.PlaceDevices(apartmentModel, input.SelectedLevels, input.CustomDevices)
 	if err != nil {
 		logger.Error("device placement failed", "request_id", input.RequestID, "error", err)
 		return PlaceDevicesOutput{}, err

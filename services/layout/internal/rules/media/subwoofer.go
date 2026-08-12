@@ -33,15 +33,21 @@ func (sw *SubwooferRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 	deviceType := sw.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(sw.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var subwooferFilters *filters.SubwooferFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(sw.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SubwooferFilter)
+			if ok {
+				subwooferFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.Subwoofer{}
+	if subwooferFilters == nil {
+		subwooferFilters = &filters.SubwooferFilter{}
 	}
-	subwooferFilters := configFilters.(*filters.Subwoofer)
 
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {

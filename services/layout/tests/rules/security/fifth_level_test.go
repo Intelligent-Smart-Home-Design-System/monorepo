@@ -95,7 +95,7 @@ func TestFifthLevelSimpleScript(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels, nil)
 
 	assert.NoError(t, err)
 
@@ -208,7 +208,7 @@ func TestFifthLevelPriceCalculation(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels)
+	globalPlacement, err := engine.PlaceDevices(ap, selectedLevels, nil)
 
 	assert.NoError(t, err)
 

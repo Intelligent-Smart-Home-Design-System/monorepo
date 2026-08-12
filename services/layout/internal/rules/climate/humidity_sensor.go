@@ -21,17 +21,19 @@ func (r *HumiditySensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	deviceType := r.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var humiditySensorFilters *filters.HumiditySensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.HumiditySensorFilter)
+			if ok {
+				humiditySensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.HumiditySensorFilter{}
-	}
-
-	humiditySensorFilters, ok := configFilters.(*filters.HumiditySensorFilter)
-	if !ok {
+	if humiditySensorFilters == nil {
 		humiditySensorFilters = &filters.HumiditySensorFilter{}
 	}
 

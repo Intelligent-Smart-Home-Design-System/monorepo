@@ -20,66 +20,66 @@ const (
 
 func ParseRoomType(rawName string) string {
 	switch rawName {
-	case "passage":
-		return "passage"
-	case "livingroom", "living":
-		return "livingroom"
-	case "bedroom":
-		return "bedroom"
-	case "kitchen":
-		return "kitchen"
-	case "bathroom", "bath":
-		return "bathroom"
-	case "cabinet":
-		return "cabinet"
-	case "hallway", "hall":
-		return "hallway"
-	case "closet":
-		return "closet"
-	case "pantry":
-		return "pantry"
-	case "utility":
-		return "utility"
-	case "porch":
-		return "porch"
+	case RoomPassage:
+		return RoomPassage
+	case RoomLiving, "living":
+		return RoomLiving
+	case RoomBedroom:
+		return RoomBedroom
+	case RoomKitchen:
+		return RoomKitchen
+	case RoomBathroom, "bath":
+		return RoomBathroom
+	case RoomCabinet:
+		return RoomCabinet
+	case RoomHall, "hall":
+		return RoomHall
+	case RoomCloset:
+		return RoomCloset
+	case RoomPantry:
+		return RoomPantry
+	case RoomUtility:
+		return RoomUtility
+	case RoomPorch:
+		return RoomPorch
 	}
 
 	switch {
 	case strings.Contains(rawName, "bedroom"), strings.Contains(rawName, "bdrm"):
-		return "bedroom"
+		return RoomBedroom
 
 	case strings.Contains(rawName, "bath"), strings.Contains(rawName, "toil"), strings.Contains(rawName, "restroom"), strings.Contains(rawName, "wc"):
-		return "bathroom"
+		return RoomBathroom
 
 	case strings.Contains(rawName, "w.i.c."), strings.Contains(rawName, "closet"), strings.Contains(rawName, "clo."):
-		return "closet"
+		return RoomCloset
 
 	case strings.Contains(rawName, "kitchen"), strings.Contains(rawName, "dining"):
-		return "kitchen"
+		return RoomKitchen
 
 	case strings.Contains(rawName, "living"), strings.Contains(rawName, "great room"):
-		return "livingroom"
+		return RoomLiving
 
 	case strings.Contains(rawName, "pantry"):
-		return "pantry"
+		return RoomPantry
 
 	case strings.Contains(rawName, "util"), strings.Contains(rawName, "boiler"):
-		return "utility"
+		return RoomUtility
 
 	case strings.Contains(rawName, "porch"), strings.Contains(rawName, "balcony"), strings.Contains(rawName, "terrace"):
-		return "porch"
+		return RoomPorch
 
 	case strings.Contains(rawName, "passage"):
-		return "passage"
+		return RoomPassage
 
 	case strings.Contains(rawName, "hall"), strings.Contains(rawName, "entry"), strings.Contains(rawName, "foyer"):
-		return "hallway"
+		return RoomHall
 
 	case strings.Contains(rawName, "cabinet"), strings.Contains(rawName, "office"), strings.Contains(rawName, "study"):
-		return "cabinet"
+		return RoomCabinet
 
 	default:
-		return "unknown"
+		return RoomUnknown
 	}
 }
 

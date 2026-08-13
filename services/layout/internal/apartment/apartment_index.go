@@ -110,17 +110,17 @@ func (a *Apartment) bindRooms() {
 	}
 }
 
-// GetRoomsByNames возвращает все комнаты, имеющие названия из входного слайса.
-func (a *Apartment) GetRoomsByNames(roomNames []string) ([]*Room, error) {
-	roomsRes := make([]*Room, 0)
+// // GetRoomsByNames возвращает все комнаты, имеющие названия из входного слайса.
+// func (a *Apartment) GetRoomsByNames(roomNames []string) ([]*Room, error) {
+// 	roomsRes := make([]*Room, 0)
 
-	for _, roomName := range roomNames {
-		rooms, _ := a.roomsByName[roomName]
-		roomsRes = append(roomsRes, rooms...)
-	}
+// 	for _, roomName := range roomNames {
+// 		rooms, _ := a.roomsByName[roomName]
+// 		roomsRes = append(roomsRes, rooms...)
+// 	}
 
-	return roomsRes, nil
-}
+// 	return roomsRes, nil
+// }
 
 // GetWallByID возвращает стену по ID
 func (a *Apartment) GetWallByID(id string) (*Wall, error) {

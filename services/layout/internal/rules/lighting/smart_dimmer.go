@@ -20,19 +20,15 @@ func (r *SmartDimmerRule) Type() string {
 
 // Ставим по одному диммеру в каждой нужной комнате в угол рядом с дверью
 func (r *SmartDimmerRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	apartmentStruct := zonedAp.OrigAp
-	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
+	rooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	for _, room := range rooms {
-		place, err := cornerNearDoor(apartmentStruct, *room)
+		place, err := cornerNearDoor(zonedAp.OrigAp, *room.OrigRoom)
 		if err != nil {
 			return err
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, room.OrigRoom.ID, place, nil, nil)
 	}
 
 	return nil

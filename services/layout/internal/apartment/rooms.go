@@ -18,7 +18,7 @@ const (
 	RoomUnknown      string = "unknown"
 )
 
-func ParseRoomType(rawName string) string {
+func ParseSingleRoomType(rawName string) string {
 	switch rawName {
 	case RoomPassage:
 		return RoomPassage
@@ -81,6 +81,30 @@ func ParseRoomType(rawName string) string {
 	default:
 		return RoomUnknown
 	}
+}
+
+func ParseRoomTypes(rawName string) []string {
+	if !strings.Contains(rawName, "/") {
+		return []string{ParseSingleRoomType(rawName)}
+	}
+
+	parts := strings.Split(rawName, "/")
+
+	var res []string
+
+	for _, part := range parts {
+		singleType := ParseSingleRoomType(part)
+		
+		if singleType != RoomUnknown {
+			res = append(res, singleType)
+		}
+	}
+
+	if len(res) == 0 {
+		return []string{RoomUnknown}
+	}
+
+	return res
 }
 
 // GetFurniture возвращает объекты мебели комнаты, разрешая ID через индекс квартиры.

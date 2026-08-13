@@ -80,28 +80,28 @@ func calculateExpectedAndActualPrice(layout *apartment.Layout, devicesConfig *co
 }
 
 func buildLightingApartmentForHighLevels() *apartment.Apartment {
-	rooms := []apartment.Room{
-		{ID: "r1", Name: apartment.RoomLiving, Area: []point.Point{{X: 0, Y: 0}, {X: 4, Y: 0}, {X: 4, Y: 4}, {X: 0, Y: 4}}},
-		{ID: "r2", Name: apartment.RoomKitchen, Area: []point.Point{{X: 5, Y: 0}, {X: 8, Y: 0}, {X: 8, Y: 3}, {X: 5, Y: 3}}},
-		{ID: "r3", Name: apartment.RoomPassage, Area: []point.Point{{X: 0, Y: 5}, {X: 7, Y: 5}, {X: 7, Y: 6}, {X: 0, Y: 6}}},
-		{ID: "r4", Name: apartment.RoomBathroom, Area: []point.Point{{X: 8, Y: 4}, {X: 10, Y: 4}, {X: 10, Y: 6}, {X: 8, Y: 6}}},
-		{ID: "r5", Name: apartment.RoomBedroom, Area: []point.Point{{X: 0, Y: 7}, {X: 4, Y: 7}, {X: 4, Y: 10}, {X: 0, Y: 10}}},
-		{ID: "r6", Name: apartment.RoomCabinet, Area: []point.Point{{X: 5, Y: 7}, {X: 8, Y: 7}, {X: 8, Y: 10}, {X: 5, Y: 10}}},
-	}
+    rooms := []apartment.Room{
+        {ID: "r1", Name: apartment.RoomLiving, Area: []point.Point{{X: 0, Y: 0}, {X: 4000, Y: 0}, {X: 4000, Y: 4000}, {X: 0, Y: 4000}}},
+        {ID: "r2", Name: apartment.RoomKitchen, Area: []point.Point{{X: 5000, Y: 0}, {X: 8000, Y: 0}, {X: 8000, Y: 3000}, {X: 5000, Y: 3000}}},
+        {ID: "r3", Name: apartment.RoomPassage, Area: []point.Point{{X: 0, Y: 5000}, {X: 7000, Y: 5000}, {X: 7000, Y: 6000}, {X: 0, Y: 6000}}},
+        {ID: "r4", Name: apartment.RoomBathroom, Area: []point.Point{{X: 8000, Y: 4000}, {X: 10000, Y: 4000}, {X: 10000, Y: 6000}, {X: 8000, Y: 6000}}},
+        {ID: "r5", Name: apartment.RoomBedroom, Area: []point.Point{{X: 0, Y: 7000}, {X: 4000, Y: 7000}, {X: 4000, Y: 10000}, {X: 0, Y: 10000}}},
+        {ID: "r6", Name: apartment.RoomCabinet, Area: []point.Point{{X: 5000, Y: 7000}, {X: 8000, Y: 7000}, {X: 8000, Y: 10000}, {X: 5000, Y: 10000}}},
+    }
 
-	windows := []apartment.Window{
-		{ID: "w1", Points: []point.Point{{X: 0, Y: 1}, {X: 0, Y: 2}}, Room: apartment.RoomLiving},
-		{ID: "w2", Points: []point.Point{{X: 8, Y: 1}, {X: 8, Y: 2}}, Room: apartment.RoomKitchen},
-		{ID: "w3", Points: []point.Point{{X: 0, Y: 8}, {X: 0, Y: 9}}, Room: apartment.RoomBedroom},
-	}
+    windows := []apartment.Window{
+        {ID: "w1", Points: []point.Point{{X: 0, Y: 1000}, {X: 0, Y: 2000}}, Room: apartment.RoomLiving},
+        {ID: "w2", Points: []point.Point{{X: 8000, Y: 1000}, {X: 8000, Y: 2000}}, Room: apartment.RoomKitchen},
+        {ID: "w3", Points: []point.Point{{X: 0, Y: 8000}, {X: 0, Y: 9000}}, Room: apartment.RoomBedroom},
+    }
 
-	doors := []apartment.Door{
-		{ID: "d1", Points: []point.Point{{X: 2, Y: 4}, {X: 3, Y: 4}}, Rooms: []string{"r1", "r3"}},
-		{ID: "d2", Points: []point.Point{{X: 6, Y: 3}, {X: 7, Y: 3}}, Rooms: []string{"r2", "r3"}},
-		{ID: "d3", Points: []point.Point{{X: 8, Y: 5}, {X: 8, Y: 5.5}}, Rooms: []string{"r3", "r4"}},
-		{ID: "d4", Points: []point.Point{{X: 2, Y: 7}, {X: 3, Y: 7}}, Rooms: []string{"r3", "r5"}},
-		{ID: "d5", Points: []point.Point{{X: 5.5, Y: 7}, {X: 6.5, Y: 7}}, Rooms: []string{"r3", "r6"}},
-	}
+    doors := []apartment.Door{
+        {ID: "d1", Points: []point.Point{{X: 2000, Y: 4000}, {X: 3000, Y: 4000}}, Rooms: []string{"r1", "r3"}},
+        {ID: "d2", Points: []point.Point{{X: 6000, Y: 3000}, {X: 7000, Y: 3000}}, Rooms: []string{"r2", "r3"}},
+        {ID: "d3", Points: []point.Point{{X: 8000, Y: 5000}, {X: 8000, Y: 5500}}, Rooms: []string{"r3", "r4"}},
+        {ID: "d4", Points: []point.Point{{X: 2000, Y: 7000}, {X: 3000, Y: 7000}}, Rooms: []string{"r3", "r5"}},
+        {ID: "d5", Points: []point.Point{{X: 5500, Y: 7000}, {X: 6500, Y: 7000}}, Rooms: []string{"r3", "r6"}},
+    }
 
-	return &apartment.Apartment{Rooms: rooms, Windows: windows, Doors: doors}
+    return &apartment.Apartment{Rooms: rooms, Windows: windows, Doors: doors}
 }

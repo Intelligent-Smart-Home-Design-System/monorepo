@@ -20,16 +20,12 @@ func (r *SmartLampRule) Type() string {
 }
 
 func (r *SmartLampRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	ap := zonedAp.OrigAp
-	rooms, err := ap.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
+	rooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	for _, room := range rooms {
-		roomID := room.ID
+		roomID := room.OrigRoom.ID
 
-		place := point.GetCenter(room.Area)
+		place := point.GetCenter(room.OrigRoom.Area)
 		if place == nil {
 			fallback := point.Point{X: 0, Y: 0}
 			place = &fallback

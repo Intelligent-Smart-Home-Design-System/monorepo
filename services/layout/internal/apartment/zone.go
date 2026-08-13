@@ -1,6 +1,9 @@
 package apartment
 
 import (
+	"slices"
+	"fmt"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/gofrs/uuid/v5"
 )
@@ -35,10 +38,6 @@ type ZonedRoom struct {
 }
 
 func NewZonedRoom(r *Room) *ZonedRoom {
-	if r != nil {
-        r.Type = ParseRoomType(r.Name)
-    }
-
     return &ZonedRoom{
         OrigRoom: r,
     }
@@ -80,7 +79,18 @@ func Build(ap *Apartment) *ZonedApartment {
 	zoned.ZonedRooms = make([]*ZonedRoom, 0, len(ap.Rooms))
 
 	for i := range ap.Rooms {
-		zoned.ZonedRooms = append(zoned.ZonedRooms, NewZonedRoom(&ap.Rooms[i]))
+		origRoom := &ap.Rooms[i]
+		types := ParseRoomTypes(origRoom.Name)
+		fmt.Println(types)
+
+		for _, roomType := range types {
+			virtualRoom := &Room{}
+			*virtualRoom = *origRoom
+			virtualRoom.Type = roomType
+
+			zoned.ZonedRooms = append(zoned.ZonedRooms, NewZonedRoom(virtualRoom))
+			fmt.Println(virtualRoom)
+		}
 	}
 
 	return zoned
@@ -93,4 +103,16 @@ func (z *Zone) ContainsPoint(p point.Point) bool {
 	}
 
 	return point.IsPointInPolygon(p, z.Points)
+}
+
+func (za *ZonedApartment) GetZonedRoomsByTypes(targetTypes []string) []*ZonedRoom {
+	var result []*ZonedRoom
+
+	for _, zRoom := range za.ZonedRooms {
+		if slices.Contains(targetTypes, zRoom.OrigRoom.Type) {
+			result = append(result, zRoom)
+		}
+	}
+
+	return result
 }

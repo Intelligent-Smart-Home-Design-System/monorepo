@@ -21,19 +21,15 @@ func (r *DecorativeLuminaireRule) Type() string {
 
 // Ставим декоративный светильник по одному в комнату в центр комнаты
 func (r *DecorativeLuminaireRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	apartmentStruct := zonedAp.OrigAp
-	rooms, err := apartmentStruct.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
+	rooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	for _, room := range rooms {
-		place := point.GetCenter(room.Area)
+		place := point.GetCenter(room.OrigRoom.Area)
 		if place == nil {
 			continue
 		}
 
-		layout.AddDeviceToLayout(r.Type(), r.track, room.ID, place, nil, nil)
+		layout.AddDeviceToLayout(r.Type(), r.track, room.OrigRoom.ID, place, nil, nil)
 	}
 
 	return nil

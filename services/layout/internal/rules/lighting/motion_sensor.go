@@ -17,17 +17,13 @@ func (r *MotionSensorRule) Type() string {
 }
 
 func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	ap := zonedAp.OrigAp
-	rooms, err := ap.GetRoomsByNames([]string{apartment.RoomPassage, apartment.RoomBathroom})
-	if err != nil {
-		return err
-	}
+	rooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	for _, room := range rooms {
-		roomID := room.ID
+		roomID := room.OrigRoom.ID
 
-		if room.Type == apartment.RoomPassage {
-			p1, p2, err := corridorEndPoints(*room)
+		if room.OrigRoom.Type == apartment.RoomPassage {
+			p1, p2, err := corridorEndPoints(*room.OrigRoom)
 			if err != nil {
 				return err
 			}
@@ -37,7 +33,7 @@ func (r *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum str
 			continue
 		}
 
-		sensorPoint, err := cornerNearDoor(ap, *room)
+		sensorPoint, err := cornerNearDoor(zonedAp.OrigAp, *room.OrigRoom)
 		if err != nil {
 			return err
 		}

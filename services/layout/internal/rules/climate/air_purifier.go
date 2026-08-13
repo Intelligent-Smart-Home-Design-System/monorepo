@@ -55,14 +55,11 @@ func (r *AirPurifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 		airPurifierFilters = &filters.AirPurifierFilter{}
 	}
 
-	rooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
+	rooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	roomsSet := make(map[string]struct{})
 	for _, room := range rooms {
-		roomsSet[room.ID] = struct{}{}
+		roomsSet[room.OrigRoom.Type] = struct{}{}
 	}
 
 	deviceCnt := 0
@@ -71,7 +68,7 @@ func (r *AirPurifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.ID]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

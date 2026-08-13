@@ -2,7 +2,6 @@ package apartment
 
 import (
 	"slices"
-	"fmt"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/gofrs/uuid/v5"
@@ -81,7 +80,6 @@ func Build(ap *Apartment) *ZonedApartment {
 	for i := range ap.Rooms {
 		origRoom := &ap.Rooms[i]
 		types := ParseRoomTypes(origRoom.Name)
-		fmt.Println(types)
 
 		for _, roomType := range types {
 			virtualRoom := &Room{}
@@ -89,7 +87,6 @@ func Build(ap *Apartment) *ZonedApartment {
 			virtualRoom.Type = roomType
 
 			zoned.ZonedRooms = append(zoned.ZonedRooms, NewZonedRoom(virtualRoom))
-			fmt.Println(virtualRoom)
 		}
 	}
 

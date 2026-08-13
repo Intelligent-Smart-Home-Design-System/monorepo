@@ -1,8 +1,6 @@
 package security
 
 import (
-	"fmt"
-
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/filters"
@@ -67,7 +65,6 @@ func (c *SmartCameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 	cameraFilters := configFilters.(*filters.CameraFilter)
 
-	fmt.Println(deviceRooms)
 	cameraRooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	roomsSet := make(map[string]struct{})
@@ -77,15 +74,12 @@ func (c *SmartCameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		fmt.Println(zr.OrigRoom.Type)
 		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok || deviceCnt >= maxCount {
-			fmt.Println(2)
 			continue
 		}
 
 		// При необходимости можно вовзращать направление камеры, чтобы другим модулям легче было взаимодейстовать
 		bestPoint, direction, distance := findBestCameraPoint(zonedAp.OrigAp, zr, cameraFilters)
-		fmt.Println(bestPoint)
 		if bestPoint == nil {
 			continue
 		}

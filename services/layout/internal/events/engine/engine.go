@@ -81,7 +81,7 @@ func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string
 			deviceRooms = allRooms
 		}
 
-        err := rule.Apply(zonedAp, "1", deviceRooms, customDevice.Count, res)
+        err := rule.Apply(zonedAp, "", deviceRooms, customDevice.Count, res)
         if err != nil {
             return nil, fmt.Errorf("failed to apply rule for custom device %s: %w", customDevice.Device, err)
         }

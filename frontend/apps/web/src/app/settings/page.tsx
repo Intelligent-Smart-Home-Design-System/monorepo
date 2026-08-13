@@ -375,13 +375,10 @@ export default function SettingsPage() {
   const handleCreateManualPlan = async () => {
     if (!canSubmitManual || !parsedFloor || typeof parsedFloor !== "object") return;
 
+    clearSimulationStorage();
     setSubmitting(true);
     setError("");
-
-    clearSimulationStorage();
-    localStorage.removeItem("planner-uploaded-plan");
-    localStorage.removeItem("planner-last-budget");
-    localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
+  
     try {
       const customDevices = manualItems.map((item) => ({
         device: item.categoryId || String(item.deviceId),
@@ -400,10 +397,7 @@ export default function SettingsPage() {
       });
 
       localStorage.setItem("planner-last-budget", budget);
-      if (planPreviewState) {
-        localStorage.setItem("planner-uploaded-plan", JSON.stringify(planPreviewState));
-      }
-
+      localStorage.setItem("planner-uploaded-plan", JSON.stringify(planPreviewState));
       saveManualSelection([]);
       localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
 
@@ -413,6 +407,8 @@ export default function SettingsPage() {
       router.push(`/plan?${params.toString()}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Не удалось создать ручной план.");
+    }
+    finally {
       setSubmitting(false);
     }
   };

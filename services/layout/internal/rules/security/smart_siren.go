@@ -33,8 +33,8 @@ func (ss *SmartSirenRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
-			switch zr.OrigRoom.Name {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
+			switch zr.OrigRoom.Type {
 			case apartment.RoomHall, apartment.RoomPassage:
 				zr.SirenZones = collectSirenZones(zr.OrigRoom)
 			}

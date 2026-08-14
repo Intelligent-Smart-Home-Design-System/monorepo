@@ -28,7 +28,7 @@ func (ds *DoorSensorRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok && zr.OrigRoom.Type == apartment.RoomHall {
 			zr.EntryDoorZone = collectEntryDoorZone(zonedAp.OrigAp, zr.OrigRoom)
 		}
 	}

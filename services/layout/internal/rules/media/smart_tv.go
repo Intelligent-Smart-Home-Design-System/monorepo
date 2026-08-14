@@ -52,7 +52,7 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok || deviceCnt >= maxCount {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok || deviceCnt >= maxCount {
 			continue
 		}
 

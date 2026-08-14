@@ -46,7 +46,7 @@ func (r *SmartRadiatorActuatorRule) Apply(zonedAp *apartment.ZonedApartment, lev
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

@@ -1,6 +1,8 @@
 package apartment
 
 import (
+	"slices"
+
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/point"
 	"github.com/gofrs/uuid/v5"
 )
@@ -18,24 +20,26 @@ func NewZone(p []point.Point) *Zone {
 // ZonedRoom комната, обогащённая зонами после обработки правилами.
 type ZonedRoom struct {
 	OrigRoom          *Room
-	NoWindZones       []*Zone            `json:"no_wind_zones"`
-	WetZones          []*Zone            `json:"wet_zones"`
-	GasZones          []*Zone            `json:"gas_zones"`
-	EntryDoorZone     *Zone              `json:"entry_doors_zones"`
-	HighTrafficZones  []*Zone            `json:"high_traffic_zones"`
-	WindowZones       []*Zone            `json:"window_zones"`
-	ViewedZones       []*Zone            `json:"viewed_zones"`
-	SirenZones        []*Zone            `json:"siren_zones"`
-	PollutionZones    []*Zone            `json:"pollution_zones"`
-  CleaningZones    []*Zone             `json:"cleaning_zones"`
-	RestrictedZones   []*Zone            `json:"restricted_zones"`
+	NoWindZones       []*Zone `json:"no_wind_zones"`
+	WetZones          []*Zone `json:"wet_zones"`
+	GasZones          []*Zone `json:"gas_zones"`
+	EntryDoorZone     *Zone   `json:"entry_doors_zones"`
+	HighTrafficZones  []*Zone `json:"high_traffic_zones"`
+	WindowZones       []*Zone `json:"window_zones"`
+	ViewedZones       []*Zone `json:"viewed_zones"`
+	SirenZones        []*Zone `json:"siren_zones"`
+	PollutionZones    []*Zone `json:"pollution_zones"`
+	CleaningZones     []*Zone `json:"cleaning_zones"`
+	RestrictedZones   []*Zone `json:"restricted_zones"`
 	ListeningPosition *point.Point
 	TVPosition        *point.Point
 	ACAvailableWalls  map[string]struct{} // nil = все стены доступны
 }
 
 func NewZonedRoom(r *Room) *ZonedRoom {
-	return &ZonedRoom{OrigRoom: r}
+    return &ZonedRoom{
+        OrigRoom: r,
+    }
 }
 
 // GetFurniture возвращает мебель оригинальной комнаты.
@@ -74,7 +78,16 @@ func Build(ap *Apartment) *ZonedApartment {
 	zoned.ZonedRooms = make([]*ZonedRoom, 0, len(ap.Rooms))
 
 	for i := range ap.Rooms {
-		zoned.ZonedRooms = append(zoned.ZonedRooms, NewZonedRoom(&ap.Rooms[i]))
+		origRoom := &ap.Rooms[i]
+		types := ParseRoomTypes(origRoom.Name)
+
+		for _, roomType := range types {
+			virtualRoom := &Room{}
+			*virtualRoom = *origRoom
+			virtualRoom.Type = roomType
+
+			zoned.ZonedRooms = append(zoned.ZonedRooms, NewZonedRoom(virtualRoom))
+		}
 	}
 
 	return zoned
@@ -87,4 +100,16 @@ func (z *Zone) ContainsPoint(p point.Point) bool {
 	}
 
 	return point.IsPointInPolygon(p, z.Points)
+}
+
+func (za *ZonedApartment) GetZonedRoomsByTypes(targetTypes []string) []*ZonedRoom {
+	var result []*ZonedRoom
+
+	for _, zRoom := range za.ZonedRooms {
+		if slices.Contains(targetTypes, zRoom.OrigRoom.Type) {
+			result = append(result, zRoom)
+		}
+	}
+
+	return result
 }

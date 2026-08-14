@@ -27,7 +27,7 @@ func (sl *SmartLockRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoom
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok && zr.OrigRoom.Name == apartment.RoomHall {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok && zr.OrigRoom.Type == apartment.RoomHall {
 			zr.EntryDoorZone = collectEntryDoorZone(zonedAp.OrigAp, zr.OrigRoom)
 		}
 	}
@@ -56,7 +56,7 @@ func (sl *SmartLockRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if zr.EntryDoorZone != nil && zr.OrigRoom.Name == apartment.RoomHall {
+		if zr.EntryDoorZone != nil && zr.OrigRoom.Type == apartment.RoomHall {
 			zoneCenter := zr.EntryDoorZone.Points[1]
 
 			if deviceCnt < maxCount {

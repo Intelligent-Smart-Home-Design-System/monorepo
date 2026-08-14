@@ -24,7 +24,7 @@ func (r *SmartHumidifierRule) Transform(zonedAp *apartment.ZonedApartment, devic
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			zr.RestrictedZones = collectClimateRestrictedZones(zr)
 		}
 	}
@@ -66,7 +66,7 @@ func (r *SmartHumidifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum 
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

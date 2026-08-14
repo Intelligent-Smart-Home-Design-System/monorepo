@@ -20,16 +20,12 @@ func (r *IlluminationSensorRule) Type() string {
 }
 
 func (r *IlluminationSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string, deviceRooms []string, maxCount int, layout *apartment.Layout) error {
-	ap := zonedAp.OrigAp
-	devicesRooms, err := ap.GetRoomsByNames([]string{apartment.RoomLiving, apartment.RoomKitchen})
-	if err != nil {
-		return err
-	}
+	devicesRooms := zonedAp.GetZonedRoomsByTypes([]string{apartment.RoomLiving, apartment.RoomKitchen})
 
 	for _, room := range devicesRooms {
-		roomID := room.ID
+		roomID := room.OrigRoom.ID
 
-		place, err := illuminationPoint(ap, *room)
+		place, err := illuminationPoint(zonedAp.OrigAp, *room.OrigRoom)
 		if err != nil {
 			return err
 		}
@@ -52,7 +48,7 @@ func illuminationPoint(apartmentStruct *apartment.Apartment, room apartment.Room
 		return &fallback, nil
 	}
 
-	roomWindows := getRoomWindows(apartmentStruct, room.Name)
+	roomWindows := getRoomWindows(apartmentStruct, room.Type)
 	if len(roomWindows) > 0 && len(roomWindows[0].Points) > 0 {
 		windowCenter := point.GetObjectCenter(roomWindows[0].Points)
 		return cornerNearWindow(room.Area, windowCenter), nil

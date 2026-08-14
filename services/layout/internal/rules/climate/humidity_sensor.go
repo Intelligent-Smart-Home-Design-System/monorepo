@@ -46,7 +46,7 @@ func (r *HumiditySensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 			return nil
 		}
 
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok {
 			continue
 		}
 

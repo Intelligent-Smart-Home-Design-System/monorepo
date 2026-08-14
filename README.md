@@ -33,6 +33,36 @@
 
 Для локального запуска нужны только Docker и Docker Compose.
 
+### 1. Подготовка и генерация версий
+
+Перед первым запуском или при обновлении зависимостей запустите скрипты автоматической подготовки:
+
+```bash
+# Генерация фильтров устройств
+cd ./shared/schemas/devices
+
+python3 gen_filters.py
+
+# Генерация объединённых таксономических схем для микросервисов
+cd ./shared/schemas/devices
+
+python3 schema_generator.py --combined --output ../../../services/extractor/taxonomy_schema.json
+
+python3 schema_generator.py --combined --output ../../../services/catalog-builder/taxonomy_schema.json
+```
+
+#### Изменение конфигурации устройств
+
+Если вам нужно добавить новое устройство или изменить параметры существующих:
+
+- Отредактируйте исходный файл конфигурации: `./shared/schemas/devices/device_types.json`
+
+- Запустите генерацию, чтобы обновить схемы в сервисах.
+
+- Перезапустите необходимые сервисы.
+
+### 2. Управление стеком
+
 ```bash
 make help          # все команды
 
@@ -54,7 +84,7 @@ make deploy        # git pull + пересобрать prod
 > **до** `make pipeline-up` / `make app-up`. Команды `make up` и `make up-test` делают это
 > автоматически в правильном порядке.
 
-Сервисы и порты:
+### 3. Сервисы и порты:
 
 | Сервис | Порт | Описание |
 |--------|------|----------|

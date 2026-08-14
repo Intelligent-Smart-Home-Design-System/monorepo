@@ -34,7 +34,7 @@ func (c *SmartCameraRule) Transform(zonedAp *apartment.ZonedApartment, deviceRoo
 	}
 
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; ok {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; ok {
 			zr.ViewedZones = collectViewedZones(zonedAp.OrigAp, zr.OrigRoom)
 
 		}
@@ -65,19 +65,16 @@ func (c *SmartCameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 	cameraFilters := configFilters.(*filters.CameraFilter)
 
-	cameraRooms, err := zonedAp.OrigAp.GetRoomsByNames(deviceRooms)
-	if err != nil {
-		return err
-	}
+	cameraRooms := zonedAp.GetZonedRoomsByTypes(deviceRooms)
 
 	roomsSet := make(map[string]struct{})
 	for _, r := range cameraRooms {
-		roomsSet[r.Name] = struct{}{}
+		roomsSet[r.OrigRoom.Type] = struct{}{}
 	}
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {
-		if _, ok := roomsSet[zr.OrigRoom.Name]; !ok || deviceCnt >= maxCount {
+		if _, ok := roomsSet[zr.OrigRoom.Type]; !ok || deviceCnt >= maxCount {
 			continue
 		}
 
@@ -116,7 +113,7 @@ func (c *SmartCameraRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 func collectViewedZones(ap *apartment.Apartment, room *apartment.Room) []*apartment.Zone {
 	zones := make([]*apartment.Zone, 0)
 
-	if room.Name == apartment.RoomHall {
+	if room.Type == apartment.RoomHall {
 		entryDoor := room.GetEntryDoor(ap)
 		if entryDoor != nil {
 			zones = append(zones, room.CreateObjectZone(entryDoor.Points, entryDoor.Width))
@@ -153,7 +150,7 @@ func collectViewedZones(ap *apartment.Apartment, room *apartment.Room) []*apartm
 func findBestCameraPoint(ap *apartment.Apartment, zr *apartment.ZonedRoom, filter *filters.CameraFilter) (*point.Point, point.Point, float64) {
 	room := zr.OrigRoom
 
-	if room.Name == apartment.RoomHall {
+	if room.Type == apartment.RoomHall {
 		entryDoor := room.GetEntryDoor(ap)
 		if entryDoor != nil {
 			doorCenter := point.GetObjectCenter(entryDoor.Points)

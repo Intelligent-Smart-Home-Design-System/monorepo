@@ -28,6 +28,7 @@ import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { clearSimulationStorage } from "../lib/simulation-storage";
+import { dependencyCycleMessage, findDependencyCycle } from "../lib/dependency-cycle";
 import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
 import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
@@ -59,6 +60,11 @@ type PipelineStatusResponse = {
   layout?: unknown;
   dependencies?: Record<string, string[]> | null;
   device_selection?: unknown;
+  error?: {
+    code?: string;
+    message?: string;
+    cycle?: string[];
+  } | null;
 };
 
 type SimulationDevice = {
@@ -160,7 +166,11 @@ function PlanPageContent() {
             setPlan(pipelineResultToPlan(currentResult, Number(budgetFromStorage()) || 0));
             setLoading(false);
             if (normalizedStatus === "failed") {
-              setError("Pipeline завершился с ошибкой. Подробности статуса показаны в промежуточных этапах.");
+              setError(
+                dependencyCycleMessage(currentResult.error?.cycle ?? []) ||
+                  currentResult.error?.message ||
+                  "Pipeline завершился с ошибкой. Подробности статуса показаны в промежуточных этапах."
+              );
               return;
             }
             timer = setTimeout(loadStatus, 4000);
@@ -223,6 +233,8 @@ function PlanPageContent() {
     [plan, selectedBundleId]
   );
   const isManualPlan = plan?.main_ecosystem_id === "manual";
+  const dependencyCycle = useMemo(() => findDependencyCycle(plan?.dependencies), [plan?.dependencies]);
+  const dependencyError = dependencyCycleMessage(dependencyCycle);
 
   const selectedListing = useMemo(
     () =>
@@ -1085,6 +1097,21 @@ type SimulationBundle = NonNullable<ApiHomePlan["bundles"][number]>;
 
 function simulationUrl() {
   return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
+}
+
+const SIMULATION_STORAGE_KEYS = [
+  "simulation-floor",
+  "simulation-devices",
+  "simulation-trigger-device-ids",
+  "simulation-plan-layout",
+  "simulation-plan-dependencies",
+  "sim-devices",
+  "selectedDevices",
+  "selected-devices",
+] as const;
+
+function clearPreviousSimulationState() {
+  SIMULATION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
 }
 
 function storeSimulationDependencies(dependencies?: Record<string, string[]> | null) {

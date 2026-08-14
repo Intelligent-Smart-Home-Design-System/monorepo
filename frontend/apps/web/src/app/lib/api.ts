@@ -1,4 +1,9 @@
 import type {
+  ApiCatalogCategory,
+  ApiCatalogProductsQuery,
+  ApiCatalogProductsResponse,
+  ApiCreateManualPlanRequest,
+  ApiCreatePlanResponse,
   ApiDeviceType,
   ApiEcosystem,
   ApiErrorResponse,
@@ -149,6 +154,9 @@ function toUserErrorMessage(status: number, backendMessage: string | null) {
   if (message.includes("no compatible") || message.includes("no devices") || message.includes("not found compatible")) {
     return "По выбранным требованиям не удалось подобрать устройства. Попробуйте другой уровень или измените бюджет.";
   }
+  if (message.includes("selected catalog product is unavailable")) {
+    return "Одна из выбранных моделей больше недоступна. Вернитесь к ручному подбору и замените её.";
+  }
   if (message.includes("budget")) {
     return "Проверьте бюджет: он должен быть положительным числом.";
   }
@@ -237,6 +245,36 @@ export const api = {
   },
   listDeviceTypes() {
     return requestJson<ApiDeviceType[]>("/api/v1/device-types");
+  },
+  listCatalogCategories() {
+    return requestJson<ApiCatalogCategory[]>("/api/v1/catalog/categories");
+  },
+  listCatalogProducts(query: ApiCatalogProductsQuery) {
+    const params = new URLSearchParams({
+      device_type: query.device_type,
+    });
+    const optionalStrings = {
+      q: query.q,
+      brand: query.brand,
+      ecosystem: query.ecosystem,
+      protocol: query.protocol,
+      sort: query.sort,
+    };
+    Object.entries(optionalStrings).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    if (query.min_price !== undefined) params.set("min_price", String(query.min_price));
+    if (query.max_price !== undefined) params.set("max_price", String(query.max_price));
+    if (query.page !== undefined) params.set("page", String(query.page));
+    if (query.page_size !== undefined) params.set("page_size", String(query.page_size));
+
+    return requestJson<ApiCatalogProductsResponse>(`/api/v1/catalog/products?${params.toString()}`);
+  },
+  createManualPlan(payload: ApiCreateManualPlanRequest) {
+    return requestJson<ApiCreatePlanResponse>("/api/v1/plans/manual", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
   startPipeline(payload: ApiStartPipelineRequest) {
     return requestJson<ApiStartPipelineResponse>("/start", {

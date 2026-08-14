@@ -27,6 +27,7 @@ import {
 import Image from "next/image";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { clearSimulationStorage } from "../lib/simulation-storage";
 import type { ApiHomePlan, ApiPipelineResult, ApiPlanStageArtifact, ApiPlanStatus } from "../lib/types";
 import { ApartmentPlanPreview } from "./ApartmentPlanPreview";
 
@@ -56,6 +57,7 @@ type PipelineStatusResponse = {
   artifacts?: ApiPlanStageArtifact[] | null;
   parsed_floor_plan?: unknown;
   layout?: unknown;
+  dependencies?: Record<string, string[]> | null;
   device_selection?: unknown;
 };
 
@@ -65,7 +67,7 @@ type SimulationDevice = {
   name: string;
   type: string;
   device_type: string;
-  room_id: string;
+  room_id?: string;
   position?: {
     x: number;
     y: number;
@@ -220,6 +222,7 @@ function PlanPageContent() {
     () => plan?.bundles.find((bundle) => bundle.id === selectedBundleId) ?? plan?.bundles[0] ?? null,
     [plan, selectedBundleId]
   );
+  const isManualPlan = plan?.main_ecosystem_id === "manual";
 
   const selectedListing = useMemo(
     () =>
@@ -304,9 +307,13 @@ function PlanPageContent() {
                 variant="contained"
                 onClick={() => {
                   if (selectedBundle) {
-                    openSimulation(selectedBundle, simulationFloorData);
+                    openSimulation(selectedBundle, simulationFloorData, plan?.dependencies, isManualPlan);
                   } else {
-                    openSimulationFromPlan(hasLegacyPlanTarget ? planId : workflowId, simulationFloorData);
+                    openSimulationFromPlan(
+                      hasLegacyPlanTarget ? planId : workflowId,
+                      simulationFloorData,
+                      plan?.dependencies
+                    );
                   }
                 }}
                 sx={{
@@ -442,7 +449,7 @@ function PlanPageContent() {
                       <PreviewArea
                         uploadedPlan={uploadedPlan}
                         floorData={simulationFloorData}
-                        devices={selectedSimulationDevices}
+                        devices={isManualPlan ? [] : selectedSimulationDevices}
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -593,7 +600,9 @@ function PlanPageContent() {
 
                       {selectedSimulationDevices.length > 0 && (
                         <Stack spacing={1}>
-                          <Typography sx={{ fontWeight: 800 }}>Устройства на плане</Typography>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {isManualPlan ? "Выбранные устройства" : "Устройства на плане"}
+                          </Typography>
                           {selectedSimulationDevices.slice(0, 8).map((device) => (
                             <Box
                               key={device.id}
@@ -608,8 +617,13 @@ function PlanPageContent() {
                                 {device.name}
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
-                                {device.type} · комната {device.room_id}
-                                {device.position ? ` · x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}` : ""}
+                                {isManualPlan
+                                  ? `${device.type} · размещается пользователем в симуляции`
+                                  : `${device.type} · комната ${device.room_id}${
+                                      device.position
+                                        ? ` · x ${formatCoordinate(device.position.x)}, y ${formatCoordinate(device.position.y)}`
+                                        : ""
+                                    }`}
                               </Typography>
                             </Box>
                           ))}
@@ -682,7 +696,9 @@ function PlanPageContent() {
                       <Button
                         variant="outlined"
                         disabled={!selectedBundle.listings.length}
-                        onClick={() => openSimulation(selectedBundle, simulationFloorData)}
+                        onClick={() =>
+                          openSimulation(selectedBundle, simulationFloorData, plan?.dependencies, isManualPlan)
+                        }
                         sx={{ fontWeight: 900, borderRadius: 3 }}
                       >
                         Открыть в симуляции
@@ -1071,12 +1087,29 @@ function simulationUrl() {
   return process.env.NEXT_PUBLIC_SIM_UI_URL ?? "/sim-ui/simulation";
 }
 
-function openSimulationFromPlan(planId: number | string, floor?: unknown) {
+function storeSimulationDependencies(dependencies?: Record<string, string[]> | null) {
+  if (dependencies && Object.keys(dependencies).length) {
+    localStorage.setItem("simulation-plan-dependencies", JSON.stringify(dependencies));
+    return;
+  }
+  localStorage.removeItem("simulation-plan-dependencies");
+}
+
+function openSimulationFromPlan(
+  planId: number | string,
+  floor?: unknown,
+  dependencies?: Record<string, string[]> | null
+) {
+  const devices = devicesFromLayout(floor);
+  const triggerIds = triggerDeviceIdsFromDevices(devices);
+
+  clearSimulationStorage();
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
-  } else {
-    localStorage.removeItem("simulation-floor");
   }
+  localStorage.setItem("simulation-devices", JSON.stringify(devices));
+  localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
+  storeSimulationDependencies(dependencies);
 
   const url = new URL(simulationUrl(), window.location.origin);
   if (typeof planId === "number" && Number.isFinite(planId) && planId > 0) {
@@ -1088,22 +1121,26 @@ function openSimulationFromPlan(planId: number | string, floor?: unknown) {
   window.location.href = url.toString();
 }
 
-function openSimulation(bundle: SimulationBundle, floor?: unknown) {
+function openSimulation(
+  bundle: SimulationBundle,
+  floor?: unknown,
+  dependencies?: Record<string, string[]> | null,
+  manualPlacement = false
+) {
   const devices = simulationDevicesFromBundle(bundle, floor);
   const triggerIds = triggerDeviceIdsFromDevices(devices);
 
+  clearSimulationStorage();
   localStorage.setItem("simulation-devices", JSON.stringify(devices));
   localStorage.setItem("simulation-trigger-device-ids", JSON.stringify(triggerIds));
+  storeSimulationDependencies(dependencies);
   if (floor) {
     localStorage.setItem("simulation-floor", JSON.stringify(floor));
-  } else {
-    localStorage.removeItem("simulation-floor");
   }
 
   const url = new URL(simulationUrl(), window.location.origin);
-  url.searchParams.set("devices", JSON.stringify(devices));
-  if (triggerIds.length) {
-    url.searchParams.set("trigger_ids", triggerIds.join(","));
+  if (manualPlacement) {
+    url.searchParams.set("manual_placement", "1");
   }
   window.location.href = url.toString();
 }
@@ -1116,7 +1153,7 @@ function simulationDevicesFromBundle(bundle: SimulationBundle, floor?: unknown):
   bundle.listings.forEach((listing, listingIndex) => {
     const type = listing.device_attributes?.device_type;
     const normalizedType = typeof type === "string" ? type : listing.name;
-    const units = Math.max(1, listing.units_to_buy || 1);
+    const units = Math.max(1, listing.device_quantity || listing.units_to_buy || 1);
 
     for (let unitIndex = 0; unitIndex < units; unitIndex += 1) {
       const matchedIndex = layoutDevices.findIndex((device, index) => {
@@ -1133,7 +1170,7 @@ function simulationDevicesFromBundle(bundle: SimulationBundle, floor?: unknown):
         name: listing.name,
         type: matched?.type ?? normalizedType,
         device_type: matched?.device_type ?? normalizedType,
-        room_id: matched?.room_id ?? roomIdForDevice(normalizedType, listingIndex + unitIndex),
+        room_id: matched?.room_id,
         position: matched?.position,
         direction: matched?.direction,
         track: matched?.track,
@@ -1277,21 +1314,16 @@ function isTriggerDeviceType(value: string) {
   );
 }
 
-function roomIdForDevice(type: string, index: number) {
-  const key = type.toLowerCase();
-  if (key.includes("leak") || key.includes("water")) return "bath";
-  if (key.includes("gas") || key.includes("smoke")) return "kitchen";
-  if (key.includes("door") || key.includes("motion") || key.includes("presence")) return "hall";
-  if (key.includes("temperature") || key.includes("climate")) return "living";
-  return ["living", "hall", "kitchen", "bath"][index % 4];
-}
-
 function collectSimulationFloorData(
   uploadedPlan: UploadedPlanState | null,
   status: ApiPlanStatus | null,
   plan: ApiHomePlan | null
 ) {
-  const fromUpload = uploadedPlan?.floorJson ?? uploadedPlan?.parsedFloor ?? uploadedPlan?.floor;
+  const fromUpload =
+    plan?.floor_plan ??
+    uploadedPlan?.floorJson ??
+    uploadedPlan?.parsedFloor ??
+    uploadedPlan?.floor;
   let floor: unknown = fromUpload ?? null;
   let zones: unknown = null;
   let layout: unknown = null;
@@ -1496,6 +1528,7 @@ function pipelineResultToPlan(result: ApiPipelineResult | PipelineStatusResponse
     plan_id: 0,
     budget,
     main_ecosystem_id: "",
+    dependencies: result.dependencies ?? null,
     requirements,
     bundles: effectiveBundles,
     stages: pipelineResultToStageArtifacts(result),

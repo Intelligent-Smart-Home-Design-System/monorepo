@@ -28,12 +28,7 @@ func (b *BaseDevice[T]) HandleOutDTO(dto []byte) {
 		Payload:  dto,
 	}
 
-	for _, r := range b.Receivers {
-		b.enginePort.GetInChan() <- api.EventDTO{
-			EntityID: r,
-			Payload:  dto,
-		}
-	}
+	b.enginePort.TriggerReceivers(b.ID, dto)
 }
 
 // Process - основной процесс устройства, который обрабатывает входящие события, вызывает handler и отправляет результаты.

@@ -57,6 +57,83 @@ export type ApiDeviceType = {
     filters: ApiDeviceTypeFilterField[];
 };
 
+export type ApiCatalogCategory = {
+    id: string;
+    name: string;
+    product_count: number;
+    min_price: number;
+};
+
+export type ApiCatalogProduct = {
+    device_id: number;
+    listing_id: number;
+    device_type: string;
+    name: string;
+    brand: string;
+    model: string;
+    quality: number;
+    price: number;
+    currency: string;
+    image_url?: string | null;
+    rating: number;
+    review_count: number;
+    devices_per_listing: number;
+    merchant: string;
+    url: string;
+    available: boolean;
+    device_attributes: Record<string, unknown>;
+    ecosystems: string[];
+    protocols: string[];
+};
+
+export type ApiCatalogProductFilters = {
+    brands: string[];
+    ecosystems: string[];
+    protocols: string[];
+    min_price: number;
+    max_price: number;
+};
+
+export type ApiCatalogProductsResponse = {
+    items: ApiCatalogProduct[];
+    page: number;
+    page_size: number;
+    total: number;
+    total_pages: number;
+    filters: ApiCatalogProductFilters;
+};
+
+export type ApiCatalogProductsQuery = {
+    device_type: string;
+    q?: string;
+    brand?: string;
+    ecosystem?: string;
+    protocol?: string;
+    min_price?: number;
+    max_price?: number;
+    sort?: "price_asc" | "price_desc" | "rating_desc" | "name_asc";
+    page?: number;
+    page_size?: number;
+};
+
+export type ApiCreateManualPlanSelection = {
+    device_id: number;
+    listing_id: number;
+    quantity: number;
+};
+
+export type ApiCreateManualPlanRequest = {
+    budget: number;
+    floor_plan: Record<string, unknown>;
+    selections: ApiCreateManualPlanSelection[];
+};
+
+export type ApiCreatePlanResponse = {
+    plan_id: number;
+    status: string;
+    message?: string;
+};
+
 export type ApiRequirementFilter = {
     field: string;
     operation: ApiFilterOperation;
@@ -162,6 +239,7 @@ export type ApiListing = {
     image_url?: string | null;
     devices_per_listing: number;
     units_to_buy: number;
+    device_quantity?: number;
     requirement_id: number;
     device_attributes?: Record<string, unknown>;
     connection_info: ApiConnectionInfo;
@@ -182,12 +260,14 @@ export type ApiHomePlan = {
     plan_id: number;
     budget: number;
     main_ecosystem_id: string;
+    dependencies?: Record<string, string[]> | null;
     allowed_ecosystems?: string[] | null;
     excluded_ecosystems?: string[] | null;
     requirements: ApiRequirement[];
     bundles: ApiBundle[];
     stages?: ApiPlanStageArtifact[] | null;
     artifacts?: ApiPlanStageArtifact[] | null;
+    floor_plan?: unknown;
 };
 
 export type ApiErrorResponse = {

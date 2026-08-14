@@ -8,9 +8,10 @@
     "preview": "next build --webpack && next start",
     "start": "next start",
     "lint": "eslint .",
-    "test:ws": "node scripts/ws-smoke.mjs"
+    "test:ws": "node --experimental-websocket scripts/ws-smoke.mjs"
   },
   "dependencies": {
+    "lucide-react": "^1.26.0",
     "next": "^16.2.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"

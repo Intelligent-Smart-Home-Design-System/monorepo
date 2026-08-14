@@ -6,6 +6,7 @@ COPY frontend/apps/ ./apps/
 COPY frontend/packages/ ./packages/
 COPY services/layout/internal/configs/tracks.json /services/layout/internal/configs/tracks.json
 COPY services/layout/internal/configs/devices.json /services/layout/internal/configs/devices.json
+COPY services/layout/internal/configs/dependencies.json /services/layout/internal/configs/dependencies.json
 COPY services/simulation/configs/dependencies.json /services/simulation/configs/dependencies.json
 COPY services/simulation/configs/entities.json /services/simulation/configs/entities.json
 

@@ -33,7 +33,32 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/opentelemetry"
 	"go.temporal.io/sdk/interceptor"
+	"go.temporal.io/sdk/temporal"
 )
+
+type workflowErrorResponse struct {
+	Code    string   `json:"code"`
+	Message string   `json:"message"`
+	Cycle   []string `json:"cycle,omitempty"`
+}
+
+func pipelineWorkflowError(err error) workflowErrorResponse {
+	var applicationErr *temporal.ApplicationError
+	if errors.As(err, &applicationErr) && applicationErr.Type() == "cyclic_dependencies" {
+		var cycle []string
+		_ = applicationErr.Details(&cycle)
+		return workflowErrorResponse{
+			Code:    "cyclic_dependencies",
+			Message: "Обнаружена циклическая зависимость между устройствами. Исправьте конфигурацию.",
+			Cycle:   cycle,
+		}
+	}
+
+	return workflowErrorResponse{
+		Code:    "pipeline_failed",
+		Message: "Не удалось сформировать конфигурацию умного дома.",
+	}
+}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -259,13 +284,20 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 
 		status := description.WorkflowExecutionInfo.Status
 		if status != enumspb.WORKFLOW_EXECUTION_STATUS_COMPLETED {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusAccepted)
-			_ = json.NewEncoder(w).Encode(map[string]string{
+			response := map[string]any{
 				"workflow_id": workflowID,
 				"run_id":      description.WorkflowExecutionInfo.Execution.RunId,
 				"status":      status.String(),
-			})
+			}
+			if status == enumspb.WORKFLOW_EXECUTION_STATUS_FAILED {
+				var ignored pipeline.PipelineResult
+				if workflowErr := temporalClient.GetWorkflow(r.Context(), workflowID, runID).Get(r.Context(), &ignored); workflowErr != nil {
+					response["error"] = pipelineWorkflowError(workflowErr)
+				}
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(response)
 			return
 		}
 

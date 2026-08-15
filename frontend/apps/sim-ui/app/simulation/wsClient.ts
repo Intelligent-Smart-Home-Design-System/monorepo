@@ -160,6 +160,7 @@ export function buildSimulationStartPayload(args: {
   scenarios: Scenario[];
   deviceIds?: string[];
   deviceTypes?: Record<string, string | undefined>;
+  deviceRadii?: Record<string, number | undefined>;
   human: {
     id: string;
     position: { x: number; y: number };
@@ -204,6 +205,7 @@ export function buildSimulationStartPayload(args: {
         const marker = markerMap.get(id);
         const position = marker ? floorCoordinates.toFloor(marker) : undefined;
         const descriptor = backendDeviceDescriptor(id, args.deviceTypes?.[id]);
+        const radius = args.deviceRadii?.[id];
         return {
           id,
           type: descriptor.type,
@@ -216,7 +218,7 @@ export function buildSimulationStartPayload(args: {
             timeout: 1,
             x: position?.x,
             y: position?.y,
-            radius: floorCoordinates.cellSize * 1.5,
+            ...(typeof radius === "number" && Number.isFinite(radius) && radius >= 0 ? { radius } : {}),
           },
         };
       }),
@@ -238,6 +240,19 @@ export function buildSimulationStartPayload(args: {
       })),
     ],
     scenarios: backendScenarios,
+  };
+}
+
+// Converts the unmodified device radius from floor coordinates to normalized view coordinates.
+export function sensorDetectionRadiusForView(floorSource: unknown, floorRadius: number) {
+  const mapper = makeFloorCoordinateMapper(floorSource);
+  const origin = mapper.toView({ x: 0, y: 0 });
+  const horizontalEdge = mapper.toView({ x: floorRadius, y: 0 });
+  const verticalEdge = mapper.toView({ x: 0, y: floorRadius });
+
+  return {
+    x: Math.abs(horizontalEdge.x - origin.x),
+    y: Math.abs(verticalEdge.y - origin.y),
   };
 }
 

@@ -77,6 +77,7 @@ type Props = {
   onPlaceSmoke?: (point: Point) => void;
   onResetSmoke?: () => void;
   smokeResetPending?: boolean;
+  motionSensorRadii: Record<string, Point>;
   personPosition: Point;
   personMovementEnabled?: boolean;
   onPersonMove?: (point: Point) => boolean;
@@ -126,7 +127,6 @@ type ForbiddenZone = {
 
 const PERSON_STEP_MS = 340;
 const PERSON_MOVE_STEP = 0.015;
-const MOTION_SENSOR_RADIUS = 0.13;
 
 export function ApartmentPlan({
   rooms,
@@ -163,6 +163,7 @@ export function ApartmentPlan({
   onPlaceSmoke,
   onResetSmoke,
   smokeResetPending = false,
+  motionSensorRadii,
   personPosition,
   personMovementEnabled = false,
   onPersonMove,
@@ -975,6 +976,8 @@ export function ApartmentPlan({
               .filter((device) => isMotionSensor(device))
               .map((device) => {
                 const pos = positionForDevice(device.id);
+                const radius = motionSensorRadii[device.id];
+                if (!radius) return null;
                 const isActive = deviceMap.get(device.id) === "active";
                 return (
                   <div
@@ -983,8 +986,8 @@ export function ApartmentPlan({
                     style={{
                       left: `${pos.x * 100}%`,
                       top: `${pos.y * 100}%`,
-                      width: `${MOTION_SENSOR_RADIUS * 200}%`,
-                      height: `${MOTION_SENSOR_RADIUS * 200}%`,
+                      width: `${radius.x * 200}%`,
+                      height: `${radius.y * 200}%`,
                     }}
                     title={`Зона ${device.id}`}
                   />

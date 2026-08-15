@@ -429,6 +429,7 @@ Frontend должен:
 
 * читать `payload.kind`;
 * поддерживать `fire:spread`, `flood:spread`, `smoke:spread`;
+* считать сообщением полного snapshot только payload с массивом `incidents`; события датчиков с тем же `kind`, но без `incidents`, не должны менять слой;
 * брать `incidents[].blocks[].points`;
 * рисовать каждый block как polygon;
 * заменять весь слой этого kind новым snapshot-ом;

@@ -29,6 +29,7 @@ import {
   readHumanMoveState,
   readHumanRouteState,
   resolveSimulationWsUrl,
+  sensorDetectionRadiusForView,
   deviceUsesPercentControl,
   deviceValueControl,
   SIMULATION_TICK_INTERVAL_MS,
@@ -68,6 +69,8 @@ type ExternalDevice = {
   type?: string;
   x?: number;
   y?: number;
+  radius?: number;
+  filters?: Record<string, unknown>;
 };
 type SavedPlanDevice = {
   id: string;
@@ -303,6 +306,11 @@ function normalizeExternalDevice(raw: unknown): ExternalDevice | null {
 
   const x = isFiniteNumber(item.x) ? item.x : undefined;
   const y = isFiniteNumber(item.y) ? item.y : undefined;
+  const radius = isFiniteNumber(item.radius) ? item.radius : undefined;
+  const filters =
+    item.filters && typeof item.filters === "object" && !Array.isArray(item.filters)
+      ? (item.filters as Record<string, unknown>)
+      : undefined;
 
   return {
     id: idCandidate.trim(),
@@ -310,7 +318,18 @@ function normalizeExternalDevice(raw: unknown): ExternalDevice | null {
     type: typeof item.type === "string" ? item.type : typeof item.device_type === "string" ? item.device_type : undefined,
     x: x !== undefined && x >= 0 && x <= 1 ? x : undefined,
     y: y !== undefined && y >= 0 && y <= 1 ? y : undefined,
+    radius,
+    filters,
   };
+}
+
+function deviceDetectionRadius(device: ExternalDevice) {
+  const rawRadius =
+    device.radius ??
+    device.filters?.detection_range_mm ??
+    device.filters?.detection_range_m ??
+    device.filters?.detection_range_meters;
+  return typeof rawRadius === "number" && Number.isFinite(rawRadius) && rawRadius >= 0 ? rawRadius : undefined;
 }
 
 function loadExternalDevicesFromStorage(): ExternalDevice[] {
@@ -526,6 +545,21 @@ export default function SimulationPage() {
   }, []);
 
   const externalDeviceMap = useMemo(() => new Map(externalDevices.map((device) => [device.id, device])), [externalDevices]);
+  const deviceRadii = useMemo(() => {
+    const radii: Record<string, number> = {};
+    externalDevices.forEach((device) => {
+      const radius = deviceDetectionRadius(device);
+      if (radius !== undefined) radii[device.id] = radius;
+    });
+    return radii;
+  }, [externalDevices]);
+  const motionSensorRadii = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(deviceRadii).map(([id, radius]) => [id, sensorDetectionRadiusForView(floorSource, radius)])
+      ),
+    [deviceRadii, floorSource]
+  );
   const deviceNames = useMemo(() => {
     const names = new Map(
       devicePositions.flatMap((marker) => (marker.label ? [[marker.id, marker.label] as const] : []))
@@ -1000,11 +1034,18 @@ export default function SimulationPage() {
     const polygonsByKind = new Map<IncidentKind, IncidentPolygon[]>();
     changes.forEach((change) => {
       const payload = change.payload as IncidentStatePayload | undefined;
-      if (!payload || typeof payload !== "object" || !isIncidentKind(payload.kind)) return;
+      if (
+        !payload ||
+        typeof payload !== "object" ||
+        !isIncidentKind(payload.kind) ||
+        !Array.isArray(payload.incidents)
+      ) {
+        return;
+      }
       const kind = payload.kind;
       kinds.add(kind);
 
-      const polygons = (payload.incidents ?? []).flatMap((zone) =>
+      const polygons = payload.incidents.flatMap((zone) =>
         (zone.blocks ?? []).flatMap((block) => {
           if (!Array.isArray(block.points) || block.points.length < 3) return [];
           const points = block.points
@@ -1301,6 +1342,7 @@ export default function SimulationPage() {
       scenarios: selectedScenarios,
       deviceIds: placedDeviceIds,
       deviceTypes: Object.fromEntries(devicesForPlan.map((device) => [device.id, device.type])),
+      deviceRadii,
       human: {
         id: HUMAN_ID,
         position: humanPosition,
@@ -1670,6 +1712,7 @@ export default function SimulationPage() {
                 onPlaceSmoke={startSmokeAt}
                 onResetSmoke={resetSmoke}
                 smokeResetPending={incidentResetPending["smoke:spread"]}
+                motionSensorRadii={motionSensorRadii}
                 personPosition={humanPosition}
                 personMovementEnabled={status === "running"}
                 onPersonMove={requestHumanMove}

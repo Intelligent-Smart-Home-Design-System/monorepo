@@ -21,17 +21,19 @@ func (r *FloorTemperatureSensorRule) Apply(zonedAp *apartment.ZonedApartment, le
 	deviceType := r.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var floorTemperatureSensorFilters *filters.FloorTemperatureSensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.FloorTemperatureSensorFilter)
+			if ok {
+				floorTemperatureSensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.FloorTemperatureSensorFilter{}
-	}
-
-	floorTemperatureSensorFilters, ok := configFilters.(*filters.FloorTemperatureSensorFilter)
-	if !ok {
+	if floorTemperatureSensorFilters == nil {
 		floorTemperatureSensorFilters = &filters.FloorTemperatureSensorFilter{}
 	}
 

@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/apartment"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/layout/internal/configs"
@@ -20,7 +21,7 @@ func NewEngine(st *storage.Storage) *Engine {
 }
 
 // PlaceDevices расставляет устройства по выбранному уровню в каждом треке
-func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string]string) (*apartment.Layout, error) {
+func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string]string, customDevices []CustomDeviceInput) (*apartment.Layout, error) {
 	if ap == nil {
 		return nil, fmt.Errorf("nil apartment")
 	}
@@ -60,6 +61,32 @@ func (e *Engine) PlaceDevices(ap *apartment.Apartment, selectedLevels map[string
 		}
 	}
 
+	var allRooms []string
+	for _, room := range ap.Rooms {
+		allRooms = append(allRooms, strings.ToLower(room.Name))
+	}
+
+	for _, customDevice := range customDevices {
+        if customDevice.Count <= 0 {
+            continue
+        }
+
+        rule, ok := e.storage.Rules[customDevice.Device]
+        if !ok {
+            return nil, fmt.Errorf("failed to get rule for custom device %s", customDevice.Device)
+        }
+
+		deviceRooms := configs.GetDeviceRoomsMinimax(customDevice.Device, tracksConfig)
+		if len(deviceRooms) == 0 {
+			deviceRooms = allRooms
+		}
+
+        err := rule.Apply(zonedAp, "", deviceRooms, customDevice.Count, res)
+        if err != nil {
+            return nil, fmt.Errorf("failed to apply rule for custom device %s: %w", customDevice.Device, err)
+        }
+    }
+
 	return res, nil
 }
 
@@ -93,9 +120,8 @@ func (e *Engine) MakeScenarioDependencies(layout *apartment.Layout) (map[string]
 				roomAndTypeToDeviceIDs[roomID] = make(map[string][]string)
 			}
 
-
 			roomAndTypeToDeviceIDs[roomID][deviceType] = append(
-				roomAndTypeToDeviceIDs[roomID][deviceType], 
+				roomAndTypeToDeviceIDs[roomID][deviceType],
 				placement.Device.ID,
 			)
 		}

@@ -47,15 +47,21 @@ func (gl *GasLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(gl.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var gasLeakSensorFilters *filters.GasLeakSensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(gl.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.GasLeakSensorFilter)
+			if ok {
+				gasLeakSensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.GasLeakSensorFilter{}
+	if gasLeakSensorFilters == nil {
+		gasLeakSensorFilters = &filters.GasLeakSensorFilter{}
 	}
-	gasLeakSensorFilters := configFilters.(*filters.GasLeakSensorFilter)
 
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {

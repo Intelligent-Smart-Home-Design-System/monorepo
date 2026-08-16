@@ -49,15 +49,21 @@ func (wl *WaterLeakSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(wl.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var waterLeakSensorFilters *filters.WaterLeakSensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(wl.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.WaterLeakSensorFilter)
+			if ok {
+				waterLeakSensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.WaterLeakSensorFilter{}
+	if waterLeakSensorFilters == nil {
+		waterLeakSensorFilters = &filters.WaterLeakSensorFilter{}
 	}
-	waterLeakSensorFilters := configFilters.(*filters.WaterLeakSensorFilter)
 
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {

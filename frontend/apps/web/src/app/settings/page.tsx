@@ -396,25 +396,37 @@ export default function SettingsPage() {
     clearSimulationStorage();
     setSubmitting(true);
     setError("");
+  
     try {
-      const created = await api.createManualPlan({
-        budget: budgetValue,
+      const customDevices = manualItems.map((item) => ({
+        device: item.categoryId || String(item.deviceId),
+        count: item.quantity,
+      }));
+    
+      const started = await api.startPipeline({
+        request_id: crypto.randomUUID(),
         floor_plan: parsedFloor as Record<string, unknown>,
-        selections: manualItems.map((item) => ({
-          device_id: item.deviceId,
-          listing_id: item.listingId,
-          quantity: item.quantity,
-        })),
+        custom_devices: customDevices,
+        device_selection: {
+          main_ecosystem: mainEcosystemId || "aqara",
+          budget: budgetValue,
+          requirements: [],
+        },
       });
 
       localStorage.setItem("planner-last-budget", budget);
-      localStorage.removeItem("planner-uploaded-plan");
+      localStorage.setItem("planner-uploaded-plan", JSON.stringify(planPreviewState));
       saveManualSelection([]);
       localStorage.removeItem(MANUAL_MODE_STORAGE_KEY);
-      router.push(`/plan?id=${created.plan_id}`);
+
+      const params = new URLSearchParams({ workflow_id: started.workflow_id });
+      if (started.run_id) params.set("run_id", started.run_id);
+      
+      router.push(`/plan?${params.toString()}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Не удалось создать ручной план.");
-    } finally {
+    }
+    finally {
       setSubmitting(false);
     }
   };

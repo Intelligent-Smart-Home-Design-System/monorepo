@@ -33,17 +33,21 @@ func (stv *SmartTVRule) Apply(zonedAp *apartment.ZonedApartment, levelNum string
 	deviceType := stv.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(stv.track, levelNum, deviceType)
-	if err != nil {
-		return err
-	}
+	var smartTVFilters *filters.SmartTVFilter
 
-	if configFilters == nil {
-		configFilters = &filters.SmartTVFilter{
-			Width: defaultTVWidth,
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(stv.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartTVFilter)
+			if ok {
+				smartTVFilters = typedFilters
+			}
 		}
 	}
-	smartTVFilters := configFilters.(*filters.SmartTVFilter)
+
+	if smartTVFilters == nil {
+		smartTVFilters = &filters.SmartTVFilter{}
+	}
 
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {

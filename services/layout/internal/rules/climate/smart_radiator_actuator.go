@@ -21,17 +21,19 @@ func (r *SmartRadiatorActuatorRule) Apply(zonedAp *apartment.ZonedApartment, lev
 	deviceType := r.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartRadiatorActuatorFilters *filters.SmartRadiatorActuatorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartRadiatorActuatorFilter)
+			if ok {
+				smartRadiatorActuatorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartRadiatorActuatorFilter{}
-	}
-
-	smartRadiatorActuatorFilters, ok := configFilters.(*filters.SmartRadiatorActuatorFilter)
-	if !ok {
+	if smartRadiatorActuatorFilters == nil {
 		smartRadiatorActuatorFilters = &filters.SmartRadiatorActuatorFilter{}
 	}
 

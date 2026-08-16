@@ -51,18 +51,24 @@ func (ms *MotionSensorRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(ms.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var motionSensorFilters *filters.MotionSensorFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(ms.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.MotionSensorFilter)
+			if ok {
+				motionSensorFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.MotionSensorFilter{
+	if motionSensorFilters == nil {
+		motionSensorFilters = &filters.MotionSensorFilter{
 			DetectionRangeMM: defaultRange,
 			DetectionAngleDeg: defaultAngle,
 		}
 	}
-	motionSensorFilters := configFilters.(*filters.MotionSensorFilter)
 
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {

@@ -34,7 +34,7 @@ func TestComplexApartmentPlacement(t *testing.T) {
 		"media":    "3",
 	}
 
-	layout, err := eng.PlaceDevices(ap, selectedLevels)
+	layout, err := eng.PlaceDevices(ap, selectedLevels, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, layout)
 

@@ -30,15 +30,21 @@ func (ss *SmartSpeakerRule) Apply(zonedAp *apartment.ZonedApartment, levelNum st
 	deviceType := ss.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(ss.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartSpeakerFilters *filters.SmartSpeakerFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(ss.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartSpeakerFilter)
+			if ok {
+				smartSpeakerFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartSpeaker{}
+	if smartSpeakerFilters == nil {
+		smartSpeakerFilters = &filters.SmartSpeakerFilter{}
 	}
-	smartSpeakerFilters := configFilters.(*filters.SmartSpeaker)
 
 	roomsSet := make(map[string]struct{})
 	for _, name := range deviceRooms {

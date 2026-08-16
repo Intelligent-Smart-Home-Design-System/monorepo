@@ -44,15 +44,21 @@ func (sl *SmartLockRule) Apply(zonedAp *apartment.ZonedApartment, levelNum strin
 	}
 	
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(sl.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartLockFilters *filters.SmartLockFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(sl.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartLockFilter)
+			if ok {
+				smartLockFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartLockFilter{}
+	if smartLockFilters == nil {
+		smartLockFilters = &filters.SmartLockFilter{}
 	}
-	smartLockFilters := configFilters.(*filters.SmartLockFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

@@ -41,17 +41,19 @@ func (r *AirPurifierRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var airPurifierFilters *filters.AirPurifierFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.AirPurifierFilter)
+			if ok {
+				airPurifierFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.AirPurifierFilter{}
-	}
-
-	airPurifierFilters, ok := configFilters.(*filters.AirPurifierFilter)
-	if !ok {
+	if airPurifierFilters == nil {
 		airPurifierFilters = &filters.AirPurifierFilter{}
 	}
 

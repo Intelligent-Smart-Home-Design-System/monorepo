@@ -59,15 +59,21 @@ func (ac *AirConditioner) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, "air_conditioner")
-	if err != nil {
-		return err
+	var acFilter *filters.AirConditionerFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, "air_conditioner")
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.AirConditionerFilter)
+			if ok {
+				acFilter = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.AirConditionerFilter{}
+	if acFilter == nil {
+		acFilter = &filters.AirConditionerFilter{}
 	}
-	acFilter := configFilters.(*filters.AirConditionerFilter)
 
 	var acWidthM float64
 	if acFilter != nil && acFilter.IndoorUnitLengthMM > 0 {

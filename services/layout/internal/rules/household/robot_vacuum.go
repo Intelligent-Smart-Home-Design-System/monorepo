@@ -48,17 +48,19 @@ func (r *RobotVacuumRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(r.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var robotVacuumFilters *filters.RobotVacuumFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(r.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.RobotVacuumFilter)
+			if ok {
+				robotVacuumFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.RobotVacuumFilter{}
-	}
-
-	robotVacuumFilters, ok := configFilters.(*filters.RobotVacuumFilter)
-	if !ok {
+	if robotVacuumFilters == nil {
 		robotVacuumFilters = &filters.RobotVacuumFilter{}
 	}
 

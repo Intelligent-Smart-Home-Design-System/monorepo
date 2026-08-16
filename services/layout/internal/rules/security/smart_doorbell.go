@@ -46,15 +46,21 @@ func (sd *SmartDoorBellRule) Apply(zonedAp *apartment.ZonedApartment, levelNum s
 	}
 	
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(sd.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartDoorBellFilters *filters.SmartDoorbellFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(sd.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartDoorbellFilter)
+			if ok {
+				smartDoorBellFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartDoorbellFilter{}
+	if smartDoorBellFilters == nil {
+		smartDoorBellFilters = &filters.SmartDoorbellFilter{}
 	}
-	smartDoorBellFilters := configFilters.(*filters.SmartDoorbellFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

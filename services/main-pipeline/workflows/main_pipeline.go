@@ -37,6 +37,7 @@ func MainPipelineWorkflow(ctx workflow.Context, input pipeline.PipelineRequest) 
 		RequestID:      input.RequestID,
 		FloorPlan:      input.FloorPlan,
 		SelectedLevels: input.SelectedLevels,
+		CustomDevices:  input.CustomDevices,
 	}).Get(ctx, &placed); err != nil {
 		return nil, err
 	}

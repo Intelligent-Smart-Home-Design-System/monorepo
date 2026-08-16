@@ -21,17 +21,19 @@ func (r *SmartFloorThermostatRule) Apply(zonedAp *apartment.ZonedApartment, leve
 	deviceType := r.Type()
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartFloorThermostatFilters *filters.SmartFloorThermostatFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartFloorThermostatFilter)
+			if ok {
+				smartFloorThermostatFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartFloorThermostatFilter{}
-	}
-
-	smartFloorThermostatFilters, ok := configFilters.(*filters.SmartFloorThermostatFilter)
-	if !ok {
+	if smartFloorThermostatFilters == nil {
 		smartFloorThermostatFilters = &filters.SmartFloorThermostatFilter{}
 	}
 

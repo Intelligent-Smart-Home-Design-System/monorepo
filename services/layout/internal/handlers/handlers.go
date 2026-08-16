@@ -87,7 +87,7 @@ func (h *Handlers) LayoutHandler(eng *engine.Engine) http.HandlerFunc {
 			return
 		}
 
-		layout, err := eng.PlaceDevices(apart, req.Levels)
+		layout, err := eng.PlaceDevices(apart, req.Levels, nil)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -2,11 +2,17 @@ package pipeline
 
 import "encoding/json"
 
+type CustomDeviceInput struct {
+    Device string `json:"device"`
+    Count  int    `json:"count"`
+}
+
 type PipelineRequest struct {
-	RequestID       string                 `json:"request_id,omitempty"`
-	FloorPlan       map[string]interface{} `json:"floor_plan"`
-	SelectedLevels  map[string]string      `json:"selected_levels"`
-	DeviceSelection map[string]interface{} `json:"device_selection"`
+    RequestID       string                 `json:"request_id,omitempty"`
+    FloorPlan       map[string]interface{} `json:"floor_plan"`
+    SelectedLevels  map[string]string      `json:"selected_levels,omitempty"`
+    CustomDevices   []CustomDeviceInput    `json:"custom_devices,omitempty"`
+    DeviceSelection map[string]interface{} `json:"device_selection,omitempty"`
 }
 
 type FloorParserInput struct {
@@ -19,9 +25,10 @@ type FloorParserOutput struct {
 }
 
 type LayoutInput struct {
-	RequestID      string                 `json:"request_id,omitempty"`
-	FloorPlan      map[string]interface{} `json:"floor_plan"`
-	SelectedLevels map[string]string      `json:"selected_levels"`
+    RequestID      string                 `json:"request_id,omitempty"`
+    FloorPlan      map[string]interface{} `json:"floor_plan"`
+    SelectedLevels map[string]string      `json:"selected_levels,omitempty"`
+    CustomDevices  []CustomDeviceInput    `json:"custom_devices,omitempty"`
 }
 
 type LayoutOutput struct {

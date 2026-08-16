@@ -33,7 +33,7 @@ func placeLightingLevel(apartmentStruct *apartment.Apartment, level string) (*ap
 	devicesConfig := configs.GetGlobalDevicesConfig()
 
 	e := engine.NewEngine(st)
-	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels)
+	layout, err := e.PlaceDevices(apartmentStruct, selectedLevels, nil)
 	if err != nil {
 		return nil, nil, err
 	}

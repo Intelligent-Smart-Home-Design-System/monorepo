@@ -52,7 +52,7 @@ func TestLaunch(t *testing.T) {
 	storage.LoadAllSecurityRules()
 
 	engine := engine.NewEngine(storage)
-	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels, nil)
 
 	assert.NoError(t, err)
 }
@@ -70,7 +70,7 @@ func TestNilApartment(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage)
-	_, err := engine.PlaceDevices(nil, selectedLevels)
+	_, err := engine.PlaceDevices(nil, selectedLevels, nil)
 
 	assert.Error(t, err)
 }
@@ -92,7 +92,7 @@ func TestNilRoomsStruct(t *testing.T) {
 	assert.NoError(t, err2)
 
 	engine := engine.NewEngine(storage)
-	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels)
+	_, err := engine.PlaceDevices(apartmentStruct, selectedLevels, nil)
 
 	assert.Error(t, err)
 }

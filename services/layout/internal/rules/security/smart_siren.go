@@ -53,15 +53,21 @@ func (ss *SmartSirenRule) Apply(zonedAp *apartment.ZonedApartment, levelNum stri
 	}
 
 	tracksConfig := configs.GetGlobalTracksConfig()
-	configFilters, err := tracksConfig.GetDeviceFilter(ss.track, levelNum, deviceType)
-	if err != nil {
-		return err
+	var smartSirenFilters *filters.SmartSirenFilter
+
+	if levelNum != "" {
+		configFilters, err := tracksConfig.GetDeviceFilter(ss.track, levelNum, deviceType)
+		if err == nil && configFilters != nil {
+			typedFilters, ok := configFilters.(*filters.SmartSirenFilter)
+			if ok {
+				smartSirenFilters = typedFilters
+			}
+		}
 	}
 
-	if configFilters == nil {
-		configFilters = &filters.SmartSirenFilter{}
+	if smartSirenFilters == nil {
+		smartSirenFilters = &filters.SmartSirenFilter{}
 	}
-	smartSirenFilters := configFilters.(*filters.SmartSirenFilter)
 
 	deviceCnt := 0
 	for _, zr := range zonedAp.ZonedRooms {

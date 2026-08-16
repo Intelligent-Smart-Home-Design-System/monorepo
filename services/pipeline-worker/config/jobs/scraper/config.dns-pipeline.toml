@@ -1,0 +1,53 @@
+# DNS для pipeline-trigger (Docker).
+# browser_user_mode=true + Chromium/Xvfb в образе scraper.
+# Chrome profile: изолированный /tmp/... на каждый job (pipeline-worker задаёт DNS_BROWSER_PROFILE).
+#
+# Локальный прогрев Qrator (общий профиль на хосте):
+#   $env:DNS_BROWSER_SHARED_PROFILE = "1"
+#   go run ./cmd/scraper scrape --discovery --sources dns --config ...
+#
+# make pipeline-build && make pipeline-up && make pipeline-trigger
+
+[database]
+host = "catalog-postgresql"
+port = 5432
+user = "catalog"
+password = "catalog"
+dbname = "smart_home"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 1.0
+timeout = "120s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+# HTTP/SOCKS proxy (задайте локально или через env; не коммитьте реальные креды)
+# proxy = "http://user:pass@host:port"
+
+[dns]
+discovery_seeds = [
+  "https://www.dns-shop.ru/catalog/9bbe8fe270e7c3ae/umnaa-tehnika/",
+]
+search_queries = []
+max_pages = 1
+max_bfs_fetches = 50
+browser_user_mode = true
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk", "moes" = "moes" }
+smart_home_device_markers = [
+  "Алиса", "Маруся", "Zigbee", "умный дом",
+  "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн", "moes"
+]
+
+[jobs.scrape_discovery.dns]
+discovery_bootstrap = ["seed"]
+#limit = 10
+
+[jobs.parse_discovery.dns]
+#limit = 10
+
+[jobs.scrape.dns]
+#limit = 10
+
+[jobs.parse.dns]
+#limit = 10

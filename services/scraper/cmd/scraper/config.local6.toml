@@ -1,0 +1,44 @@
+# Тест 6: parse listing — снимки listing за сегодня (lampy/televizory).
+#
+# Нужны необработанные listing snapshots (после теста 5 или сброс):
+#   psql ... -f cmd/scraper/test_dns_reset_listing_snapshots.sql
+#
+# Проверка:
+#   psql ... -f cmd/scraper/test_dns_check_listing.sql
+#
+# Запуск:
+#   cd monorepo/services/scraper
+#   go run ./cmd/scraper parse --sources dns --page-types listing --config cmd/scraper/config.local6.toml
+#
+# Ожидание: snapshots_matched ≤ limit; saved > 0 если есть smart_home_markers на карточке.
+
+[database]
+host = "localhost"
+port = 5432
+user = "catalog"
+password = "catalog"
+dbname = "smart_home"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 2.0
+timeout = "60s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+proxy = ""
+
+[wildberries]
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk" }
+
+[dns]
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+brand_aliases = { "яндекс" = "yandex", "сбер" = "sber", "маруся" = "vk", "moes" = "moes" }
+smart_home_device_markers = [
+  "Алиса", "Маруся", "Zigbee", "умный дом",
+  "умная лампа", "умный свет", "Wi-Fi", "WiFi", "Matter", "Умн"
+]
+
+[jobs.parse.dns]
+scraped_after = 2026-06-30T00:00:00+03:00
+limit = 5
+# url_contains = ["lampy", "televizor", "/product/"]

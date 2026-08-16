@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/netproxy"
 )
 
 const Source = "sprut"
@@ -17,9 +18,13 @@ type Scraper struct {
 	userAgent string
 }
 
-func NewScraper(timeout time.Duration, userAgent string) *Scraper {
+func NewScraper(timeout time.Duration, proxyURL, userAgent string) *Scraper {
+	client, err := netproxy.NewHTTPClient(timeout, proxyURL)
+	if err != nil {
+		client = &http.Client{Timeout: timeout}
+	}
 	return &Scraper{
-		client:    &http.Client{Timeout: timeout},
+		client:    client,
 		userAgent: userAgent,
 	}
 }

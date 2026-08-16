@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/netproxy"
 )
 
 type Scraper struct {
@@ -16,17 +16,12 @@ type Scraper struct {
 }
 
 func NewScraper(timeout time.Duration, proxyURL string, rps float64) *Scraper {
-	transport := &http.Transport{}
-	if proxyURL != "" {
-		if proxy, err := url.Parse(proxyURL); err == nil {
-			transport.Proxy = http.ProxyURL(proxy)
-		}
+	client, err := netproxy.NewHTTPClient(timeout, proxyURL)
+	if err != nil {
+		client = &http.Client{Timeout: timeout}
 	}
 	return &Scraper{
-		client: &http.Client{
-			Timeout:   timeout,
-			Transport: transport,
-		},
+		client: client,
 	}
 }
 

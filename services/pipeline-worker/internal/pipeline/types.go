@@ -14,6 +14,17 @@ type JobDefinition struct {
 	Command    []string          `toml:"command" json:"command"`
 	ConfigPath string            `toml:"config_path" json:"config_path"`
 	EnvMapping map[string]string `toml:"env_mapping" json:"env_mapping"`
+	Volumes    []VolumeMount     `toml:"volumes" json:"volumes,omitempty"`
+	ShmSize    string            `toml:"shm_size" json:"shm_size,omitempty"`
+}
+
+// VolumeMount binds a host path or Docker volume into the job container.
+// type: "bind" (default) or "volume" (named volume).
+type VolumeMount struct {
+	Source   string `toml:"source" json:"source"`
+	Target   string `toml:"target" json:"target"`
+	Type     string `toml:"type" json:"type,omitempty"`
+	ReadOnly bool   `toml:"readonly" json:"readonly,omitempty"`
 }
 
 type RetrySettings struct {
@@ -40,6 +51,8 @@ type RunContainerParams struct {
 	Command    []string          `json:"command"`
 	ConfigPath string            `json:"config_path"`
 	EnvMapping map[string]string `json:"env_mapping"`
+	Volumes    []VolumeMount     `json:"volumes,omitempty"`
+	ShmSize    string            `json:"shm_size,omitempty"`
 }
 
 type RunContainerResult struct {

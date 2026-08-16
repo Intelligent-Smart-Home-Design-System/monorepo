@@ -1,0 +1,35 @@
+# make pipeline-build && make pipeline-up
+# make pipeline-trigger PIPELINE_CONFIG=/app/config/pipeline.sprut-trial.toml
+
+[database]
+host = "catalog-postgresql"
+port = 5432
+user = "catalog"
+password = "catalog"
+dbname = "smart_home"
+sslmode = "disable"
+
+[scraping]
+max_retries = 3
+rate_limit_rps = 2.0
+timeout = "30s"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+[sprut]
+discovery_seeds = [
+  "https://sprut.ai/catalog/section",
+]
+max_bfs_fetches = 10
+
+[jobs.scrape_discovery.sprut]
+discovery_bootstrap = ["seed"]
+#limit = 5
+
+[jobs.parse_discovery.sprut]
+#limit = 5
+
+[jobs.scrape.sprut]
+# limit = 20
+
+[jobs.parse.sprut]
+# limit = 20

@@ -16,7 +16,6 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/stealth"
-	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/domain"
@@ -45,11 +44,10 @@ type Scraper struct {
 	mu                   sync.RWMutex
 	discoveryURLTemplate string
 	discoveryMaxPages    int
-	log                  zerolog.Logger
+	requestMu            sync.Mutex
 }
 
 func NewScraper(
-	log zerolog.Logger,
 	timeout time.Duration,
 	proxyURL, cardBasket string,
 	rps float64,
@@ -68,6 +66,14 @@ func NewScraper(
 	if data, err := os.ReadFile(sessionPath); err == nil {
 		var sess Session
 		if err := json.Unmarshal(data, &sess); err == nil && time.Since(sess.UpdatedAt) < time.Hour {
+			if sess.Token == "" {
+				for _, c := range sess.Cookies {
+					if c.Name == "x_wbaas_token" {
+						sess.Token = c.Value
+						break
+					}
+				}
+			}
 			session = &sess
 		}
 	}
@@ -82,22 +88,34 @@ func NewScraper(
 		session:              session,
 		discoveryURLTemplate: discoveryURLTemplate,
 		discoveryMaxPages:    discoveryMaxPages,
-		log:                  log,
 	}
 }
 
 func (s *Scraper) loadSession() (*Session, error) {
 	data, err := os.ReadFile(s.sessionPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read session file: %w", err)
 	}
 	var sess Session
 	if err := json.Unmarshal(data, &sess); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal session: %w", err)
 	}
+
+	// Сначала заполняем токен из куки, если он пуст
+	if sess.Token == "" {
+		for _, c := range sess.Cookies {
+			if c.Name == "x_wbaas_token" {
+				sess.Token = c.Value
+				break
+			}
+		}
+	}
+
+	// Теперь проверяем время
 	if time.Since(sess.UpdatedAt) > time.Hour {
 		return nil, fmt.Errorf("session expired")
 	}
+
 	s.session = &sess
 	return &sess, nil
 }
@@ -112,7 +130,7 @@ func (s *Scraper) saveSession(sess *Session) error {
 }
 
 func (s *Scraper) mineSession() (*Session, error) {
-	s.log.Debug().Msg("mineSession: starting headless browser...")
+	fmt.Println("[DEBUG] mineSession: starting headless browser...")
 	l := launcher.New().Headless(true).Set("no-sandbox").Set("disable-setuid-sandbox")
 	url, err := l.Launch()
 	if err != nil {
@@ -125,8 +143,7 @@ func (s *Scraper) mineSession() (*Session, error) {
 	defer page.MustClose()
 
 	page.MustNavigate("https://www.wildberries.ru/")
-	page.MustWaitIdle()
-	time.Sleep(5 * time.Second)
+	page.MustWaitLoad()
 
 	cookies := page.MustCookies()
 	var cookieList []Cookie
@@ -142,7 +159,6 @@ func (s *Scraper) mineSession() (*Session, error) {
 			Path:   c.Path,
 		})
 	}
-	s.log.Debug().Interface("cookies", cookieList).Msg("mineSession: cookies obtained")
 	if tokenValue == "" {
 		return nil, fmt.Errorf("x_wbaas_token not found in cookies")
 	}
@@ -169,8 +185,11 @@ func (s *Scraper) ensureSession() error {
 	if err == nil && s.session != nil && time.Since(s.session.UpdatedAt) < 30*time.Minute {
 		return nil
 	}
+	if err != nil {
+		fmt.Printf("[DEBUG] loadSession error: %v\n", err)
+	}
 
-	s.log.Debug().Msg("ensureSession: session not found or expired, mining new session...")
+	fmt.Println("[DEBUG] ensureSession: session not found or expired, mining new session...")
 	sess, err := s.mineSession()
 	if err != nil {
 		return fmt.Errorf("mine session: %w", err)
@@ -178,72 +197,80 @@ func (s *Scraper) ensureSession() error {
 	sess.UpdatedAt = time.Now()
 	s.session = sess
 	if err := s.saveSession(sess); err != nil {
-		s.log.Warn().Err(err).Msg("failed to save session")
+		fmt.Printf("[WARN] failed to save session: %v\n", err)
 	}
 	return nil
 }
 
 func (s *Scraper) fetchJSON(ctx context.Context, url string) ([]byte, error) {
-	s.log.Debug().Str("url", url).Msg("fetchJSON: start")
-	if err := s.ensureSession(); err != nil {
-		s.log.Debug().Err(err).Msg("fetchJSON: ensureSession error")
-		return nil, err
-	}
-	s.log.Debug().Int("token_len", len(s.session.Token)).Msg("fetchJSON: session ok")
-	if err := s.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
+    fmt.Printf("[DEBUG] fetchJSON: start %s\n", url)
+    if err := s.ensureSession(); err != nil {
+        fmt.Printf("[DEBUG] fetchJSON: ensureSession error: %v\n", err)
+        return nil, err
+    }
+    fmt.Printf("[DEBUG] fetchJSON: session ok, token len=%d\n", len(s.session.Token))
+    if err := s.limiter.Wait(ctx); err != nil {
+        return nil, err
+    }
+    // Принудительная задержка 5 секунд между запросами (можно увеличить)
+    time.Sleep(5 * time.Second)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return nil, err
+    }
 
-	s.mu.RLock()
-	req.Header.Set("User-Agent", s.session.UserAgent)
-	for _, c := range s.session.Cookies {
-		req.AddCookie(&http.Cookie{
-			Name:   c.Name,
-			Value:  c.Value,
-			Domain: c.Domain,
-			Path:   c.Path,
-		})
-	}
-	s.mu.RUnlock()
+    s.mu.RLock()
+    // Базовые заголовки для всех запросов
+    req.Header.Set("User-Agent", s.session.UserAgent)
+    req.Header.Set("Accept", "*/*")
 
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+    // Для card.wb.ru не нужен токен и x-client-name
+    if !strings.Contains(url, "card.wb.ru") {
+        req.Header.Set("x-wbaas-token", s.session.Token)
+        req.Header.Set("x-client-name", "site")
+        // Для detail запросов можно добавить Referer
+        req.Header.Set("Referer", "https://www.wildberries.ru/")
+    }
+    // Никаких кук, Origin
+    s.mu.RUnlock()
 
-	if resp.StatusCode == 403 || resp.StatusCode == 498 {
-		s.mu.Lock()
-		s.session = nil
-		s.mu.Unlock()
-		return nil, fmt.Errorf("session invalid (HTTP %d)", resp.StatusCode)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	s.log.Debug().Str("url", url).Int("body_size", len(body)).Msg("fetchJSON: complete")
-	return body, nil
+    fmt.Printf("[DEBUG] fetchJSON: headers: %v\n", req.Header)
+    resp, err := s.client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    if resp.StatusCode == 403 || resp.StatusCode == 498 {
+        fmt.Printf("[DEBUG] fetchJSON: session invalid (%d), body = %s\n", resp.StatusCode, string(body))
+        s.mu.Lock()
+        s.session = nil
+        s.mu.Unlock()
+        return nil, fmt.Errorf("session invalid (HTTP %d)", resp.StatusCode)
+    }
+    if resp.StatusCode != http.StatusOK {
+        fmt.Printf("[DEBUG] fetchJSON: non-200 status %d, body = %s\n", resp.StatusCode, string(body))
+        return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+    }
+    fmt.Printf("[DEBUG] fetchJSON: %s, body size = %d\n", url, len(body))
+    return body, nil
 }
 
 func (s *Scraper) fetchWithRetry(ctx context.Context, url string) ([]byte, error) {
 	var lastErr error
 	for i := 0; i < 3; i++ {
-		s.log.Debug().Int("attempt", i+1).Str("url", url).Msg("fetchWithRetry: attempt")
+		fmt.Printf("[DEBUG] fetchWithRetry: attempt %d for %s\n", i+1, url)
 		body, err := s.fetchJSON(ctx, url)
 		if err == nil {
-			s.log.Debug().Msg("fetchWithRetry: success")
+			fmt.Printf("[DEBUG] fetchWithRetry: success\n")
 			return body, nil
 		}
-		s.log.Debug().Err(err).Msg("fetchWithRetry: error")
+		fmt.Printf("[DEBUG] fetchWithRetry: error: %v\n", err)
 		lastErr = err
 		if strings.Contains(err.Error(), "session invalid") {
 			s.mu.Lock()
@@ -262,40 +289,40 @@ func (s *Scraper) fetchWithRetry(ctx context.Context, url string) ([]byte, error
 
 func (s *Scraper) urlExists(ctx context.Context, url string) bool {
 	if s.session == nil {
-		s.log.Debug().Msg("urlExists: session is nil")
+		fmt.Println("[DEBUG] urlExists: session is nil")
 		return false
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		s.log.Debug().Err(err).Msg("urlExists: request error")
+		fmt.Printf("[DEBUG] urlExists: request error %v\n", err)
 		return false
 	}
 	req.Header.Set("User-Agent", s.session.UserAgent)
 	req.Header.Set("Range", "bytes=0-0")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		s.log.Debug().Err(err).Msg("urlExists: do error")
+		fmt.Printf("[DEBUG] urlExists: do error %v\n", err)
 		return false
 	}
 	defer resp.Body.Close()
-	s.log.Debug().Int("status", resp.StatusCode).Str("url", url).Msg("urlExists: status")
+	fmt.Printf("[DEBUG] urlExists: status %d for %s\n", resp.StatusCode, url)
 	return resp.StatusCode == http.StatusOK
 }
 
 func (s *Scraper) getCardURL(ctx context.Context, nmID int) (string, error) {
 	newURL := buildCardURLNew("01", nmID)
-	s.log.Debug().Str("url", newURL).Msg("checking new CDN")
+	fmt.Printf("[DEBUG] checking new CDN: %s\n", newURL)
 	if s.urlExists(ctx, newURL) {
-		s.log.Debug().Msg("new CDN works")
+		fmt.Println("[DEBUG] new CDN works")
 		return newURL, nil
 	}
 	vol := nmID / 100000
 	part := nmID / 1000
 	for basket := 1; basket <= 41; basket++ {
 		oldURL := fmt.Sprintf("https://basket-%d.wbbasket.ru/vol%d/part%d/%d/info/ru/card.json", basket, vol, part, nmID)
-		s.log.Debug().Int("basket", basket).Str("url", oldURL).Msg("checking basket")
+		fmt.Printf("[DEBUG] checking basket %d: %s\n", basket, oldURL)
 		if s.urlExists(ctx, oldURL) {
-			s.log.Debug().Int("basket", basket).Msg("found working basket")
+			fmt.Printf("[DEBUG] found working basket %d\n", basket)
 			return oldURL, nil
 		}
 	}
@@ -336,8 +363,6 @@ func (s *Scraper) Scrape(ctx context.Context, task domain.ScrapeTask) (*domain.S
 		return s.scrapeListing(ctx, task)
 	case domain.PageTypeDiscovery:
 		return s.scrapeDiscoveryTask(ctx, task)
-	case domain.PageTypeCategory:
-    	return s.scrapeCategory(ctx, task)
 	default:
 		return nil, fmt.Errorf("unsupported page type %s for source %s", task.PageType.String(), task.Source)
 	}
@@ -350,7 +375,7 @@ func (s *Scraper) scrapeListing(ctx context.Context, task domain.ScrapeTask) (*d
 	}
 
 	detailURL := fmt.Sprintf(
-		"https://www.wildberries.ru/__internal/u-card/cards/v4/detail?appType=1&curr=rub&dest=-1257786&spp=30&hide_vflags=4294967296&ab_testing=false&lang=ru&nm=%d",
+		"https://card.wb.ru/cards/v4/detail?appType=1&curr=rub&dest=-1257786&spp=30&nm=%d",
 		nmID,
 	)
 
@@ -407,6 +432,7 @@ func (s *Scraper) scrapeDiscoveryTask(ctx context.Context, task domain.ScrapeTas
 }
 
 func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages int, urlTemplate string) ([]domain.Resource, error) {
+	fmt.Printf("[DEBUG] scrapeDiscovery: received urlTemplate = %q\n", urlTemplate)
 	var resources []domain.Resource
 	for page := 1; page <= maxPages; page++ {
 		searchURL := strings.ReplaceAll(urlTemplate, "{query}", url.QueryEscape(query))
@@ -447,20 +473,4 @@ func (s *Scraper) scrapeDiscovery(ctx context.Context, query string, maxPages in
 		return nil, fmt.Errorf("no search results found for query %s", query)
 	}
 	return resources, nil
-}
-
-func (s *Scraper) scrapeCategory(ctx context.Context, task domain.ScrapeTask) (*domain.ScrapeResult, error) {
-    body, err := s.fetchWithRetry(ctx, task.URL)
-    if err != nil {
-        return nil, fmt.Errorf("fetch category page: %w", err)
-    }
-    resource := domain.Resource{
-        Name:         "html",
-        URL:          task.URL,
-        ResponseBody: body,
-        StatusCode:   http.StatusOK,
-        Status:       "200 OK",
-        Timestamp:    time.Now(),
-    }
-    return &domain.ScrapeResult{Resources: []domain.Resource{resource}}, nil
 }

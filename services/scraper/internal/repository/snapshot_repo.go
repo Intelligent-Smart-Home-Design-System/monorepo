@@ -71,6 +71,7 @@ func (r *SnapshotRepo) GetUnprocessedSnapshots(ctx context.Context, pageType str
 		SELECT
 			ps.id,
 			ps.tracked_page,
+			tp.url,
 			ps.scraped_at,
 			ps.warc_bundle_archive,
 			tp.page_type,
@@ -97,6 +98,7 @@ func (r *SnapshotRepo) GetUnprocessedSnapshots(ctx context.Context, pageType str
 		if err := rows.Scan(
 			&s.ID,
 			&s.TrackedPageID,
+			&s.PageURL,
 			&s.ScrapedAt,
 			&s.WARCBundle,
 			&s.PageType,

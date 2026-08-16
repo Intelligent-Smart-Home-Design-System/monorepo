@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,20 +26,22 @@ import (
 )
 
 type Settings struct {
-	Host            string
-	NetworkName     string
-	ContainerPrefix string
-	AutoRemove      bool
-	ConfigRoot      string
+	Host                  string
+	NetworkName           string
+	MonitoringNetworkName string
+	ContainerPrefix       string
+	AutoRemove            bool
+	ConfigRoot            string
 }
 
 type Runner struct {
-	client          *client.Client
-	networkName     string
-	containerPrefix string
-	autoRemove      bool
-	configRoot      string
-	logger          zerolog.Logger
+	client                *client.Client
+	networkName           string
+	monitoringNetworkName string
+	containerPrefix       string
+	autoRemove            bool
+	configRoot            string
+	logger                zerolog.Logger
 }
 
 var invalidContainerChars = regexp.MustCompile(`[^a-zA-Z0-9_.-]+`)
@@ -57,12 +61,13 @@ func NewRunner(settings Settings, logger zerolog.Logger) (*Runner, error) {
 	}
 
 	return &Runner{
-		client:          dockerClient,
-		networkName:     settings.NetworkName,
-		containerPrefix: settings.ContainerPrefix,
-		autoRemove:      settings.AutoRemove,
-		configRoot:      settings.ConfigRoot,
-		logger:          logger,
+		client:                dockerClient,
+		networkName:           settings.NetworkName,
+		monitoringNetworkName: settings.MonitoringNetworkName,
+		containerPrefix:       settings.ContainerPrefix,
+		autoRemove:            settings.AutoRemove,
+		configRoot:            settings.ConfigRoot,
+		logger:                logger,
 	}, nil
 }
 
@@ -79,14 +84,28 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		return nil, err
 	}
 
-	if _, _, err := r.client.ImageInspectWithRaw(ctx, params.Image); err != nil {
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("image", params.Image).
+		Strs("command", resolvedCommand).
+		Msg("Starting job container")
+
+	imageInspect, _, err := r.client.ImageInspectWithRaw(ctx, params.Image)
+	if err != nil {
 		return nil, fmt.Errorf("inspect image %q: %w", params.Image, err)
 	}
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("image", params.Image).
+		Str("image_id", shortImageID(imageInspect.ID)).
+		Msg("Job container image ready")
 
-	envValues, err := r.resolveEnv(params)
+	envValues, err := r.resolveEnv(params.EnvMapping, params.Name)
 	if err != nil {
 		return nil, err
 	}
+	envValues = appendScraperBrowserEnv(envValues, params)
+	envValues = appendOTelEnv(envValues, r.monitoringNetworkName)
 
 	containerName := buildContainerName(r.containerPrefix, params.Name)
 	labels := map[string]string{
@@ -95,7 +114,16 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 	}
 
 	hostConfig := &container.HostConfig{}
-	if r.networkName != "" {
+	if binds, err := buildVolumeBinds(params.Volumes, params.Name); err != nil {
+		return nil, err
+	} else if len(binds) > 0 {
+		hostConfig.Binds = binds
+	}
+	if shm := parseShmSize(params.ShmSize); shm > 0 {
+		hostConfig.ShmSize = shm
+	}
+	networkingConfig := r.containerNetworking()
+	if networkingConfig == nil && r.networkName != "" {
 		hostConfig.NetworkMode = container.NetworkMode(r.networkName)
 	}
 
@@ -108,7 +136,7 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 			Labels: labels,
 		},
 		hostConfig,
-		&network.NetworkingConfig{},
+		networkingConfig,
 		nil,
 		containerName,
 	)
@@ -116,12 +144,28 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		return nil, fmt.Errorf("create container: %w", err)
 	}
 
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("image", params.Image).
+		Str("container_id", created.ID).
+		Str("container_name", containerName).
+		Msg("Job container created")
+
 	if r.autoRemove {
 		defer func() {
+			r.logger.Info().
+				Str("job", params.Name).
+				Str("container_id", created.ID).
+				Msg("Removing job container")
 			removeErr := r.client.ContainerRemove(context.Background(), created.ID, container.RemoveOptions{Force: true})
 			if removeErr != nil {
 				r.logger.Warn().Err(removeErr).Str("container_id", created.ID).Msg("Failed to remove job container")
+				return
 			}
+			r.logger.Info().
+				Str("job", params.Name).
+				Str("container_id", created.ID).
+				Msg("Job container removed")
 		}()
 	}
 
@@ -129,12 +173,22 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		if err := r.copyConfigDir(ctx, created.ID, params.ConfigPath); err != nil {
 			return nil, fmt.Errorf("copy config into container: %w", err)
 		}
+		r.logger.Info().
+			Str("job", params.Name).
+			Str("container_id", created.ID).
+			Str("config_path", containerConfigPath).
+			Msg("Job config copied into container")
 	}
 
 	startedAt := time.Now().UTC()
 	if err := r.client.ContainerStart(ctx, created.ID, container.StartOptions{}); err != nil {
 		return nil, fmt.Errorf("start container: %w", err)
 	}
+
+	r.logger.Info().
+		Str("job", params.Name).
+		Str("container_id", created.ID).
+		Msg("Job container started")
 
 	var statusCode int64
 	for {
@@ -185,6 +239,8 @@ func (r *Runner) Run(ctx context.Context, params pipeline.RunContainerParams) (*
 		Dur("duration", completedAt.Sub(startedAt)).
 		Msg("Job container finished")
 
+	emitJobContainerLogs(r.logger, params.Name, logs)
+
 	if statusCode != 0 {
 		return result, fmt.Errorf("container %s exited with code %d", params.Name, statusCode)
 	}
@@ -216,24 +272,65 @@ func (r *Runner) resolveCommand(params pipeline.RunContainerParams) ([]string, s
 	return resolved, containerConfigPath, nil
 }
 
-func (r *Runner) resolveEnv(params pipeline.RunContainerParams) ([]string, error) {
-	keys := make([]string, 0, len(params.EnvMapping))
-	for key := range params.EnvMapping {
+func (r *Runner) containerNetworking() *network.NetworkingConfig {
+	if r.networkName == "" || r.monitoringNetworkName == "" {
+		return nil
+	}
+	if strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")) == "" {
+		return nil
+	}
+
+	return &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			r.networkName:           {},
+			r.monitoringNetworkName: {},
+		},
+	}
+}
+
+func appendOTelEnv(values []string, monitoringNetworkName string) []string {
+	if monitoringNetworkName == "" {
+		return values
+	}
+	endpoint := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	if endpoint == "" {
+		return values
+	}
+
+	values = append(values, "OTEL_EXPORTER_OTLP_ENDPOINT="+endpoint)
+	if insecure, ok := os.LookupEnv("OTEL_EXPORTER_OTLP_INSECURE"); ok {
+		values = append(values, "OTEL_EXPORTER_OTLP_INSECURE="+insecure)
+	} else {
+		values = append(values, "OTEL_EXPORTER_OTLP_INSECURE=true")
+	}
+	return values
+}
+
+func (r *Runner) resolveEnv(envMapping map[string]string, jobName string) ([]string, error) {
+	keys := make([]string, 0, len(envMapping))
+	for key := range envMapping {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
 
 	values := make([]string, 0, len(keys))
 	for _, targetKey := range keys {
-		sourceKey := params.EnvMapping[targetKey]
+		sourceKey := envMapping[targetKey]
 		sourceValue, ok := os.LookupEnv(sourceKey)
 		if !ok {
-			return nil, fmt.Errorf("required env %q for job %q is not set", sourceKey, params.Name)
+			return nil, fmt.Errorf("required env %q for job %q is not set", sourceKey, jobName)
 		}
 		values = append(values, fmt.Sprintf("%s=%s", targetKey, sourceValue))
 	}
 
 	return values, nil
+}
+
+func shortImageID(imageID string) string {
+	if len(imageID) <= 12 {
+		return imageID
+	}
+	return imageID[:12]
 }
 
 func (r *Runner) copyConfigDir(ctx context.Context, containerID string, configPath string) error {
@@ -340,6 +437,51 @@ func tarDirectory(sourceDir string, destinationRoot string) (io.ReadCloser, erro
 	return io.NopCloser(bytes.NewReader(buffer.Bytes())), nil
 }
 
+func emitJobContainerLogs(logger zerolog.Logger, jobName string, logs string) {
+	logs = strings.TrimSpace(logs)
+	if logs == "" {
+		return
+	}
+
+	const maxLines = 200
+	allLines := strings.Split(logs, "\n")
+	lines := allLines
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+		logger.Info().
+			Str("pipeline_job", jobName).
+			Int("log_lines_truncated_from", len(allLines)).
+			Msg("pipeline job container logs truncated")
+	}
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		event := zerolog.Dict()
+		event = event.Str("pipeline_job", jobName).Str("raw_line", line)
+
+		var fields map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &fields); err == nil {
+			if msg, ok := fields["event"].(string); ok && msg != "" {
+				event = event.Str("job_event", msg)
+			}
+			for key, value := range fields {
+				if key == "event" || key == "level" || key == "timestamp" {
+					continue
+				}
+				event = event.Interface(key, value)
+			}
+			logger.Info().Dict("job_log", event).Msg("pipeline job container log")
+			continue
+		}
+
+		logger.Info().Dict("job_log", event).Msg("pipeline job container log")
+	}
+}
+
 func buildContainerName(prefix string, jobName string) string {
 	sanitized := invalidContainerChars.ReplaceAllString(strings.ToLower(strings.TrimSpace(jobName)), "-")
 	sanitized = strings.Trim(sanitized, "-")
@@ -347,4 +489,91 @@ func buildContainerName(prefix string, jobName string) string {
 		sanitized = "job"
 	}
 	return fmt.Sprintf("%s-%s-%d", prefix, sanitized, time.Now().Unix())
+}
+
+func buildVolumeBinds(volumes []pipeline.VolumeMount, jobName string) ([]string, error) {
+	if len(volumes) == 0 {
+		return nil, nil
+	}
+	binds := make([]string, 0, len(volumes))
+	for _, v := range volumes {
+		source := expandEnvPlaceholders(v.Source)
+		target := strings.TrimSpace(v.Target)
+		if source == "" {
+			return nil, fmt.Errorf("job %q volume source is empty (set DNS_CHROME_PROFILE_HOST or use a named volume)", jobName)
+		}
+		if target == "" {
+			return nil, fmt.Errorf("job %q volume target is required", jobName)
+		}
+		mountType := strings.ToLower(strings.TrimSpace(v.Type))
+		if mountType == "" {
+			if strings.Contains(source, "/") || strings.Contains(source, `\`) || strings.Contains(source, ":") {
+				mountType = "bind"
+			} else {
+				mountType = "volume"
+			}
+		}
+		var bind string
+		switch mountType {
+		case "bind":
+			bind = fmt.Sprintf("%s:%s", source, target)
+		case "volume":
+			bind = fmt.Sprintf("%s:%s", source, target)
+		default:
+			return nil, fmt.Errorf("job %q volume type %q is unsupported", jobName, mountType)
+		}
+		if v.ReadOnly {
+			bind += ":ro"
+		}
+		binds = append(binds, bind)
+	}
+	return binds, nil
+}
+
+func expandEnvPlaceholders(value string) string {
+	return os.ExpandEnv(value)
+}
+
+func parseShmSize(raw string) int64 {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0
+	}
+	if strings.HasSuffix(strings.ToLower(raw), "g") {
+		n, err := strconv.ParseFloat(strings.TrimSuffix(strings.ToLower(raw), "g"), 64)
+		if err != nil {
+			return 0
+		}
+		return int64(n * 1024 * 1024 * 1024)
+	}
+	if strings.HasSuffix(strings.ToLower(raw), "m") {
+		n, err := strconv.ParseFloat(strings.TrimSuffix(strings.ToLower(raw), "m"), 64)
+		if err != nil {
+			return 0
+		}
+		return int64(n * 1024 * 1024)
+	}
+	n, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// appendScraperBrowserEnv gives each pipeline scraper job its own Chrome user-data dir
+// so concurrent or back-to-back containers never fight over SingletonLock on a shared volume.
+func appendScraperBrowserEnv(values []string, params pipeline.RunContainerParams) []string {
+	if !strings.Contains(params.Image, "scraper") {
+		return values
+	}
+	for _, v := range values {
+		if strings.HasPrefix(v, "DNS_BROWSER_PROFILE=") {
+			return values
+		}
+	}
+	if !strings.Contains(params.Name, "scrape") {
+		return values
+	}
+	dir := fmt.Sprintf("/tmp/pipeline-dns-chrome-%s-%d", strings.TrimPrefix(params.Name, "scraper-"), time.Now().UnixNano())
+	return append(values, "DNS_BROWSER_PROFILE="+dir)
 }

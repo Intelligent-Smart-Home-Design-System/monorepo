@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -12,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	sdkresource "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -53,20 +54,20 @@ func Init(ctx context.Context, serviceName string, logger zerolog.Logger) (*Runt
 		return noopRuntime(), nil
 	}
 
-	endpoint := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	endpoint := normalizeOTLPEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	if endpoint == "" {
 		logger.Info().Msg("Tracing disabled because OTLP endpoint is not configured")
 		return noopRuntime(), nil
 	}
 
-	exporterOptions := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint(endpoint),
+	exporterOptions := []otlptracehttp.Option{
+		otlptracehttp.WithEndpoint(endpoint),
 	}
 	if readBoolEnv("OTEL_EXPORTER_OTLP_INSECURE", true) {
-		exporterOptions = append(exporterOptions, otlptracegrpc.WithInsecure())
+		exporterOptions = append(exporterOptions, otlptracehttp.WithInsecure())
 	}
 
-	exporter, err := otlptracegrpc.New(ctx, exporterOptions...)
+	exporter, err := otlptracehttp.New(ctx, exporterOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("create OTLP trace exporter: %w", err)
 	}
@@ -89,6 +90,7 @@ func Init(ctx context.Context, serviceName string, logger zerolog.Logger) (*Runt
 
 	logger.Info().
 		Str("otlp_endpoint", endpoint).
+		Str("otlp_protocol", "http").
 		Str("service_name", serviceName).
 		Msg("Tracing enabled")
 
@@ -101,6 +103,24 @@ func Init(ctx context.Context, serviceName string, logger zerolog.Logger) (*Runt
 		},
 		shutdown: provider.Shutdown,
 	}, nil
+}
+
+// normalizeOTLPEndpoint strips scheme/path for otlptracehttp.WithEndpoint (host:port only).
+func normalizeOTLPEndpoint(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	if strings.Contains(raw, "://") {
+		parsed, err := url.Parse(raw)
+		if err != nil {
+			return raw
+		}
+		if parsed.Host != "" {
+			return parsed.Host
+		}
+	}
+	return strings.TrimPrefix(strings.TrimPrefix(raw, "https://"), "http://")
 }
 
 func (r *Runtime) ClientInterceptors() []interceptor.ClientInterceptor {

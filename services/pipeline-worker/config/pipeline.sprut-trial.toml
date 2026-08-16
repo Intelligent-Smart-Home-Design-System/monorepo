@@ -1,0 +1,71 @@
+# Sprut-only pipeline trial (4 scraper jobs) — проверяет весь новый путь: discovery BFS +
+# api.sprut.ai до конца, tracked_pages/page_snapshots/parsed_listing_snapshots в БД.
+#
+#   make pipeline-build && make pipeline-up
+#   make pipeline-trigger PIPELINE_CONFIG=/app/config/pipeline.sprut-trial.toml
+
+[temporal]
+host_port = "temporal:7233"
+namespace = "default"
+task_queue = "catalog-pipeline"
+schedule_id = "catalog-pipeline-sprut-trial"
+schedule_cron = "0 11 * * *"
+schedule_timezone = "Europe/Moscow"
+schedule_enabled = false
+connect_attempts = 30
+workflow_id_prefix = "catalog-pipeline-sprut-trial"
+
+[docker]
+host = "unix:///var/run/docker.sock"
+network_name = "catalog-pipeline-network"
+monitoring_network_name = "monorepo-monitoring"
+container_prefix = "catalog-pipeline"
+auto_remove = true
+
+[metrics]
+listen_address = ":2112"
+
+[activity]
+start_to_close_timeout = "2h"
+heartbeat_timeout = "30s"
+maximum_attempts = 3
+initial_interval = "1m"
+backoff_coefficient = 2.0
+maximum_interval = "15m"
+
+[pipeline]
+config_root = "./jobs"
+job_names = [
+  "scraper-sprut-scrape-discovery",
+  "scraper-sprut-parse-discovery",
+  "scraper-sprut-scrape",
+  "scraper-sprut-parse",
+]
+
+[[jobs]]
+name = "scraper-sprut-scrape-discovery"
+image = "scraper:latest"
+config_path = "scraper/config.sprut-pipeline.toml"
+command = ["/scraper", "scrape", "--config", "{{config_path}}", "--discovery", "--sources", "sprut"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "scraper-sprut-parse-discovery"
+image = "scraper:latest"
+config_path = "scraper/config.sprut-pipeline.toml"
+command = ["/scraper", "parse", "--config", "{{config_path}}", "--discovery", "--sources", "sprut"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "scraper-sprut-scrape"
+image = "scraper:latest"
+config_path = "scraper/config.sprut-pipeline.toml"
+command = ["/scraper", "scrape", "--config", "{{config_path}}", "--page-types", "listing", "--sources", "sprut"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }
+
+[[jobs]]
+name = "scraper-sprut-parse"
+image = "scraper:latest"
+config_path = "scraper/config.sprut-pipeline.toml"
+command = ["/scraper", "parse", "--config", "{{config_path}}", "--page-types", "listing", "--sources", "sprut"]
+env_mapping = { SCRAPER_DATABASE_PASSWORD = "CATALOG_DATABASE_PASSWORD" }

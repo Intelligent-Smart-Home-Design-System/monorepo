@@ -65,7 +65,7 @@ func TestScrapeTaskDispatch(t *testing.T) {
 	}
 	close(tasksCh)
 
-	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh)
+	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh, 0)
 
 	go worker.Run(t.Context(), tasksCh)
 
@@ -123,7 +123,7 @@ func TestScrapeFailure(t *testing.T) {
 	}
 	close(tasksCh)
 
-	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh)
+	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh, 0)
 
 	go worker.Run(t.Context(), tasksCh)
 
@@ -143,7 +143,7 @@ func TestContextCancelled(t *testing.T) {
 	resultsCh := make(chan domain.ScrapeResult)
 	tasksCh := make(chan domain.ScrapeTask)
 
-	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh)
+	worker := NewWorker(zerolog.New(io.Discard), sourceToScraper, resultsCh, 0)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()

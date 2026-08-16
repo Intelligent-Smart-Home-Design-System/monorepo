@@ -21,6 +21,7 @@ type Wildberries struct {
 }
 
 func newWildberries(cfg config.Config, log zerolog.Logger) Source {
+	fmt.Printf("[DEBUG] newWildberries: cfg.Scraping.WBRPS = %f\n", cfg.Scraping.WBRPS)
     s := wbScraper.NewScraper(
         cfg.Scraping.Timeout,
         cfg.Scraping.Proxy,

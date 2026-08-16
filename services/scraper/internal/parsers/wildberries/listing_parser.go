@@ -108,6 +108,7 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 	}
 
 	if !p.containsSmartHomeMarker(&card) {
+		fmt.Printf("[DEBUG] containsSmartHomeMarker returned false for snapshot %d\n", pageSnapshotID)
 		return nil, fmt.Errorf("listing does not contain any smart home marker, skipping")
 	}
 
@@ -156,23 +157,29 @@ func (p *ListingParser) Parse(pageSnapshotID int, files []*parser.ArchiveFile) (
 	res.Text = buildText(&card)
 	res.ContentHash = computeHash(res)
 
+	res.HasSmartHomeMarkers = true
+
 	return res, nil
 }
 
 func (p *ListingParser) containsSmartHomeMarker(card *cardResponse) bool {
-	if len(p.smartHomeMarkers) == 0 {
-		return true
-	}
-	text := strings.ToLower(card.ImtName + " " + card.Description + " " + card.Contents)
-	for _, opt := range card.Options {
-		text += " " + opt.Name + " " + opt.Value
-	}
-	for _, marker := range p.smartHomeMarkers {
-		if strings.Contains(text, strings.ToLower(marker)) {
-			return true
-		}
-	}
-	return false
+    if len(p.smartHomeMarkers) == 0 {
+        fmt.Println("[DEBUG] containsSmartHomeMarker: no markers configured, skipping check")
+        return true
+    }
+    text := strings.ToLower(card.ImtName + " " + card.Description + " " + card.Contents)
+    for _, opt := range card.Options {
+        text += " " + opt.Name + " " + opt.Value
+    }
+    fmt.Printf("[DEBUG] containsSmartHomeMarker: checking text: %s\n", text)
+    for _, marker := range p.smartHomeMarkers {
+        if strings.Contains(text, strings.ToLower(marker)) {
+            fmt.Printf("[DEBUG] containsSmartHomeMarker: found marker %q\n", marker)
+            return true
+        }
+    }
+    fmt.Println("[DEBUG] containsSmartHomeMarker: no markers found")
+    return false
 }
 
 func stockAndPrice(sizes []detailSize) (totalQty, productPriceKopecks int) {

@@ -92,6 +92,7 @@ export function persistAuthResponse(response: AuthResponse, fallbackEmail?: stri
       response.user ??
       (fallbackEmail
         ? {
+            id: crypto.randomUUID(),
             email: fallbackEmail,
           }
         : null),
@@ -101,11 +102,11 @@ export function persistAuthResponse(response: AuthResponse, fallbackEmail?: stri
 function normalizeUser(value: unknown): AuthUser | null {
   if (!value || typeof value !== "object") return null;
   const user = value as Record<string, unknown>;
-  const email = pickString(user.email);
-  if (!email) return null;
+  const id = pickString(user.id);
+  if (!id) return null;
   return {
-    id: pickString(user.id) ?? (typeof user.id === "number" ? user.id : undefined),
-    email,
+    id,
+    email: pickString(user.email) ?? undefined,
     name: pickString(user.name) ?? pickString(user.full_name) ?? null,
   };
 }

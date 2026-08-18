@@ -283,14 +283,15 @@ export type AuthTokens = {
 };
 
 export type AuthUser = {
-    id?: string | number;
-    email: string;
+    id: string;
+    email?: string;
     name?: string | null;
 };
 
 export type LoginRequest = {
-    email: string;
-    password: string;
+    email?: string;
+    password?: string;
+    is_authorising: boolean;
 };
 
 export type RegisterRequest = {

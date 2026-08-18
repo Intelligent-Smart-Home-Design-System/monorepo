@@ -17,6 +17,9 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/wildberries"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/yandex"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/repository"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/apify"
+	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/ozon"
+	dnsParser "github.com/Intelligent-Smart-Home-Design-System/monorepo/services/scraper/internal/parsers/dns"
 )
 
 func NewParseCmd() *cobra.Command {
@@ -102,10 +105,6 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 
 		logger.Debug().Msgf("parsed %d listings", len(listings))
 		for _, listing := range listings {
-			if !listing.HasSmartHomeMarkers {
-				logger.Info().Err(err).Msgf("listing page snapshot %d has no smart home markers, skipping", listing.PageSnapshotID)
-				continue
-			}
 			if err := snapshotRepo.SaveListingParseResult(listing); err != nil {
 				logger.Error().Err(err).Msg("failed to save listing result")
 			}
@@ -131,22 +130,113 @@ func parse(ctx context.Context, cfgFile string, sources, pageTypes []string, dis
 		}
 	}
 
-	if shouldRun(domain.PageTypeCategory, domain.SourceWildberries) {
-    categoryParsers := []parser.SourceParser[[]string]{
-        wildberries.NewCategoryParser(),
-    }
-    categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
-    categoryResults := categoryWorker.Parse(ctx)
-    for _, urls := range categoryResults {
-        for _, productURL := range urls {
-            if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
-                logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from category")
-            } else {
-                logger.Debug().Str("url", productURL).Msg("created listing task from category")
-            }
-        }
-    }
-}
+	//if shouldRun(domain.PageTypeCategory, domain.SourceWildberries) {
+	//	categoryParsers := []parser.SourceParser[[]string]{
+	//		wildberries.NewCategoryParser(),
+	//	}
+	//	categoryWorker := parser.NewWorker(logger, domain.PageTypeCategory, snapshotRepo, categoryParsers)
+	//	categoryResults := categoryWorker.Parse(ctx)
+	//	for _, urls := range categoryResults {
+	//		for _, productURL := range urls {
+	//			if err := taskRepo.CreateTask(domain.SourceWildberries, domain.PageTypeListing.String(), productURL); err != nil {
+	//				logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from category")
+	//			} else {
+	//				logger.Debug().Str("url", productURL).Msg("created listing task from category")
+	//			}
+    //  	}
+    //	}
+	//}
+
+	if shouldRun(domain.PageTypeDiscovery, domain.SourceDns) {
+		discoveryParsersDns := []parser.SourceParser[[]string]{
+			dnsParser.NewDiscoveryParser(),
+		}
+		discoveryWorkerDns := parser.NewWorker(logger, domain.PageTypeDiscovery, snapshotRepo, discoveryParsersDns)
+		discoveryResultsDns := discoveryWorkerDns.Parse(ctx)
+
+		logger.Debug().Msgf("processed %d DNS discovery snapshots", len(discoveryResultsDns))
+		for _, urls := range discoveryResultsDns {
+			for _, productURL := range urls {
+				if err := taskRepo.CreateTask(domain.SourceDns, domain.PageTypeListing.String(), productURL); err != nil {
+					logger.Error().Err(err).Str("url", productURL).Msg("failed to create listing task from DNS discovery")
+				} else {
+					logger.Debug().Str("url", productURL).Msg("created listing task from DNS discovery")
+				}
+			}
+		}
+	}
+
+	if shouldRun(domain.PageTypeDiscovery, domain.SourceApifyYandexMarket) {
+		snapshots, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeDiscovery.String(), domain.SourceApifyYandexMarket)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to get Apify snapshots")
+		} else {
+			logger.Info().Msgf("found %d unprocessed Apify snapshots", len(snapshots))
+			for _, snap := range snapshots {
+				files, err := parser.ExtractArchive(snap.WARCBundle)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("extract archive")
+					continue
+				}
+				jsonData, err := parser.FindFile(files, "apify_result.json")
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("find apify_result.json")
+					continue
+				}
+				listings, err := apify.ParseApifyResult(jsonData, cfg.Wildberries.BrandAliases, snap.ID)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("parse apify result")
+					continue
+				}
+				for _, list := range listings {
+					if err := snapshotRepo.SaveListingParseResult(list); err != nil {
+						logger.Error().Err(err).Msg("failed to save listing from Apify")
+					}
+				}
+				if err := snapshotRepo.SetProcessed(snap.ID); err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("set processed")
+				} else {
+					logger.Debug().Int("snapshot_id", snap.ID).Msg("Apify snapshot processed")
+				}
+			}
+		}
+	}
+
+	if shouldRun(domain.PageTypeDiscovery, domain.SourceOzon) {
+		snapshots, err := snapshotRepo.GetUnprocessedSnapshots(ctx, domain.PageTypeDiscovery.String(), domain.SourceOzon)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to get Ozon snapshots")
+		} else {
+			logger.Info().Msgf("found %d unprocessed Ozon snapshots", len(snapshots))
+			for _, snap := range snapshots {
+				files, err := parser.ExtractArchive(snap.WARCBundle)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("extract archive")
+					continue
+				}
+				jsonData, err := parser.FindFile(files, "apify_result.json")
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("find apify_result.json")
+					continue
+				}
+				listings, err := ozon.ParseOzonResult(jsonData, cfg.Wildberries.BrandAliases, snap.ID)
+				if err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("parse ozon result")
+					continue
+				}
+				for _, list := range listings {
+					if err := snapshotRepo.SaveListingParseResult(list); err != nil {
+						logger.Error().Err(err).Msg("failed to save listing from Ozon")
+					}
+				}
+				if err := snapshotRepo.SetProcessed(snap.ID); err != nil {
+					logger.Error().Err(err).Int("snapshot_id", snap.ID).Msg("set processed")
+				} else {
+					logger.Debug().Int("snapshot_id", snap.ID).Msg("Ozon snapshot processed")
+				}
+			}
+		}
+	}
 
 	if shouldRun(domain.PageTypeCompatibility, domain.SourceYandex) {
 		compatibilityParsers := []parser.SourceParser[[]*domain.DirectCompatibilityRecord]{

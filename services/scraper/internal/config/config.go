@@ -9,6 +9,9 @@ type Config struct {
     Scraping    ScrapingConfig    `mapstructure:"scraping"`
     Wildberries WildberriesConfig `mapstructure:"wildberries"`
     Yandex      YandexConfig      `mapstructure:"yandex"`
+    Dns         DnsConfig         `mapstructure:"dns"`
+    Apify       ApifyConfig       `mapstructure:"apify"`
+    Ozon        OzonConfig        `mapstructure:"ozon"`
 }
 
 type DatabaseConfig struct {
@@ -50,4 +53,26 @@ type WildberriesCategoryConfig struct {
 
 type YandexConfig struct {
     SupportedZigbeeDevicesURL string `mapstructure:"supported_zigbee_devices_url"`
+}
+
+type DnsConfig struct {
+    SearchQueries []string `mapstructure:"search_queries"`
+    MaxPages      int      `mapstructure:"max_pages"`
+    UserAgent     string   `mapstructure:"user_agent"`
+}
+
+type ApifyConfig struct {
+    APIKey        string   `mapstructure:"api_key"`
+    ActorID       string   `mapstructure:"actor_id"`
+    Region        int      `mapstructure:"region"`
+    MaxItems      int      `mapstructure:"max_items"`
+    SearchQueries []string `mapstructure:"search_queries"`
+}
+
+type OzonConfig struct {
+    APIKey        string   `mapstructure:"api_key"`
+    ActorID       string   `mapstructure:"actor_id"`
+    Region        int      `mapstructure:"region"`
+    MaxItems      int      `mapstructure:"max_items"`
+    SearchQueries []string `mapstructure:"search_queries"`
 }

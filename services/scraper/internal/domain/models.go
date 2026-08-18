@@ -78,8 +78,7 @@ type PageSnapshot struct {
 }
 
 type ListingParseResult struct {
-	PageSnapshotID      int
-	HasSmartHomeMarkers bool
+	PageSnapshotID int
 
 	InStock      bool
 	Text         string
@@ -98,19 +97,23 @@ type ListingParseResult struct {
 	ExtractorVer string
 	ParsedAt     time.Time
 	Processed    bool
+	HasSmartHomeMarkers bool
 }
 
 const (
-	SourceSprut       = "sprut"
-	SourceWildberries = "wildberries"
-	SourcePrinter     = "printer"
-	SourceYandex      = "yandex"
+    SourceSprut       = "sprut"
+    SourceWildberries = "wildberries"
+    SourcePrinter     = "printer"
+    SourceYandex      = "yandex"
+	SourceDns         = "dns"
+	SourceApifyYandexMarket = "apify_yandex_market"
+	SourceOzon        = "ozon"
 )
 
 type DirectCompatibilityRecord struct {
-	PageSnapshotID int
-	Brand          string
-	Model          string
-	Ecosystem      string
-	Protocol       string
+    PageSnapshotID int
+    Brand          string
+    Model          string
+    Ecosystem      string
+    Protocol       string
 }

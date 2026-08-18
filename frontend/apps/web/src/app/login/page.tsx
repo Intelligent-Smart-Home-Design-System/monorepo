@@ -25,10 +25,10 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const submit = async () => {
-    const trimmedEmail = email.trim();
+  const submit = async (isAuthorising: boolean = true) => {
+    const trimmedEmail = isAuthorising ? email.trim() : "";
 
-    if (!trimmedEmail.includes("@")) {
+    if (!trimmedEmail.includes("@") && isAuthorising) {
       setError("Введите корректный email.");
       return;
     }
@@ -36,7 +36,7 @@ export default function LoginPage() {
     setSubmitting(true);
     setError("");
     try {
-      await auth.login({ email: trimmedEmail, password });
+      await auth.login({ email: trimmedEmail, password, is_authorising: isAuthorising });
       router.push(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Не удалось выполнить вход.");
@@ -60,8 +60,11 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           fullWidth
         />
-        <Button variant="contained" size="large" disabled={!email || !password || submitting} onClick={submit}>
+        <Button variant="contained" size="large" disabled={!email || !password || submitting} onClick={() => submit()}>
           {submitting ? "Входим..." : "Войти"}
+        </Button>
+        <Button variant="contained" size="large" onClick={() => submit(false)}>
+          Продолжить без входа
         </Button>
         <Typography variant="body2" color="text.secondary">
           Нет аккаунта? <Link href="/register">Зарегистрироваться</Link>

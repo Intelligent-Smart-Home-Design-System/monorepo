@@ -23,6 +23,7 @@ import (
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/services/main-pipeline/workflows"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelsetup"
 	"github.com/Intelligent-Smart-Home-Design-System/monorepo/shared/telemetry/go/otelzerolog"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
@@ -149,7 +150,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 			AccessToken:  access,
 			RefreshToken: refresh,
 			TokenType:    "Bearer",
-			User:         &authUser{Email: normalizeEmail(req.Email), Name: req.Name},
+			User:         &authUser{Id: uuid.NewString(), Email: normalizeEmail(req.Email), Name: req.Name},
 		})
 	})
 	mux.HandleFunc("POST /auth/login", func(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +158,8 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 		if !decodeJSON(w, r, &req) {
 			return
 		}
-		access, refresh, err := auth.login(req.Email, req.Password)
+		id := uuid.NewString()
+		access, refresh, err := auth.login(id, req.Email, req.Password, req.IsAuthorising)
 		if err != nil {
 			log.Warn().Ctx(r.Context()).Str("event", "auth.login").Str("email", normalizeEmail(req.Email)).Err(err).Msg("login rejected")
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
@@ -167,7 +169,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 			AccessToken:  access,
 			RefreshToken: refresh,
 			TokenType:    "Bearer",
-			User:         &authUser{Email: normalizeEmail(req.Email)},
+			User:         &authUser{Id: id, Email: normalizeEmail(req.Email)},
 		})
 	})
 	mux.HandleFunc("POST /auth/refresh", func(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +191,7 @@ func buildAPI(log zerolog.Logger, temporalClient client.Client, startedTotal *pr
 			AccessToken:  access,
 			RefreshToken: refresh,
 			TokenType:    "Bearer",
-			User:         &authUser{Email: subject},
+			User:         &authUser{Id: uuid.NewString(), Email: subject},
 		})
 	})
 	mux.HandleFunc("POST /auth/forgot-password", func(w http.ResponseWriter, r *http.Request) {
@@ -406,9 +408,10 @@ func serve(log zerolog.Logger, name string, server *http.Server) {
 }
 
 type credentialsRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Name     string `json:"name,omitempty"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	Name          string `json:"name,omitempty"`
+	IsAuthorising bool   `json:"is_authorising"`
 }
 
 type refreshRequest struct {
@@ -426,7 +429,8 @@ type resetPasswordRequest struct {
 }
 
 type authUser struct {
-	Email string `json:"email"`
+	Id    string `json:"id"`
+	Email string `json:"email,omitempty"`
 	Name  string `json:"name,omitempty"`
 }
 
@@ -490,11 +494,15 @@ func (a *authService) register(email, password string) (string, string, error) {
 	return a.issueTokens(email)
 }
 
-func (a *authService) login(email, password string) (string, string, error) {
+func (a *authService) login(id string, email, password string, isAuthorosing bool) (string, string, error) {
 	email = normalizeEmail(email)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	if !isAuthorosing {
+		return a.issueTokens(id)
+	}
 
 	user, err := a.getUser(ctx, email)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -508,7 +516,7 @@ func (a *authService) login(email, password string) (string, string, error) {
 	if subtle.ConstantTimeCompare([]byte(expected), []byte(user.PasswordHash)) != 1 {
 		return "", "", errors.New("invalid credentials")
 	}
-	return a.issueTokens(email)
+	return a.issueTokens(id)
 }
 
 // refresh проверяет refresh-токен и выпускает новую пару токенов.

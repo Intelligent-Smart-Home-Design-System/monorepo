@@ -40,7 +40,6 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       loading,
       async login(payload) {
         const response = normalizeAuthResponse(await api.login(payload));
-        console.log(response);
         persistAuthResponse(response, payload.email);
         setUser(response.user ?? { id: crypto.randomUUID(), email: payload.email });
       },
